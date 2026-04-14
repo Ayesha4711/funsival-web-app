@@ -7,6 +7,28 @@ import { useRouter } from "next/navigation";
 import logo from "@/assets/images/logo.svg";
 import NotificationPopover from "./NotificationPopover";
 
+const UserIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" />
@@ -44,14 +66,19 @@ const MenuIcon = () => (
 export default function DashboardNavbar({ onMenuToggle }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const notifRef = useRef(null);
+  const profileRef = useRef(null);
   const router = useRouter();
 
-  // Close Notif Popover when clicking outside
+  // Close popovers when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (notifRef.current && !notifRef.current.contains(event.target)) {
         setNotifOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setProfileOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -129,14 +156,50 @@ export default function DashboardNavbar({ onMenuToggle }) {
         </div>
 
         {/* Message */}
-        <button className="text-white/90 hover:text-white transition-colors">
+        <button
+          onClick={() => router.push("/dashboard/messages")}
+          className="text-white/90 hover:text-white transition-colors p-1"
+          aria-label="Messages"
+        >
           <MessageIcon />
         </button>
 
-        {/* Avatar */}
-        <button className="w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden border-2 border-white/30 hover:border-white/60 transition-colors">
-          P
-        </button>
+        {/* Avatar + Profile Dropdown */}
+        <div className="relative" ref={profileRef}>
+          <button
+            onClick={() => setProfileOpen((o) => !o)}
+            className="w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden border-2 border-white/30 hover:border-white/60 transition-colors"
+            aria-label="Profile menu"
+          >
+            P
+          </button>
+          {profileOpen && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg py-1.5 z-50 border border-gray-100">
+              <button
+                onClick={() => { setProfileOpen(false); router.push("/dashboard/profile"); }}
+                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-gray-500"><UserIcon /></span>
+                View Profile
+              </button>
+              <button
+                onClick={() => { setProfileOpen(false); router.push("/dashboard/settings"); }}
+                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-gray-500"><SettingsIcon /></span>
+                Settings
+              </button>
+              <div className="my-1 border-t border-gray-100" />
+              <button
+                onClick={() => { setProfileOpen(false); router.push("/login"); }}
+                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <LogoutIcon />
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
