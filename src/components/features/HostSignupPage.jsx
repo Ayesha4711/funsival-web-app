@@ -8,9 +8,24 @@ import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
-import { loginAction } from "@/app/login/actions";
+import { signupHostAction } from "@/app/signup/actions";
 
-/* ─── Icons ────────────────────────────────────────────────────────────────── */
+/* ─── Icons ─────────────────────────────────────────────────────────────────── */
+const AgencyIcon = () =>
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
+  </svg>;
+
 const MailIcon = () =>
   <svg
     width="20"
@@ -35,6 +50,21 @@ const MailIcon = () =>
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+  </svg>;
+
+const CityIcon = () =>
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+    <circle cx="12" cy="9" r="2.5" />
   </svg>;
 
 const LockIcon = () =>
@@ -135,33 +165,21 @@ const EyeOffIcon = () =>
     />
   </svg>;
 
-const ArrowRightIcon = () =>
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="5" y1="12" x2="19" y2="12" />
-    <polyline points="12 5 19 12 12 19" />
-  </svg>;
-
 /* ─── Component ─────────────────────────────────────────────────────────────── */
-export default function LoginPage() {
+export default function HostSignupPage() {
   const router = useRouter();
   const [form, setForm] = useState({
+    agencyName: "",
     email: "",
+    city: "",
     password: "",
-    rememberMe: false
+    confirmPassword: ""
   });
-  const [clientErrors, setClientErrors] = useState({ email: "", password: "" });
+  const [clientErrors, setClientErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [serverState, submitAction, isPending] = useActionState(
-    loginAction,
+    signupHostAction,
     null
   );
 
@@ -169,15 +187,20 @@ export default function LoginPage() {
     () => {
       if (!serverState) return;
       if (serverState.success) {
-        if (serverState.token) {
+        if (serverState.verificationRequired) {
+          toast.success("Verification OTP sent!", {
+            description: serverState.message
+          });
+          router.push(`/verify?email=${encodeURIComponent(serverState.email)}`);
+        } else if (serverState.token) {
           localStorage.setItem("auth-token", serverState.token);
+          toast.success("Account created!", {
+            description: serverState.message
+          });
+          router.push("/dashboard");
         }
-        toast.success("Signed in successfully", {
-          description: serverState.message
-        });
-        router.push("/dashboard");
       } else if (serverState.error) {
-        toast.error("Login failed", {
+        toast.error("Signup failed", {
           description: serverState.error
         });
       }
@@ -186,74 +209,93 @@ export default function LoginPage() {
   );
 
   const handleChange = e => {
-    const { name, value, type, checked } = e.target;
-    setForm(prev => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value
-    }));
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
     if (clientErrors[name]) setClientErrors(prev => ({ ...prev, [name]: "" }));
   };
 
   const handleSubmit = e => {
-    const newErrors = {};
+    const errs = {};
+    if (!form.agencyName.trim()) {
+      errs.agencyName = "Agency name is required";
+    }
     if (!form.email.trim()) {
-      newErrors.email = "Email is required";
+      errs.email = "Email is required";
     } else if (!form.email.includes("@")) {
-      newErrors.email = "Invalid email address";
+      errs.email = "Invalid email address";
+    }
+    if (!form.city.trim()) {
+      errs.city = "City is required";
     }
     if (!form.password.trim()) {
-      newErrors.password = "Password is required";
+      errs.password = "Password is required";
     } else if (form.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      errs.password = "Password must be at least 6 characters";
     }
-    if (Object.keys(newErrors).length > 0) {
+    if (!form.confirmPassword.trim()) {
+      errs.confirmPassword = "Confirm password is required";
+    } else if (form.confirmPassword !== form.password) {
+      errs.confirmPassword = "Passwords do not match";
+    }
+    if (Object.keys(errs).length > 0) {
       e.preventDefault();
-      setClientErrors(newErrors);
+      setClientErrors(errs);
     }
-  };
-
-  const errors = {
-    email: clientErrors.email,
-    password: clientErrors.password
   };
 
   return (
     <AuthLayout>
-      {/* Heading */}
-      <h1 className="text-4xl font-extrabold text-text mb-3 flex items-center gap-2">
-        Welcome Back <span className="text-3xl">👋</span>
-      </h1>
-      <p className="text-[#A1A1A1] text-[16px] mb-10 ">
+      <h1 className="text-4xl font-extrabold text-[#4A4A4A] mb-3">Signup</h1>
+      <p className="text-[#A1A1A1] text-[16px] mb-10 leading-[160%]">
         Lorem ipsum dolor sit amet consectetur. Sit libero ut adipiscing
-        condimentum ullamcorper massa nec
+        condimentum ullamcorper massa
       </p>
 
-      {/* Form */}
       <form
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-5"
         action={submitAction}
         onSubmit={handleSubmit}
       >
         <Input
+          id="agencyName"
+          name="agencyName"
+          type="text"
+          placeholder="Agency Name"
+          icon={<AgencyIcon />}
+          value={form.agencyName}
+          onChange={handleChange}
+          error={clientErrors.agencyName}
+        />
+        <Input
           id="email"
           name="email"
           type="email"
-          placeholder="Enter your email here"
+          placeholder="Email"
           icon={<MailIcon />}
           value={form.email}
           onChange={handleChange}
-          error={errors.email}
+          error={clientErrors.email}
+        />
+        <Input
+          id="city"
+          name="city"
+          type="text"
+          placeholder="City"
+          icon={<CityIcon />}
+          value={form.city}
+          onChange={handleChange}
+          error={clientErrors.city}
         />
         <Input
           id="password"
           name="password"
           type={showPassword ? "text" : "password"}
-          placeholder="Enter your password here"
+          placeholder="Password"
           icon={<LockIcon />}
           suffix={
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={() => setShowPassword(v => !v)}
               className="text-text-subtle hover:text-text transition-colors"
             >
               {showPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -261,58 +303,46 @@ export default function LoginPage() {
           }
           value={form.password}
           onChange={handleChange}
-          error={errors.password}
+          error={clientErrors.password}
+        />
+        <Input
+          id="confirmPassword"
+          name="confirmPassword"
+          type={showConfirm ? "text" : "password"}
+          placeholder="Re-Enter Password"
+          icon={<LockIcon />}
+          suffix={
+            <button
+              type="button"
+              onClick={() => setShowConfirm(v => !v)}
+              className="text-text-subtle hover:text-text transition-colors"
+            >
+              {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          }
+          value={form.confirmPassword}
+          onChange={handleChange}
+          error={clientErrors.confirmPassword}
         />
 
-        {/* Remember Me & Forgot Password */}
-        <div className="flex items-center justify-between px-1">
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <div className="relative flex items-center justify-center w-5 h-5 rounded border-2 border-border group-hover:border-primary transition-colors bg-white">
-              <input
-                type="checkbox"
-                name="rememberMe"
-                checked={form.rememberMe}
-                onChange={handleChange}
-                className="peer absolute opacity-0 cursor-pointer w-full h-full"
-              />
-              <svg
-                className="w-3.5 h-3.5 text-primary hidden peer-checked:block"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="4"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-            <span className="text-sm font-medium text-text-subtle">
-              Remember me
-            </span>
-          </label>
-          <Link
-            href="/forgot-password/check-email"
-            className="text-sm font-bold text-primary hover:underline"
-          >
-            Forget Password?
-          </Link>
-        </div>
-
-        {/* Sign in button */}
         <Button
           type="submit"
           variant="accent"
           size="lg"
-          className="w-full min-h-[4rem] h-auto text-lg"
-          iconRight={<ArrowRightIcon />}
+          className="w-full min-h-[4rem] h-auto text-lg mt-1"
+          showArrow={true}
           disabled={isPending}
         >
-          {isPending ? "Signing in…" : "Sign in"}
+          {isPending ? "Please wait…" : "Continue"}
         </Button>
 
-        <p className="text-center text-sm text-[#909090]">
-          Don't have an account?{" "}
-          <Link href="/" className="text-primary font-bold hover:underline">
-            Sign up
+        <p className="text-center text-sm text-text">
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="text-primary font-bold hover:underline"
+          >
+            Sign in
           </Link>
         </p>
       </form>

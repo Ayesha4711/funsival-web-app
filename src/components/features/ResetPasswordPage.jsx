@@ -1,13 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useActionState } from "react";
+import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
+import { resetPasswordAction } from "@/app/forgot-password/actions";
 
-/* ─── Icons ────────────────────────────────────────────────────────────────── */
+/* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const LockIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -39,25 +42,55 @@ const ArrowRightIcon = () => (
 /* ─── Component ─────────────────────────────────────────────────────────────── */
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ password: "", confirmPassword: "" });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const params = useSearchParams();
+  const token = params.get("token") ?? "";
 
-  const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  const handleReset = e => { e.preventDefault(); router.push("/forgot-password/success"); };
+  const [form, setForm] = useState({ password: "", confirmPassword: "" });
+  const [clientErrors, setClientErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [serverState, submitAction, isPending] = useActionState(resetPasswordAction, null);
+
+  useEffect(() => {
+    if (!serverState) return;
+    if (serverState.success) {
+      toast.success("Password reset!", { description: serverState.message });
+      router.push("/forgot-password/success");
+    } else if (serverState.error) {
+      toast.error("Reset failed", { description: serverState.error });
+    }
+  }, [serverState, router]);
+
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    if (clientErrors[name]) setClientErrors(prev => ({ ...prev, [name]: "" }));
+  };
+
+  const handleSubmit = e => {
+    const errs = {};
+    if (form.password.length < 6) errs.password = "Password must be at least 6 characters.";
+    if (form.confirmPassword !== form.password) errs.confirmPassword = "Passwords do not match.";
+    if (Object.keys(errs).length > 0) {
+      e.preventDefault();
+      setClientErrors(errs);
+    }
+  };
 
   return (
     <AuthLayout showHero={false}>
       <h1 className="text-3xl font-extrabold text-text mb-3 text-center">
         Enter New Password
       </h1>
-
-      <p className="text-[#A1A1A1] mb-10 leading-relaxed  text-center">
+      <p className="text-[#A1A1A1] mb-10 leading-relaxed text-center">
         Lorem ipsum dolor sit amet consectetur. Sit libero ut adipiscing
         condimentum ullamcorper massa nec
       </p>
 
-      <form className="flex flex-col gap-6 w-full" onSubmit={handleReset}>
+      <form className="flex flex-col gap-6 w-full" action={submitAction} onSubmit={handleSubmit}>
+        {/* Pass token as hidden field so the server action can read it */}
+        <input type="hidden" name="token" value={token} />
+
         <Input
           id="password"
           name="password"
@@ -65,44 +98,40 @@ export default function ResetPasswordPage() {
           placeholder="Enter your password here"
           icon={<LockIcon />}
           suffix={
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="text-text-subtle hover:text-text transition-colors"
-            >
+            <button type="button" onClick={() => setShowPassword(v => !v)} className="text-text-subtle hover:text-text transition-colors">
               {showPassword ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           }
           value={form.password}
           onChange={handleChange}
+          error={clientErrors.password}
         />
 
         <Input
           id="confirmPassword"
           name="confirmPassword"
-          type={showConfirmPassword ? "text" : "password"}
+          type={showConfirm ? "text" : "password"}
           placeholder="Re-enter your password here"
           icon={<LockIcon />}
           suffix={
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="text-text-subtle hover:text-text transition-colors"
-            >
-              {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+            <button type="button" onClick={() => setShowConfirm(v => !v)} className="text-text-subtle hover:text-text transition-colors">
+              {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           }
           value={form.confirmPassword}
           onChange={handleChange}
+          error={clientErrors.confirmPassword}
         />
 
         <Button
+          type="submit"
           variant="accent"
           size="lg"
           className="w-full h-16 text-lg mt-2"
           iconRight={<ArrowRightIcon />}
+          disabled={isPending}
         >
-          Reset Password
+          {isPending ? "Resetting…" : "Reset Password"}
         </Button>
       </form>
 

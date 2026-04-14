@@ -1,17 +1,62 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useActionState } from "react";
+import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import AuthLayout from "@/components/layout/AuthLayout";
+import { resendVerificationAction } from "@/app/forgot-password/actions";
+import { verifyEmailAction } from "@/app/signup/actions";
 
 /* ─── Component ─────────────────────────────────────────────────────────────── */
 export default function OTPVerificationPage() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const email = params.get("email") ?? "";
+
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef([]);
+
+  // Resend state
+  const COOLDOWN = 30;
+  const [seconds, setSeconds] = useState(0);
+  const [resendState, resendAction, isResending] = useActionState(resendVerificationAction, null);
+  const [verifyState, verifyAction, isVerifying] = useActionState(verifyEmailAction, null);
 
   useEffect(() => {
     if (inputRefs.current[0]) inputRefs.current[0].focus();
   }, []);
+
+  // Countdown tick
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const id = setTimeout(() => setSeconds(s => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [seconds]);
+
+  // Toast on resend result
+  useEffect(() => {
+    if (!resendState) return;
+    if (resendState.success) {
+      toast.success("Code resent", { description: resendState.message });
+      setSeconds(COOLDOWN);
+    } else if (resendState.error) {
+      toast.error("Resend failed", { description: resendState.error });
+    }
+  }, [resendState]);
+
+  // Toast on verify result
+  useEffect(() => {
+    if (!verifyState) return;
+    if (verifyState.success) {
+      toast.success("Email verified!", { description: verifyState.message });
+      router.push("/dashboard");
+    } else if (verifyState.error) {
+      toast.error("Verification failed", { description: verifyState.error });
+    }
+  }, [verifyState, router]);
 
   const handleChange = (index, value) => {
     if (!/^\d*$/.test(value)) return;
@@ -27,13 +72,25 @@ export default function OTPVerificationPage() {
     }
   };
 
+  // Auto-submit when OTP is complete
+  useEffect(() => {
+    const otpString = otp.join("");
+    if (otpString.length === 6 && !isVerifying) {
+      const formData = new FormData();
+      formData.append("email", email);
+      formData.append("otp", otpString);
+      verifyAction(formData);
+    }
+  }, [otp, email, verifyAction, isVerifying]);
+
+  const resendDisabled = isResending || seconds > 0;
+
   return (
     <AuthLayout>
-      {/* Heading */}
       <h1 className="text-4xl font-extrabold text-text mb-3">
         OTP Verification
       </h1>
-      <p className="text-[#A1A1A1] text-base mb-10 leading-relaxed   mx-auto">
+      <p className="text-[#A1A1A1] text-base mb-10 leading-relaxed mx-auto">
         Please enter the 6-digit code we sent to your email/phone
       </p>
 
@@ -58,7 +115,7 @@ export default function OTPVerificationPage() {
       </div>
 
       <p className="text-sm font-medium text-text-muted mb-10 text-center">
-        Wait for 30s in order to send again
+        {seconds > 0 ? `Wait ${seconds}s before resending` : "Didn't receive the code?"}
       </p>
 
       <form onSubmit={e => e.preventDefault()} className="flex flex-col gap-6">
@@ -68,16 +125,24 @@ export default function OTPVerificationPage() {
           size="lg"
           className="w-full h-16 text-lg"
           showArrow={true}
+          disabled={isVerifying || otp.join("").length < 6}
         >
-          Continue
+          {isVerifying ? "Verifying…" : "Continue"}
         </Button>
 
-        {/* <p className="text-center text-sm text-text font-medium">
+        <p className="text-center text-sm text-text font-medium">
           Didn't receive the code?{" "}
-          <button type="button" className="text-primary font-bold hover:underline">
-            Resend
-          </button>
-        </p> */}
+          <form action={resendAction} className="inline">
+            <input type="hidden" name="email" value={email} />
+            <button
+              type="submit"
+              disabled={resendDisabled}
+              className="text-primary font-bold hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isResending ? "Sending…" : seconds > 0 ? `Resend in ${seconds}s` : "Resend"}
+            </button>
+          </form>
+        </p>
       </form>
     </AuthLayout>
   );
