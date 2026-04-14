@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
+/* ─── Design Tokens ─────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand colours */
+  --color-primary: #1d8c82; /* Deep teal for Navbar */
+  --color-primary-dark: #156d65;
+  --color-primary-light: #e8f4f3;
+  
+  --color-secondary:#FEB538;
+  --color-secondary-dark: #e09d2a;
+  --color-secondary-light: #fff7e6;
+
+  /* Neutrals */
+  --color-bg: #fdfdfd; 
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-text: #1c2b2d; /* Very dark grayish teal */
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
+
+  /* Typography – Sophia Pro (Plus Jakarta Sans as web equivalent) */
+  --font-sans: var(--font-sophia-pro), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-primary-light: var(--color-primary-light);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-dark: var(--color-secondary-dark);
+  --color-secondary-light: var(--color-secondary-light);
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-border: var(--color-border);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-subtle: var(--color-text-subtle);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Base reset / global styles ────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* background-color: var(--color-bg); */
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Utility layer additions ────────────────────────────────────────────────── */
+@layer utilities {
+  .text-brand {
+    color: var(--color-primary);
+  }
+  .bg-brand {
+    background-color: var(--color-primary);
+  }
+  .bg-brand-light {
+    background-color: var(--color-primary-light);
+  }
+  .border-brand {
+    border-color: var(--color-primary);
+  }
+  .ring-brand {
+    --tw-ring-color: var(--color-primary);
+  }
 }
