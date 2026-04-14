@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
 
+/* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const MoreIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="1" />
@@ -33,7 +34,50 @@ const RefundIcon = () => (
   </svg>
 );
 
-export default function ReservationTable({ data }) {
+/* ─── Action Dropdown ────────────────────────────────────────────────────────── */
+function ActionMenu({ item, onViewDetails, onCancel }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="text-gray-400 hover:text-[var(--color-text)] transition-colors p-1 rounded-lg hover:bg-gray-100"
+      >
+        <MoreIcon />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-2xl shadow-lg py-1.5 min-w-[140px]">
+          <button
+            onClick={() => { setOpen(false); onViewDetails(item); }}
+            className="w-full text-left px-4 py-2.5 text-sm font-medium text-[var(--color-text)] hover:bg-gray-50 transition-colors"
+          >
+            View Details
+          </button>
+          {item.status === "Upcoming" && (
+            <button
+              onClick={() => { setOpen(false); onCancel(item); }}
+              className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Table ──────────────────────────────────────────────────────────────────── */
+export default function ReservationTable({ data, onViewDetails, onCancel }) {
   const getStatusStyle = (status) => {
     switch (status) {
       case "Upcoming": return "bg-blue-50 text-blue-400 border border-blue-100";
@@ -116,9 +160,7 @@ export default function ReservationTable({ data }) {
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  <button className="text-gray-400 hover:text-[var(--color-text)] transition-colors">
-                    <MoreIcon />
-                  </button>
+                  <ActionMenu item={item} onViewDetails={onViewDetails} onCancel={onCancel} />
                 </td>
               </tr>
             ))}
@@ -126,7 +168,7 @@ export default function ReservationTable({ data }) {
         </table>
       </div>
 
-      {/* Pagination Container (Simple Placeholder) */}
+      {/* Pagination */}
       <div className="px-6 py-4 border-t border-[var(--color-border)] flex items-center justify-center gap-2">
         <button className="text-xs text-gray-500 hover:text-[var(--color-text)]">Previous</button>
         <div className="flex gap-1 mx-4">

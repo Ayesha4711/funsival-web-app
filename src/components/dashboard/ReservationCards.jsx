@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
 
+/* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const MoreIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="1" />
@@ -13,27 +14,70 @@ const MoreIcon = () => (
 );
 
 const CheckIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
 );
 
 const ClockIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
 );
 
 const RefundIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="15" y1="9" x2="9" y2="15" />
-      <line x1="9" y1="9" x2="15" y2="15" />
-    </svg>
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="15" y1="9" x2="9" y2="15" />
+    <line x1="9" y1="9" x2="15" y2="15" />
+  </svg>
 );
 
-export default function ReservationCards({ data }) {
+/* ─── Action Dropdown ────────────────────────────────────────────────────────── */
+function ActionMenu({ item, onViewDetails, onCancel }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="text-gray-400 hover:text-[var(--color-text)] transition-colors p-1 rounded-lg hover:bg-gray-100"
+      >
+        <MoreIcon />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-2xl shadow-lg py-1.5 min-w-[140px]">
+          <button
+            onClick={() => { setOpen(false); onViewDetails(item); }}
+            className="w-full text-left px-4 py-2.5 text-sm font-medium text-[var(--color-text)] hover:bg-gray-50 transition-colors"
+          >
+            View Details
+          </button>
+          {item.status === "Upcoming" && (
+            <button
+              onClick={() => { setOpen(false); onCancel(item); }}
+              className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Cards ──────────────────────────────────────────────────────────────────── */
+export default function ReservationCards({ data, onViewDetails, onCancel }) {
   const getStatusStyle = (status) => {
     switch (status) {
       case "Upcoming": return "bg-blue-50 text-blue-400 border border-blue-100";
@@ -65,12 +109,13 @@ export default function ReservationCards({ data }) {
     <div className="flex flex-col gap-4">
       {data.map((item) => (
         <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-[var(--color-border)] relative">
-          <div className="absolute top-4 right-4 text-gray-400">
-             <MoreIcon />
+          {/* Three-dot menu */}
+          <div className="absolute top-4 right-4">
+            <ActionMenu item={item} onViewDetails={onViewDetails} onCancel={onCancel} />
           </div>
 
           {/* Header Info */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4 pr-8">
             <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 relative">
               <Image src={heroImg} alt={item.name} fill className="object-cover" />
             </div>
@@ -85,11 +130,11 @@ export default function ReservationCards({ data }) {
           {/* Status and Invoice Badges */}
           <div className="flex items-center gap-2 mb-4">
             <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${getStatusStyle(item.status)}`}>
-               {item.status}
+              {item.status}
             </span>
             <span className={`text-[10px] font-bold px-3 py-1 rounded-full border flex items-center gap-1 ${getInvoiceStyle(item.invoice)}`}>
-               {getInvoiceIcon(item.invoice)}
-               {item.invoice}
+              {getInvoiceIcon(item.invoice)}
+              {item.invoice}
             </span>
           </div>
 
@@ -111,7 +156,7 @@ export default function ReservationCards({ data }) {
         </div>
       ))}
 
-      {/* Pagination Container (Simple Placeholder) */}
+      {/* Pagination */}
       <div className="py-4 flex items-center justify-center gap-2">
         <button className="text-xs text-gray-500 hover:text-[var(--color-text)]">Previous</button>
         <div className="flex gap-1 mx-4">
