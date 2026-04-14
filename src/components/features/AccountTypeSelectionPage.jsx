@@ -99,10 +99,7 @@ export default function AccountTypeSelectionPage() {
           size="lg"
           className="w-full min-h-[4rem] h-auto text-lg"
           showArrow={true}
-          onClick={() => {
-            console.log("Account created as:", selectedRole);
-            router.push("/signup/preferences");
-          }}
+          onClick={() => router.push(`/signup/${selectedRole}`)}
         >
           Continue
         </Button>

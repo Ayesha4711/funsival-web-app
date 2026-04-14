@@ -20,7 +20,7 @@ export default function DashboardShell({ children }) {
       <div className="flex flex-col flex-1 min-w-0 overflow-y-auto">
         <DashboardNavbar onMenuToggle={() => setSidebarOpen((o) => !o)} />
 
-        <main className="flex-1">
+        <main className="flex-1 flex flex-col">
           {children}
         </main>
 

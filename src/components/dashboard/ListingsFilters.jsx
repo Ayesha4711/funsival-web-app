@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -43,6 +44,7 @@ const PlusIcon = () => (
 );
 
 export default function ListingsFilters({ activeTab, onTabChange }) {
+  const router = useRouter();
   const tabs = [
     { id: "all", label: "All" },
     { id: "active", label: "Active (12)" },
@@ -64,7 +66,10 @@ export default function ListingsFilters({ activeTab, onTabChange }) {
                <ListIcon />
              </button>
           </div>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white rounded-full text-sm font-bold shadow-sm transition-colors">
+          <button
+            onClick={() => router.push("/dashboard/listings/add")}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white rounded-full text-sm font-bold shadow-sm transition-colors"
+          >
             <PlusIcon />
             <span>Add New Listing</span>
           </button>
