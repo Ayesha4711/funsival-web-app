@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import logo from "@/assets/images/logo.svg";
-import NotificationPopover from "./NotificationPopover";
+import NotificationPopover from "@/components/shared/NotificationPopover";
 
 const UserIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -91,6 +91,12 @@ export default function DashboardNavbar({ onMenuToggle }) {
     } else {
       setNotifOpen(!notifOpen);
     }
+  };
+
+  const handleLogout = () => {
+    setProfileOpen(false);
+    localStorage.removeItem("auth-token");
+    router.push("/logout");
   };
 
   return (
@@ -191,7 +197,8 @@ export default function DashboardNavbar({ onMenuToggle }) {
               </button>
               <div className="my-1 border-t border-gray-100" />
               <button
-                onClick={() => { setProfileOpen(false); router.push("/login"); }}
+                type="button"
+                onClick={handleLogout}
                 className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
               >
                 <LogoutIcon />

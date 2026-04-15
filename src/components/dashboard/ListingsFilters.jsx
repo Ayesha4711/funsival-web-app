@@ -1,18 +1,27 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const SearchIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" />
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
 );
 
 const FilterIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+  </svg>
+);
+
+const TableIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <line x1="3" y1="9" x2="21" y2="9" />
+    <line x1="3" y1="15" x2="21" y2="15" />
+    <line x1="9" y1="9" x2="9" y2="21" />
   </svg>
 );
 
@@ -25,17 +34,6 @@ const GridIcon = () => (
   </svg>
 );
 
-const ListIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="8" y1="6" x2="21" y2="6" />
-    <line x1="8" y1="12" x2="21" y2="12" />
-    <line x1="8" y1="18" x2="21" y2="18" />
-    <line x1="3" y1="6" x2="3.01" y2="6" />
-    <line x1="3" y1="12" x2="3.01" y2="12" />
-    <line x1="3" y1="18" x2="3.01" y2="18" />
-  </svg>
-);
-
 const PlusIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
     <line x1="12" y1="5" x2="12" y2="19" />
@@ -43,14 +41,52 @@ const PlusIcon = () => (
   </svg>
 );
 
-export default function ListingsFilters({ activeTab, onTabChange }) {
+const ChevronDown = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const CATEGORIES = ["All Categories", "Equipment", "Service", "Place"];
+
+export default function ListingsFilters({
+  activeTab,
+  onTabChange,
+  search,
+  onSearchChange,
+  category,
+  onCategoryChange,
+  viewMode,
+  onViewModeChange,
+}) {
   const router = useRouter();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const searchRef = useRef(null);
+  const categoryRef = useRef(null);
+
   const tabs = [
     { id: "all", label: "All" },
-    { id: "active", label: "Active (12)" },
+    { id: "active", label: "Active (2)" },
     { id: "inactive", label: "Inactive (2)" },
     { id: "draft", label: "Draft (2)" },
   ];
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (categoryRef.current && !categoryRef.current.contains(e.target)) {
+        setCategoryOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // Focus input when search expands
+  useEffect(() => {
+    if (searchOpen && searchRef.current) searchRef.current.focus();
+  }, [searchOpen]);
 
   return (
     <div className="flex flex-col gap-4 mb-6">
@@ -58,14 +94,32 @@ export default function ListingsFilters({ activeTab, onTabChange }) {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-[var(--color-text)]">Listings</h1>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-             <button className="p-2 text-[var(--color-primary)] bg-[var(--color-primary-light)] rounded-lg">
-               <GridIcon />
-             </button>
-             <button className="p-2 text-gray-400 hover:text-[var(--color-primary)] rounded-lg">
-               <ListIcon />
-             </button>
+          {/* View mode toggle */}
+          <div className="flex items-center gap-1 bg-[#F3F4F6] p-1 rounded-xl">
+            <button
+              onClick={() => onViewModeChange("table")}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === "table"
+                  ? "bg-white text-[var(--color-primary)] shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+              title="Table view"
+            >
+              <TableIcon />
+            </button>
+            <button
+              onClick={() => onViewModeChange("grid")}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === "grid"
+                  ? "bg-white text-[var(--color-primary)] shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+              title="Grid view"
+            >
+              <GridIcon />
+            </button>
           </div>
+
           <button
             onClick={() => router.push("/dashboard/listings/add")}
             className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white rounded-full text-sm font-bold shadow-sm transition-colors"
@@ -76,10 +130,10 @@ export default function ListingsFilters({ activeTab, onTabChange }) {
         </div>
       </div>
 
-      {/* Tabs Row */}
+      {/* Tabs + Filters Row */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Tabs */}
-        <div className="flex p-1 bg-gray-100 rounded-full w-fit">
+        <div className="flex p-1 bg-[#F3F4F6] rounded-full w-fit">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -95,19 +149,65 @@ export default function ListingsFilters({ activeTab, onTabChange }) {
           ))}
         </div>
 
-        {/* Filters */}
+        {/* Right filters */}
         <div className="flex items-center gap-3">
-          <div className="relative flex-1 lg:w-10">
-             <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
-               <SearchIcon />
-             </div>
+          {/* Search — expands on click */}
+          <div className="relative flex items-center">
+            {searchOpen ? (
+              <div className="flex items-center gap-2 pl-3 pr-1 h-10 bg-[#F3F4F6] rounded-full border border-[var(--color-primary)] transition-all">
+                <SearchIcon />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  placeholder="Search listings..."
+                  className="w-44 bg-transparent text-xs font-medium text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
+                />
+                <button
+                  onClick={() => { setSearchOpen(false); onSearchChange(""); }}
+                  className="p-1.5 text-gray-400 hover:text-gray-600"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="w-10 h-10 bg-[#F3F4F6] rounded-full flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] transition-colors"
+              >
+                <SearchIcon />
+              </button>
+            )}
           </div>
-          <div className="flex items-center gap-2 px-4 h-10 bg-gray-100 rounded-full text-xs font-bold text-gray-500 min-w-max">
-            <FilterIcon />
-            <span>All Categories</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+
+          {/* Category dropdown */}
+          <div className="relative" ref={categoryRef}>
+            <button
+              onClick={() => setCategoryOpen((o) => !o)}
+              className="flex items-center gap-2 px-4 h-10 bg-[#F3F4F6] rounded-full text-xs font-bold text-gray-500 min-w-max hover:text-[var(--color-primary)] transition-colors"
+            >
+              <FilterIcon />
+              <span>{category}</span>
+              <ChevronDown />
+            </button>
+            {categoryOpen && (
+              <div className="absolute right-0 top-12 z-20 bg-white rounded-2xl shadow-lg border border-[var(--color-border)] py-2 min-w-[160px]">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => { onCategoryChange(cat); setCategoryOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors hover:bg-[var(--color-primary-light)] hover:text-[var(--color-primary)] ${
+                      category === cat ? "text-[var(--color-primary)] bg-[var(--color-primary-light)]" : "text-gray-500"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

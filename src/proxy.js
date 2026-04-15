@@ -6,9 +6,15 @@ const protectedRoutes = ["/dashboard"];
 // Routes that a logged-in user should NOT visit (redirect to dashboard)
 const publicOnlyRoutes = ["/login", "/signup", "/", "/verify", "/forgot-password"];
 
+// Routes that are always accessible regardless of auth state
+const exemptRoutes = ["/signup/success"];
+
 export default function proxy(req) {
   const { pathname } = req.nextUrl;
   const token = req.cookies.get("auth-token")?.value;
+
+  const isExempt = exemptRoutes.some((r) => pathname === r || pathname.startsWith(r + "/"));
+  if (isExempt) return NextResponse.next();
 
   const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
   const isPublicOnly = publicOnlyRoutes.some(

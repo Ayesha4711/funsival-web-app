@@ -1,4 +1,4 @@
-import MessagesPage from "@/components/dashboard/MessagesPage";
+import MessagesPage from "@/components/shared/MessagesPage";
 
 export const metadata = {
   title: "Messages | Funsival",

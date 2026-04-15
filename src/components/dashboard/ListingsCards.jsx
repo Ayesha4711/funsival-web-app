@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
 
@@ -11,25 +11,77 @@ const StarIcon = () => (
 );
 
 const MoreIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="12" cy="5" r="1" />
-      <circle cx="12" cy="19" r="1" />
-    </svg>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="12" cy="5" r="1" />
+    <circle cx="12" cy="19" r="1" />
+  </svg>
 );
 
-export default function ListingsCards({ data }) {
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case "Active": return "bg-green-50 text-green-500 border-green-100";
-      case "Inactive": return "bg-red-50 text-red-500 border-red-100";
-      case "Draft": return "bg-orange-50 text-orange-400 border-orange-100";
-      default: return "bg-gray-100 text-gray-400";
+const ChevronDown = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const STATUS_OPTIONS = ["Draft", "Active", "Inactive"];
+const STATUS_STYLES = {
+  Active:   { pill: "bg-green-50 text-green-500 border-green-100",    dot: "bg-green-400" },
+  Inactive: { pill: "bg-red-50 text-red-400 border-red-100",          dot: "bg-red-400" },
+  Draft:    { pill: "bg-orange-50 text-orange-400 border-orange-100", dot: "bg-orange-400" },
+};
+
+function StatusDropdown({ status, onStatusChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     }
-  };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const styles = STATUS_STYLES[status] ?? { pill: "bg-gray-100 text-gray-400 border-gray-100", dot: "bg-gray-400" };
 
   return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-bold whitespace-nowrap ${styles.pill}`}
+      >
+        <span className={`w-1.5 h-1.5 rounded-full ${styles.dot}`} />
+        {status}
+        <ChevronDown />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-9 z-30 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[110px]">
+          {STATUS_OPTIONS.map((opt) => {
+            const s = STATUS_STYLES[opt];
+            return (
+              <button
+                key={opt}
+                onClick={() => { onStatusChange(opt); setOpen(false); }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors hover:bg-gray-50 ${opt === status ? "opacity-100" : "opacity-70"}`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                <span className={s.pill.split(" ").filter(c => c.startsWith("text-")).join(" ")}>{opt}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ListingsCards({ data, onStatusChange }) {
+  return (
     <div className="flex flex-col gap-4">
+      {data.length === 0 && (
+        <p className="text-center text-sm text-gray-400 font-medium py-12">No listings found.</p>
+      )}
       {data.map((item) => (
         <div key={item.id} className="bg-white rounded-[32px] p-5 shadow-sm border border-[var(--color-border)] relative">
           <div className="absolute top-5 right-5 text-gray-300">
@@ -49,11 +101,12 @@ export default function ListingsCards({ data }) {
           </div>
 
           <div className="flex items-center gap-2 mb-6">
-            <div className={`px-4 py-1.5 rounded-full border text-[11px] font-bold ${getStatusStyle(item.status)}`}>
-               {item.status}
-            </div>
-            <div className="px-4 py-1.5 rounded-full bg-gray-100 text-gray-500 text-[11px] font-bold">
-               {item.category}
+            <StatusDropdown
+              status={item.status}
+              onStatusChange={(newStatus) => onStatusChange(item.id, newStatus)}
+            />
+            <div className="px-4 py-1.5 rounded-full bg-[#F3F4F6] text-gray-500 text-[11px] font-bold">
+              {item.category}
             </div>
           </div>
 

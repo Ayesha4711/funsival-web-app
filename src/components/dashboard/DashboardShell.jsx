@@ -9,18 +9,20 @@ export default function DashboardShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--color-bg)]">
-      {/* Sidebar */}
-      <DashboardSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+    <div className="flex h-screen bg-[var(--color-bg)]">
+      {/* Sidebar — fixed height, never scrolls */}
+      <div className="h-screen sticky top-0 shrink-0">
+        <DashboardSidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </div>
 
-      {/* Main column: Navbar + scrollable content + footer */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-y-auto">
+      {/* Right panel — scrolls as one continuous column */}
+      <div className="flex flex-col flex-1 min-w-0 min-h-screen overflow-y-auto">
         <DashboardNavbar onMenuToggle={() => setSidebarOpen((o) => !o)} />
 
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1">
           {children}
         </main>
 

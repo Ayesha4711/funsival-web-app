@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 
 const WalletIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -11,6 +12,7 @@ const WalletIcon = () => (
 );
 
 export default function EarningsStats() {
+  const router = useRouter();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       {/* Available Funds */}
@@ -19,7 +21,10 @@ export default function EarningsStats() {
            <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Available Funds</p>
            <p className="text-2xl lg:text-3xl font-extrabold text-[var(--color-text)]">$50,000</p>
         </div>
-        <button className="flex items-center justify-center gap-2 w-full py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white text-xs font-bold rounded-xl transition-colors shadow-sm">
+        <button
+          onClick={() => router.push("/dashboard/earnings/withdraw")}
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+        >
           <WalletIcon />
           <span>Withdraw Balance</span>
         </button>

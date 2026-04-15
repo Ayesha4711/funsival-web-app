@@ -25,8 +25,13 @@ export async function getAuthToken() {
 }
 
 /** Remove the token cookie and redirect to login. */
-export async function logout() {
+export async function clearAuthToken() {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
+}
+
+/** Remove the token cookie and redirect to login. */
+export async function logout() {
+  await clearAuthToken();
   redirect("/login");
 }

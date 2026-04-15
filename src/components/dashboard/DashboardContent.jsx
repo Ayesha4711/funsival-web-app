@@ -256,7 +256,7 @@ function EarningsChart() {
 /* ─── Main Dashboard Content ─────────────────────────────────────────────────── */
 export default function DashboardContent() {
   return (
-    <div className="flex flex-col gap-5 p-4 sm:p-6">
+    <div className="flex flex-col gap-5 p-4 sm:p-6 flex-1">
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Earning" value="$284K" sub="+15% this quarter" subColor="text-green-500" />
