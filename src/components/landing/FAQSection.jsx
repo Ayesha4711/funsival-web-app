@@ -44,50 +44,52 @@ export default function FAQSection() {
 
   return (
     <section className="py-12 md:py-16 lg:py-20 bg-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         {/* Header */}
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 text-center mb-10 md:mb-14">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1C1F2E] text-center mb-10 md:mb-14">
           Frequently Asked Questions
         </h2>
 
         {/* FAQ Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 items-start">
           {faqs.map((faq) => (
             <div
               key={faq.id}
-              className={`bg-[#FFF8E6] rounded-2xl p-6 transition-all duration-200 cursor-pointer ${
-                openId === faq.id ? 'ring-2 ring-[#F5C842]' : ''
+              className={`rounded-2xl p-5 md:p-6 transition-all duration-200 cursor-pointer ${
+                openId === faq.id ? 'bg-[#FFF8E6]' : 'bg-white border border-gray-100 shadow-sm'
               }`}
               onClick={() => toggleFAQ(faq.id)}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2">
-                    {faq.question}
-                  </h3>
-
-                  {openId === faq.id && (
-                    <p className="text-sm text-gray-600 leading-relaxed mt-3">
-                      {faq.answer}
-                    </p>
-                  )}
-                </div>
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="text-base md:text-lg font-medium text-[#1C1F2E]">
+                  {faq.question}
+                </h3>
 
                 <button
-                  className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
+                  className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                    openId === faq.id
+                      ? 'bg-[#F5C842] text-white'
+                      : 'bg-transparent text-[#1C1F2E]'
+                  }`}
                   aria-label={openId === faq.id ? 'Collapse' : 'Expand'}
                 >
                   {openId === faq.id ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 12H4" />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                     </svg>
                   )}
                 </button>
               </div>
+
+              {openId === faq.id && (
+                <p className="text-sm text-gray-600 leading-relaxed mt-3">
+                  {faq.answer}
+                </p>
+              )}
             </div>
           ))}
         </div>

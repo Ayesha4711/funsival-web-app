@@ -3,49 +3,97 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const SearchIcon = () =>
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <circle cx="11" cy="11" r="8" />
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
+  </svg>;
 
-const FilterIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+const FilterIcon = () =>
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-  </svg>
-);
+  </svg>;
 
-const TableIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const TableIcon = () =>
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <rect x="3" y="3" width="18" height="18" rx="2" />
     <line x1="3" y1="9" x2="21" y2="9" />
     <line x1="3" y1="15" x2="21" y2="15" />
     <line x1="9" y1="9" x2="9" y2="21" />
-  </svg>
-);
+  </svg>;
 
-const GridIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const GridIcon = () =>
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <rect x="3" y="3" width="7" height="7" />
     <rect x="14" y="3" width="7" height="7" />
     <rect x="14" y="14" width="7" height="7" />
     <rect x="3" y="14" width="7" height="7" />
-  </svg>
-);
+  </svg>;
 
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+const PlusIcon = () =>
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <line x1="12" y1="5" x2="12" y2="19" />
     <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
+  </svg>;
 
-const ChevronDown = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+const ChevronDown = () =>
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
+  </svg>;
 
 const CATEGORIES = ["All Categories", "Equipment", "Service", "Place"];
 
@@ -57,7 +105,7 @@ export default function ListingsFilters({
   category,
   onCategoryChange,
   viewMode,
-  onViewModeChange,
+  onViewModeChange
 }) {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -69,7 +117,7 @@ export default function ListingsFilters({
     { id: "all", label: "All" },
     { id: "active", label: "Active (2)" },
     { id: "inactive", label: "Inactive (2)" },
-    { id: "draft", label: "Draft (2)" },
+    { id: "draft", label: "Draft (2)" }
   ];
 
   // Close dropdowns on outside click
@@ -84,9 +132,12 @@ export default function ListingsFilters({
   }, []);
 
   // Focus input when search expands
-  useEffect(() => {
-    if (searchOpen && searchRef.current) searchRef.current.focus();
-  }, [searchOpen]);
+  useEffect(
+    () => {
+      if (searchOpen && searchRef.current) searchRef.current.focus();
+    },
+    [searchOpen]
+  );
 
   return (
     <div className="flex flex-col gap-4 mb-6">
@@ -95,25 +146,21 @@ export default function ListingsFilters({
         <h1 className="text-xl font-bold text-[var(--color-text)]">Listings</h1>
         <div className="flex items-center gap-3">
           {/* View mode toggle */}
-          <div className="flex items-center gap-1 bg-[#F3F4F6] p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-[#EDF6F6] p-1 rounded-xl">
             <button
               onClick={() => onViewModeChange("table")}
-              className={`p-2 rounded-lg transition-all ${
-                viewMode === "table"
-                  ? "bg-white text-[var(--color-primary)] shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
+              className={`p-2 rounded-lg transition-all ${viewMode === "table"
+                ? "bg-white text-[var(--color-primary)] shadow-sm"
+                : "text-gray-400 hover:text-gray-600"}`}
               title="Table view"
             >
               <TableIcon />
             </button>
             <button
               onClick={() => onViewModeChange("grid")}
-              className={`p-2 rounded-lg transition-all ${
-                viewMode === "grid"
-                  ? "bg-white text-[var(--color-primary)] shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
+              className={`p-2 rounded-lg transition-all ${viewMode === "grid"
+                ? "bg-white text-[var(--color-primary)] shadow-sm"
+                : "text-gray-400 hover:text-gray-600"}`}
               title="Grid view"
             >
               <GridIcon />
@@ -133,81 +180,96 @@ export default function ListingsFilters({
       {/* Tabs + Filters Row */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Tabs */}
-        <div className="flex p-1 bg-[#F3F4F6] rounded-full w-fit">
-          {tabs.map((tab) => (
+        <div className="flex p-1 bg-[#EDF6F6] rounded-full w-fit">
+          {tabs.map(tab =>
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`px-5 py-2 rounded-full text-xs font-bold transition-all ${
-                activeTab === tab.id
-                  ? "bg-white text-[var(--color-primary)] shadow-sm font-extrabold"
-                  : "text-gray-400 hover:text-[var(--color-text-muted)]"
-              }`}
+              className={`px-5 py-2 rounded-full text-xs font-bold transition-all ${activeTab ===
+              tab.id
+                ? "bg-white text-[var(--color-primary)] shadow-sm font-extrabold"
+                : "text-gray-400 hover:text-[var(--color-text-muted)]"}`}
             >
               {tab.label}
             </button>
-          ))}
+          )}
         </div>
 
         {/* Right filters */}
         <div className="flex items-center gap-3">
           {/* Search — expands on click */}
           <div className="relative flex items-center">
-            {searchOpen ? (
-              <div className="flex items-center gap-2 pl-3 pr-1 h-10 bg-[#F3F4F6] rounded-full border border-[var(--color-primary)] transition-all">
-                <SearchIcon />
-                <input
-                  ref={searchRef}
-                  type="text"
-                  value={search}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="Search listings..."
-                  className="w-44 bg-transparent text-xs font-medium text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
-                />
-                <button
-                  onClick={() => { setSearchOpen(false); onSearchChange(""); }}
-                  className="p-1.5 text-gray-400 hover:text-gray-600"
+            {searchOpen
+              ? <div className="flex items-center gap-2 pl-3 pr-1 h-10 bg-[#EDF6F6] rounded-full border border-[var(--color-primary)] transition-all">
+                  <SearchIcon />
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    value={search}
+                    onChange={e => onSearchChange(e.target.value)}
+                    placeholder="Search listings..."
+                    className="w-44 bg-transparent text-xs font-medium text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
+                  />
+                  <button
+                    onClick={() => {
+                      setSearchOpen(false);
+                      onSearchChange("");
+                    }}
+                    className="p-1.5 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              : <button
+                  onClick={() => setSearchOpen(true)}
+                  className="w-10 h-10 bg-[#EDF6F6] rounded-full flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] transition-colors"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setSearchOpen(true)}
-                className="w-10 h-10 bg-[#F3F4F6] rounded-full flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] transition-colors"
-              >
-                <SearchIcon />
-              </button>
-            )}
+                  <SearchIcon />
+                </button>}
           </div>
 
           {/* Category dropdown */}
           <div className="relative" ref={categoryRef}>
             <button
-              onClick={() => setCategoryOpen((o) => !o)}
-              className="flex items-center gap-2 px-4 h-10 bg-[#F3F4F6] rounded-full text-xs font-bold text-gray-500 min-w-max hover:text-[var(--color-primary)] transition-colors"
+              onClick={() => setCategoryOpen(o => !o)}
+              className="flex items-center gap-2 px-4 h-10 bg-[#EDF6F6] rounded-full text-xs font-bold text-gray-500 min-w-max hover:text-[var(--color-primary)] transition-colors"
             >
               <FilterIcon />
-              <span>{category}</span>
+              <span>
+                {category}
+              </span>
               <ChevronDown />
             </button>
-            {categoryOpen && (
+            {categoryOpen &&
               <div className="absolute right-0 top-12 z-20 bg-white rounded-2xl shadow-lg border border-[var(--color-border)] py-2 min-w-[160px]">
-                {CATEGORIES.map((cat) => (
+                {CATEGORIES.map(cat =>
                   <button
                     key={cat}
-                    onClick={() => { onCategoryChange(cat); setCategoryOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors hover:bg-[var(--color-primary-light)] hover:text-[var(--color-primary)] ${
-                      category === cat ? "text-[var(--color-primary)] bg-[var(--color-primary-light)]" : "text-gray-500"
-                    }`}
+                    onClick={() => {
+                      onCategoryChange(cat);
+                      setCategoryOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors hover:bg-[var(--color-primary-light)] hover:text-[var(--color-primary)] ${category ===
+                    cat
+                      ? "text-[var(--color-primary)] bg-[var(--color-primary-light)]"
+                      : "text-gray-500"}`}
                   >
                     {cat}
                   </button>
-                ))}
-              </div>
-            )}
+                )}
+              </div>}
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
+import Pagination from "@/components/shared/Pagination";
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const MoreIcon = () => (
@@ -168,17 +169,8 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="px-6 py-4 border-t border-[var(--color-border)] flex items-center justify-center gap-2">
-        <button className="text-xs text-gray-500 hover:text-[var(--color-text)]">Previous</button>
-        <div className="flex gap-1 mx-4">
-          {[1, 2, 3, 4, 5].map((p) => (
-            <button key={p} className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${p === 1 ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]' : 'text-gray-400 hover:bg-gray-100'}`}>
-              {p}
-            </button>
-          ))}
-        </div>
-        <button className="text-xs text-gray-500 hover:text-[var(--color-text)]">Next</button>
+      <div className="px-6 py-4 border-t border-[var(--color-border)]">
+        <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />
       </div>
     </div>
   );

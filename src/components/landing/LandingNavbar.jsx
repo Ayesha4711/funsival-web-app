@@ -1,70 +1,128 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import logo from "@/assets/images/logo.svg";
+
+const profileMenuItems = [
+  { icon: "👤", label: "Log In", href: "/login" },
+  { icon: "✍️", label: "Sign Up", href: "/signup" },
+  { icon: "🏠", label: "Become a Host", href: "#" },
+  null,
+  { icon: "❓", label: "Ask Funsival", href: "#" },
+  { icon: "⚙️", label: "How Funsival Works", href: "#" },
+  { icon: "🎁", label: "Gift Cards", href: "#" },
+  { icon: "💬", label: "Contact Support", href: "#" },
+  { icon: "⚖️", label: "Legal", href: "#" },
+  { icon: "🛡️", label: "Insurance & Protection", href: "#" },
+  { icon: "🔧", label: "Host Tools", href: "#" },
+  { icon: "🧮", label: "Calculator", href: "#" }
+];
 
 export default function LandingNavbar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-200">
+    <header className="absolute top-0 left-0 right-0 z-50 w-full">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <svg className="w-8 h-8 text-[#F5C842]" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-              </svg>
-              <span className="text-xl md:text-2xl font-bold text-[#4AA7A7]">
-                funsival
-              </span>
-            </div>
+            <Image
+              src={logo}
+              alt="Funsival"
+              width={120}
+              height={36}
+              className="h-8 w-auto"
+            />
           </Link>
 
-          {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-4">
-            <button className="px-6 py-2.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold rounded-full transition-colors duration-200">
-              Book Now
-            </button>
-
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden w-10 h-10 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
-            </svg>
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200">
-            <div className="flex flex-col gap-4">
-              <button className="w-full px-6 py-3 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold rounded-xl transition-colors duration-200">
+          {/* Right side */}
+          <div className="flex items-center gap-3">
+            {/* Book Now */}
+            <Link href="/signup/role-selection">
+              <button className="px-5 py-2 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold rounded-full text-sm transition-colors duration-200">
                 Book Now
               </button>
-              <button className="w-full px-6 py-3 border-2 border-gray-200 hover:border-[#4AA7A7] text-gray-700 font-semibold rounded-xl transition-colors duration-200">
-                Search
+            </Link>
+
+            {/* Hamburger */}
+            <button className="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+
+            {/* Profile icon + dropdown */}
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
               </button>
+
+              {profileOpen &&
+                <div className="absolute top-full right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 py-2 overflow-hidden">
+                  {profileMenuItems.map(
+                    (item, i) =>
+                      item === null
+                        ? <div
+                            key={i}
+                            className="my-2 border-t border-gray-100"
+                          />
+                        : <Link
+                            key={item.label}
+                            href={item.href}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setProfileOpen(false)}
+                          >
+                            <span className="text-base">
+                              {item.icon}
+                            </span>
+                            <span>
+                              {item.label}
+                            </span>
+                          </Link>
+                  )}
+                </div>}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </header>
   );

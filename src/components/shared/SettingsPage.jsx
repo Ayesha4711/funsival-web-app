@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -509,6 +510,7 @@ const TABS = [
  *                                  Defaults to "provider" for backwards-compatibility.
  */
 export default function SettingsPage({ role = "provider" }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("notifications");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -517,8 +519,21 @@ export default function SettingsPage({ role = "provider" }) {
 
   return (
     <div className="flex-1 bg-[var(--color-bg)] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-xl font-bold text-[var(--color-text)] mb-6">Settings</h1>
+      <div className="w-full">
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            onClick={() => router.back()}
+            className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-white hover:shadow-sm transition-all shrink-0"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-[var(--color-text)]">Settings</h1>
+            <p className="text-xs text-gray-400 mt-0.5">Manage your account preferences and settings</p>
+          </div>
+        </div>
 
         <div className="flex gap-6 items-start">
           {/* Desktop sidebar */}

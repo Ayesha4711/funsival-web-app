@@ -55,7 +55,7 @@ export default function Button({
         'relative inline-flex items-center justify-center rounded-[50px] font-medium',
         'transition-all duration-200 ease-out active:scale-95',
         'focus:outline-none focus:ring-2 focus:ring-offset-2',
-        'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+        'cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
         variants[variant] ?? variants.primary,
         sizes[size] ?? sizes.md,
         className,

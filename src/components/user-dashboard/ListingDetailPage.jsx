@@ -185,6 +185,7 @@ function ImageGallery({ images, title }) {
 
 /* ─── Booking Card (Places) ──────────────────────────────────────────────────── */
 function PlacesBookingCard({ listing }) {
+  const router = useRouter();
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
@@ -229,7 +230,10 @@ function PlacesBookingCard({ listing }) {
         </div>
       </div>
 
-      <button className="w-full py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-xl text-sm transition-colors">Reserve</button>
+      <button
+        onClick={() => router.push(`/user-dashboard/confirm-and-pay?title=${encodeURIComponent(listing.title)}&image=${encodeURIComponent(listing.images[0])}&dateFrom=${encodeURIComponent(checkIn || "Nov 26")}&dateTo=${encodeURIComponent(checkOut || "Dec 01")}&guests=${encodeURIComponent(guests + " guest")}&pricePerUnit=${listing.price}&hours=${nights * 24}&funsivalFee=30`)}
+        className="w-full py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-xl text-sm transition-colors"
+      >Reserve</button>
 
       <div className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between"><span className="text-gray-500">${listing.price} × {nights} night{nights > 1 ? "s" : ""}</span><span className="font-semibold">${subtotal}</span></div>
@@ -242,6 +246,7 @@ function PlacesBookingCard({ listing }) {
 
 /* ─── Booking Card (Equipment) ───────────────────────────────────────────────── */
 function EquipmentBookingCard({ listing }) {
+  const router = useRouter();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [qty, setQty] = useState(1);
@@ -286,7 +291,10 @@ function EquipmentBookingCard({ listing }) {
         </div>
       </div>
 
-      <button className="w-full py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-xl text-sm transition-colors">Reserve</button>
+      <button
+        onClick={() => router.push(`/user-dashboard/confirm-and-pay?title=${encodeURIComponent(listing.title)}&image=${encodeURIComponent(listing.images[0])}&dateFrom=${encodeURIComponent(startDate || "Nov 26")}&dateTo=${encodeURIComponent(endDate || "Dec 01")}&guests=${encodeURIComponent(qty + " unit")}&pricePerUnit=${listing.price}&hours=${days * 24}&funsivalFee=30`)}
+        className="w-full py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-xl text-sm transition-colors"
+      >Reserve</button>
 
       <div className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between"><span className="text-gray-500">${listing.price} × {days} day{days > 1 ? "s" : ""} × {qty}</span><span className="font-semibold">${subtotal}</span></div>
@@ -299,6 +307,7 @@ function EquipmentBookingCard({ listing }) {
 
 /* ─── Booking Card (Activities) ──────────────────────────────────────────────── */
 function ActivityBookingCard({ listing }) {
+  const router = useRouter();
   const [date, setDate] = useState("");
   const [persons, setPersons] = useState(1);
   const subtotal = listing.price * persons;
@@ -333,7 +342,10 @@ function ActivityBookingCard({ listing }) {
         </div>
       </div>
 
-      <button className="w-full py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-xl text-sm transition-colors">Reserve</button>
+      <button
+        onClick={() => router.push(`/user-dashboard/confirm-and-pay?title=${encodeURIComponent(listing.title)}&image=${encodeURIComponent(listing.images[0])}&dateFrom=${encodeURIComponent(date || "Nov 26")}&dateTo=${encodeURIComponent(date || "Nov 26")}&guests=${encodeURIComponent(persons + " person")}&pricePerUnit=${listing.price}&hours=${persons}&funsivalFee=30`)}
+        className="w-full py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-xl text-sm transition-colors"
+      >Reserve</button>
 
       <div className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between"><span className="text-gray-500">${listing.price} × {persons} person{persons > 1 ? "s" : ""}</span><span className="font-semibold">${subtotal}</span></div>

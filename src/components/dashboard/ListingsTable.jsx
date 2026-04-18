@@ -3,6 +3,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
+import Pagination from "@/components/shared/Pagination";
+
+const LocationIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 shrink-0">
+    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+    <circle cx="12" cy="9" r="2.5"/>
+  </svg>
+);
 
 const StarIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-400">
@@ -31,6 +39,67 @@ const STATUS_STYLES = {
   Inactive: { pill: "bg-red-50 text-red-400 border-red-100",         dot: "bg-red-400" },
   Draft:    { pill: "bg-orange-50 text-orange-400 border-orange-100", dot: "bg-orange-400" },
 };
+
+const CalendarIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+);
+
+const MOCK_SLOTS = [
+  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
+  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
+  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
+  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
+  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
+  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
+  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
+  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
+];
+
+function SlotsPopover({ slots = MOCK_SLOTS }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F3F4F6] border border-gray-200 rounded-lg text-xs font-bold text-[var(--color-text)] w-fit hover:border-[var(--color-primary)] transition-colors"
+      >
+        <CalendarIcon />
+        <span>{slots.length} slots</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-10 z-40 bg-white rounded-2xl shadow-xl border border-gray-100 w-52 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-50">
+            <p className="text-xs font-bold text-[var(--color-text)]">Availability</p>
+          </div>
+          <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
+            {slots.map((slot, i) => (
+              <div key={i} className="px-4 py-2.5">
+                <p className="text-xs font-bold text-[var(--color-text)]">{slot.date}</p>
+                <p className="text-[10px] text-gray-400 font-medium mt-0.5">{slot.time}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StatusDropdown({ status, onStatusChange }) {
   const [open, setOpen] = useState(false);
@@ -86,7 +155,7 @@ export default function ListingsTable({ data, onStatusChange }) {
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-gray-100 text-[10px] uppercase font-extrabold text-[#111827]">
+            <tr className="border-b border-gray-100 bg-[#F3F4F6] text-[10px] uppercase font-extrabold text-[#111827]">
               <th className="px-6 py-4">Activity</th>
               <th className="px-6 py-4">Category</th>
               <th className="px-6 py-4">Price</th>
@@ -115,7 +184,7 @@ export default function ListingsTable({ data, onStatusChange }) {
                       <div>
                         <p className="font-extrabold mb-0.5">{item.name}</p>
                         <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
-                          <span className="w-1 h-1 rounded-full bg-gray-300" /> {item.location}
+                          <LocationIcon /> {item.location}
                         </p>
                       </div>
                     </div>
@@ -125,20 +194,8 @@ export default function ListingsTable({ data, onStatusChange }) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{item.price}</td>
                   <td className="px-6 py-4">{item.bookings}</td>
-                  <td className="px-6 py-4 min-w-[124px]">
-                    {item.status === "Draft" ? (
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F3F4F6] border border-gray-100 rounded-lg text-xs font-bold text-[var(--color-text)] w-fit">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                        </svg>
-                        <span>8 slots</span>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="mb-0.5">{item.date || "N/A"}</p>
-                        <p className="text-[10px] text-gray-400 font-medium">{item.time || "N/A"}</p>
-                      </>
-                    )}
+                  <td className="px-6 py-4 min-w-[140px]">
+                    <SlotsPopover slots={item.slots || MOCK_SLOTS} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap font-extrabold">
                     <div className="flex items-center gap-1.5">
@@ -163,17 +220,8 @@ export default function ListingsTable({ data, onStatusChange }) {
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="px-6 py-4 border-t border-gray-50 flex items-center justify-center gap-2">
-        <button className="text-[11px] text-gray-400 flex items-center hover:text-[var(--color-primary)]">‹ Previous</button>
-        <div className="flex items-center gap-1 mx-4">
-          {[1, 2, 3].map((p) => (
-            <button key={p} className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${p === 2 ? "bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "text-gray-400 hover:bg-gray-50"}`}>
-              {p}
-            </button>
-          ))}
-        </div>
-        <button className="text-[11px] text-gray-400 flex items-center hover:text-[var(--color-primary)]">Next ›</button>
+      <div className="px-6 py-4 border-t border-gray-50">
+        <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />
       </div>
     </div>
   );

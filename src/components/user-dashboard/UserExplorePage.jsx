@@ -7,6 +7,7 @@ import NewsletterSection from '@/components/landing/NewsletterSection';
 import LandingFooter from '@/components/landing/LandingFooter';
 import NotificationPopover from '@/components/shared/NotificationPopover';
 import MapView from '@/components/user-dashboard/MapView';
+import Pagination from '@/components/shared/Pagination';
 
 /* ─── Navbar Icons ───────────────────────────────────────────────────────────── */
 const BellIcon = () => (
@@ -361,61 +362,6 @@ function ListingCard({ listing }) {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ─── Pagination ─────────────────────────────────────────────────────────────── */
-function Pagination({ currentPage, totalPages, onPageChange }) {
-  if (totalPages <= 1) return null;
-
-  return (
-    <div className="flex items-center justify-center gap-1.5 mt-8 mb-4">
-      <button
-        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-        disabled={currentPage === 1}
-        className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-
-      {[...Array(totalPages)].map((_, i) => {
-        const page = i + 1;
-        const show =
-          page === 1 ||
-          page === totalPages ||
-          (page >= currentPage - 1 && page <= currentPage + 1);
-        if (!show) {
-          if (page === currentPage - 2 || page === currentPage + 2)
-            return <span key={page} className="px-1 text-gray-400 text-sm">…</span>;
-          return null;
-        }
-        return (
-          <button
-            key={page}
-            onClick={() => onPageChange(page)}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
-              page === currentPage
-                ? 'bg-[#4AA7A7] text-white'
-                : 'border border-gray-300 text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            {page}
-          </button>
-        );
-      })}
-
-      <button
-        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-        disabled={currentPage === totalPages}
-        className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
     </div>
   );
 }

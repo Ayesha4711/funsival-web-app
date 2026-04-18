@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Pagination from "@/components/shared/Pagination";
 
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -200,16 +201,8 @@ export default function TransactionHistory() {
         ))}
       </div>
 
-      {/* Pagination Container (Simple Placeholder) */}
-      <div className="mt-8 flex items-center justify-center gap-2">
-        <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:bg-gray-50">«</button>
-        <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:bg-gray-50">‹</button>
-        <div className="flex items-center gap-1.5 px-3 py-1 bg-[var(--color-secondary-light)] text-[var(--color-secondary)] rounded-lg text-xs font-bold">
-           <span>1</span>
-           <span className="text-[var(--color-text-subtle)] font-medium">of 10</span>
-        </div>
-        <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50">›</button>
-        <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50">»</button>
+      <div className="mt-8">
+        <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />
       </div>
     </div>
   );

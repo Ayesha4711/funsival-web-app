@@ -1,6 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
+import {
+  CalendarField,
+  DropdownField,
+  TagInputField,
+} from "@/components/shared/FieldControls";
 
 /* ─── Shared field components ────────────────────────────────────────────────── */
 function Label({ children, required }) {
@@ -27,17 +32,6 @@ function Textarea({ ...props }) {
       className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] resize-none transition-colors"
       {...props}
     />
-  );
-}
-
-function Select({ children, ...props }) {
-  return (
-    <select
-      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] bg-white appearance-none transition-colors"
-      {...props}
-    >
-      {children}
-    </select>
   );
 }
 
@@ -130,47 +124,17 @@ function PhotoUpload({ photos, onAdd }) {
   );
 }
 
-/* ─── Tag input ─────────────────────────────────────────────────────────────── */
-function TagInput({ tags, placeholder, onAdd, onRemove }) {
-  const [val, setVal] = useState("");
-  const add = () => {
-    if (val.trim()) { onAdd(val.trim()); setVal(""); }
-  };
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2">
-        {tags.map((t, i) => (
-          <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[var(--color-primary-light)] text-[var(--color-primary)] rounded-full text-xs font-semibold">
-            {t}
-            <button type="button" onClick={() => onRemove(i)} className="hover:text-red-500 ml-0.5">×</button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <input
-          value={val}
-          onChange={e => setVal(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && (e.preventDefault(), add())}
-          placeholder={placeholder}
-          className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
-        />
-        <button type="button" onClick={add} className="px-3 py-2 rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)] text-sm font-bold hover:bg-[var(--color-primary)] hover:text-white transition-colors">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /* ─── Availability slot (equipment: start + end time, delete button) ─────────── */
 function AvailabilitySlot({ slot, index, onChange, onRemove, showDelete }) {
   return (
     <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
       <div className="flex-1">
         <Label>Select Date</Label>
-        <TextInput type="date" value={slot.date} onChange={e => onChange(index, "date", e.target.value)} />
+        <CalendarField
+          value={slot.date}
+          placeholder="Select date"
+          onChange={(date) => onChange(index, "date", date)}
+        />
       </div>
       <div className="flex-1">
         <Label>Start Time</Label>
@@ -294,12 +258,12 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
               />
             </div>
             <div className="sm:col-span-2">
-              <Label>What's Included</Label>
-              <TagInput
+              <Label>What&apos;s Included</Label>
+              <TagInputField
                 tags={form.included}
                 placeholder="List everything included with the rental"
-                onAdd={v => set("included", [...form.included, v])}
-                onRemove={i => set("included", form.included.filter((_, j) => j !== i))}
+                onAdd={(value) => set("included", [...form.included, value])}
+                onRemove={(index) => set("included", form.included.filter((_, i) => i !== index))}
               />
             </div>
             <div className="sm:col-span-2">
@@ -312,22 +276,26 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
             </div>
             <div>
               <Label>Cancellation Policy</Label>
-              <Select value={form.cancellationPolicy} onChange={e => set("cancellationPolicy", e.target.value)}>
-                <option value="">Select a policy…</option>
-                <option value="flexible">Flexible — full refund 24h prior</option>
-                <option value="moderate">Moderate — full refund 5 days prior</option>
-                <option value="strict">Strict — 50% refund 7 days prior</option>
-                <option value="non_refundable">Non-refundable</option>
-              </Select>
+              <DropdownField
+                value={form.cancellationPolicy}
+                placeholder="Select a policy..."
+                options={[
+                  { value: "flexible", label: "Flexible — full refund 24h prior" },
+                  { value: "moderate", label: "Moderate — full refund 5 days prior" },
+                  { value: "strict", label: "Strict — 50% refund 7 days prior" },
+                  { value: "non_refundable", label: "Non-refundable" },
+                ]}
+                onChange={(value) => set("cancellationPolicy", value)}
+              />
             </div>
           </div>
         </section>
 
         {/* ── 3. Location Map ──────────────────────────────────────────────── */}
         <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
-          <SectionTitle num="3">Where's Your Equipment Located?</SectionTitle>
+          <SectionTitle num="3">Where&apos;s Your Equipment Located?</SectionTitle>
           <p className="text-xs text-gray-400 mb-3">
-            Your address is only shown to renters after they've made a booking.
+            Your address is only shown to renters after they&apos;ve made a booking.
           </p>
           <MapPlaceholder />
         </section>

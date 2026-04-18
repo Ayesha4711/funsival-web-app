@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
-
+import Divider from "@/components/common/Divider";
+import SocialButton from "@/components/common/SocialButton";
 const BASE_URL = "https://eb37-182-187-142-154.ngrok-free.app";
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
@@ -138,12 +139,12 @@ export default function UserSignupPage() {
         <Input id="city" name="city" type="text" placeholder="City" icon={<CityIcon />} value={form.city} onChange={handleChange} error={clientErrors.city} />
         <Input
           id="password" name="password" type={showPassword ? "text" : "password"} placeholder="Password" icon={<LockIcon />}
-          suffix={<button type="button" onClick={() => setShowPassword((v) => !v)} className="text-text-subtle hover:text-text transition-colors">{showPassword ? <EyeOffIcon /> : <EyeIcon />}</button>}
+          suffix={<button type="button" onClick={() => setShowPassword((v) => !v)} className="text-text-subtle hover:text-text transition-colors">{showPassword ? <EyeIcon /> : <EyeOffIcon />}</button>}
           value={form.password} onChange={handleChange} error={clientErrors.password}
         />
         <Input
           id="confirmPassword" name="confirmPassword" type={showConfirm ? "text" : "password"} placeholder="Re-Enter Password" icon={<LockIcon />}
-          suffix={<button type="button" onClick={() => setShowConfirm((v) => !v)} className="text-text-subtle hover:text-text transition-colors">{showConfirm ? <EyeOffIcon /> : <EyeIcon />}</button>}
+          suffix={<button type="button" onClick={() => setShowConfirm((v) => !v)} className="text-text-subtle hover:text-text transition-colors">{showConfirm ? <EyeIcon /> : <EyeOffIcon />}</button>}
           value={form.confirmPassword} onChange={handleChange} error={clientErrors.confirmPassword}
         />
 
@@ -155,6 +156,18 @@ export default function UserSignupPage() {
           Already have an account?{" "}
           <Link href="/login" className="text-primary font-bold hover:underline">Sign in</Link>
         </p>
+
+        <div className="my-5">
+                <Divider label="OR" />
+              </div>
+        
+              {/* Social buttons */}
+              <div className="flex flex-col gap-4">
+                <SocialButton type="google" label="Continue with Google" />
+                <SocialButton type="facebook" label="Continue with Facebook" />
+                <SocialButton type="apple" label="Continue with Apple" />
+                <SocialButton type="email" label="Continue with Email" />
+              </div>
       </form>
     </AuthLayout>
   );

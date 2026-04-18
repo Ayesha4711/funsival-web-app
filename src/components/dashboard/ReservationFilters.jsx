@@ -148,7 +148,7 @@ export default function ReservationFilters({ activeTab, onTabChange }) {
                 {dateValue || "mm/dd/yy"}
               </span>
               {dateValue ? (
-                <span onClick={clearDate} className="text-gray-400 hover:text-red-400 transition-colors">
+                <span onClick={clearDate} className="cursor-pointer text-gray-400 hover:text-red-400 transition-colors">
                   <CloseIcon />
                 </span>
               ) : (

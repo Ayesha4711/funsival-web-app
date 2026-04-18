@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
+import Pagination from "@/components/shared/Pagination";
 
 const StarIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-400">
@@ -110,7 +111,7 @@ export default function ListingsCards({ data, onStatusChange }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-y-6 pt-5 border-t border-gray-50">
+          <div className="grid grid-cols-2 gap-y-6 pt-5 border-t border-gray-50 ">
              <div>
                 <p className="text-[10px] font-extrabold text-gray-400 uppercase mb-1">Price</p>
                 <p className="text-xs font-bold text-[var(--color-text)]">{item.price}</p>
@@ -133,17 +134,8 @@ export default function ListingsCards({ data, onStatusChange }) {
         </div>
       ))}
 
-      {/* Pagination */}
-      <div className="py-4 flex items-center justify-center gap-2">
-        <button className="text-xs text-gray-400 flex items-center mr-2">‹ Previous</button>
-        <div className="flex items-center gap-1 mx-2">
-            {[1, 2, 3].map((p) => (
-               <button key={p} className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${p === 2 ? 'bg-[var(--color-primary)] text-white' : 'text-gray-400 hover:bg-gray-100'}`}>
-                  {p}
-               </button>
-            ))}
-        </div>
-        <button className="text-xs text-gray-400 flex items-center ml-2">Next ›</button>
+      <div className="py-4">
+        <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />
       </div>
     </div>
   );

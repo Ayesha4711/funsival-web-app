@@ -2,31 +2,31 @@
 
 import React, { useRef } from 'react';
 import Image from 'next/image';
+import Colorado from '@/assets/images/Colarado.svg';
+import Hawaii from '@/assets/images/Hawaii.svg';
+import LosAngeles from '@/assets/images/LosAngeles.svg';
+import NewYork from '@/assets/images/NewYork.svg';
 
 const destinations = [
   {
     id: 1,
     name: 'Colorado',
-    image: '/images/destinations/colorado.jpg',
-    bgColor: 'bg-gradient-to-br from-orange-400 to-red-500'
+    image: Colorado,
   },
   {
     id: 2,
     name: 'Hawaii',
-    image: '/images/destinations/hawaii.jpg',
-    bgColor: 'bg-gradient-to-br from-blue-400 to-cyan-500'
+    image: Hawaii,
   },
   {
     id: 3,
     name: 'Los Angeles',
-    image: '/images/destinations/los-angeles.jpg',
-    bgColor: 'bg-gradient-to-br from-purple-400 to-pink-500'
+    image: LosAngeles,
   },
   {
     id: 4,
     name: 'New York',
-    image: '/images/destinations/new-york.jpg',
-    bgColor: 'bg-gradient-to-br from-yellow-400 to-orange-500'
+    image: NewYork,
   }
 ];
 
@@ -91,17 +91,13 @@ export default function BrowseByDestination() {
                 key={destination.id}
                 className="relative flex-shrink-0 w-64 sm:w-72 md:w-80 lg:w-96 h-64 md:h-80 lg:h-96 rounded-2xl overflow-hidden cursor-pointer group"
               >
-                {/* Background with fallback gradient */}
-                <div className={`absolute inset-0 ${destination.bgColor}`}>
-                  {/* Image overlay - will show when image is available */}
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-110"
-                    style={{
-                      backgroundImage: `url('${destination.image}')`,
-                      backgroundColor: 'rgba(0,0,0,0.3)'
-                    }}
-                  />
-                </div>
+                {/* Destination Image */}
+                <Image
+                  src={destination.image}
+                  alt={destination.name}
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-110"
+                />
 
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

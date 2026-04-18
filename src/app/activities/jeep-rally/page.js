@@ -11,8 +11,7 @@ export default function JeepRallyPage() {
     <ActivityListingPage
       heroTitle="Conquer The Dunes, Leave Your Limits Behind"
       heroSubtitle="Off-road adventures across diverse terrains"
-      heroBackground="/images/activities/jeep-hero.jpg"
-      heroBackgroundColor="bg-gradient-to-r from-orange-500 to-yellow-500"
+      heroBackground="/images/activities/jeeprally.svg"
       filters={jeepRallyFilters}
       activities={jeepRallyActivities}
     />

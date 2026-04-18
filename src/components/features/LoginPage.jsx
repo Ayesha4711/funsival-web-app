@@ -285,7 +285,7 @@ export default function LoginPage() {
               onClick={() => setShowPassword(!showPassword)}
               className="text-text-subtle hover:text-text transition-colors"
             >
-              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              {showPassword ? <EyeIcon /> : <EyeOffIcon />}
             </button>
           }
           value={form.password}

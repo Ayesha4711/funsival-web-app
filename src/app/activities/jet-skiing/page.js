@@ -11,8 +11,7 @@ export default function JetSkiingPage() {
     <ActivityListingPage
       heroTitle="Adventure Backed by Safety"
       heroSubtitle="High-speed water adventures with professional instructors"
-      heroBackground="/images/activities/jetski-hero.jpg"
-      heroBackgroundColor="bg-gradient-to-r from-cyan-500 to-blue-500"
+      heroBackground="/images/activities/scubadiving.svg"
       filters={jetSkiingFilters}
       activities={jetSkiingActivities}
     />
