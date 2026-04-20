@@ -1,4 +1,6 @@
-const BASE_URL = "https://q11glw60-3000.inc1.devtunnels.ms";
+export const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://funsival-backend-twvuq.ondigitalocean.app";
 
 /**
  * Thin fetch wrapper that prepends the base URL and always
@@ -9,12 +11,23 @@ const BASE_URL = "https://q11glw60-3000.inc1.devtunnels.ms";
  * @returns {Promise<{ data: any, status: number }>}
  */
 export async function apiFetch(path, options = {}) {
+  let token = null;
+  if (typeof window !== "undefined") {
+    // Client-side: try localStorage or document.cookie
+    token = localStorage.getItem("auth-token");
+    if (!token) {
+      const match = document.cookie.match(/(^|;)\s*auth-token\s*=\s*([^;]+)/);
+      token = match ? match[2] : null;
+    }
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers ?? {})
+    }
   });
 
   let data = null;
@@ -34,6 +47,18 @@ export async function apiFetch(path, options = {}) {
 export async function loginApi(credentials) {
   return apiFetch("/api/v1/auth/login", {
     method: "POST",
-    body: JSON.stringify(credentials),
+    body: JSON.stringify(credentials)
+  });
+}
+
+/**
+ * POST /api/v1/users/preferences
+ *
+ * @param {{ amenities: string[], equipment: string[], services: string[] }} preferences
+ */
+export async function savePreferences(preferences) {
+  return apiFetch("/api/v1/users/preferences", {
+    method: "POST",
+    body: JSON.stringify(preferences)
   });
 }

@@ -2,6 +2,9 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { savePreferences } from "@/lib/api";
 import logo from "@/assets/images/logo.svg";
 
 /* ─── Data ─────────────────────────────────────────────────────────────────── */
@@ -44,11 +47,13 @@ const Tag = ({ label, isSelected, onClick }) => (
 
 /* ─── Main Page ────────────────────────────────────────────────────────────── */
 export default function PreferenceSelectionPage() {
+  const router = useRouter();
   const [selected, setSelected] = useState({
     amenities: ["Tree house"], // Initial from mockup
     equipment: ["ATV's"],     // Initial from mockup
     services: []
   });
+  const [isPending, setIsPending] = useState(false);
 
   const toggleSelection = (category, item) => {
     setSelected(prev => ({
@@ -57,6 +62,31 @@ export default function PreferenceSelectionPage() {
         ? prev[category].filter(i => i !== item)
         : [...prev[category], item]
     }));
+  };
+
+  const handleContinue = async () => {
+    setIsPending(true);
+    try {
+      const { data, ok } = await savePreferences(selected);
+      if (ok) {
+        toast.success("Preferences saved!");
+        router.push("/user-dashboard/explore");
+      } else {
+        toast.error("Failed to save preferences", {
+          description: data?.message || "Something went wrong"
+        });
+      }
+    } catch (err) {
+      toast.error("Network error", {
+        description: "Could not save preferences. Please try again."
+      });
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  const handleLater = () => {
+    router.push("/user-dashboard/explore");
   };
 
   return (
@@ -144,14 +174,18 @@ export default function PreferenceSelectionPage() {
           {/* Modal Footer (Fixed) */}
           <div className="px-8 py-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-end gap-4 shrink-0 bg-gray-50/50">
             <button 
-              className="w-full sm:w-auto px-8 py-4 rounded-full border-2 border-[var(--color-secondary)] text-[var(--color-secondary)] font-bold text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-all duration-200"
+              onClick={handleLater}
+              disabled={isPending}
+              className="w-full sm:w-auto px-8 py-4 rounded-full border-2 border-[var(--color-secondary)] text-[var(--color-secondary)] font-bold text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-all duration-200 disabled:opacity-50"
             >
               I'll do this later
             </button>
             <button 
-              className="w-full sm:w-auto px-12 py-4 rounded-full bg-[var(--color-primary)] text-white font-bold text-sm hover:opacity-90 transition-all duration-200"
+              onClick={handleContinue}
+              disabled={isPending}
+              className="w-full sm:w-auto px-12 py-4 rounded-full bg-[var(--color-primary)] text-white font-bold text-sm hover:opacity-90 transition-all duration-200 disabled:opacity-50"
             >
-              Continue
+              {isPending ? "Saving..." : "Continue"}
             </button>
           </div>
         </div>

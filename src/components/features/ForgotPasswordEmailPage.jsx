@@ -116,6 +116,12 @@ function ForgotPasswordForm() {
   }, [serverState]);
 
   const handleSubmit = e => {
+    if (!email.trim()) {
+      e.preventDefault();
+      setClientError("Email is required");
+      return;
+    }
+
     if (!email.includes("@")) {
       e.preventDefault();
       setClientError("Please enter a valid email address.");

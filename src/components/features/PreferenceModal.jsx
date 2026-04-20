@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { savePreferences } from "@/lib/api";
+import { toast } from "sonner";
 
 /* ─── Data ─────────────────────────────────────────────────────────────────── */
 const CATEGORIES = {
@@ -9,7 +11,8 @@ const CATEGORIES = {
     label: "Amenities",
     items: [
       "Tree house", "Pool", "Bowling", "Gym", "Mansions", "Igloo",
-      "Caves", "Domes", "Tiny homes", "Beach", "Castle", "Mansions",
+      "Caves", "Domes", "Tiny homes", "Beach", "Castle", "Villas",
+      "Penthouse", "Cabin", "Yacht", "Farmhouse", "Lighthouse"
     ],
   },
   equipment: {
@@ -17,6 +20,7 @@ const CATEGORIES = {
     items: [
       "ATV's", "Snowboards", "Surfboards", "Bicycle", "Scuba", "Jetski",
       "Bike", "Car", "Laptop", "Watch", "Decoration items", "Toys",
+      "Camera", "Projector", "Speaker", "Drone", "Camping Gear"
     ],
   },
   services: {
@@ -24,6 +28,7 @@ const CATEGORIES = {
     items: [
       "Skydiving", "Horse riding", "Surfing", "Bowling", "Scuba diving",
       "Paragliding", "Jetski", "Boating", "Fishing", "Bungee", "Zipline",
+      "Photography", "Catering", "Tour Guide", "Transport"
     ],
   },
 };
@@ -59,6 +64,12 @@ export default function PreferenceModal({ onClose, role = "user" }) {
     equipment: ["ATV's"],
     services: [],
   });
+  const [isPending, setIsPending] = useState(false);
+  const [expanded, setExpanded] = useState({
+    amenities: false,
+    equipment: false,
+    services: false
+  });
 
   const dashboardPath = role === "host" ? "/dashboard" : "/user-dashboard/explore";
 
@@ -77,9 +88,25 @@ export default function PreferenceModal({ onClose, role = "user" }) {
     }));
   };
 
-  const handleContinue = () => {
-    // TODO: persist selections via API
-    router.push(dashboardPath);
+  const handleContinue = async () => {
+    setIsPending(true);
+    try {
+      const { data, status, ok } = await savePreferences(selected);
+      if (ok) {
+        toast.success("Preferences saved!");
+        router.push(dashboardPath);
+      } else {
+        toast.error("Failed to save preferences", {
+          description: data?.message || "Something went wrong"
+        });
+      }
+    } catch (err) {
+      toast.error("Network error", {
+        description: "Could not save preferences. Please try again."
+      });
+    } finally {
+      setIsPending(false);
+    }
   };
 
   const handleLater = () => {
@@ -122,27 +149,44 @@ export default function PreferenceModal({ onClose, role = "user" }) {
 
         {/* ── Scrollable Body ── */}
         <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-5 sm:py-6 space-y-7 sm:space-y-9">
-          {Object.entries(CATEGORIES).map(([key, { label, items }]) => (
-            <section key={key}>
-              <h2 className="text-sm font-semibold text-gray-700 mb-3 sm:mb-4">{label}</h2>
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                {items.map((item) => (
-                  <Tag
-                    key={item}
-                    label={item}
-                    isSelected={selected[key].includes(item)}
-                    onClick={() => toggle(key, item)}
-                  />
-                ))}
-                {/* "See more" only for amenities and equipment */}
-                {(key === "amenities" || key === "equipment") && (
-                  <button className="text-sm font-bold text-[#FEB538] hover:underline px-1">
-                    See 24+ more
-                  </button>
-                )}
-              </div>
-            </section>
-          ))}
+          {Object.entries(CATEGORIES).map(([key, { label, items }]) => {
+            const isExpanded = expanded[key];
+            const displayedItems = isExpanded ? items : items.slice(0, 11);
+            const hasMore = items.length > 11;
+
+            return (
+              <section key={key}>
+                <h2 className="text-sm font-semibold text-gray-700 mb-3 sm:mb-4">{label}</h2>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  {displayedItems.map((item) => (
+                    <Tag
+                      key={item}
+                      label={item}
+                      isSelected={selected[key].includes(item)}
+                      onClick={() => toggle(key, item)}
+                    />
+                  ))}
+                  {/* "See more" toggle */}
+                  {hasMore && !isExpanded && (
+                    <button 
+                      onClick={() => setExpanded(prev => ({ ...prev, [key]: true }))}
+                      className="text-sm font-bold text-[#FEB538] hover:underline px-1"
+                    >
+                      See {items.length - 11}+ more
+                    </button>
+                  )}
+                  {isExpanded && (
+                    <button 
+                      onClick={() => setExpanded(prev => ({ ...prev, [key]: false }))}
+                      className="text-sm font-bold text-[#FEB538] hover:underline px-1"
+                    >
+                      Show less
+                    </button>
+                  )}
+                </div>
+              </section>
+            );
+          })}
         </div>
 
         {/* ── Footer ── */}
@@ -155,13 +199,15 @@ export default function PreferenceModal({ onClose, role = "user" }) {
           <div className="flex flex-col gap-3 sm:hidden">
             <button
               onClick={handleContinue}
-              className="w-full py-3.5 rounded-full bg-[var(--color-primary)] text-white font-bold text-sm hover:opacity-90 transition-opacity"
+              disabled={isPending}
+              className="w-full py-3.5 rounded-full bg-[var(--color-primary)] text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              Continue
+              {isPending ? "Saving..." : "Continue"}
             </button>
             <button
               onClick={handleLater}
-              className="w-full py-3.5 rounded-full border-2 border-[#FEB538] text-[#FEB538] font-bold text-sm hover:bg-[#FFF5D9] transition-colors"
+              disabled={isPending}
+              className="w-full py-3.5 rounded-full border-2 border-[#FEB538] text-[#FEB538] font-bold text-sm hover:bg-[#FFF5D9] transition-colors disabled:opacity-50"
             >
               I'll do this later
             </button>
@@ -171,15 +217,17 @@ export default function PreferenceModal({ onClose, role = "user" }) {
           <div className="hidden sm:flex items-center justify-end gap-4">
             <button
               onClick={handleLater}
-              className="px-7 py-3 rounded-full border-2 border-[#FEB538] text-[#FEB538] font-bold text-sm hover:bg-[#FFF5D9] transition-colors"
+              disabled={isPending}
+              className="px-7 py-3 rounded-full border-2 border-[#FEB538] text-[#FEB538] font-bold text-sm hover:bg-[#FFF5D9] transition-colors disabled:opacity-50"
             >
               I'll do this later
             </button>
             <button
               onClick={handleContinue}
-              className="px-10 py-3 rounded-full bg-[var(--color-primary)] text-white font-bold text-sm hover:opacity-90 transition-opacity"
+              disabled={isPending}
+              className="px-10 py-3 rounded-full bg-[var(--color-primary)] text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              Continue
+              {isPending ? "Saving..." : "Continue"}
             </button>
           </div>
         </div>

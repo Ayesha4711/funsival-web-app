@@ -5,14 +5,16 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import AuthLayout from "@/components/layout/AuthLayout";
+import { BASE_URL } from "@/lib/api";
 
-const BASE_URL = "https://eb37-182-187-142-154.ngrok-free.app";
+
 
 /* ─── Component ─────────────────────────────────────────────────────────────── */
 export default function OTPVerificationPage() {
   const params = useSearchParams();
   const router = useRouter();
   const email = params.get("email") ?? "";
+  const role = params.get("role") ?? "user";
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef([]);
@@ -80,7 +82,7 @@ export default function OTPVerificationPage() {
         localStorage.setItem("auth-token", token);
       }
       toast.success("Email verified!", { description: data.message ?? "Your account is ready." });
-      router.push("/signup/success");
+      router.push(`/signup/success?role=${role}`);
     } catch {
       toast.error("Network error", { description: "Could not reach the server. Please try again." });
     } finally {

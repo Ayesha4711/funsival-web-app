@@ -7,8 +7,9 @@ import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
+import { BASE_URL } from "@/lib/api";
 
-const BASE_URL = "https://eb37-182-187-142-154.ngrok-free.app";
+
 
 /* ─── Icons ────────────────────────────────────────────────────────────────── */
 const MailIcon = () =>
@@ -230,7 +231,13 @@ export default function LoginPage() {
         toast.success("Signed in successfully", {
           description: data?.message ?? "Welcome back! You're signed in."
         });
-        router.push("/dashboard");
+
+        const role = data?.role ?? data?.data?.role ?? "user";
+        if (role === "host") {
+          router.push("/dashboard");
+        } else {
+          router.push("/user-dashboard/explore");
+        }
       })
       .catch(error => {
         toast.error("Login failed", {

@@ -7,9 +7,10 @@ import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
+import { BASE_URL } from "@/lib/api";
 import Divider from "@/components/common/Divider";
 import SocialButton from "@/components/common/SocialButton";
-const BASE_URL = "https://eb37-182-187-142-154.ngrok-free.app";
+
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const MailIcon = () => (
@@ -60,19 +61,55 @@ export default function UserSignupPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
+  const validateEmail = (email) => {
+    if (!email.trim()) return "Email is required";
+    if (!/^\S+@\S+\.\S+$/.test(email)) return "Invalid email address";
+    return "";
+  };
+
+  const validatePassword = (password) => {
+    if (!password.trim()) return "Password is required";
+    if (password.length < 8) return "Password must be at least 8 characters";
+    if (!/^[A-Z]/.test(password)) return "Password must start with an uppercase letter";
+    return "";
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "email") {
+      setClientErrors((prev) => ({ ...prev, email: validateEmail(value) }));
+      return;
+    }
+
+    if (name === "password") {
+      const passwordError = validatePassword(value);
+      const confirmError = form.confirmPassword && form.confirmPassword !== value ? "Passwords do not match" : "";
+      setClientErrors((prev) => ({ ...prev, password: passwordError, confirmPassword: confirmError }));
+      return;
+    }
+
+    if (name === "confirmPassword") {
+      const confirmError = !value.trim()
+        ? "Confirm password is required"
+        : value !== form.password
+        ? "Passwords do not match"
+        : "";
+      setClientErrors((prev) => ({ ...prev, confirmPassword: confirmError }));
+      return;
+    }
+
     if (clientErrors[name]) setClientErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const validate = () => {
     const errs = {};
-    if (!form.email.trim()) errs.email = "Email is required";
-    else if (!form.email.includes("@")) errs.email = "Invalid email address";
+    const emailError = validateEmail(form.email);
+    if (emailError) errs.email = emailError;
     if (!form.city.trim()) errs.city = "City is required";
-    if (!form.password.trim()) errs.password = "Password is required";
-    else if (form.password.length < 6) errs.password = "Password must be at least 6 characters";
+    const passwordError = validatePassword(form.password);
+    if (passwordError) errs.password = passwordError;
     if (!form.confirmPassword.trim()) errs.confirmPassword = "Confirm password is required";
     else if (form.confirmPassword !== form.password) errs.confirmPassword = "Passwords do not match";
     return errs;
@@ -109,7 +146,7 @@ export default function UserSignupPage() {
 
       if (data?.data?.verificationRequired) {
         toast.success("OTP sent!", { description: data.message ?? "Check your email for the verification code." });
-        router.push(`/verify?email=${encodeURIComponent(data.data.email)}`);
+        router.push(`/verify?email=${encodeURIComponent(data.data.email)}&role=user`);
         return;
       }
 
