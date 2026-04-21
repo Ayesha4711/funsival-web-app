@@ -37,31 +37,31 @@ export default function LandingNavbar() {
   return (
     <header className="absolute top-0 left-0 right-0 z-50 w-full">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="flex items-center justify-between h-16 md:h-20 gap-2">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-1 sm:gap-2 shrink-0">
             <Image
               src={logo}
               alt="Funsival"
               width={120}
               height={36}
-              className="h-8 w-auto"
+              className="h-6 sm:h-7 md:h-8 w-auto"
             />
           </Link>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             {/* Book Now */}
-            <Link href="/signup/role-selection">
-              <button className="px-5 py-2 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold rounded-full text-sm transition-colors duration-200">
+            <Link href="/signup/role-selection" className="shrink-0">
+              <button className="px-3 sm:px-5 py-1.5 sm:py-2 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold rounded-full text-[10px] sm:text-xs md:text-sm transition-colors duration-200 whitespace-nowrap">
                 Book Now
               </button>
             </Link>
 
             {/* Hamburger */}
-            <button className="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors">
+            <button className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors">
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4 sm:w-5 sm:h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -79,10 +79,10 @@ export default function LandingNavbar() {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
               >
                 <svg
-                  className="w-5 h-5"
+                  className="w-4 h-4 sm:w-5 sm:h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

@@ -189,7 +189,7 @@ export default function HeroSection() {
   return (
     <section className="relative w-full overflow-visible">
       {/* Hero image wrapper — fixed height */}
-      <div className="relative w-full h-[480px] md:h-[560px] lg:h-[620px]">
+      <div className="relative w-full h-[400px] sm:h-[480px] md:h-[560px] lg:h-[620px]">
         <Image
           src={heroImg}
           alt="Hero background"
@@ -202,10 +202,10 @@ export default function HeroSection() {
         {/* Hero text — left aligned, in upper/mid area */}
         <div className="relative z-10 h-full flex flex-col justify-center px-4">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-2 leading-tight max-w-2xl">
+            <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-2 leading-tight max-w-2xl">
               All the fun, none of the commitment.
             </h1>
-            <p className="text-base text-white/80">
+            <p className="text-sm sm:text-base text-white/80">
               Rent the fun. Leave the hassle.
             </p>
           </div>
@@ -215,14 +215,14 @@ export default function HeroSection() {
       {/* Search Bar — overlapping at bottom edge of hero */}
       <div
         className="relative z-20 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"
-        style={{ marginTop: "-40px" }}
+        style={{ marginTop: "-60px" }}
       >
         <div ref={searchRef} className="relative">
-          <div className="bg-white rounded-full shadow-xl px-3 py-2 flex items-center gap-1">
+          <div className="bg-white rounded-2xl sm:rounded-full shadow-xl p-2 sm:px-3 sm:py-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-1">
             {/* Where */}
             <div className="flex-1 min-w-0 relative">
               <button
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all ${openDropdown ===
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${openDropdown ===
                 "city"
                   ? "bg-gray-50 ring-2 ring-[#4AA7A7]"
                   : ""}`}
@@ -249,17 +249,17 @@ export default function HeroSection() {
                   />
                 </svg>
                 <div className="text-left min-w-0">
-                  <p className="text-[10px] text-gray-400 font-medium">
+                  <p className="text-[9px] sm:text-[10px] text-gray-400 font-medium">
                     Where?
                   </p>
-                  <p className="text-xs font-medium text-gray-800 truncate">
+                  <p className="text-[11px] sm:text-xs font-medium text-gray-800 truncate">
                     {searchData.location || "Add location, state"}
                   </p>
                 </div>
               </button>
 
               {openDropdown === "city" &&
-                <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                <div className="absolute top-full left-0 mt-2 w-full sm:w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
                       <svg
@@ -293,22 +293,9 @@ export default function HeroSection() {
                             location: e.target.value
                           })}
                       />
-                      <svg
-                        className="w-4 h-4 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                      </svg>
                     </div>
                   </div>
-                  <div className="py-1">
+                  <div className="py-1 max-h-60 overflow-y-auto">
                     {cities
                       .filter(c =>
                         c
@@ -322,7 +309,7 @@ export default function HeroSection() {
                             setSearchData({ ...searchData, location: city });
                             setOpenDropdown(null);
                           }}
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${searchData.location ===
+                          className={`w-full text-left px-4 py-2 text-sm transition-colors ${searchData.location ===
                           city
                             ? "bg-[#4AA7A7] text-white"
                             : "text-gray-700 hover:bg-gray-50"}`}
@@ -334,12 +321,12 @@ export default function HeroSection() {
                 </div>}
             </div>
 
-            <div className="w-px h-8 bg-gray-200 flex-shrink-0" />
+            <div className="hidden sm:block w-px h-8 bg-gray-200 flex-shrink-0" />
 
             {/* Activity Type */}
             <div className="flex-1 min-w-0 relative">
               <button
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all ${openDropdown ===
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${openDropdown ===
                 "activity"
                   ? "bg-gray-50 ring-2 ring-[#4AA7A7]"
                   : ""}`}
@@ -362,17 +349,17 @@ export default function HeroSection() {
                   />
                 </svg>
                 <div className="text-left min-w-0">
-                  <p className="text-[10px] text-gray-400 font-medium">
+                  <p className="text-[9px] sm:text-[10px] text-gray-400 font-medium">
                     Activity Type
                   </p>
-                  <p className="text-xs font-medium text-gray-800 truncate">
+                  <p className="text-[11px] sm:text-xs font-medium text-gray-800 truncate">
                     {searchData.activity || "Skydiving, jet skiing"}
                   </p>
                 </div>
               </button>
 
               {openDropdown === "activity" &&
-                <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                <div className="absolute top-full left-0 mt-2 w-full sm:w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
                       <input
@@ -381,19 +368,6 @@ export default function HeroSection() {
                         placeholder="Select Activity"
                         className="flex-1 text-xs bg-transparent focus:outline-none text-gray-700"
                       />
-                      <svg
-                        className="w-4 h-4 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                      </svg>
                     </div>
                   </div>
                   <div className="py-1">
@@ -407,7 +381,7 @@ export default function HeroSection() {
                           });
                           setOpenDropdown(null);
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors ${searchData.activity ===
+                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-3 transition-colors ${searchData.activity ===
                         act.name
                           ? "bg-[#4AA7A7] text-white"
                           : "text-gray-700 hover:bg-gray-50"}`}
@@ -424,12 +398,12 @@ export default function HeroSection() {
                 </div>}
             </div>
 
-            <div className="w-px h-8 bg-gray-200 flex-shrink-0" />
+            <div className="hidden sm:block w-px h-8 bg-gray-200 flex-shrink-0" />
 
             {/* From / Until (Date Picker) */}
             <div className="flex-1 min-w-0 relative">
               <button
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all ${openDropdown ===
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${openDropdown ===
                 "date"
                   ? "bg-gray-50 ring-2 ring-[#4AA7A7]"
                   : ""}`}
@@ -451,8 +425,8 @@ export default function HeroSection() {
                 </svg>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="text-left">
-                    <p className="text-[10px] text-gray-400 font-medium">From</p>
-                    <p className="text-xs font-medium text-gray-800 whitespace-nowrap">
+                    <p className="text-[9px] sm:text-[10px] text-gray-400 font-medium">From</p>
+                    <p className="text-[11px] sm:text-xs font-medium text-gray-800 whitespace-nowrap">
                       {selectedStart
                         ? `${String(selectedStart.getMonth() + 1).padStart(
                             2,
@@ -466,10 +440,10 @@ export default function HeroSection() {
                           </span>}
                     </p>
                   </div>
-                  <span className="text-gray-300 text-sm shrink-0 mt-3">—</span>
+                  <span className="text-gray-300 text-[10px] shrink-0 mt-3">—</span>
                   <div className="text-left">
-                    <p className="text-[10px] text-gray-400 font-medium">Until</p>
-                    <p className="text-xs font-medium text-gray-800 whitespace-nowrap">
+                    <p className="text-[9px] sm:text-[10px] text-gray-400 font-medium">Until</p>
+                    <p className="text-[11px] sm:text-xs font-medium text-gray-800 whitespace-nowrap">
                       {selectedEnd
                         ? `${String(selectedEnd.getMonth() + 1).padStart(
                             2,
@@ -486,32 +460,24 @@ export default function HeroSection() {
                 </div>
               </button>
 
-              {openDropdown === "date" &&
-                <div
-                  className="absolute top-full left-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 p-4"
-                  style={{ width: "520px" }}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <button
-                      onClick={prevMonth}
-                      className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100"
-                    >
-                      <svg
-                        className="w-4 h-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+              {openDropdown === "date" && (
+                <>
+                  {/* Backdrop — closes calendar on outside tap, no layout shift */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setOpenDropdown(null)}
+                  />
+                  <div className="fixed sm:absolute inset-x-4 sm:inset-x-auto bottom-4 sm:bottom-auto sm:top-full sm:right-0 sm:left-auto mt-0 sm:mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 p-4 sm:w-[340px] md:w-[520px]">
+                    <div className="flex items-center justify-between mb-4">
+                      <button
+                        onClick={prevMonth}
+                        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 19l-7-7 7-7"
-                        />
-                      </svg>
-                    </button>
-                    <div className="flex gap-8 flex-1 justify-around">
-                      <div className="flex gap-8 w-full">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <div className="flex gap-4 md:gap-8 flex-1 justify-around">
                         <CalendarMonth
                           year={calYear}
                           month={calMonth}
@@ -521,65 +487,55 @@ export default function HeroSection() {
                           hovered={hovered}
                           onHover={setHovered}
                         />
-                        <CalendarMonth
-                          year={secondYear}
-                          month={secondMonth}
-                          selectedStart={selectedStart}
-                          selectedEnd={selectedEnd}
-                          onSelectDate={handleDateSelect}
-                          hovered={hovered}
-                          onHover={setHovered}
-                        />
+                        <div className="hidden md:block">
+                          <CalendarMonth
+                            year={secondYear}
+                            month={secondMonth}
+                            selectedStart={selectedStart}
+                            selectedEnd={selectedEnd}
+                            onSelectDate={handleDateSelect}
+                            hovered={hovered}
+                            onHover={setHovered}
+                          />
+                        </div>
+                      </div>
+                      <button
+                        onClick={nextMonth}
+                        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100"
+                      >
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-3 gap-3">
+                      <button
+                        onClick={() => { setSelectedStart(new Date()); setSelectedEnd(null); }}
+                        className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                      >
+                        Today
+                      </button>
+                      <div className="flex items-center gap-2 text-[10px] sm:text-xs font-medium text-gray-700">
+                        <span className="border border-gray-200 rounded-lg px-2 py-1.5">
+                          {selectedStart ? fmt(selectedStart) : "Jan 6, 2024"}
+                        </span>
+                        <span className="text-gray-400">—</span>
+                        <span className="border border-gray-200 rounded-lg px-2 py-1.5">
+                          {selectedEnd ? fmt(selectedEnd) : "Jan 12, 2024"}
+                        </span>
                       </div>
                     </div>
-                    <button
-                      onClick={nextMonth}
-                      className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100"
-                    >
-                      <svg
-                        className="w-4 h-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </button>
                   </div>
-                  <div className="flex items-center justify-between border-t border-gray-100 pt-3">
-                    <button
-                      onClick={() => {
-                        setSelectedStart(new Date());
-                        setSelectedEnd(null);
-                      }}
-                      className="text-xs text-gray-500 hover:text-gray-700 font-medium"
-                    >
-                      Today
-                    </button>
-                    <div className="flex items-center gap-2 text-xs font-medium text-gray-700">
-                      <span className="border border-gray-200 rounded-lg px-3 py-1.5">
-                        {selectedStart ? fmt(selectedStart) : "Jan 6, 2024"}
-                      </span>
-                      <span className="text-gray-400">—</span>
-                      <span className="border border-gray-200 rounded-lg px-3 py-1.5">
-                        {selectedEnd ? fmt(selectedEnd) : "Jan 12, 2024"}
-                      </span>
-                    </div>
-                  </div>
-                </div>}
+                </>
+              )}
             </div>
 
-            <div className="w-px h-8 bg-gray-200 flex-shrink-0" />
+            <div className="hidden sm:block w-px h-8 bg-gray-200 flex-shrink-0" />
 
             {/* Search Button */}
             <button
               onClick={() => console.log("Search", searchData)}
-              className="flex-shrink-0 w-11 h-11 bg-[#4AA7A7] hover:bg-[#3d8f8f] text-white rounded-full flex items-center justify-center transition-colors ml-1"
+              className="w-full sm:w-11 h-11 bg-[#4AA7A7] hover:bg-[#3d8f8f] text-white rounded-xl sm:rounded-full flex items-center justify-center transition-colors mt-2 sm:mt-0 sm:ml-1"
             >
               <svg
                 className="w-5 h-5"
@@ -594,6 +550,7 @@ export default function HeroSection() {
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
+              <span className="sm:hidden ml-2 font-bold text-sm">Search</span>
             </button>
           </div>
         </div>

@@ -100,25 +100,13 @@ export default function DashboardNavbar({ onMenuToggle }) {
   };
 
   return (
-    <header className="h-16 bg-[var(--color-primary)] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0 z-40 sticky top-0">
-      {/* Left section: Mobile menu & Logo */}
-      <div className="flex items-center gap-4">
-        {/* Mobile menu button */}
-        <button
-          onClick={onMenuToggle}
-          className="lg:hidden text-white/90 hover:text-white transition-colors p-1"
-          aria-label="Toggle menu"
-        >
-          <MenuIcon />
-        </button>
+    <header className="h-14 sm:h-16 bg-[var(--color-primary)] flex items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4 shrink-0 z-40 sticky top-0">
+      {/* Left: Logo only (mobile) | Desktop: nothing (sidebar has logo) */}
+      <Link href="/dashboard" className="lg:hidden flex items-center shrink-0">
+        <Image src={logo} alt="Funsival" width={110} height={32} className="h-7 sm:h-8 w-auto object-contain" />
+      </Link>
 
-        {/* Logo – visible on mobile/tablet, hidden on desktop (sidebar has it) */}
-        <Link href="/dashboard" className="lg:hidden flex items-center shrink-0">
-          <Image src={logo} alt="Funsival" width={110} height={32} className="h-8 w-auto object-contain" />
-        </Link>
-      </div>
-
-      {/* Search bar - hidden on mobile */}
+      {/* Search bar — sm and up only */}
       <div className="hidden sm:flex flex-1 justify-center px-4">
         <div className="relative w-full max-w-xs sm:max-w-sm lg:max-w-md">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">
@@ -134,7 +122,22 @@ export default function DashboardNavbar({ onMenuToggle }) {
 
       {/* Right controls */}
       <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-        {/* Provider dropdown */}
+
+        {/* Search icon — mobile only */}
+        <button className="sm:hidden text-white/90 hover:text-white transition-colors p-1" aria-label="Search">
+          <SearchIcon />
+        </button>
+
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMenuToggle}
+          className="sm:hidden text-white/90 hover:text-white transition-colors p-1"
+          aria-label="Toggle menu"
+        >
+          <MenuIcon />
+        </button>
+
+        {/* Provider dropdown — sm and up only */}
         <div className="relative hidden sm:block">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -161,30 +164,29 @@ export default function DashboardNavbar({ onMenuToggle }) {
           )}
         </div>
 
-        {/* Notification */}
-        <div className="relative" ref={notifRef}>
-          <button 
+        {/* Notification — sm and up only */}
+        <div className="relative hidden sm:block" ref={notifRef}>
+          <button
             onClick={handleNotifClick}
             className="text-white/90 hover:text-white transition-colors relative p-1"
           >
             <BellIcon />
             <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-[var(--color-secondary)] rounded-full text-[9px] flex items-center justify-center text-white font-bold border border-[var(--color-primary)]">3</span>
           </button>
-          
           {notifOpen && <NotificationPopover onClose={() => setNotifOpen(false)} />}
         </div>
 
-        {/* Message */}
+        {/* Message — sm and up only */}
         <button
           onClick={() => router.push("/dashboard/messages")}
-          className="text-white/90 hover:text-white transition-colors p-1"
+          className="hidden sm:flex text-white/90 hover:text-white transition-colors p-1"
           aria-label="Messages"
         >
           <MessageIcon />
         </button>
 
-        {/* Avatar + Profile Dropdown */}
-        <div className="relative" ref={profileRef}>
+        {/* Avatar + Profile Dropdown — sm and up only */}
+        <div className="relative hidden sm:block" ref={profileRef}>
           <button
             onClick={() => setProfileOpen((o) => !o)}
             className="w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden border-2 border-white/30 hover:border-white/60 transition-colors"

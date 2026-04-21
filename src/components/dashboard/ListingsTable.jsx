@@ -57,7 +57,12 @@ const MOCK_SLOTS = [
   { date: "Sep 24, 2025", time: "9:30 to 10:30" },
 ];
 
-function SlotsPopover({ slots = MOCK_SLOTS }) {
+function cap(str) {
+  if (!str) return "—";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function AvailabilityCell({ slots = [] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -69,6 +74,22 @@ function SlotsPopover({ slots = MOCK_SLOTS }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  if (!slots.length) return <span className="text-gray-400 text-xs">—</span>;
+
+  // Single slot — show inline, no popover
+  if (slots.length === 1) {
+    const s = slots[0];
+    return (
+      <div className="text-xs">
+        <p className="font-bold text-[var(--color-text)]">{cap(s.day ?? s.date)}</p>
+        <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+          {s.startTime && s.endTime ? `${s.startTime} – ${s.endTime}` : s.time ?? ""}
+        </p>
+      </div>
+    );
+  }
+
+  // Multiple slots — popover opening ABOVE the button
   return (
     <div className="relative" ref={ref}>
       <button
@@ -83,15 +104,17 @@ function SlotsPopover({ slots = MOCK_SLOTS }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-10 z-40 bg-white rounded-2xl shadow-xl border border-gray-100 w-52 overflow-hidden">
+        <div className="absolute left-0 bottom-10 z-40 bg-white rounded-2xl shadow-xl border border-gray-100 w-52 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-50">
             <p className="text-xs font-bold text-[var(--color-text)]">Availability</p>
           </div>
           <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
             {slots.map((slot, i) => (
               <div key={i} className="px-4 py-2.5">
-                <p className="text-xs font-bold text-[var(--color-text)]">{slot.date}</p>
-                <p className="text-[10px] text-gray-400 font-medium mt-0.5">{slot.time}</p>
+                <p className="text-xs font-bold text-[var(--color-text)]">{cap(slot.day ?? slot.date)}</p>
+                <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+                  {slot.startTime && slot.endTime ? `${slot.startTime} – ${slot.endTime}` : slot.time ?? ""}
+                </p>
               </div>
             ))}
           </div>
@@ -151,7 +174,7 @@ function StatusDropdown({ status, onStatusChange }) {
 
 export default function ListingsTable({ data, onStatusChange }) {
   return (
-    <div className="overflow-hidden">
+    <div className="flex flex-col">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -179,7 +202,12 @@ export default function ListingsTable({ data, onStatusChange }) {
                   <td className="px-6 py-4 min-w-[200px]">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 relative">
-                        <Image src={heroImg} alt={item.name} fill className="object-cover" />
+                        {item.image && (item.image.startsWith("http") || item.image.startsWith("blob:") || item.image.startsWith("data:")) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Image src={heroImg} alt={item.name} fill className="object-cover" />
+                        )}
                       </div>
                       <div>
                         <p className="font-extrabold mb-0.5">{item.name}</p>
@@ -195,7 +223,7 @@ export default function ListingsTable({ data, onStatusChange }) {
                   <td className="px-6 py-4 whitespace-nowrap">{item.price}</td>
                   <td className="px-6 py-4">{item.bookings}</td>
                   <td className="px-6 py-4 min-w-[140px]">
-                    <SlotsPopover slots={item.slots || MOCK_SLOTS} />
+                    <AvailabilityCell slots={item.slots || item.availability || []} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap font-extrabold">
                     <div className="flex items-center gap-1.5">
@@ -220,8 +248,9 @@ export default function ListingsTable({ data, onStatusChange }) {
         </table>
       </div>
 
-      <div className="px-6 py-4 border-t border-gray-50">
-        <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />
+      {/* Pagination always at the bottom, outside the scrollable area */}
+      <div className="mt-auto px-6 py-4 border-t border-gray-50">
+        <Pagination currentPage={1} totalPages={Math.max(1, data.length)} onPageChange={() => {}} />
       </div>
     </div>
   );

@@ -87,13 +87,13 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
   );
 
   return (
-    <div className="flex flex-col items-center pt-6 pb-10">
-      <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] mb-8 text-center">
+    <div className="flex flex-col items-center pt-4 sm:pt-6 pb-10">
+      <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[var(--color-text)] mb-6 sm:mb-8 text-center px-2">
         Which Of These Best Describes Your Service?
       </h2>
 
       {/* Search */}
-      <div className="relative w-full max-w-2xl mb-6">
+      <div className="relative w-full max-w-2xl mb-6 px-0">
         <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -104,12 +104,12 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
           placeholder="Search here"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-12 pr-5 py-3.5 rounded-full border border-gray-200 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] shadow-sm"
+          className="w-full pl-12 pr-5 py-3 sm:py-3.5 rounded-full border border-gray-200 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] shadow-sm"
         />
       </div>
 
       {/* Cards — 3 cols on mobile, 4 cols on tablet/desktop */}
-      <div className="grid grid-cols-3 md:grid-cols-4 gap-4 w-full max-w-3xl mb-10">
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 w-full max-w-3xl mb-8 sm:mb-10">
         {filtered.map((item) => (
           <TypeTile
             key={item.id}
@@ -119,22 +119,22 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
           />
         ))}
         {filtered.length === 0 && (
-          <p className="w-full text-center text-sm text-gray-400 py-8">No results for &quot;{search}&quot;</p>
+          <p className="col-span-3 w-full text-center text-sm text-gray-400 py-8">No results for &quot;{search}&quot;</p>
         )}
       </div>
 
-      {/* Buttons */}
-      <div className="flex items-center gap-4">
+      {/* Buttons — full-width on mobile */}
+      <div className="flex items-center gap-3 w-full sm:w-auto px-0 sm:px-0">
         <button
           onClick={onBack}
-          className="px-14 py-3.5 rounded-full font-semibold text-sm border-2 border-[#2D2D2D] text-gray-700 hover:border-gray-400 transition-colors"
+          className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm border-2 border-[#2D2D2D] text-gray-700 hover:border-gray-400 transition-colors"
         >
           Go Back
         </button>
         <button
           onClick={onNext}
           disabled={!selected}
-          className="px-14 py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-[#2D2D2D] hover:opacity-90 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+          className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-[#2D2D2D] hover:opacity-90 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
         >
           Next
         </button>
