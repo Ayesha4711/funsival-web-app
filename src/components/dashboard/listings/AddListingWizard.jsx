@@ -11,7 +11,6 @@ import StepDetails from "./StepDetails";
 import StepPrice from "./StepPrice";
 import StepReview from "./StepReview";
 import StepSuccess from "./StepSuccess";
-import DashboardNavbar from "@/components/dashboard/DashboardNavbar";
 import { createListing, saveDraft, getDraft, deleteDraft } from "@/lib/api";
 
 /* ─── Step config ──────────────────────────────────────────────────────────── */
@@ -384,17 +383,12 @@ export default function AddListingWizard() {
   }
 
   return (
-    <div className="bg-white">
-      {/* Teal navbar — mobile/tablet only (matches DashboardNavbar design) */}
-      <div className="lg:hidden">
-        <DashboardNavbar onMenuToggle={() => {}} />
-      </div>
-
+    <div className="flex flex-col min-h-full">
       {/* Full wizard navbar — desktop only */}
       <WizardNavbar step={step} onBack={back} router={router} />
 
-      {/* Sub-header: back arrow + title + draft/discard */}
-      <div className="sticky top-14 sm:top-14 lg:top-16 z-30 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-3">
+      {/* Sub-header: back arrow + title + draft/discard — always pinned */}
+      <div className="shrink-0 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-3 z-30">
         <div className="flex items-center gap-3">
           <button
             onClick={() => step === 1 ? router.push("/dashboard/listings") : back()}
@@ -435,12 +429,13 @@ export default function AddListingWizard() {
         </div>
       </div>
 
-      {/* Stepper */}
-      <div className="px-2 sm:px-6 lg:px-10 pt-5 pb-2 bg-white">
+      {/* Stepper — pinned below sub-header */}
+      <div className="shrink-0 px-2 sm:px-6 lg:px-10 pt-4 pb-2 bg-white border-b border-gray-50 z-20">
         <Stepper current={step} />
       </div>
 
       {/* Step content */}
+      <div className="flex-1">
       <div className="px-4 sm:px-6 lg:px-10 py-4 relative z-0">
         <div className="w-full">
           {step === 1 &&
@@ -489,6 +484,7 @@ export default function AddListingWizard() {
               onAddMore={resetWizard}
             />}
         </div>
+      </div>
       </div>
     </div>
   );

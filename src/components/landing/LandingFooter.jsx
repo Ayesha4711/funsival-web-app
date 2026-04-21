@@ -75,9 +75,9 @@ export default function LandingFooter() {
 
       {/* Bottom Bar */}
       <div className="bg-[#4AA7A7]">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl py-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-sm text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl py-6 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-3 text-center sm:text-left">
+            <p className="text-xs sm:text-sm text-white">
               Copyright © 2023 Funsival | All Rights Reserved
             </p>
 

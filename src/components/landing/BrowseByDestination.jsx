@@ -89,7 +89,7 @@ export default function BrowseByDestination() {
             {destinations.map((destination) => (
               <div
                 key={destination.id}
-                className="relative flex-shrink-0 w-64 sm:w-72 md:w-80 lg:w-96 h-64 md:h-80 lg:h-96 rounded-2xl overflow-hidden cursor-pointer group"
+                className="relative flex-shrink-0 w-56 sm:w-72 md:w-80 lg:w-96 h-56 sm:h-80 lg:h-96 rounded-2xl overflow-hidden cursor-pointer group"
               >
                 {/* Destination Image */}
                 <Image

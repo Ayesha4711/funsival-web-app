@@ -155,10 +155,10 @@ export default function StepReview({ data, onNext, onBack, onBackToDetails, subm
       </div>
 
       {/* ── Main card ────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 lg:p-8">
 
         {/* Row 1 — title / location / price / category */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-5 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 mb-2">
           <div>
             <FieldLabel>Activity Title</FieldLabel>
             <p className="text-sm font-semibold text-gray-800">{title}</p>
@@ -188,7 +188,7 @@ export default function StepReview({ data, onNext, onBack, onBackToDetails, subm
         <Divider />
 
         {/* Row 2 — difficulty / duration / max / instructor */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-5 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 mb-2">
           <div>
             <FieldLabel>Difficulty level</FieldLabel>
             <p className="text-sm font-semibold text-gray-800">{cap(difficulty)}</p>
@@ -301,11 +301,11 @@ export default function StepReview({ data, onNext, onBack, onBackToDetails, subm
             Fix errors in Details step →
           </button>
         )}
-        <div className="flex items-center justify-center gap-4">
-          <button onClick={onBack} disabled={submitting} className="px-14 py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors disabled:opacity-50">
+        <div className="flex items-center gap-3 w-full sm:w-auto sm:justify-center">
+          <button onClick={onBack} disabled={submitting} className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors disabled:opacity-50">
             Go Back
           </button>
-          <button onClick={onNext} disabled={submitting} className="px-14 py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all disabled:opacity-60 flex items-center gap-2">
+          <button onClick={onNext} disabled={submitting} className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
             {submitting && (
               <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/></svg>
             )}

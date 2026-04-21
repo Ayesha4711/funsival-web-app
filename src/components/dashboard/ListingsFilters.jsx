@@ -142,12 +142,12 @@ export default function ListingsFilters({
 
   return (
     <div className="flex flex-col gap-4 mb-6">
-      {/* Header Row */}
-      <div className="flex items-center justify-between">
+      {/* Header Row — wraps on mobile */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-[var(--color-text)]">Listings</h1>
-        <div className="flex items-center gap-3">
-          {/* View mode toggle */}
-          <div className="flex items-center gap-1 bg-[#EDF6F6] p-1 rounded-xl">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* View mode toggle — hidden on mobile (card view forced) */}
+          <div className="hidden sm:flex items-center gap-1 bg-[#EDF6F6] p-1 rounded-xl">
             <button
               onClick={() => onViewModeChange("table")}
               className={`p-2 rounded-lg transition-all ${viewMode === "table"
@@ -170,7 +170,7 @@ export default function ListingsFilters({
 
           <button
             onClick={() => router.push("/dashboard/listings/add")}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white rounded-full text-sm font-bold shadow-sm transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white rounded-full text-xs sm:text-sm font-bold shadow-sm transition-colors"
           >
             <PlusIcon />
             <span>Add New Listing</span>
@@ -179,15 +179,14 @@ export default function ListingsFilters({
       </div>
 
       {/* Tabs + Filters Row */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Tabs */}
-        <div className="flex p-1 bg-[#EDF6F6] rounded-full w-fit">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        {/* Tabs — scrollable on mobile */}
+        <div className="flex p-1 bg-[#EDF6F6] rounded-full w-fit max-w-full overflow-x-auto">
           {tabs.map(tab =>
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`px-5 py-2 rounded-full text-xs font-bold transition-all ${activeTab ===
-              tab.id
+              className={`px-3 sm:px-5 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab.id
                 ? "bg-white text-[var(--color-primary)] shadow-sm font-extrabold"
                 : "text-gray-400 hover:text-[var(--color-text-muted)]"}`}
             >
@@ -197,11 +196,11 @@ export default function ListingsFilters({
         </div>
 
         {/* Right filters */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Search — expands on click */}
           <div className="relative flex items-center">
             {searchOpen
-              ? <div className="flex items-center gap-2 pl-3 pr-1 h-10 bg-[#EDF6F6] rounded-full border border-[var(--color-primary)] transition-all">
+              ? <div className="flex items-center gap-2 pl-3 pr-1 h-9 sm:h-10 bg-[#EDF6F6] rounded-full border border-[var(--color-primary)] transition-all">
                   <SearchIcon />
                   <input
                     ref={searchRef}
@@ -209,25 +208,13 @@ export default function ListingsFilters({
                     value={search}
                     onChange={e => onSearchChange(e.target.value)}
                     placeholder="Search listings..."
-                    className="w-44 bg-transparent text-xs font-medium text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
+                    className="w-32 sm:w-44 bg-transparent text-xs font-medium text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
                   />
                   <button
-                    onClick={() => {
-                      setSearchOpen(false);
-                      onSearchChange("");
-                    }}
+                    onClick={() => { setSearchOpen(false); onSearchChange(""); }}
                     className="p-1.5 text-gray-400 hover:text-gray-600"
                   >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="18" y1="6" x2="6" y2="18" />
                       <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
@@ -235,7 +222,7 @@ export default function ListingsFilters({
                 </div>
               : <button
                   onClick={() => setSearchOpen(true)}
-                  className="w-10 h-10 bg-[#EDF6F6] rounded-full flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] transition-colors"
+                  className="w-9 h-9 sm:w-10 sm:h-10 bg-[#EDF6F6] rounded-full flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] transition-colors"
                 >
                   <SearchIcon />
                 </button>}
@@ -245,12 +232,10 @@ export default function ListingsFilters({
           <div className="relative" ref={categoryRef}>
             <button
               onClick={() => setCategoryOpen(o => !o)}
-              className="flex items-center gap-2 px-4 h-10 bg-[#EDF6F6] rounded-full text-xs font-bold text-gray-500 min-w-max hover:text-[var(--color-primary)] transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-9 sm:h-10 bg-[#EDF6F6] rounded-full text-xs font-bold text-gray-500 min-w-max hover:text-[var(--color-primary)] transition-colors"
             >
               <FilterIcon />
-              <span>
-                {category}
-              </span>
+              <span className="hidden sm:inline">{category}</span>
               <ChevronDown />
             </button>
             {categoryOpen &&
@@ -258,12 +243,8 @@ export default function ListingsFilters({
                 {CATEGORIES.map(cat =>
                   <button
                     key={cat}
-                    onClick={() => {
-                      onCategoryChange(cat);
-                      setCategoryOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors hover:bg-[var(--color-primary-light)] hover:text-[var(--color-primary)] ${category ===
-                    cat
+                    onClick={() => { onCategoryChange(cat); setCategoryOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors hover:bg-[var(--color-primary-light)] hover:text-[var(--color-primary)] ${category === cat
                       ? "text-[var(--color-primary)] bg-[var(--color-primary-light)]"
                       : "text-gray-500"}`}
                   >

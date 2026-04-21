@@ -121,29 +121,30 @@ function LocationMap({ location, onLocationChange }) {
   const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.05}%2C${coords.lat - 0.05}%2C${coords.lon + 0.05}%2C${coords.lat + 0.05}&layer=mapnik&marker=${coords.lat}%2C${coords.lon}`;
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200" style={{ height: 280 }}>
+    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200" style={{ height: 220 }}>
       <iframe key={`${coords.lat}-${coords.lon}`} src={mapSrc} className="w-full h-full border-0" title="Location map" loading="lazy" />
 
-      {/* Search overlay - centered horizontally */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full max-w-2xl px-4">
+      {/* Search overlay - bottom on mobile, center on desktop */}
+      <div className="absolute bottom-3 sm:bottom-auto sm:top-1/2 left-1/2 -translate-x-1/2 sm:-translate-y-1/2 z-10 w-full px-3 sm:px-4 sm:max-w-2xl">
         <div className="relative">
-          <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2.5 shadow-lg border border-gray-100">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <div className="flex items-center gap-2 bg-white rounded-full px-3 sm:px-4 py-2 sm:py-2.5 shadow-lg border border-gray-100">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
               <circle cx="12" cy="9" r="2.5"/>
             </svg>
-            <input type="text" value={query} onChange={handleInput} placeholder="Enter exact address" className="flex-1 min-w-0 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent" />
-            {loading && <svg className="animate-spin shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/></svg>}
+            <input type="text" value={query} onChange={handleInput} placeholder="Enter address" className="flex-1 min-w-0 text-xs sm:text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent" />
+            {loading && <svg className="animate-spin shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/></svg>}
             <div className="w-px h-4 bg-gray-200 shrink-0" />
-            <button type="button" onClick={useCurrentLocation} className="flex items-center gap-1.5 text-xs text-[var(--color-primary)] font-semibold hover:opacity-80 transition-opacity whitespace-nowrap shrink-0">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-              Use my current location
+            <button type="button" onClick={useCurrentLocation} className="flex items-center gap-1 text-[10px] sm:text-xs text-[var(--color-primary)] font-semibold hover:opacity-80 transition-opacity whitespace-nowrap shrink-0">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              <span className="hidden sm:inline">Use my current location</span>
+              <span className="sm:hidden">My location</span>
             </button>
           </div>
           {suggestions.length > 0 && (
-            <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-20 max-h-60 overflow-y-auto">
+            <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-20 max-h-48 overflow-y-auto">
               {suggestions.map((s) => (
-                <button key={s.place_id} onClick={() => selectSuggestion(s)} className="w-full text-left px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 border-b border-gray-50 last:border-0 transition-colors flex items-start gap-2">
+                <button key={s.place_id} onClick={() => selectSuggestion(s)} className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 border-b border-gray-50 last:border-0 transition-colors flex items-start gap-2">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
                   <span className="line-clamp-2">{s.display_name}</span>
                 </button>
@@ -703,9 +704,9 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         </section>
       </div>
 
-      {/* Nav buttons */}
-      <div className="flex items-center justify-center gap-4 mt-10">
-        <button onClick={onBack} className="px-14 py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors">Go Back</button>
+      {/* Nav buttons — full-width on mobile */}
+      <div className="flex items-center gap-3 mt-8 sm:mt-10 sm:justify-center">
+        <button onClick={onBack} className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors">Go Back</button>
         <button
           onClick={() => {
             const errs = {};
@@ -729,7 +730,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             onChange(form);
             onNext();
           }}
-          className="px-14 py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all"
+          className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all"
         >
           Next
         </button>
