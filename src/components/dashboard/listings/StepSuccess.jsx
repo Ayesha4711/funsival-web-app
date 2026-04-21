@@ -81,7 +81,7 @@ function CelebrationIllustration() {
 }
 
 /* ─── Component ──────────────────────────────────────────────────────────────── */
-export default function StepSuccess({ onDone }) {
+export default function StepSuccess({ onDone, onAddMore }) {
   const router = useRouter();
 
   return (
@@ -94,17 +94,17 @@ export default function StepSuccess({ onDone }) {
         Lorem ipsum dolor sit amet consectetur. In pellentesque id arcu ut risus ipsum. Tortor sed malesuada nisi. Consectetur pellentesque. Ipsum at posuere nulla alit nisi.
       </p>
 
-      {/* Action buttons */}
-      <div className="flex flex-col sm:flex-row items-center gap-3 mb-10">
+      {/* Action buttons — side by side full width on mobile */}
+      <div className="flex items-center gap-3 w-full sm:w-auto sm:justify-center mb-10">
         <button
           onClick={onDone}
-          className="w-44 sm:w-auto px-8 py-3 rounded-full font-bold text-sm border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors"
+          className="flex-1 sm:flex-none sm:px-10 py-3 rounded-full font-bold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors"
         >
-          Go to Home Page
+          Go Back
         </button>
         <button
-          onClick={() => router.push("/dashboard/listings/add")}
-          className="w-44 sm:w-auto px-8 py-3 rounded-full font-bold text-sm bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark,#2d7d7d)] transition-colors"
+          onClick={onAddMore}
+          className="flex-1 sm:flex-none sm:px-10 py-3 rounded-full font-bold text-sm bg-[var(--color-primary)] text-white hover:opacity-90 transition-colors"
         >
           Add More
         </button>

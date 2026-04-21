@@ -15,8 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: 'Funsival – Provider Signup',
-  description: 'Sign up as a Funsival provider and grow your business.',
+  title: 'Funsival Dev',
+  description: 'Funsival Dev Application',
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({ children }) {

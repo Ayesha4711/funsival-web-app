@@ -1,10 +1,6 @@
 import ActivityListingPage from '@/components/activities/ActivityListingPage';
 import { skydivingActivities, skydivingFilters } from '@/data/activityData';
 
-export const metadata = {
-  title: 'Skydiving Adventures - Feel the sky, live the rush | Funsival',
-  description: 'Experience the ultimate thrill of skydiving. From tandem jumps to paragliding adventures.',
-};
 
 export default function SkydivingPage() {
   return (

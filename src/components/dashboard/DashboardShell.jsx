@@ -32,18 +32,17 @@ export default function DashboardShell({ children }) {
         hideOnDesktop={hideSidebarDesktop}
       />
 
-      {/* Right panel */}
-      <div className="flex flex-col flex-1 min-w-0 min-h-screen overflow-y-auto">
+      {/* Right panel — navbar is a fixed header, main scrolls */}
+      <div className="flex flex-col flex-1 min-w-0 h-screen overflow-hidden">
         {/* On wizard pages hide the dashboard navbar on desktop (wizard has its own top bar) */}
-        <div className={isWizard ? "lg:hidden" : ""}>
+        <div className={`shrink-0 ${isWizard ? "lg:hidden" : ""}`}>
           <DashboardNavbar onMenuToggle={() => setSidebarOpen((o) => !o)} />
         </div>
 
-        <main className="flex-1">
+        <main className="flex-1 overflow-y-auto min-h-0">
           {children}
+          <DashboardFooter />
         </main>
-
-        <DashboardFooter />
       </div>
     </div>
   );

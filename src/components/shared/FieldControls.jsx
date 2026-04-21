@@ -67,6 +67,7 @@ export function DropdownField({
   className = "",
   menuClassName = "",
   disabled = false,
+  error = false,
 }) {
   const [open, setOpen] = useState(false);
   const ref = useOutsideClose(() => setOpen(false));
@@ -74,8 +75,15 @@ export function DropdownField({
   const selected = options.find((option) => option.value === value);
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
-      <div className="flex items-stretch rounded-xl border border-gray-200 bg-[#F9FAFB] overflow-hidden shadow-sm focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15 transition-colors">
+    <div ref={ref} className={`relative ${className}`} style={{ zIndex: open ? 50 : "auto" }}>
+      <div className={[
+        "flex items-stretch rounded-xl border bg-[#F9FAFB] overflow-hidden shadow-sm transition-colors",
+        open
+          ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/15"
+          : error
+            ? "border-red-400 ring-2 ring-red-200"
+            : "border-gray-200 focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15",
+      ].join(" ")}>
         <button
           type="button"
           disabled={disabled}
@@ -99,7 +107,7 @@ export function DropdownField({
 
       {open && !disabled && (
         <div
-          className={`absolute left-0 right-0 top-full mt-2 z-40 rounded-2xl border border-gray-100 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] overflow-hidden ${menuClassName}`}
+          className={`absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-gray-100 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] overflow-hidden ${menuClassName}`}
         >
           <div className="max-h-60 overflow-y-auto py-1">
             {options.map((option) => {
@@ -124,6 +132,114 @@ export function DropdownField({
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ComboboxField({
+  value,
+  placeholder,
+  options,
+  onChange,
+  className = "",
+  disabled = false,
+  error = false,
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef(null);
+  const ref = useOutsideClose(() => { setOpen(false); setQuery(""); });
+
+  const selected = options.find((o) => o.value === value);
+
+  const filtered = query.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options;
+
+  const openDropdown = () => {
+    if (disabled) return;
+    setOpen(true);
+    setQuery("");
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const selectOption = (opt) => {
+    onChange(opt.value);
+    setOpen(false);
+    setQuery("");
+  };
+
+  return (
+    <div ref={ref} className={`relative ${className}`} style={{ zIndex: open ? 50 : "auto" }}>
+      {open ? (
+        <div className="flex items-stretch rounded-xl border border-[var(--color-primary)] bg-white ring-2 ring-[var(--color-primary)]/20 overflow-hidden shadow-sm">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Search ${placeholder?.toLowerCase() || ""}…`}
+            className="flex-1 min-w-0 px-3 py-2.5 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent"
+          />
+          <button
+            type="button"
+            onClick={() => { setOpen(false); setQuery(""); }}
+            className="shrink-0 px-3 text-gray-400 hover:text-gray-600"
+          >
+            <ChevronDownIcon className="rotate-180 transition-transform" />
+          </button>
+        </div>
+      ) : (
+        <div
+          className={[
+            "flex items-stretch rounded-xl border bg-[#F9FAFB] overflow-hidden shadow-sm transition-colors",
+            disabled
+              ? "opacity-60 cursor-not-allowed border-gray-200"
+              : error
+                ? "border-red-400 ring-2 ring-red-200 cursor-pointer"
+                : "border-gray-200 hover:border-gray-300 cursor-pointer",
+          ].join(" ")}
+          onClick={openDropdown}
+        >
+          <span className="flex-1 min-w-0 px-3 py-2.5 text-sm">
+            <span className={selected ? "font-medium text-gray-700" : "text-gray-400"}>
+              {selected?.label || placeholder}
+            </span>
+          </span>
+          <span className="shrink-0 px-3 flex items-center text-gray-400">
+            <ChevronDownIcon />
+          </span>
+        </div>
+      )}
+
+      {open && !disabled && (
+        <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-gray-100 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] overflow-hidden">
+          <div className="max-h-56 overflow-y-auto py-1">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-xs text-gray-400 text-center">No results found</p>
+            ) : (
+              filtered.map((opt) => {
+                const active = opt.value === value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => selectOption(opt)}
+                    className={[
+                      "w-full px-4 py-2.5 text-left text-sm transition-colors",
+                      active
+                        ? "bg-[var(--color-primary-light)] text-[var(--color-primary)] font-semibold"
+                        : "text-gray-600 hover:bg-gray-50",
+                    ].join(" ")}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
       )}
