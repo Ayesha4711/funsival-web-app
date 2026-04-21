@@ -91,7 +91,12 @@ export default function ListingsCards({ data, onStatusChange }) {
 
           <div className="flex items-center gap-4 mb-5">
             <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 relative">
-              <Image src={heroImg} alt={item.name} fill className="object-cover" />
+              {item.image && (item.image.startsWith("http") || item.image.startsWith("blob:") || item.image.startsWith("data:")) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+              ) : (
+                <Image src={heroImg} alt={item.name} fill className="object-cover" />
+              )}
             </div>
             <div>
               <p className="text-base font-extrabold text-[var(--color-text)]">{item.name}</p>

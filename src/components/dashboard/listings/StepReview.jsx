@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 /* ─── helpers ───────────────────────────────────────────────────────────────── */
 function cap(str) {
@@ -100,23 +101,43 @@ function PhotoStrip({ photos }) {
 }
 
 /* ─── Component ──────────────────────────────────────────────────────────────── */
-export default function StepReview({ data, onNext, onBack }) {
+export default function StepReview({ data, onNext, onBack, onBackToDetails, submitting = false, submitError = null, fieldErrors = null }) {
   const { category, type, details = {}, price } = data;
 
-  const title = details.title || "Skydiving Adventures";
-  const location = details.location || "Queenstown, New Zealand";
-  const description = details.description || "Lorem ipsum dolor sit amet consectetur. Amet tempus aliquam nec odio. Pellentesque sit libero ultrices accumsan nisi diam laoreet. Auctor laoreet lorem vitae cras neque.";
-  const difficulty = details.difficulty || "Expert";
-  const duration = details.duration || "3 hrs";
-  const maxParticipants = details.maxParticipants || 12;
-  const instructorName = details.instructorName || "John Doe";
-  const included = details.included?.length ? details.included : ["Air Conditioning", "WiFi"];
-  const requirements = details.requirements || "Lorem ipsum dolor sit amet consectetur. Amet tempus aliquam nec odio. Pellentesque sit libero ultrices accumsan nisi diam laoreet.";
-  const cancellationPolicy = details.cancellationPolicy || "Lorem ipsum dolor sit amet consectetur. Amet tempus aliquam nec odio.";
-  const slots = details.slots?.length ? details.slots : [{ date: "September 25, 2025", startTime: "09:00 AM", endTime: "10:00 AM" }];
+  // Show toast whenever a new submit error arrives
+  useEffect(() => {
+    if (submitError) {
+      const errorEntries = fieldErrors ? Object.entries(fieldErrors) : [];
+      const errorMessage = errorEntries.length > 0
+        ? `${submitError}\n${errorEntries.map(([field, msg]) => `• ${field.replace(/([A-Z])/g, ' $1').trim()}: ${msg}`).join('\n')}`
+        : submitError;
+      toast.error(errorMessage);
+    }
+  }, [submitError, fieldErrors]);
+
+  const title = details.title || "—";
+  const location = details.location || "—";
+  const description = details.description || "—";
+  const difficulty = details.difficulty || "—";
+  const duration = details.duration || "—";
+  const maxParticipants = details.maxParticipants || "—";
+  const instructorName = details.instructorName || "—";
+  const included = details.included?.length ? details.included : [];
+  const requirements = details.requirements || "—";
+  const cancellationPolicy = details.cancellationPolicy || "—";
+  const slots = details.slots?.filter(s => s.day || s.startTime) || [];
   const photos = details.photos || [];
-  const serviceCategory = cap(type) || "Adventures";
-  const displayPrice = price ? `$ ${Number(price).toFixed(0)}` : "$ 285";
+  const serviceCategory = cap(type) || "—";
+  const displayPrice = price ? `$ ${Number(price).toFixed(0)}` : "—";
+
+  // Address fields
+  const addressLine1 = details.addressLine1 || "";
+  const addressLine2 = details.addressLine2 || "";
+  const placeCity = details.placeCity || "";
+  const state = details.state || "";
+  const country = details.country || "";
+  const postalCode = details.postalCode || "";
+  const fullAddress = [addressLine1, addressLine2, placeCity, state, postalCode, country].filter(Boolean).join(", ") || "—";
 
   return (
     <div className="pb-10 w-full">
@@ -212,6 +233,14 @@ export default function StepReview({ data, onNext, onBack }) {
 
         <Divider />
 
+        {/* Address */}
+        <div className="mb-2">
+          <FieldLabel>Address</FieldLabel>
+          <p className="text-sm font-semibold text-gray-800">{fullAddress}</p>
+        </div>
+
+        <Divider />
+
         {/* Map — real OSM iframe */}
         <div className="mb-2">
           <ReviewMap location={location} />
@@ -234,9 +263,9 @@ export default function StepReview({ data, onNext, onBack }) {
               <div key={i} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-0 rounded-2xl border border-gray-200 bg-[#F9FAFB] overflow-hidden">
                 {/* Date */}
                 <div className="flex-1 px-5 py-3 border-b sm:border-b-0 sm:border-r border-gray-200">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Select Date</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Day</p>
                   <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-                    {slot.date || "—"}
+                    {slot.day ? slot.day.charAt(0).toUpperCase() + slot.day.slice(1) : "—"}
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                     </svg>
@@ -263,13 +292,26 @@ export default function StepReview({ data, onNext, onBack }) {
       </div>
 
       {/* ── Nav buttons ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-center gap-4 mt-8">
-        <button onClick={onBack} className="px-14 py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors">
-          Go Back
-        </button>
-        <button onClick={onNext} className="px-14 py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all">
-          Next
-        </button>
+      <div className="flex flex-col items-center gap-3 mt-8">
+        {fieldErrors && Object.keys(fieldErrors).length > 0 && (
+          <button
+            onClick={onBackToDetails ?? onBack}
+            className="text-xs font-semibold text-[var(--color-primary)] underline underline-offset-2 hover:opacity-80"
+          >
+            Fix errors in Details step →
+          </button>
+        )}
+        <div className="flex items-center justify-center gap-4">
+          <button onClick={onBack} disabled={submitting} className="px-14 py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors disabled:opacity-50">
+            Go Back
+          </button>
+          <button onClick={onNext} disabled={submitting} className="px-14 py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all disabled:opacity-60 flex items-center gap-2">
+            {submitting && (
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/></svg>
+            )}
+            {submitting ? "Submitting..." : "Submit"}
+          </button>
+        </div>
       </div>
     </div>
   );

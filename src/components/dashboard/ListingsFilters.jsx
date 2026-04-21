@@ -105,7 +105,8 @@ export default function ListingsFilters({
   category,
   onCategoryChange,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  tabCounts = { active: 0, inactive: 0, draft: 0 }
 }) {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -115,9 +116,9 @@ export default function ListingsFilters({
 
   const tabs = [
     { id: "all", label: "All" },
-    { id: "active", label: "Active (2)" },
-    { id: "inactive", label: "Inactive (2)" },
-    { id: "draft", label: "Draft (2)" }
+    { id: "active", label: tabCounts.active > 0 ? `Active (${tabCounts.active})` : "Active" },
+    { id: "inactive", label: tabCounts.inactive > 0 ? `Inactive (${tabCounts.inactive})` : "Inactive" },
+    { id: "draft", label: tabCounts.draft > 0 ? `Draft (${tabCounts.draft})` : "Draft" },
   ];
 
   // Close dropdowns on outside click

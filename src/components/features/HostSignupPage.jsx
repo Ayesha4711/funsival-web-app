@@ -7,7 +7,10 @@ import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
-import { BASE_URL } from "@/lib/api";
+import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
+import { BASE_URL, loginWithGoogle } from "@/lib/api";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
 import Divider from "@/components/common/Divider";
 import SocialButton from "@/components/common/SocialButton";
 
@@ -60,7 +63,7 @@ const EyeOffIcon = () => (
 );
 
 /* ─── Component ─────────────────────────────────────────────────────────────── */
-export default function HostSignupPage() {
+function HostSignupForm() {
   const router = useRouter();
   const [form, setForm] = useState({ agencyName: "", email: "", city: "", password: "", confirmPassword: "" });
   const [clientErrors, setClientErrors] = useState({});
@@ -123,6 +126,54 @@ export default function HostSignupPage() {
     return errs;
   };
 
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      // Validate that agencyName and city are filled before continuing
+      const errs = {};
+      if (!form.agencyName.trim()) errs.agencyName = "Agency name is required";
+      if (!form.city.trim()) errs.city = "City is required";
+      
+      if (Object.keys(errs).length > 0) {
+        setClientErrors(errs);
+        toast.error("Required info missing", { description: "Please fill Agency Name and City before continuing with Google." });
+        return;
+      }
+
+      setIsPending(true);
+      try {
+        const payload = {
+          idToken: tokenResponse.access_token,
+          role: "host",
+          city: form.city,
+          agencyName: form.agencyName
+        };
+
+        const { ok, data } = await loginWithGoogle(payload);
+
+        if (!ok) {
+          toast.error("Google login failed", { description: data?.message || "Failed to authenticate with Google." });
+          return;
+        }
+
+        const token = data?.token ?? data?.accessToken ?? data?.data?.token;
+        if (token) {
+          document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+          localStorage.setItem("auth-token", token);
+        }
+
+        toast.success("Login successful!", { description: "Welcome to Funsival." });
+        router.push("/dashboard/listings");
+      } catch (err) {
+        toast.error("Network error", { description: "Could not complete Google login." });
+      } finally {
+        setIsPending(false);
+      }
+    },
+    onError: () => {
+      toast.error("Google login failed", { description: "Could not initialize Google login." });
+    }
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
@@ -174,7 +225,7 @@ export default function HostSignupPage() {
   };
 
   return (
-    <AuthLayout>
+    <>
       <h1 className="text-4xl font-extrabold text-[#4A4A4A] mb-3">Signup</h1>
       <p className="text-[#A1A1A1] text-[16px] mb-10 leading-[160%]">
         Lorem ipsum dolor sit amet consectetur. Sit libero ut adipiscing condimentum ullamcorper massa
@@ -204,18 +255,32 @@ export default function HostSignupPage() {
           <Link href="/login" className="text-primary font-bold hover:underline">Sign in</Link>
         </p>
 
-                <div className="my-5">
-                        <Divider label="OR" />
-                      </div>
+        <div className="my-5">
+          <Divider label="OR" />
+        </div>
                 
-                      {/* Social buttons */}
-                      <div className="flex flex-col gap-4">
-                        <SocialButton type="google" label="Continue with Google" />
-                        <SocialButton type="facebook" label="Continue with Facebook" />
-                        <SocialButton type="apple" label="Continue with Apple" />
-                        <SocialButton type="email" label="Continue with Email" />
-                      </div>
+        {/* Social buttons */}
+        <div className="flex flex-col gap-4">
+          <SocialButton 
+            type="google" 
+            label="Continue with Google" 
+            onClick={() => handleGoogleLogin()}
+          />
+          <SocialButton type="facebook" label="Continue with Facebook" />
+          <SocialButton type="apple" label="Continue with Apple" />
+          <SocialButton type="email" label="Continue with Email" />
+        </div>
       </form>
-    </AuthLayout>
+    </>
+  );
+}
+
+export default function HostSignupPage() {
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AuthLayout>
+        <HostSignupForm />
+      </AuthLayout>
+    </GoogleOAuthProvider>
   );
 }

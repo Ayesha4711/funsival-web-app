@@ -62,3 +62,67 @@ export async function savePreferences(preferences) {
     body: JSON.stringify(preferences)
   });
 }
+
+/**
+ * POST /api/v1/listings
+ * Creates a new listing for the authenticated provider.
+ *
+ * @param {object} payload - Listing payload matching API contract
+ */
+export async function createListing(payload) {
+  return apiFetch("/api/v1/listings", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+/**
+ * GET /api/v1/listings
+ * Fetches all listings for the authenticated provider.
+ */
+export async function getListings() {
+  return apiFetch("/api/v1/listings");
+}
+
+// ─── Draft listing APIs ───────────────────────────────────────────────────────
+
+/**
+ * POST /api/v1/listings/draft
+ * Saves or updates the in-progress listing draft.
+ *
+ * @param {{ currentStep: number, [key: string]: any }} payload
+ */
+export async function saveDraft(payload) {
+  return apiFetch("/api/v1/listings/draft", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+/**
+ * GET /api/v1/listings/draft
+ * Retrieves the current draft for the authenticated provider.
+ */
+export async function getDraft() {
+  return apiFetch("/api/v1/listings/draft");
+}
+
+/**
+ * DELETE /api/v1/listings/draft
+ * Discards the current draft (called after publish or explicit discard).
+ */
+export async function deleteDraft() {
+  return apiFetch("/api/v1/listings/draft", { method: "DELETE" });
+}
+
+/**
+ * POST /api/v1/auth/google
+ *
+ * @param {{ idToken: string, role: string, city: string, agencyName: string }} payload
+ */
+export async function loginWithGoogle(payload) {
+  return apiFetch("/api/v1/auth/google", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}

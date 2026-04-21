@@ -1,10 +1,6 @@
 import ActivityListingPage from '@/components/activities/ActivityListingPage';
 import { scubaDivingActivities, scubaDivingFilters } from '@/data/activityData';
 
-export const metadata = {
-  title: 'Scuba Diving Adventures - Discover The World Beneath The Waves | Funsival',
-  description: 'Explore the underwater world with our scuba diving experiences. Coral reefs, wreck diving, and more.',
-};
 
 export default function ScubaDivingPage() {
   return (

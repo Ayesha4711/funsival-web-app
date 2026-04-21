@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import Image from "next/image";
 import logo from "@/assets/images/logo.svg";
 import StepCategory from "./StepCategory";
@@ -10,6 +11,8 @@ import StepDetails from "./StepDetails";
 import StepPrice from "./StepPrice";
 import StepReview from "./StepReview";
 import StepSuccess from "./StepSuccess";
+import DashboardNavbar from "@/components/dashboard/DashboardNavbar";
+import { createListing, saveDraft, getDraft, deleteDraft } from "@/lib/api";
 
 /* ─── Step config ──────────────────────────────────────────────────────────── */
 const STEPS = [
@@ -24,7 +27,9 @@ const STEPS = [
 /* ─── Stepper ──────────────────────────────────────────────────────────────── */
 function Stepper({ current }) {
   return (
-    <div className="flex items-center justify-center gap-0 w-full overflow-x-auto py-2">
+    /* mobile/tablet: justify-between fills full width
+       laptop (lg+): justify-center so steps don't stretch */
+    <div className="flex items-center justify-between lg:justify-center w-full py-2 px-1">
       {STEPS.map((step, idx) => {
         const done = step.id < current;
         const active = step.id === current;
@@ -34,18 +39,18 @@ function Stepper({ current }) {
             <div className="flex flex-col items-center shrink-0">
               <div
                 className={[
-                  "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors",
+                  "w-7 h-7 min-[375px]:w-8 min-[375px]:h-8 lg:w-10 lg:h-10 rounded-full border-2 flex items-center justify-center text-[10px] min-[375px]:text-xs lg:text-sm font-bold transition-colors",
                   done
                     ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-white"
                     : active
                       ? "border-[#FF7201] text-[#FF7201]"
-                      : "border-gray-300 text-gray-400"
+                      : "border-[#465668] text-[#465668]"
                 ].join(" ")}
               >
                 {done
                   ? <svg
-                      width="14"
-                      height="14"
+                      width="12"
+                      height="12"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -59,10 +64,10 @@ function Stepper({ current }) {
               </div>
               <span
                 className={[
-                  "mt-1 text-[10px] sm:text-xs font-semibold whitespace-nowrap",
+                  "mt-1 text-[8px] min-[375px]:text-[10px] lg:text-xs font-semibold whitespace-nowrap",
                   active
-                    ? "border-[#FF7201] text-[#FF7201]"
-                    : done ? "text-[var(--color-primary)]" : "text-gray-400"
+                    ? "text-[#FF7201]"
+                    : done ? "text-[var(--color-primary)]" : "text-[#465668]"
                 ].join(" ")}
               >
                 {step.label}
@@ -73,8 +78,10 @@ function Stepper({ current }) {
             {idx < STEPS.length - 1 &&
               <div
                 className={[
-                  "h-px flex-1 min-w-[16px] max-w-[80px] mx-1 mb-4 transition-colors",
-                  done ? "bg-[var(--color-primary)]" : "bg-gray-200"
+                  "h-px mb-4 transition-colors",
+                  /* mobile: flex-1 fills space; laptop: fixed width */
+                  "flex-1 mx-0.5 lg:flex-none lg:w-16 lg:mx-2",
+                  done ? "bg-[var(--color-primary)]" : "bg-[#465668]"
                 ].join(" ")}
               />}
           </React.Fragment>
@@ -85,7 +92,7 @@ function Stepper({ current }) {
 }
 
 /* ─── Wizard navbar (desktop only — shown when sidebar/navbar are hidden) ───── */
-function WizardNavbar({ step, onBack, router }) {
+function WizardNavbar() {
   return (
     <header className="hidden lg:flex h-16 bg-[var(--color-primary)] items-center px-8 gap-4 shrink-0 sticky top-0 z-20">
       {/* Logo */}
@@ -180,6 +187,71 @@ function WizardNavbar({ step, onBack, router }) {
   );
 }
 
+/* ─── Build API payload from wizard data ───────────────────────────────────── */
+function buildPayload(data) {
+  const { category, type, details = {}, price } = data;
+
+  // Parse duration string (e.g. "2h" → { value: 2, unit: "hours" })
+  const durationMap = {
+    "30min": { value: 30, unit: "minutes" },
+    "1h": { value: 1, unit: "hours" },
+    "2h": { value: 2, unit: "hours" },
+    "half_day": { value: 4, unit: "hours" },
+    "full_day": { value: 8, unit: "hours" },
+  };
+  const duration = durationMap[details.duration] || { value: 0, unit: "hours" };
+
+  // Map availability slots to API format — filter out incomplete slots
+  const availability = (details.slots || [])
+    .filter(slot => slot.day && slot.startTime && slot.endTime)
+    .map((slot) => ({
+      day: slot.day,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      isAvailable: true,
+    }));
+
+  return {
+    category: category || "",
+    type: type || "",
+    basicInformation: {
+      activityTitle: details.title || "",
+      location: details.location || "",
+      description: details.description || "",
+    },
+    serviceDetails: {
+      difficultyLevel: details.difficulty || "",
+      duration,
+      maxParticipants: details.maxParticipants || 1,
+      instructorName: details.instructorName || "",
+      cancellationPolicy: details.cancellationPolicy || "",
+      whatsIncluded: details.included || [],
+      // Split comma/newline separated requirements string into an array
+      requirements: details.requirements
+        ? details.requirements.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+        : [],
+    },
+    placeLocation: {
+      addressLine1: details.addressLine1 || "",
+      addressLine2: details.addressLine2 || "",
+      city: details.placeCity || "",
+      state: details.state || "",
+      country: details.country || "",
+      postalCode: details.postalCode || "",
+      // latitude, longitude, googleMapsUrl not yet collected in form
+      // latitude: 0,
+      // longitude: 0,
+      // googleMapsUrl: "",
+    },
+    photos: details.photos || [],
+    availability,
+    price: {
+      amount: Number(price) || 0,
+      currency: "USD",
+    },
+  };
+}
+
 /* ─── Wizard ───────────────────────────────────────────────────────────────── */
 export default function AddListingWizard() {
   const router = useRouter();
@@ -190,88 +262,232 @@ export default function AddListingWizard() {
     details: {},
     price: ""
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState(null);
+  const [draftLoading, setDraftLoading] = useState(true);
+  const [draftSaving, setDraftSaving] = useState(false);
 
-  const update = (key, val) => setData(d => ({ ...d, [key]: val }));
-  const next = () => setStep(s => Math.min(s + 1, 6));
+  // On mount: fetch existing draft and resume from saved step
+  useEffect(() => {
+    async function loadDraft() {
+      const { ok, data: res } = await getDraft();
+      if (ok && res) {
+        // Data might be in res.data.draft or res.data
+        const draft = res.data?.draft || res.data || res;
+        const loaded = {
+          category: draft.category ?? "",
+          type: draft.type ?? "",
+          details: draft.details ?? {},
+          price: draft.price ?? "",
+        };
+        pendingRef.current = loaded;
+        setData(loaded);
+        if (draft.currentStep && draft.currentStep > 1) {
+          setStep(draft.currentStep);
+        }
+      }
+      setDraftLoading(false);
+    }
+    loadDraft();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save draft after every step advance (fire-and-forget, no blocking UX)
+  const saveDraftSilently = useCallback(async (nextStep, latestData) => {
+    setDraftSaving(true);
+    await saveDraft({
+      currentStep: nextStep,
+      category: latestData.category,
+      type: latestData.type,
+      details: latestData.details,
+      price: latestData.price,
+    });
+    setDraftSaving(false);
+  }, []);
+
+  const next = useCallback((latestData) => {
+    setStep(s => {
+      const nextStep = Math.min(s + 1, 6);
+      saveDraftSilently(nextStep, latestData ?? data);
+      return nextStep;
+    });
+  }, [data, saveDraftSilently]);
+
   const back = () => setStep(s => Math.max(s - 1, 1));
 
+  // Refs mirror the latest values so saveDraft never captures stale state
+  const pendingRef = React.useRef({ ...data });
+
+  const update = (key, val) => {
+    pendingRef.current = { ...pendingRef.current, [key]: val };
+    setData(d => ({ ...d, [key]: val }));
+  };
+
+  const handleCategoryNext = () => next({ ...pendingRef.current });
+  const handleTypeNext = () => next({ ...pendingRef.current });
+
+  const handleDetailsChange = (val) => update("details", val);
+  const handleDetailsNext = () => next({ ...pendingRef.current });
+
+  const handlePriceChange = (val) => update("price", val);
+  const handlePriceNext = () => next({ ...pendingRef.current });
+
+  const handleSubmitListing = async () => {
+    setSubmitting(true);
+    setSubmitError(null);
+    setFieldErrors(null);
+    const payload = buildPayload(data);
+    const { ok, data: resData } = await createListing(payload);
+    if (ok) {
+      await deleteDraft();
+      toast.success("Listing created successfully!");
+      setStep(6);
+    } else {
+      const errorMsg = resData?.message || "Failed to create listing. Please try again.";
+      setSubmitError(errorMsg);
+      setFieldErrors(resData?.errors || null);
+    }
+    setSubmitting(false);
+  };
+
+  const handleDiscard = async () => {
+    await deleteDraft();
+    router.push("/dashboard/listings");
+  };
+
+  const resetWizard = () => {
+    setStep(1);
+    setData({
+      category: "",
+      type: "",
+      details: {},
+      price: ""
+    });
+    pendingRef.current = {
+      category: "",
+      type: "",
+      details: {},
+      price: ""
+    };
+  };
+
+  if (draftLoading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3">
+        <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5">
+          <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
+        </svg>
+        <p className="text-sm font-medium text-gray-500">Loading your draft...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Full navbar shown on desktop when sidebar is hidden */}
+    <div className="bg-white">
+      {/* Teal navbar — mobile/tablet only (matches DashboardNavbar design) */}
+      <div className="lg:hidden">
+        <DashboardNavbar onMenuToggle={() => {}} />
+      </div>
+
+      {/* Full wizard navbar — desktop only */}
       <WizardNavbar step={step} onBack={back} router={router} />
 
-      {/* Compact top bar — mobile/tablet, and desktop sub-header */}
-      <div className="sticky top-0 lg:top-16 z-10 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-3">
+      {/* Sub-header: back arrow + title + draft/discard */}
+      <div className="sticky top-14 sm:top-14 lg:top-16 z-30 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-3">
         <div className="flex items-center gap-3">
           <button
-            onClick={() =>
-              step === 1 ? router.push("/dashboard/listings") : back()}
+            onClick={() => step === 1 ? router.push("/dashboard/listings") : back()}
             className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-[var(--color-primary)] transition-colors shrink-0"
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="19" y1="12" x2="5" y2="12" />
               <polyline points="12 19 5 12 12 5" />
             </svg>
           </button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-base sm:text-lg font-bold text-[var(--color-text)] leading-tight">
               Add New Listings
             </h1>
-            <p className="text-[10px] sm:text-xs text-gray-400 hidden sm:block">
+            <p className="text-[10px] sm:text-xs text-gray-400 hidden lg:block">
               Manage your account preferences and settings
             </p>
           </div>
+          {/* Draft status indicator + discard */}
+          {step < 6 && (
+            <div className="flex items-center gap-3 shrink-0">
+              {draftSaving ? (
+                <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                  <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/></svg>
+                  Saving draft...
+                </span>
+              ) : (
+                <span className="text-[10px] text-gray-400 hidden sm:inline">Draft auto-saved</span>
+              )}
+              <button
+                onClick={handleDiscard}
+                className="text-[11px] font-semibold text-red-400 hover:text-red-500 border border-red-200 hover:border-red-300 rounded-full px-3 py-1 transition-colors"
+              >
+                Discard
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Stepper */}
-      <div className="px-4 sm:px-6 lg:px-10 pt-5 pb-2">
+      <div className="px-2 sm:px-6 lg:px-10 pt-5 pb-2 bg-white">
         <Stepper current={step} />
       </div>
 
       {/* Step content */}
-      <div className="px-4 sm:px-6 lg:px-10 py-4">
+      <div className="px-4 sm:px-6 lg:px-10 py-4 relative z-0">
         <div className="w-full">
           {step === 1 &&
             <StepCategory
               selected={data.category}
               onSelect={v => update("category", v)}
-              onNext={next}
+              onNext={handleCategoryNext}
             />}
           {step === 2 &&
             <StepType
               category={data.category}
               selected={data.type}
               onSelect={v => update("type", v)}
-              onNext={next}
+              onNext={handleTypeNext}
               onBack={back}
             />}
           {step === 3 &&
             <StepDetails
               details={data.details}
-              onChange={v => update("details", v)}
-              onNext={next}
+              onChange={handleDetailsChange}
+              onNext={handleDetailsNext}
               onBack={back}
+              fieldErrors={fieldErrors}
             />}
           {step === 4 &&
             <StepPrice
               price={data.price}
-              onChange={v => update("price", v)}
-              onNext={next}
+              onChange={handlePriceChange}
+              onNext={handlePriceNext}
               onBack={back}
             />}
-          {step === 5 && <StepReview data={data} onNext={next} onBack={back} />}
+          {step === 5 && (
+            <StepReview
+              data={data}
+              onNext={handleSubmitListing}
+              onBack={back}
+              onBackToDetails={() => setStep(3)}
+              submitting={submitting}
+              submitError={submitError}
+              fieldErrors={fieldErrors}
+            />
+          )}
           {step === 6 &&
-            <StepSuccess onDone={() => router.push("/dashboard/listings")} />}
+            <StepSuccess 
+              onDone={() => router.push("/dashboard/listings")} 
+              onAddMore={resetWizard}
+            />}
         </div>
       </div>
     </div>

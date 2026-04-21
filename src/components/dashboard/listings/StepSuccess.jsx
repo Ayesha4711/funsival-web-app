@@ -81,7 +81,7 @@ function CelebrationIllustration() {
 }
 
 /* ─── Component ──────────────────────────────────────────────────────────────── */
-export default function StepSuccess({ onDone }) {
+export default function StepSuccess({ onDone, onAddMore }) {
   const router = useRouter();
 
   return (
@@ -103,7 +103,7 @@ export default function StepSuccess({ onDone }) {
           Go to Home Page
         </button>
         <button
-          onClick={() => router.push("/dashboard/listings/add")}
+          onClick={onAddMore}
           className="w-44 sm:w-auto px-8 py-3 rounded-full font-bold text-sm bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark,#2d7d7d)] transition-colors"
         >
           Add More
