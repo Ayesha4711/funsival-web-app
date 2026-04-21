@@ -49,7 +49,7 @@ export default function ReservationsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10 max-w-400 mx-auto">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-400 mx-auto flex-1 flex flex-col">
       {/* Stats */}
       <ReservationStats />
 

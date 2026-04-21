@@ -7,7 +7,7 @@ import TransactionHistory from "@/components/dashboard/TransactionHistory";
 
 export default function EarningsPage() {
   return (
-    <div className="p-4 sm:p-6 lg:p-10 max-w-[1600px] mx-auto flex flex-col gap-6 bg-[var(--color-bg)]">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-[1600px] mx-auto flex flex-col gap-6 bg-[#F3F4F6] flex-1">
       {/* Top Stats Section */}
       <EarningsStats />
 

@@ -56,10 +56,11 @@ function TypeTile({ item, selected, onClick }) {
     <button
       onClick={() => onClick(item.id)}
       className={[
-        "relative flex flex-col items-center justify-center gap-2 py-5 px-2 rounded-2xl border-2 transition-all duration-150 cursor-pointer text-center",
+        "relative flex flex-col items-center justify-center gap-2 p-3 w-full aspect-[4/3]",
+        "rounded-[12px] border border-gray-200 transition-all duration-150 cursor-pointer text-center",
         selected
           ? "border-[var(--color-primary)] bg-[var(--color-primary-light)]"
-          : "border-gray-200 bg-white hover:border-[var(--color-primary-light)] hover:shadow-sm",
+          : "bg-white hover:border-[var(--color-primary-light)] hover:shadow-sm",
       ].join(" ")}
     >
       {selected && (
@@ -93,7 +94,7 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
 
       {/* Search */}
       <div className="relative w-full max-w-2xl mb-6">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300">
+        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -103,12 +104,12 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
           placeholder="Search here"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
+          className="w-full pl-12 pr-5 py-3.5 rounded-full border border-gray-200 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] shadow-sm"
         />
       </div>
 
-      {/* Grid — 4 cols desktop, 3 tablet, 2 mobile */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 w-full max-w-2xl mb-10">
+      {/* Cards — 3 cols on mobile, 4 cols on tablet/desktop */}
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-4 w-full max-w-3xl mb-10">
         {filtered.map((item) => (
           <TypeTile
             key={item.id}
@@ -118,7 +119,7 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
           />
         ))}
         {filtered.length === 0 && (
-          <p className="col-span-4 text-center text-sm text-gray-400 py-8">No results for "{search}"</p>
+          <p className="w-full text-center text-sm text-gray-400 py-8">No results for &quot;{search}&quot;</p>
         )}
       </div>
 
@@ -126,14 +127,14 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
       <div className="flex items-center gap-4">
         <button
           onClick={onBack}
-          className="px-10 py-3 rounded-full font-bold text-sm border-2 border-gray-300 text-gray-600 hover:border-gray-400 transition-colors"
+          className="px-14 py-3.5 rounded-full font-semibold text-sm border-2 border-[#2D2D2D] text-gray-700 hover:border-gray-400 transition-colors"
         >
           Go Back
         </button>
         <button
           onClick={onNext}
           disabled={!selected}
-          className="px-10 py-3 rounded-full font-bold text-sm bg-[var(--color-secondary)] text-white hover:bg-[var(--color-secondary-dark)] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="px-14 py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-[#2D2D2D] hover:opacity-90 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
         >
           Next
         </button>

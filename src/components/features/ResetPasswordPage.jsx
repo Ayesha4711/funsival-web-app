@@ -69,8 +69,10 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = e => {
     const errs = {};
-    if (form.password.length < 6) errs.password = "Password must be at least 6 characters.";
-    if (form.confirmPassword !== form.password) errs.confirmPassword = "Passwords do not match.";
+    if (!form.password.trim()) errs.password = "Password is required.";
+    else if (form.password.length < 8) errs.password = "Password must be at least 8 characters.";
+    if (!form.confirmPassword.trim()) errs.confirmPassword = "Confirm password is required.";
+    else if (form.confirmPassword !== form.password) errs.confirmPassword = "Passwords do not match.";
     if (Object.keys(errs).length > 0) {
       e.preventDefault();
       setClientErrors(errs);

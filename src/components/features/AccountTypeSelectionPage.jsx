@@ -28,27 +28,25 @@ const RoleCard = ({ type, title, illustration, isSelected, onSelect }) => {
   return (
     <div
       onClick={() => onSelect(type)}
-      className={`relative flex flex-col items-center justify-center p-6 rounded-3xl border transition-all duration-300 cursor-pointer w-full h-[220px] sm:h-[260px]
-        ${isSelected
-          ? "bg-[#FFF5D9] border-secondary shadow-sm"
-          : "bg-white border-[#E0E0E0] hover:border-primary-light"}`}
+      style={{ borderRadius: "15px", border: "1px solid #D7D7D7" }}
+      className={`relative flex flex-col items-center justify-center p-4 transition-all duration-300 cursor-pointer
+        w-[140px] h-[120px] sm:w-[215px] sm:h-[171px]
+        ${isSelected ? "bg-[#FFF5D9]" : "bg-white hover:bg-gray-50"}`}
     >
       {/* Checkmark indicator */}
       {isSelected &&
-        <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-secondary flex items-center justify-center animate-in zoom-in-50 duration-300">
+        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-secondary flex items-center justify-center animate-in zoom-in-50 duration-300">
           <CheckIcon />
         </div>}
 
       {/* Illustration */}
-      <div className="relative w-full h-3/5 mb-4">
+      <div className="relative w-full flex-1 mb-2">
         <Image src={illustration} alt={title} fill className="object-contain" />
       </div>
 
       {/* Title */}
       <span
-        className={`text-2xl font-bold ${isSelected
-          ? "text-gray-400"
-          : "text-secondary"}`}
+        className={`text-base font-semibold ${isSelected ? "text-[#FFA600]" : "text-black"}`}
       >
         {title}
       </span>
@@ -64,18 +62,18 @@ export default function AccountTypeSelectionPage() {
   return (
     <AuthLayout maxWidthClass="max-w-2xl">
       {/* Heading */}
-      <div className="mb-10">
+      <div className="mb-10 text-center">
         <h1 className="text-4xl font-extrabold text-text mb-3">
           Create Your Account
         </h1>
-        <p className="text-[#A1A1A1] text-base leading-relaxed ">
+        <p className="text-[#A1A1A1] text-base leading-relaxed">
           Lorem ipsum dolor sit amet consectetur. Sit libero ut adipiscing
           condimentum ullamcorper massa
         </p>
       </div>
 
       {/* Selection Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
+      <div className="flex justify-center gap-6 mb-10">
         <RoleCard
           type="host"
           title="Host"
@@ -93,11 +91,11 @@ export default function AccountTypeSelectionPage() {
       </div>
 
       {/* Continue button */}
-      <div className="w-full">
+      <div className="w-full flex justify-center">
         <Button
           variant="accent"
           size="lg"
-          className="w-full min-h-[4rem] h-auto text-lg"
+          className="w-full max-w-xs min-h-[4rem] h-auto text-lg"
           showArrow={true}
           onClick={() => router.push(`/signup/${selectedRole}`)}
         >

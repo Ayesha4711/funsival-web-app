@@ -3,6 +3,11 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
+import {
+  PieChart, Pie, Cell, Tooltip as PieTooltip,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, BarChart, Bar,
+} from "recharts";
 
 /* ─── Stat Card ─────────────────────────────────────────────────────────────── */
 function StatCard({ label, value, sub, subColor = "text-green-500" }) {
@@ -67,92 +72,65 @@ function RecentReservations() {
 }
 
 /* ─── Donut Chart – Listing Performance ─────────────────────────────────────── */
-function DonutChart() {
-  // Completed 65%, Pending 20%, Cancelled 15%
-  const segments = [
-    { label: "Completed", pct: 65, color: "#FEB538", offset: 0 },
-    { label: "Pending", pct: 20, color: "#1d8c82", offset: 65 },
-    { label: "Cancelled", pct: 15, color: "#f97316", offset: 85 },
-  ];
-  const r = 60;
-  const cx = 80;
-  const cy = 80;
-  const circumference = 2 * Math.PI * r;
-  const gap = 2;
+const performanceData = [
+  { name: "Completed", value: 60, color: "#1d8c82" },
+  { name: "Pending",   value: 30, color: "#FEB538" },
+  { name: "Canceled",  value: 10, color: "#f97316" },
+];
 
+function renderPerfLabel({ cx, cy, midAngle, outerRadius, name, value }) {
+  const RADIAN = Math.PI / 180;
+  // Push labels further out so longer names like "Completed" don't clip
+  const radius = outerRadius + 42;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  // Width wide enough for "Completed", anchored at centre of label
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)]">
-      <h2 className="text-base font-bold text-[var(--color-text)] mb-4">Listing Performance</h2>
-      <div className="flex flex-col sm:flex-row items-center gap-6">
-        {/* SVG Donut */}
-        <div className="relative shrink-0">
-          <svg width="160" height="160" viewBox="0 0 160 160">
-            {segments.map((seg, i) => {
-              const dashArray = ((seg.pct / 100) * circumference) - gap;
-              const dashOffset = circumference - (seg.offset / 100) * circumference;
-              return (
-                <circle
-                  key={i}
-                  cx={cx}
-                  cy={cy}
-                  r={r}
-                  fill="none"
-                  stroke={seg.color}
-                  strokeWidth="22"
-                  strokeDasharray={`${dashArray} ${circumference - dashArray}`}
-                  strokeDashoffset={dashOffset}
-                  strokeLinecap="round"
-                  transform={`rotate(-90 ${cx} ${cy})`}
-                />
-              );
-            })}
-            {/* Center label */}
-            <text x={cx} y={cy - 6} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="500">Total</text>
-            <text x={cx} y={cy + 12} textAnchor="middle" fontSize="20" fill="#1c2b2d" fontWeight="800">100</text>
-          </svg>
-
-          {/* Percentage labels outside */}
-          <div className="absolute top-2 right-0 text-xs font-bold text-[var(--color-text-muted)]">10%</div>
-          <div className="absolute bottom-6 left-0 text-xs font-bold text-[var(--color-text-muted)]">20%</div>
-          <div className="absolute bottom-4 right-2 text-xs font-bold text-[var(--color-text-muted)]">65%</div>
-        </div>
-
-        {/* Legend */}
-        <div className="flex flex-col gap-3">
-          {segments.map((s) => (
-            <div key={s.label} className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-              <span className="text-sm text-[var(--color-text-muted)]">{s.label}</span>
-            </div>
-          ))}
-        </div>
+    <foreignObject x={x - 36} y={y - 20} width={72} height={40}>
+      <div
+        xmlns="http://www.w3.org/1999/xhtml"
+        style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "3px 6px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 800, color: "#111827", lineHeight: 1.2 }}>{value}%</span>
+        <span style={{ fontSize: 9, color: "#9ca3af", lineHeight: 1.2, whiteSpace: "nowrap" }}>{name}</span>
       </div>
-    </div>
+    </foreignObject>
   );
 }
 
-/* ─── Utilization Bars ───────────────────────────────────────────────────────── */
-function UtilizationCard() {
-  const bars = [
-    { label: "Idle", pct: 70, color: "bg-[var(--color-primary)]" },
-    { label: "Booked", pct: 40, color: "bg-[var(--color-secondary)]" },
-  ];
+function DonutChart() {
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)]">
-      <h2 className="text-base font-bold text-[var(--color-text)] mb-4">Utilization</h2>
-      <div className="flex flex-col gap-4">
-        {bars.map((b) => (
-          <div key={b.label}>
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-sm text-[var(--color-text-muted)] font-medium">{b.label}</span>
-              <span className="text-sm font-bold text-[var(--color-text)]">{b.pct}%</span>
-            </div>
-            <div className="h-9 bg-gray-100 rounded-lg overflow-hidden">
-              <div
-                className={`h-full ${b.color} rounded-lg transition-all duration-700`}
-                style={{ width: `${b.pct}%` }}
-              />
-            </div>
+      <h2 className="text-base font-bold text-[var(--color-text)] mb-2">Listing Performance</h2>
+      {/* Extra vertical space so labels above/below the donut aren't clipped */}
+      <ResponsiveContainer width="100%" height={260}>
+        <PieChart margin={{ top: 28, right: 28, bottom: 28, left: 28 }}>
+          <Pie
+            data={performanceData}
+            cx="50%"
+            cy="50%"
+            innerRadius={58}
+            outerRadius={84}
+            paddingAngle={3}
+            dataKey="value"
+            labelLine={false}
+            label={renderPerfLabel}
+          >
+            {performanceData.map((entry, i) => (
+              <Cell key={i} fill={entry.color} />
+            ))}
+          </Pie>
+          <PieTooltip
+            formatter={(value, name) => [`${value}%`, name]}
+            contentStyle={{ borderRadius: 12, border: "1px solid #f1f5f9", fontSize: 12 }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="flex items-center justify-center gap-5 mt-1">
+        {performanceData.map((s) => (
+          <div key={s.name} className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+            <span className="text-xs font-semibold text-[var(--color-text-muted)]">{s.name}</span>
           </div>
         ))}
       </div>
@@ -160,39 +138,89 @@ function UtilizationCard() {
   );
 }
 
-/* ─── Earnings Chart ─────────────────────────────────────────────────────────── */
+/* ─── Utilization Bars (vertical) ───────────────────────────────────────────── */
+const utilizationData = [
+  { name: "Booked",  value: 70, fill: "#1d8c82" },
+  { name: "Pending", value: 40, fill: "#FEB538" },
+];
+
+function UtilizationTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs font-bold text-gray-700">
+      {payload[0].payload.name}: {payload[0].value}%
+    </div>
+  );
+}
+
+function UtilizationCard() {
+  return (
+    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)] flex flex-col h-full min-h-[320px]">
+      <h2 className="text-base font-bold text-[var(--color-text)] mb-2">Utilization</h2>
+      <div className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={utilizationData} barSize={64} margin={{ top: 16, right: 16, left: -16, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={true} vertical={false} />
+            <XAxis
+              dataKey="name"
+              tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fill: "#94a3b8", fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              domain={[0, 100]}
+              tickFormatter={(v) => `${v}%`}
+              ticks={[0, 25, 50, 75, 100]}
+            />
+            <Tooltip content={<UtilizationTooltip />} cursor={{ fill: "#f8fafc" }} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+              {utilizationData.map((entry, i) => (
+                <Cell key={i} fill={entry.fill} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Earnings Chart (dual area) ────────────────────────────────────────────── */
+const earningsData = [
+  { month: "Jan", revenue: 30, expenses: 20 },
+  { month: "Feb", revenue: 45, expenses: 30 },
+  { month: "Mar", revenue: 35, expenses: 25 },
+  { month: "Apr", revenue: 52, expenses: 38 },
+  { month: "May", revenue: 40, expenses: 30 },
+  { month: "Jun", revenue: 62, expenses: 45 },
+  { month: "Jul", revenue: 56, expenses: 42 },
+  { month: "Aug", revenue: 72, expenses: 55 },
+  { month: "Sep", revenue: 66, expenses: 49 },
+  { month: "Oct", revenue: 82, expenses: 60 },
+  { month: "Nov", revenue: 74, expenses: 56 },
+  { month: "Dec", revenue: 88, expenses: 66 },
+];
+
+function EarningsTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs">
+      <p className="font-bold text-gray-500 mb-1">{label}</p>
+      {payload.map((p) => (
+        <p key={p.name} className="font-semibold" style={{ color: p.color }}>
+          {p.name.charAt(0).toUpperCase() + p.name.slice(1)}: {p.value}k
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function EarningsChart() {
   const [activePeriod, setActivePeriod] = useState("12 months");
   const periods = ["12 months", "30 days", "7 days", "24 hours"];
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  // Mock wave data for two lines
-  const line1 = [30, 45, 35, 50, 40, 60, 55, 70, 65, 80, 72, 85];
-  const line2 = [20, 30, 25, 38, 30, 45, 42, 55, 48, 60, 55, 65];
-
-  const W = 600;
-  const H = 120;
-  const padX = 10;
-  const padY = 10;
-  const chartW = W - padX * 2;
-  const chartH = H - padY * 2;
-  const max = 100;
-
-  const toPath = (data) =>
-    data
-      .map((v, i) => {
-        const x = padX + (i / (data.length - 1)) * chartW;
-        const y = padY + chartH - (v / max) * chartH;
-        return `${i === 0 ? "M" : "L"}${x},${y}`;
-      })
-      .join(" ");
-
-  const toArea = (data) => {
-    const top = toPath(data);
-    const lastX = padX + chartW;
-    const firstX = padX;
-    return `${top} L${lastX},${H} L${firstX},${H} Z`;
-  };
 
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)]">
@@ -203,7 +231,7 @@ function EarningsChart() {
             <button
               key={p}
               onClick={() => setActivePeriod(p)}
-              className={`text-xs font-medium px-2 sm:px-3 py-1 rounded-full transition-colors ${
+              className={`text-xs font-medium px-2 sm:px-3 py-1 transition-colors ${
                 activePeriod === p
                   ? "text-[var(--color-primary)] border-b-2 border-[var(--color-primary)]"
                   : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
@@ -212,43 +240,36 @@ function EarningsChart() {
               {p}
             </button>
           ))}
-          <button className="ml-2 text-xs font-semibold text-[var(--color-primary)] border border-[var(--color-primary)] px-3 py-1 rounded-full hover:bg-[var(--color-primary-light)] transition-colors hidden sm:block">
+          <button className="ml-2 text-xs font-semibold text-[var(--color-text)] border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors hidden sm:block">
             View report
           </button>
         </div>
       </div>
-
-      {/* SVG chart */}
-      <div className="w-full overflow-x-auto">
-        <svg viewBox={`0 0 ${W} ${H + 30}`} className="w-full min-w-[320px]" preserveAspectRatio="none">
-          {/* Area fills */}
+      <ResponsiveContainer width="100%" height={150}>
+        <AreaChart data={earningsData} margin={{ top: 5, right: 5, left: -32, bottom: 0 }}>
           <defs>
-            <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1d8c82" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#1d8c82" stopOpacity="0" />
+            <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor="#1d8c82" stopOpacity={0.18} />
+              <stop offset="95%" stopColor="#1d8c82" stopOpacity={0}    />
             </linearGradient>
-            <linearGradient id="grad2" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#FEB538" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#FEB538" stopOpacity="0" />
+            <linearGradient id="expensesGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor="#FEB538" stopOpacity={0.15} />
+              <stop offset="95%" stopColor="#FEB538" stopOpacity={0}    />
             </linearGradient>
           </defs>
-          <path d={toArea(line1)} fill="url(#grad1)" />
-          <path d={toArea(line2)} fill="url(#grad2)" />
-          {/* Lines */}
-          <path d={toPath(line1)} fill="none" stroke="#1d8c82" strokeWidth="2.5" strokeLinejoin="round" />
-          <path d={toPath(line2)} fill="none" stroke="#FEB538" strokeWidth="2.5" strokeLinejoin="round" />
-
-          {/* Month labels */}
-          {months.map((m, i) => {
-            const x = padX + (i / (months.length - 1)) * chartW;
-            return (
-              <text key={m} x={x} y={H + 20} textAnchor="middle" fontSize="10" fill="#94a3b8">
-                {m}
-              </text>
-            );
-          })}
-        </svg>
-      </div>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+          <XAxis
+            dataKey="month"
+            tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 500 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis hide />
+          <Tooltip content={<EarningsTooltip />} cursor={{ stroke: "#e2e8f0", strokeWidth: 1 }} />
+          <Area type="monotone" dataKey="revenue"  stroke="#1d8c82" strokeWidth={2.5} fill="url(#revenueGrad)"  dot={false} activeDot={{ r: 5, fill: "#1d8c82", stroke: "#fff", strokeWidth: 2 }} />
+          <Area type="monotone" dataKey="expenses" stroke="#FEB538" strokeWidth={2.5} fill="url(#expensesGrad)" dot={false} activeDot={{ r: 5, fill: "#FEB538", stroke: "#fff", strokeWidth: 2 }} />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -256,7 +277,7 @@ function EarningsChart() {
 /* ─── Main Dashboard Content ─────────────────────────────────────────────────── */
 export default function DashboardContent() {
   return (
-    <div className="flex flex-col gap-5 p-4 sm:p-6">
+    <div className="flex flex-col gap-5 p-4 sm:p-6 flex-1">
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Earning" value="$284K" sub="+15% this quarter" subColor="text-green-500" />
@@ -266,7 +287,7 @@ export default function DashboardContent() {
       </div>
 
       {/* Middle section: Reservations | Listing Performance | Utilization */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
         <RecentReservations />
         <DonutChart />
         <UtilizationCard />

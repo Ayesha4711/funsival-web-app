@@ -49,7 +49,7 @@ const navItems = [
   { href: "/dashboard/earnings", label: "Earnings", Icon: EarningsIcon },
 ];
 
-export default function DashboardSidebar({ isOpen, onClose }) {
+export default function DashboardSidebar({ isOpen, onClose, hideOnDesktop = false }) {
   const pathname = usePathname();
 
   return (
@@ -62,13 +62,13 @@ export default function DashboardSidebar({ isOpen, onClose }) {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — on hideOnDesktop pages it stays mobile-only (never pins at lg+) */}
       <aside
         className={`
           fixed top-0 left-0 h-full w-56 bg-[var(--color-primary)] z-40 flex flex-col
           transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:relative lg:translate-x-0 lg:z-auto lg:shrink-0
+          ${hideOnDesktop ? "" : "lg:relative lg:translate-x-0 lg:z-auto lg:shrink-0"}
         `}
       >
         {/* Logo */}

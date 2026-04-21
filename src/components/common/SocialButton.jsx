@@ -22,7 +22,7 @@ export default function SocialButton({ type, icon, label, onClick, className = '
       className={[
         'flex w-full items-center justify-center rounded-full border border-[var(--color-border)]',
         'bg-white px-6 py-4 text-sm font-semibold text-[var(--color-text)]',
-        'hover:bg-gray-50 transition-all duration-150 active:scale-[0.98]',
+        'cursor-pointer hover:bg-gray-50 transition-all duration-150 active:scale-[0.98]',
         'focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-1',
         className,
       ].join(' ')}

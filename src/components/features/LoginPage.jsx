@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
-import { loginAction } from "@/app/login/actions";
+import { BASE_URL } from "@/lib/api";
+
+
 
 /* ─── Icons ────────────────────────────────────────────────────────────────── */
 const MailIcon = () =>
@@ -160,30 +161,7 @@ export default function LoginPage() {
   });
   const [clientErrors, setClientErrors] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [serverState, submitAction, isPending] = useActionState(
-    loginAction,
-    null
-  );
-
-  useEffect(
-    () => {
-      if (!serverState) return;
-      if (serverState.success) {
-        if (serverState.token) {
-          localStorage.setItem("auth-token", serverState.token);
-        }
-        toast.success("Signed in successfully", {
-          description: serverState.message
-        });
-        router.push("/dashboard");
-      } else if (serverState.error) {
-        toast.error("Login failed", {
-          description: serverState.error
-        });
-      }
-    },
-    [serverState, router]
-  );
+  const [isPending, setIsPending] = useState(false);
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
@@ -209,7 +187,66 @@ export default function LoginPage() {
     if (Object.keys(newErrors).length > 0) {
       e.preventDefault();
       setClientErrors(newErrors);
+      return;
     }
+
+    e.preventDefault();
+    setIsPending(true);
+
+    fetch(`${BASE_URL}/api/v1/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password
+      })
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          const message =
+            data?.message ?? data?.error ?? "Invalid email or password.";
+          throw new Error(message);
+        }
+
+        const token =
+          data?.token ??
+          data?.accessToken ??
+          data?.access_token ??
+          data?.data?.token ??
+          data?.data?.accessToken;
+
+        if (!token) {
+          throw new Error("Login succeeded but no token was returned.");
+        }
+
+        document.cookie = `auth-token=${token}; path=/; max-age=${
+          60 * 60 * 24 * 7
+        }`;
+        localStorage.setItem("auth-token", token);
+
+        toast.success("Signed in successfully", {
+          description: data?.message ?? "Welcome back! You're signed in."
+        });
+
+        const role = data?.role ?? data?.data?.role ?? "user";
+        if (role === "host") {
+          router.push("/dashboard");
+        } else {
+          router.push("/user-dashboard/explore");
+        }
+      })
+      .catch(error => {
+        toast.error("Login failed", {
+          description: error?.message ?? "Invalid email or password."
+        });
+      })
+      .finally(() => {
+        setIsPending(false);
+      });
   };
 
   const errors = {
@@ -231,7 +268,6 @@ export default function LoginPage() {
       {/* Form */}
       <form
         className="flex flex-col gap-6"
-        action={submitAction}
         onSubmit={handleSubmit}
       >
         <Input
@@ -256,7 +292,7 @@ export default function LoginPage() {
               onClick={() => setShowPassword(!showPassword)}
               className="text-text-subtle hover:text-text transition-colors"
             >
-              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              {showPassword ? <EyeIcon /> : <EyeOffIcon />}
             </button>
           }
           value={form.password}
@@ -310,7 +346,7 @@ export default function LoginPage() {
         </Button>
 
         <p className="text-center text-sm text-[#909090]">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/" className="text-primary font-bold hover:underline">
             Sign up
           </Link>

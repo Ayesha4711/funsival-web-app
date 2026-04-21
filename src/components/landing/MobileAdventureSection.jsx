@@ -1,0 +1,44 @@
+'use client';
+
+import React from 'react';
+import Image from 'next/image';
+import MobileSection from '@/assets/images/mobilesection.svg';
+import Adventure from '@/assets/images/adventure.svg';
+
+export default function MobileAdventureSection() {
+  return (
+    <section className="py-12 md:py-16 bg-white">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+        <div className="flex flex-col xl:flex-row gap-6 xl:gap-8 items-stretch">
+          {/* Mobile Section Image */}
+          <div className="w-full xl:w-1/2 flex items-center justify-center">
+            <div className="relative w-full">
+              <Image
+                src={MobileSection}
+                alt="Mobile app preview"
+                width={0}
+                height={0}
+                sizes="(max-width: 1280px) 100vw, 50vw"
+                className="w-full h-auto object-contain"
+              />
+            </div>
+          </div>
+
+          {/* Adventure Image */}
+          <div className="w-full xl:w-1/2 flex items-center justify-center">
+            <div className="relative w-full">
+              <Image
+                src={Adventure}
+                alt="Adventure experiences"
+                width={0}
+                height={0}
+                sizes="(max-width: 1280px) 100vw, 50vw"
+                className="w-full h-auto object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

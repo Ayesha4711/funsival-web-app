@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import logo from "@/assets/images/logo.svg";
-import NotificationPopover from "./NotificationPopover";
+import NotificationPopover from "@/components/shared/NotificationPopover";
 
 const UserIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -93,24 +93,33 @@ export default function DashboardNavbar({ onMenuToggle }) {
     }
   };
 
+  const handleLogout = () => {
+    setProfileOpen(false);
+    localStorage.removeItem("auth-token");
+    router.push("/logout");
+  };
+
   return (
-    <header className="h-16 bg-[var(--color-primary)] flex items-center px-4 sm:px-6 lg:px-8 gap-4 shrink-0 z-40 sticky top-0">
-      {/* Mobile menu button */}
-      <button
-        onClick={onMenuToggle}
-        className="lg:hidden text-white/90 hover:text-white transition-colors p-1"
-        aria-label="Toggle menu"
-      >
-        <MenuIcon />
-      </button>
+    <header className="h-16 bg-[var(--color-primary)] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0 z-40 sticky top-0">
+      {/* Left section: Mobile menu & Logo */}
+      <div className="flex items-center gap-4">
+        {/* Mobile menu button */}
+        <button
+          onClick={onMenuToggle}
+          className="lg:hidden text-white/90 hover:text-white transition-colors p-1"
+          aria-label="Toggle menu"
+        >
+          <MenuIcon />
+        </button>
 
-      {/* Logo – visible on mobile/tablet, hidden on desktop (sidebar has it) */}
-      <Link href="/dashboard" className="lg:hidden flex items-center shrink-0">
-        <Image src={logo} alt="Funsival" width={110} height={32} className="h-8 w-auto object-contain" />
-      </Link>
+        {/* Logo – visible on mobile/tablet, hidden on desktop (sidebar has it) */}
+        <Link href="/dashboard" className="lg:hidden flex items-center shrink-0">
+          <Image src={logo} alt="Funsival" width={110} height={32} className="h-8 w-auto object-contain" />
+        </Link>
+      </div>
 
-      {/* Search bar */}
-      <div className="flex-1 flex justify-center">
+      {/* Search bar - hidden on mobile */}
+      <div className="hidden sm:flex flex-1 justify-center px-4">
         <div className="relative w-full max-w-xs sm:max-w-sm lg:max-w-md">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">
             <SearchIcon />
@@ -136,8 +145,18 @@ export default function DashboardNavbar({ onMenuToggle }) {
           </button>
           {dropdownOpen && (
             <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg py-1 z-50">
-              <button className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]">Provider</button>
-              <button className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]">User</button>
+              <button
+                onClick={() => { setDropdownOpen(false); router.push("/dashboard"); }}
+                className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]"
+              >
+                Provider
+              </button>
+              <button
+                onClick={() => { setDropdownOpen(false); router.push("/user-dashboard/explore"); }}
+                className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]"
+              >
+                User
+              </button>
             </div>
           )}
         </div>
@@ -191,7 +210,8 @@ export default function DashboardNavbar({ onMenuToggle }) {
               </button>
               <div className="my-1 border-t border-gray-100" />
               <button
-                onClick={() => { setProfileOpen(false); router.push("/login"); }}
+                type="button"
+                onClick={handleLogout}
                 className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
               >
                 <LogoutIcon />
