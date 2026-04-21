@@ -1,0 +1,107 @@
+"use client";
+
+import React, { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import Button from "@/components/common/Button";
+import AuthLayout from "@/components/layout/AuthLayout";
+import hostIllustration from "@/assets/icons/Host.jpg";
+import userIllustration from "@/assets/icons/User.jpg";
+
+/* ─── Icons ────────────────────────────────────────────────────────────────── */
+const CheckIcon = () =>
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="white"
+    strokeWidth="4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="20 6 9 17 4 12" />
+  </svg>;
+
+/* ─── Role Card Component ──────────────────────────────────────────────────── */
+const RoleCard = ({ type, title, illustration, isSelected, onSelect }) => {
+  return (
+    <div
+      onClick={() => onSelect(type)}
+      style={{ borderRadius: "15px", border: "1px solid #D7D7D7" }}
+      className={`relative flex flex-col items-center justify-center p-4 transition-all duration-300 cursor-pointer
+        w-[140px] h-[120px] sm:w-[215px] sm:h-[171px]
+        ${isSelected ? "bg-[#FFF5D9]" : "bg-white hover:bg-gray-50"}`}
+    >
+      {/* Checkmark indicator */}
+      {isSelected &&
+        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-secondary flex items-center justify-center animate-in zoom-in-50 duration-300">
+          <CheckIcon />
+        </div>}
+
+      {/* Illustration */}
+      <div className="relative w-full flex-1 mb-2">
+        <Image src={illustration} alt={title} fill className="object-contain" />
+      </div>
+
+      {/* Title */}
+      <span
+        className={`text-base font-semibold ${isSelected ? "text-[#FFA600]" : "text-black"}`}
+      >
+        {title}
+      </span>
+    </div>
+  );
+};
+
+/* ─── Main Page Component ───────────────────────────────────────────────────── */
+export default function AccountTypeSelectionPage() {
+  const router = useRouter();
+  const [selectedRole, setSelectedRole] = useState("host");
+
+  return (
+    <AuthLayout maxWidthClass="max-w-2xl">
+      {/* Heading */}
+      <div className="mb-10 text-center">
+        <h1 className="text-4xl font-extrabold text-text mb-3">
+          Create Your Account
+        </h1>
+        <p className="text-[#A1A1A1] text-base leading-relaxed">
+          Lorem ipsum dolor sit amet consectetur. Sit libero ut adipiscing
+          condimentum ullamcorper massa
+        </p>
+      </div>
+
+      {/* Selection Grid */}
+      <div className="flex justify-center gap-6 mb-10">
+        <RoleCard
+          type="host"
+          title="Host"
+          illustration={hostIllustration}
+          isSelected={selectedRole === "host"}
+          onSelect={setSelectedRole}
+        />
+        <RoleCard
+          type="user"
+          title="User"
+          illustration={userIllustration}
+          isSelected={selectedRole === "user"}
+          onSelect={setSelectedRole}
+        />
+      </div>
+
+      {/* Continue button */}
+      <div className="w-full flex justify-center">
+        <Button
+          variant="accent"
+          size="lg"
+          className="w-full max-w-xs min-h-[4rem] h-auto text-lg"
+          showArrow={true}
+          onClick={() => router.push(`/signup/${selectedRole}`)}
+        >
+          Continue
+        </Button>
+      </div>
+    </AuthLayout>
+  );
+}
