@@ -32,6 +32,7 @@ export default function Input({
           id={id}
           type={type}
           placeholder={placeholder}
+          onInput={props.onChange}
           className={[
             'w-full rounded-full border py-3.5 text-sm transition-all duration-200',
             Icon ? 'pl-11' : 'pl-5',

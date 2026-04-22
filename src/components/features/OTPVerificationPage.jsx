@@ -132,14 +132,14 @@ export default function OTPVerificationPage() {
 
   return (
     <AuthLayout>
-      <h1 className="text-4xl font-extrabold text-text mb-3">OTP Verification</h1>
-      <p className="text-[#A1A1A1] text-base mb-10 leading-relaxed mx-auto">
+      <h1 className="text-2xl xs:text-3xl md:text-4xl font-extrabold text-text mb-3 text-center lg:text-left">OTP Verification</h1>
+      <p className="text-[#A1A1A1] text-sm md:text-base mb-10 leading-relaxed mx-auto text-center lg:text-left">
         Please enter the 6-digit code we sent to<br />
         <span className="font-medium text-[var(--color-text)]">{email}</span>
       </p>
 
       {/* OTP Inputs */}
-      <div className="flex justify-center gap-3 mb-6" onPaste={handlePaste}>
+      <div className="flex justify-center gap-1.5 xs:gap-2 sm:gap-3 mb-6" onPaste={handlePaste}>
         {otp.map((digit, index) => (
           <input
             key={index}
@@ -150,7 +150,7 @@ export default function OTPVerificationPage() {
             value={digit}
             onChange={(e) => handleChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(index, e)}
-            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full text-center text-xl font-bold transition-all duration-200 border-2
+            className={`w-10 h-10 xs:w-12 xs:h-12 sm:w-16 sm:h-16 rounded-full text-center text-base xs:text-lg sm:text-xl font-bold transition-all duration-200 border-2
               ${digit
                 ? "bg-primary text-white border-primary"
                 : "bg-primary-light text-primary border-transparent"

@@ -1,26 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
-import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { BASE_URL, loginWithGoogle } from "@/lib/api";
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
 import Divider from "@/components/common/Divider";
 import SocialButton from "@/components/common/SocialButton";
+import agencyIconSrc from "@/assets/icons/agencyIcon.svg";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const AgencyIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-    <polyline points="9 22 9 12 15 12 15 22" />
-  </svg>
+  <Image src={agencyIconSrc} alt="" width={20} height={20} />
 );
 
 const MailIcon = () => (
@@ -70,6 +69,7 @@ function HostSignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const googleButtonRef = useRef(null);
 
   const validateEmail = (email) => {
     if (!email.trim()) return "Email is required";
@@ -78,7 +78,8 @@ function HostSignupForm() {
   };
 
   const validatePassword = (password) => {
-    if (!password.trim()) return "Password is required";
+    if (!password) return "Password is required";
+    if (/\s/.test(password)) return "Spaces are not allowed in password";
     if (password.length < 8) return "Password must be at least 8 characters";
     if (!/^[A-Z]/.test(password)) return "Password must start with an uppercase letter";
     return "";
@@ -86,6 +87,12 @@ function HostSignupForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Prevent digits in agencyName and city
+    if ((name === "agencyName" || name === "city") && /\d/.test(value)) {
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
 
     if (name === "email") {
@@ -101,7 +108,7 @@ function HostSignupForm() {
     }
 
     if (name === "confirmPassword") {
-      const confirmError = !value.trim()
+      const confirmError = !value
         ? "Confirm password is required"
         : value !== form.password
         ? "Passwords do not match"
@@ -116,63 +123,65 @@ function HostSignupForm() {
   const validate = () => {
     const errs = {};
     if (!form.agencyName.trim()) errs.agencyName = "Agency name is required";
+    else if (!/^[a-zA-Z\s]+$/.test(form.agencyName)) errs.agencyName = "Only alphabets are allowed";
+
     const emailError = validateEmail(form.email);
     if (emailError) errs.email = emailError;
+
     if (!form.city.trim()) errs.city = "City is required";
+    else if (!/^[a-zA-Z\s]+$/.test(form.city)) errs.city = "Only alphabets are allowed";
+
     const passwordError = validatePassword(form.password);
     if (passwordError) errs.password = passwordError;
-    if (!form.confirmPassword.trim()) errs.confirmPassword = "Confirm password is required";
+    
+    if (!form.confirmPassword) errs.confirmPassword = "Confirm password is required";
     else if (form.confirmPassword !== form.password) errs.confirmPassword = "Passwords do not match";
     return errs;
   };
 
-  const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      // Validate that agencyName and city are filled before continuing
-      const errs = {};
-      if (!form.agencyName.trim()) errs.agencyName = "Agency name is required";
-      if (!form.city.trim()) errs.city = "City is required";
-      
-      if (Object.keys(errs).length > 0) {
-        setClientErrors(errs);
-        toast.error("Required info missing", { description: "Please fill Agency Name and City before continuing with Google." });
+  const handleGoogleButtonClick = () => {
+    const errs = {};
+    if (!form.agencyName.trim()) errs.agencyName = "Agency name is required";
+    if (!form.city.trim()) errs.city = "City is required";
+    if (Object.keys(errs).length > 0) {
+      setClientErrors(errs);
+      toast.error("Required info missing", { description: "Please fill Agency Name and City before continuing with Google." });
+      return;
+    }
+    googleButtonRef.current?.querySelector("div[role=button]")?.click();
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsPending(true);
+    try {
+      const payload = {
+        idToken: credentialResponse.credential,
+        role: "host",
+        city: form.city,
+        agencyName: form.agencyName,
+      };
+
+      const { ok, data } = await loginWithGoogle(payload);
+
+      if (!ok) {
+        toast.error("Google login failed", { description: data?.message || "Failed to authenticate with Google." });
         return;
       }
 
-      setIsPending(true);
-      try {
-        const payload = {
-          idToken: tokenResponse.access_token,
-          role: "host",
-          city: form.city,
-          agencyName: form.agencyName
-        };
-
-        const { ok, data } = await loginWithGoogle(payload);
-
-        if (!ok) {
-          toast.error("Google login failed", { description: data?.message || "Failed to authenticate with Google." });
-          return;
-        }
-
-        const token = data?.token ?? data?.accessToken ?? data?.data?.token;
-        if (token) {
-          document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
-          localStorage.setItem("auth-token", token);
-        }
-
-        toast.success("Login successful!", { description: "Welcome to Funsival." });
-        router.push("/dashboard/listings");
-      } catch (err) {
-        toast.error("Network error", { description: "Could not complete Google login." });
-      } finally {
-        setIsPending(false);
+      const token = data?.token ?? data?.accessToken ?? data?.data?.token;
+      if (token) {
+        document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+        localStorage.setItem("auth-token", token);
       }
-    },
-    onError: () => {
-      toast.error("Google login failed", { description: "Could not initialize Google login." });
+
+      toast.success("Login successful!", { description: "Welcome to Funsival." });
+      router.push("/dashboard/listings");
+    } catch {
+      toast.error("Network error", { description: "Could not complete Google login." });
+    } finally {
+      setIsPending(false);
     }
-  });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -226,8 +235,8 @@ function HostSignupForm() {
 
   return (
     <>
-      <h1 className="text-4xl font-extrabold text-[#4A4A4A] mb-3">Signup</h1>
-      <p className="text-[#A1A1A1] text-[16px] mb-10 leading-[160%]">
+      <h1 className="text-2xl xs:text-3xl md:text-4xl font-extrabold text-[#4A4A4A] mb-3 text-center lg:text-left">Signup</h1>
+      <p className="text-[#A1A1A1] text-sm md:text-base mb-10 leading-[160%] text-center lg:text-left">
         Lorem ipsum dolor sit amet consectetur. Sit libero ut adipiscing condimentum ullamcorper massa
       </p>
 
@@ -252,7 +261,7 @@ function HostSignupForm() {
 
         <p className="text-center text-sm text-text">
           Already have an account?{" "}
-          <Link href="/login" className="text-primary font-bold hover:underline">Sign in</Link>
+          <Link href="/login" className="text-primary font-bold underline">Sign in</Link>
         </p>
 
         <div className="my-5">
@@ -261,11 +270,14 @@ function HostSignupForm() {
                 
         {/* Social buttons */}
         <div className="flex flex-col gap-4">
-          <SocialButton 
-            type="google" 
-            label="Continue with Google" 
-            onClick={() => handleGoogleLogin()}
-          />
+          {/* Hidden GoogleLogin triggers the real OAuth credential flow */}
+          <div ref={googleButtonRef} className="hidden">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error("Google login failed", { description: "Could not initialize Google login." })}
+            />
+          </div>
+          <SocialButton type="google" label="Continue with Google" onClick={handleGoogleButtonClick} />
           <SocialButton type="facebook" label="Continue with Facebook" />
           <SocialButton type="apple" label="Continue with Apple" />
           <SocialButton type="email" label="Continue with Email" />

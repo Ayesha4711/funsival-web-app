@@ -1,13 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
-import { BASE_URL } from "@/lib/api";
+import { BASE_URL, loginWithGoogle } from "@/lib/api";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import Divider from "@/components/common/Divider";
+import SocialButton from "@/components/common/SocialButton";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 
 
@@ -152,7 +157,7 @@ const ArrowRightIcon = () =>
   </svg>;
 
 /* ─── Component ─────────────────────────────────────────────────────────────── */
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const [form, setForm] = useState({
     email: "",
@@ -162,6 +167,33 @@ export default function LoginPage() {
   const [clientErrors, setClientErrors] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const googleButtonRef = useRef(null);
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsPending(true);
+    try {
+      const { ok, data } = await loginWithGoogle({ idToken: credentialResponse.credential });
+
+      if (!ok) {
+        toast.error("Google login failed", { description: data?.message || "Failed to authenticate with Google." });
+        return;
+      }
+
+      const token = data?.token ?? data?.accessToken ?? data?.data?.token;
+      if (token) {
+        document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+        localStorage.setItem("auth-token", token);
+      }
+
+      toast.success("Signed in successfully", { description: "Welcome back!" });
+      const role = data?.role ?? data?.data?.role ?? "user";
+      router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
+    } catch {
+      toast.error("Network error", { description: "Could not complete Google login." });
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
@@ -179,11 +211,15 @@ export default function LoginPage() {
     } else if (!form.email.includes("@")) {
       newErrors.email = "Invalid email address";
     }
-    if (!form.password.trim()) {
+    
+    if (!form.password) {
       newErrors.password = "Password is required";
+    } else if (/\s/.test(form.password)) {
+      newErrors.password = "Spaces are not allowed in password";
     } else if (form.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
+
     if (Object.keys(newErrors).length > 0) {
       e.preventDefault();
       setClientErrors(newErrors);
@@ -286,6 +322,7 @@ export default function LoginPage() {
           type={showPassword ? "text" : "password"}
           placeholder="Enter your password here"
           icon={<LockIcon />}
+          autoComplete="current-password"
           suffix={
             <button
               type="button"
@@ -347,11 +384,39 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-[#909090]">
           Don&apos;t have an account?{" "}
-          <Link href="/" className="text-primary font-bold hover:underline">
+          <Link href="/signup/role-selection" className="text-primary font-bold hover:underline">
             Sign up
           </Link>
         </p>
+
+        <div className="my-1">
+          <Divider label="OR" />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div ref={googleButtonRef} className="hidden">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error("Google login failed", { description: "Could not initialize Google login." })}
+            />
+          </div>
+          <SocialButton
+            type="google"
+            label="Continue with Google"
+            onClick={() => googleButtonRef.current?.querySelector("div[role=button]")?.click()}
+          />
+          <SocialButton type="facebook" label="Continue with Facebook" />
+          <SocialButton type="apple" label="Continue with Apple" />
+        </div>
       </form>
     </AuthLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <LoginForm />
+    </GoogleOAuthProvider>
   );
 }
