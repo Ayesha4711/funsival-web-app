@@ -46,7 +46,9 @@ const RoleCard = ({ type, title, illustration, isSelected, onSelect }) => {
 
       {/* Title */}
       <span
-        className={`text-base font-semibold ${isSelected ? "text-[#FFA600]" : "text-black"}`}
+        className={`text-base font-semibold ${isSelected
+          ? "text-[#FFA600]"
+          : "text-black"}`}
       >
         {title}
       </span>
@@ -62,11 +64,11 @@ export default function AccountTypeSelectionPage() {
   return (
     <AuthLayout maxWidthClass="max-w-2xl">
       {/* Heading */}
-      <div className="mb-10 text-center">
-        <h1 className="text-4xl font-extrabold text-text mb-3">
+      <div className="mb-10 text-center lg:text-left">
+        <h1 className="text-2xl xs:text-3xl md:text-4xl font-extrabold text-text mb-3">
           Create Your Account
         </h1>
-        <p className="text-[#A1A1A1] text-base leading-relaxed">
+        <p className="text-[#A1A1A1] text-sm md:text-base leading-relaxed">
           Lorem ipsum dolor sit amet consectetur. Sit libero ut adipiscing
           condimentum ullamcorper massa
         </p>
@@ -90,12 +92,12 @@ export default function AccountTypeSelectionPage() {
         />
       </div>
 
-      {/* Continue button */}
+      {/* Continue button — same width as the two cards side by side */}
       <div className="w-full flex justify-center">
         <Button
           variant="accent"
           size="lg"
-          className="w-full max-w-xs min-h-[4rem] h-auto text-lg"
+          className="w-74 sm:w-111.5 min-h-16 h-auto text-lg"
           showArrow={true}
           onClick={() => router.push(`/signup/${selectedRole}`)}
         >

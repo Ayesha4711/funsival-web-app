@@ -1,15 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
-import { BASE_URL } from "@/lib/api";
+import { BASE_URL, loginWithGoogle } from "@/lib/api";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import Divider from "@/components/common/Divider";
 import SocialButton from "@/components/common/SocialButton";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
@@ -53,13 +56,54 @@ const EyeOffIcon = () => (
 );
 
 /* ─── Component ─────────────────────────────────────────────────────────────── */
-export default function UserSignupPage() {
+function UserSignupForm() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", city: "", password: "", confirmPassword: "" });
   const [clientErrors, setClientErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const googleButtonRef = useRef(null);
+
+  const handleGoogleButtonClick = () => {
+    const errs = {};
+    if (!form.city.trim()) errs.city = "City is required";
+    if (Object.keys(errs).length > 0) {
+      setClientErrors(errs);
+      toast.error("Required info missing", { description: "Please fill City before continuing with Google." });
+      return;
+    }
+    googleButtonRef.current?.querySelector("div[role=button]")?.click();
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsPending(true);
+    try {
+      const { ok, data } = await loginWithGoogle({
+        idToken: credentialResponse.credential,
+        role: "user",
+        city: form.city,
+      });
+
+      if (!ok) {
+        toast.error("Google signup failed", { description: data?.message || "Failed to authenticate with Google." });
+        return;
+      }
+
+      const token = data?.token ?? data?.accessToken ?? data?.data?.token;
+      if (token) {
+        document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+        localStorage.setItem("auth-token", token);
+      }
+
+      toast.success("Account created!", { description: "Welcome to Funsival." });
+      router.push("/signup/success?role=user");
+    } catch {
+      toast.error("Network error", { description: "Could not complete Google signup." });
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   const validateEmail = (email) => {
     if (!email.trim()) return "Email is required";
@@ -68,7 +112,8 @@ export default function UserSignupPage() {
   };
 
   const validatePassword = (password) => {
-    if (!password.trim()) return "Password is required";
+    if (!password) return "Password is required";
+    if (/\s/.test(password)) return "Spaces are not allowed in password";
     if (password.length < 8) return "Password must be at least 8 characters";
     if (!/^[A-Z]/.test(password)) return "Password must start with an uppercase letter";
     return "";
@@ -76,6 +121,12 @@ export default function UserSignupPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Prevent digits in city
+    if (name === "city" && /\d/.test(value)) {
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
 
     if (name === "email") {
@@ -91,7 +142,7 @@ export default function UserSignupPage() {
     }
 
     if (name === "confirmPassword") {
-      const confirmError = !value.trim()
+      const confirmError = !value
         ? "Confirm password is required"
         : value !== form.password
         ? "Passwords do not match"
@@ -107,10 +158,14 @@ export default function UserSignupPage() {
     const errs = {};
     const emailError = validateEmail(form.email);
     if (emailError) errs.email = emailError;
+
     if (!form.city.trim()) errs.city = "City is required";
+    else if (!/^[a-zA-Z\s]+$/.test(form.city)) errs.city = "Only alphabets are allowed";
+
     const passwordError = validatePassword(form.password);
     if (passwordError) errs.password = passwordError;
-    if (!form.confirmPassword.trim()) errs.confirmPassword = "Confirm password is required";
+
+    if (!form.confirmPassword) errs.confirmPassword = "Confirm password is required";
     else if (form.confirmPassword !== form.password) errs.confirmPassword = "Passwords do not match";
     return errs;
   };
@@ -166,8 +221,8 @@ export default function UserSignupPage() {
 
   return (
     <AuthLayout>
-      <h1 className="text-4xl font-extrabold text-[#4A4A4A] mb-3">Signup</h1>
-      <p className="text-[#A1A1A1] text-[16px] mb-10 leading-[160%]">
+      <h1 className="text-2xl xs:text-3xl md:text-4xl font-extrabold text-[#4A4A4A] mb-3 text-center lg:text-left">Signup</h1>
+      <p className="text-[#A1A1A1] text-sm md:text-base mb-10 leading-[160%] text-center lg:text-left">
         Lorem ipsum dolor sit amet consectetur. Sit libero ut adipiscing condimentum ullamcorper massa
       </p>
 
@@ -176,11 +231,13 @@ export default function UserSignupPage() {
         <Input id="city" name="city" type="text" placeholder="City" icon={<CityIcon />} value={form.city} onChange={handleChange} error={clientErrors.city} />
         <Input
           id="password" name="password" type={showPassword ? "text" : "password"} placeholder="Password" icon={<LockIcon />}
+          autoComplete="new-password"
           suffix={<button type="button" onClick={() => setShowPassword((v) => !v)} className="text-text-subtle hover:text-text transition-colors">{showPassword ? <EyeIcon /> : <EyeOffIcon />}</button>}
           value={form.password} onChange={handleChange} error={clientErrors.password}
         />
         <Input
           id="confirmPassword" name="confirmPassword" type={showConfirm ? "text" : "password"} placeholder="Re-Enter Password" icon={<LockIcon />}
+          autoComplete="new-password"
           suffix={<button type="button" onClick={() => setShowConfirm((v) => !v)} className="text-text-subtle hover:text-text transition-colors">{showConfirm ? <EyeIcon /> : <EyeOffIcon />}</button>}
           value={form.confirmPassword} onChange={handleChange} error={clientErrors.confirmPassword}
         />
@@ -195,17 +252,30 @@ export default function UserSignupPage() {
         </p>
 
         <div className="my-5">
-                <Divider label="OR" />
-              </div>
-        
-              {/* Social buttons */}
-              <div className="flex flex-col gap-4">
-                <SocialButton type="google" label="Continue with Google" />
-                <SocialButton type="facebook" label="Continue with Facebook" />
-                <SocialButton type="apple" label="Continue with Apple" />
-                <SocialButton type="email" label="Continue with Email" />
-              </div>
+          <Divider label="OR" />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div ref={googleButtonRef} className="hidden">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error("Google signup failed", { description: "Could not initialize Google login." })}
+            />
+          </div>
+          <SocialButton type="google" label="Continue with Google" onClick={handleGoogleButtonClick} />
+          <SocialButton type="facebook" label="Continue with Facebook" />
+          <SocialButton type="apple" label="Continue with Apple" />
+          <SocialButton type="email" label="Continue with Email" />
+        </div>
       </form>
     </AuthLayout>
+  );
+}
+
+export default function UserSignupPage() {
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <UserSignupForm />
+    </GoogleOAuthProvider>
   );
 }

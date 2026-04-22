@@ -7,8 +7,8 @@ import logo from "@/assets/images/logo.svg";
 
 const profileMenuItems = [
   { icon: "👤", label: "Log In", href: "/login" },
-  { icon: "✍️", label: "Sign Up", href: "/signup" },
-  { icon: "🏠", label: "Become a Host", href: "#" },
+  { icon: "✍️", label: "Sign Up", href: "/signup/role-selection" },
+  { icon: "🏠", label: "Become a Host", href: "/signup/role-selection" },
   null,
   { icon: "❓", label: "Ask Funsival", href: "#" },
   { icon: "⚙️", label: "How Funsival Works", href: "#" },

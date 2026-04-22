@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Button from "@/components/common/Button";
@@ -15,12 +15,6 @@ export default function AccountSuccessPage() {
   const role = searchParams.get("role") ?? "user"; // "user" | "host"
   const [showModal, setShowModal] = useState(false);
 
-  // Auto-open preferences modal only for regular users (not hosts)
-  useEffect(() => {
-    if (role !== "user") return;
-    const timer = setTimeout(() => setShowModal(true), 800);
-    return () => clearTimeout(timer);
-  }, [role]);
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-bg)]">
