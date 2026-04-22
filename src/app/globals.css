@@ -25,6 +25,7 @@
 }
 
 @theme inline {
+  --breakpoint-xs: 425px;
   --color-primary: var(--color-primary);
   --color-primary-dark: var(--color-primary-dark);
   --color-primary-light: var(--color-primary-light);

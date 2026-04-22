@@ -109,7 +109,7 @@ function UserNavbar() {
         <div className="relative hidden sm:block" ref={roleRef}>
           <button
             onClick={() => setRoleOpen((v) => !v)}
-            className="flex items-center gap-1 text-white text-sm font-medium hover:text-white/80 transition-colors"
+            className="flex items-center gap-1 text-white text-sm font-medium hover:text-white/80 transition-colors cursor-pointer"
           >
             User <ChevronDownIcon />
           </button>
@@ -117,13 +117,13 @@ function UserNavbar() {
             <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg py-1 z-50">
               <button
                 onClick={() => { setRoleOpen(false); router.push("/dashboard"); }}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-gray-50"
+                className="block w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-gray-50 cursor-pointer"
               >
                 Provider
               </button>
               <button
                 onClick={() => { setRoleOpen(false); router.push("/user-dashboard/explore"); }}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-gray-50"
+                className="block w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-gray-50 cursor-pointer"
               >
                 User
               </button>
@@ -135,7 +135,7 @@ function UserNavbar() {
         <div className="relative" ref={notifRef}>
           <button
             onClick={handleBellClick}
-            className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors"
+            className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer"
           >
             <BellIcon />
             <span className="absolute top-1 right-1 w-3 h-3 bg-[#F5C842] rounded-full text-[8px] flex items-center justify-center text-gray-900 font-bold border border-[#4AA7A7]">3</span>
@@ -151,7 +151,7 @@ function UserNavbar() {
         {/* Messages */}
         <button
           onClick={() => router.push("/user-dashboard/messages")}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer"
           aria-label="Messages"
         >
           <MessageIcon />
@@ -161,7 +161,7 @@ function UserNavbar() {
         <div className="relative" ref={profileRef}>
           <button
             onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }}
-            className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm border-2 border-white/40 hover:border-white/70 transition-colors"
+            className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm border-2 border-white/40 hover:border-white/70 transition-colors cursor-pointer"
             aria-label="Profile menu"
           >
             U
@@ -170,13 +170,13 @@ function UserNavbar() {
             <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg py-1.5 z-50 border border-gray-100">
               <button
                 onClick={() => { setProfileOpen(false); router.push("/user-dashboard/profile"); }}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 <span className="text-gray-500"><UserIcon /></span> View Profile
               </button>
               <button
                 onClick={() => { setProfileOpen(false); router.push("/user-dashboard/bookings"); }}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 <span className="text-gray-500">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -184,7 +184,7 @@ function UserNavbar() {
               </button>
               <button
                 onClick={() => { setProfileOpen(false); router.push("/user-dashboard/settings"); }}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 <span className="text-gray-500"><SettingsIcon /></span> Settings
               </button>
@@ -192,7 +192,7 @@ function UserNavbar() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
               >
                 <LogoutIcon /> Logout
               </button>

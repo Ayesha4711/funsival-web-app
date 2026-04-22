@@ -1,5 +1,5 @@
-import SignupPage from '@/components/features/SignupPage';
+import LandingPage from '@/components/landing/LandingPage';
 
 export default function Home() {
-  return <SignupPage />;
+  return <LandingPage />;
 }
