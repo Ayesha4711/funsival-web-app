@@ -60,7 +60,7 @@ export default function DashboardFooter() {
             Lorem ipsum dolor sit amet consectetur.
           </p>
         </div>
-        <div className="flex w-full md:w-auto max-w-sm gap-0 rounded-full border border-[var(--color-border)] overflow-hidden shadow-sm">
+        <div className="flex w-full  max-w-sm gap-0 rounded-full border border-[var(--color-border)] overflow-hidden shadow-sm">
           <input
             type="email"
             placeholder="Enter your email address"

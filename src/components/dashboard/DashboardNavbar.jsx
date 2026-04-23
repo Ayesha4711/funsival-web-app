@@ -3,9 +3,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import logo from "@/assets/images/logo.svg";
 import NotificationPopover from "@/components/shared/NotificationPopover";
+import { useProfile } from "@/lib/ProfileContext";
 
 const UserIcon = () =>
   <svg
@@ -134,6 +135,17 @@ export default function DashboardNavbar({ onMenuToggle }) {
   const notifRef = useRef(null);
   const profileRef = useRef(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const { profile } = useProfile();
+
+  // Derive initial view from pathname, then let selection override it
+  const [activeView, setActiveView] = useState(
+    pathname?.startsWith("/user-dashboard") ? "user" : "provider"
+  );
+  const roleLabel = activeView === "user" ? "User" : "Provider";
+  const avatarLetter = profile?.email
+    ? profile.email[0].toUpperCase()
+    : (activeView === "user" ? "U" : "P");
 
   // Close popovers when clicking outside
   useEffect(() => {
@@ -215,7 +227,7 @@ export default function DashboardNavbar({ onMenuToggle }) {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-1.5 text-white text-sm font-medium hover:text-white/80 transition-colors"
           >
-            Provider
+            {roleLabel}
             <ChevronDownIcon />
           </button>
           {dropdownOpen &&
@@ -223,6 +235,7 @@ export default function DashboardNavbar({ onMenuToggle }) {
               <button
                 onClick={() => {
                   setDropdownOpen(false);
+                  setActiveView("provider");
                   router.push("/dashboard");
                 }}
                 className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]"
@@ -232,6 +245,7 @@ export default function DashboardNavbar({ onMenuToggle }) {
               <button
                 onClick={() => {
                   setDropdownOpen(false);
+                  setActiveView("user");
                   router.push("/user-dashboard/explore");
                 }}
                 className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]"
@@ -272,10 +286,16 @@ export default function DashboardNavbar({ onMenuToggle }) {
             className="w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden border-2 border-white/30 hover:border-white/60 transition-colors"
             aria-label="Profile menu"
           >
-            P
+            {avatarLetter}
           </button>
           {profileOpen &&
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg py-1.5 z-50 border border-gray-100">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg py-1.5 z-50 border border-gray-100">
+              {profile && (
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-xs font-bold text-[var(--color-text)] truncate">{profile.email}</p>
+                  {profile.city && <p className="text-[10px] text-gray-400 mt-0.5">{profile.city}</p>}
+                </div>
+              )}
               <button
                 onClick={() => {
                   setProfileOpen(false);

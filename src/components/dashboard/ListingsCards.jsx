@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import Image from "next/image";
-import heroImg from "@/assets/images/HeroImg.jpg";
 import Pagination from "@/components/shared/Pagination";
 
 const StarIcon = () => (
@@ -77,7 +75,61 @@ function StatusDropdown({ status, onStatusChange }) {
   );
 }
 
-export default function ListingsCards({ data, onStatusChange }) {
+function ActionMenu({ item, onEdit, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="text-gray-300 hover:text-gray-600 transition-colors p-1"
+      >
+        <MoreIcon />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-100 rounded-2xl shadow-lg py-1.5 min-w-[130px]">
+          <button
+            onClick={() => { setOpen(false); onEdit(item); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit
+          </button>
+          <button
+            onClick={() => { setOpen(false); onDelete(item); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ListingsCards({
+  data,
+  currentPage = 1,
+  totalPages = 1,
+  onPageChange,
+  onStatusChange,
+  onEdit,
+  onDelete,
+}) {
   return (
     <div className="flex flex-col gap-4">
       {data.length === 0 && (
@@ -85,8 +137,8 @@ export default function ListingsCards({ data, onStatusChange }) {
       )}
       {data.map((item) => (
         <div key={item.id} className="bg-white rounded-[32px] p-5 shadow-sm border border-[var(--color-border)] relative">
-          <div className="absolute top-5 right-5 text-gray-300">
-            <MoreIcon />
+          <div className="absolute top-5 right-5">
+            <ActionMenu item={item} onEdit={onEdit} onDelete={onDelete} />
           </div>
 
           <div className="flex items-center gap-4 mb-5">
@@ -95,7 +147,9 @@ export default function ListingsCards({ data, onStatusChange }) {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
               ) : (
-                <Image src={heroImg} alt={item.name} fill className="object-cover" />
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
               )}
             </div>
             <div>
@@ -140,7 +194,11 @@ export default function ListingsCards({ data, onStatusChange }) {
       ))}
 
       <div className="py-4">
-        <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+        />
       </div>
     </div>
   );

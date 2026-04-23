@@ -1,5 +1,10 @@
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import { ProfileProvider } from "@/lib/ProfileContext";
 
 export default function DashboardLayout({ children }) {
-  return <DashboardShell>{children}</DashboardShell>;
+  return (
+    <ProfileProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </ProfileProvider>
+  );
 }

@@ -116,7 +116,7 @@ function ExploreNavbar() {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-1.5 text-white text-sm font-medium hover:text-white/80 transition-colors"
           >
-            Provider
+            User
             <ChevronDownIcon />
           </button>
           {dropdownOpen &&

@@ -1,58 +1,62 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { toast } from "sonner";
 
-/* ─── helpers ───────────────────────────────────────────────────────────────── */
 function cap(str) {
   if (!str) return "—";
   return str.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/* ─── Section label (small caps style) ──────────────────────────────────────── */
 function FieldLabel({ children }) {
   return (
-    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+    <p className="text-xs font-semibold text-gray-500 mb-1">
       {children}
     </p>
   );
 }
 
-/* ─── Section heading with teal left border ─────────────────────────────────── */
-function SectionHead({ children }) {
-  return (
-    <h3 className="text-sm font-bold text-[var(--color-text)] mb-4 flex items-center gap-2">
-      {children}
-    </h3>
-  );
-}
-
-/* ─── Thin divider ───────────────────────────────────────────────────────────── */
 function Divider() {
-  return <hr className="border-gray-100 my-5" />;
+  return <hr className="border-gray-200 my-5" />;
 }
 
-/* ─── Tag badge ──────────────────────────────────────────────────────────────── */
-function Tag({ children }) {
+/* Amber pill — matches the image "Air Conditioning" / "WiFi" tags */
+function IncludedTag({ children }) {
   return (
-    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#FFF3CD] text-[#92600A]">
       {children}
     </span>
   );
 }
 
-/* ─── Live map using the stored location coords ──────────────────────────────── */
 function ReviewMap({ location }) {
-  // Default to Karachi if no location text provided
-  const defaultSrc = "https://www.openstreetmap.org/export/embed.html?bbox=66.95%2C24.81%2C67.05%2C24.91&layer=mapnik&marker=24.8607%2C67.0011";
+  const [coords, setCoords] = React.useState(null);
+  const [resolved, setResolved] = React.useState(false);
 
-  // If we have a location string, use a geocode embed query
-  const mapSrc = location
-    ? `https://www.openstreetmap.org/export/embed.html?query=${encodeURIComponent(location)}&layer=mapnik`
-    : defaultSrc;
+  React.useEffect(() => {
+    if (!location || location === "—") { setResolved(true); return; }
+    fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
+      { headers: { "Accept-Language": "en" } }
+    )
+      .then(r => r.json())
+      .then(data => {
+        if (data && data[0]) setCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) });
+        setResolved(true);
+      })
+      .catch(() => setResolved(true));
+  }, [location]);
+
+  if (!resolved) {
+    return <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl" style={{ height: 200 }}><span className="text-xs text-gray-400">Loading map…</span></div>;
+  }
+
+  if (!coords) return null;
+
+  const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.05}%2C${coords.lat - 0.05}%2C${coords.lon + 0.05}%2C${coords.lat + 0.05}&layer=mapnik&marker=${coords.lat}%2C${coords.lon}`;
 
   return (
-    <div className="w-full rounded-2xl overflow-hidden border border-gray-200" style={{ height: 260 }}>
+    <div className="w-full overflow-hidden rounded-xl" style={{ height: 200 }}>
       <iframe
         src={mapSrc}
         className="w-full h-full border-0"
@@ -63,54 +67,92 @@ function ReviewMap({ location }) {
   );
 }
 
-/* ─── Photo strip — shows real uploaded blobs or placeholders ────────────────── */
 function PhotoStrip({ photos }) {
-  const hasSources = photos && photos.length > 0;
-
-  if (hasSources) {
-    return (
-      <div className="flex gap-3 overflow-x-auto pb-1">
-        {photos.map((src, i) => (
-          <div key={i} className="shrink-0 w-32 h-24 sm:w-40 sm:h-28 rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} alt="" className="w-full h-full object-cover" />
-          </div>
-        ))}
-      </div>
-    );
+  if (!photos || photos.length === 0) {
+    return <p className="text-xs text-gray-400 italic">No photos uploaded.</p>;
   }
-
-  // Placeholder gradient tiles
-  const gradients = [
-    "from-sky-300 to-blue-400",
-    "from-orange-200 to-amber-400",
-    "from-teal-200 to-teal-400",
-    "from-purple-200 to-violet-400",
-  ];
-  const emojis = ["🪂", "⛰️", "🏄", "🚣"];
-
   return (
     <div className="flex gap-3 overflow-x-auto pb-1">
-      {gradients.map((g, i) => (
-        <div key={i} className={`shrink-0 w-32 h-24 sm:w-40 sm:h-28 rounded-xl bg-gradient-to-br ${g} flex items-end justify-center pb-2 text-2xl`}>
-          {emojis[i]}
+      {photos.map((src, i) => (
+        <div key={i} className="shrink-0 w-36 h-28 rounded-xl overflow-hidden bg-gray-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt="" className="w-full h-full object-cover" />
         </div>
       ))}
     </div>
   );
 }
 
-/* ─── Component ──────────────────────────────────────────────────────────────── */
-export default function StepReview({ data, onNext, onBack, onBackToDetails, submitting = false, submitError = null, fieldErrors = null }) {
+/* ── Icons ─────────────────────────────────────────────────────────────────── */
+function PinIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+      <circle cx="12" cy="9" r="2.5"/>
+    </svg>
+  );
+}
+
+function DollarIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+      <line x1="12" y1="1" x2="12" y2="23"/>
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  );
+}
+
+function PeopleIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  );
+}
+
+/* ── Main component ─────────────────────────────────────────────────────────── */
+export default function StepReview({
+  data,
+  onNext,
+  onBack,
+  onBackToDetails,
+  submitting = false,
+  submitError = null,
+  fieldErrors = null,
+  submitLabel = "Submit",
+}) {
   const { category, type, details = {}, price } = data;
 
-  // Show toast whenever a new submit error arrives
   useEffect(() => {
     if (submitError) {
       const errorEntries = fieldErrors ? Object.entries(fieldErrors) : [];
-      const errorMessage = errorEntries.length > 0
-        ? `${submitError}\n${errorEntries.map(([field, msg]) => `• ${field.replace(/([A-Z])/g, ' $1').trim()}: ${msg}`).join('\n')}`
-        : submitError;
+      const errorMessage =
+        errorEntries.length > 0
+          ? `${submitError}\n${errorEntries.map(([field, msg]) => `• ${field.replace(/([A-Z])/g, " $1").trim()}: ${msg}`).join("\n")}`
+          : submitError;
       toast.error(errorMessage);
     }
   }, [submitError, fieldErrors]);
@@ -123,14 +165,15 @@ export default function StepReview({ data, onNext, onBack, onBackToDetails, subm
   const maxParticipants = details.maxParticipants || "—";
   const instructorName = details.instructorName || "—";
   const included = details.included?.length ? details.included : [];
+  const airConditioning = details.airConditioning;
+  const wifi = details.wifi;
   const requirements = details.requirements || "—";
   const cancellationPolicy = details.cancellationPolicy || "—";
-  const slots = details.slots?.filter(s => s.day || s.startTime) || [];
+  const slots = details.slots?.filter((s) => s.day || s.startTime) || [];
   const photos = details.photos || [];
   const serviceCategory = cap(type) || "—";
-  const displayPrice = price ? `$ ${Number(price).toFixed(0)}` : "—";
+  const displayPrice = price ? Number(price).toFixed(0) : "—";
 
-  // Address fields
   const addressLine1 = details.addressLine1 || "";
   const addressLine2 = details.addressLine2 || "";
   const placeCity = details.placeCity || "";
@@ -139,9 +182,16 @@ export default function StepReview({ data, onNext, onBack, onBackToDetails, subm
   const postalCode = details.postalCode || "";
   const fullAddress = [addressLine1, addressLine2, placeCity, state, postalCode, country].filter(Boolean).join(", ") || "—";
 
+  /* Merge wifi/airConditioning toggles into the included list for display */
+  const allIncluded = [
+    ...included,
+    ...(airConditioning ? ["Air Conditioning"] : []),
+    ...(wifi ? ["WiFi"] : []),
+  ];
+
   return (
     <div className="pb-10 w-full">
-      {/* ── Heading ──────────────────────────────────────────────────────── */}
+      {/* Heading */}
       <div className="text-center mb-8 pt-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] inline-flex items-center gap-2">
           Review Details
@@ -154,22 +204,28 @@ export default function StepReview({ data, onNext, onBack, onBackToDetails, subm
         </p>
       </div>
 
-      {/* ── Main card ────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 lg:p-8">
+      {/* Main card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-7">
 
         {/* Row 1 — title / location / price / category */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 mb-2">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
           <div>
             <FieldLabel>Activity Title</FieldLabel>
             <p className="text-sm font-semibold text-gray-800">{title}</p>
           </div>
           <div>
             <FieldLabel>Location</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800">{location}</p>
+            <p className="text-sm font-semibold text-gray-800 flex items-start gap-1">
+              <PinIcon />
+              {location}
+            </p>
           </div>
           <div>
             <FieldLabel>Price per Person</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800">{displayPrice}</p>
+            <p className="text-sm font-semibold text-gray-800 flex items-start gap-1">
+              <DollarIcon />
+              {displayPrice}
+            </p>
           </div>
           <div>
             <FieldLabel>Service Category</FieldLabel>
@@ -180,26 +236,32 @@ export default function StepReview({ data, onNext, onBack, onBackToDetails, subm
         <Divider />
 
         {/* Description */}
-        <div className="mb-2">
+        <div>
           <FieldLabel>Description</FieldLabel>
-          <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">{description}</p>
+          <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
         </div>
 
         <Divider />
 
         {/* Row 2 — difficulty / duration / max / instructor */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 mb-2">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
           <div>
             <FieldLabel>Difficulty level</FieldLabel>
             <p className="text-sm font-semibold text-gray-800">{cap(difficulty)}</p>
           </div>
           <div>
             <FieldLabel>Duration</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800">{duration}</p>
+            <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+              <ClockIcon />
+              {cap(duration)}
+            </p>
           </div>
           <div>
             <FieldLabel>Max Participants</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800">{maxParticipants}</p>
+            <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+              <PeopleIcon />
+              {maxParticipants}
+            </p>
           </div>
           <div>
             <FieldLabel>Instructor Guide name</FieldLabel>
@@ -210,88 +272,70 @@ export default function StepReview({ data, onNext, onBack, onBackToDetails, subm
         <Divider />
 
         {/* What's Included */}
-        <div className="mb-2">
-          <FieldLabel>What&apos;s Included</FieldLabel>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {included.map((item, i) => <Tag key={i}>{item}</Tag>)}
-          </div>
-        </div>
-
-        <Divider />
+        {allIncluded.length > 0 && (
+          <>
+            <div>
+              <FieldLabel>What&apos;s Included</FieldLabel>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {allIncluded.map((item, i) => (
+                  <IncludedTag key={i}>{item}</IncludedTag>
+                ))}
+              </div>
+            </div>
+            <Divider />
+          </>
+        )}
 
         {/* Requirements + Cancellation Policy */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
             <FieldLabel>Requirements</FieldLabel>
-            <p className="text-xs text-gray-500 leading-relaxed">{requirements}</p>
+            <p className="text-sm text-gray-500 leading-relaxed">{requirements}</p>
           </div>
           <div>
             <FieldLabel>Cancellation Policy</FieldLabel>
-            <p className="text-xs text-gray-500 leading-relaxed">{cancellationPolicy}</p>
+            <p className="text-sm text-gray-500 leading-relaxed">{cap(cancellationPolicy)}</p>
           </div>
         </div>
 
         <Divider />
 
-        {/* Address */}
-        <div className="mb-2">
-          <FieldLabel>Address</FieldLabel>
-          <p className="text-sm font-semibold text-gray-800">{fullAddress}</p>
-        </div>
-
-        <Divider />
-
-        {/* Map — real OSM iframe */}
-        <div className="mb-2">
-          <ReviewMap location={location} />
-        </div>
+        {/* Map */}
+        <ReviewMap location={location} />
 
         <Divider />
 
         {/* Photos */}
-        <div className="mb-2">
-          <PhotoStrip photos={photos} />
-        </div>
+        <PhotoStrip photos={photos} />
 
         <Divider />
 
         {/* Availability slots */}
-        <div>
-          <SectionHead>Availability</SectionHead>
-          <div className="space-y-3">
-            {slots.map((slot, i) => (
-              <div key={i} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-0 rounded-2xl border border-gray-200 bg-[#F9FAFB] overflow-hidden">
-                {/* Date */}
-                <div className="flex-1 px-5 py-3 border-b sm:border-b-0 sm:border-r border-gray-200">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Day</p>
-                  <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-                    {slot.day ? slot.day.charAt(0).toUpperCase() + slot.day.slice(1) : "—"}
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                  </p>
-                </div>
-                {/* Select Time label */}
-                <div className="hidden sm:flex items-center px-4 shrink-0">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Time</p>
-                </div>
-                {/* Start */}
-                <div className="flex-1 px-5 py-3 border-b sm:border-b-0 sm:border-r border-gray-200">
-                  <p className="text-sm text-gray-400 text-xs mb-1">When the activity begins</p>
-                  <p className="text-sm font-semibold text-gray-800">{slot.startTime || "—"}</p>
-                </div>
-                {/* End */}
-                <div className="flex-1 px-5 py-3">
-                  <p className="text-sm text-gray-400 text-xs mb-1">When the activity ends</p>
-                  <p className="text-sm font-semibold text-gray-800">{slot.endTime || "—"}</p>
-                </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {slots.map((slot, i) => (
+            <React.Fragment key={i}>
+              <div>
+                <FieldLabel>Select Date</FieldLabel>
+                <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                  <CalendarIcon />
+                  {slot.day || "—"}
+                </p>
               </div>
-            ))}
-          </div>
+              <div>
+                <FieldLabel>Select Time</FieldLabel>
+                <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                  <ClockIcon />
+                  {slot.startTime && slot.endTime
+                    ? `${slot.startTime} – ${slot.endTime}`
+                    : slot.startTime || slot.endTime || "—"}
+                </p>
+              </div>
+            </React.Fragment>
+          ))}
         </div>
       </div>
 
-      {/* ── Nav buttons ──────────────────────────────────────────────────── */}
+      {/* Nav buttons */}
       <div className="flex flex-col items-center gap-3 mt-8">
         {fieldErrors && Object.keys(fieldErrors).length > 0 && (
           <button
@@ -302,14 +346,24 @@ export default function StepReview({ data, onNext, onBack, onBackToDetails, subm
           </button>
         )}
         <div className="flex items-center gap-3 w-full sm:w-auto sm:justify-center">
-          <button onClick={onBack} disabled={submitting} className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors disabled:opacity-50">
+          <button
+            onClick={onBack}
+            disabled={submitting}
+            className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors disabled:opacity-50"
+          >
             Go Back
           </button>
-          <button onClick={onNext} disabled={submitting} className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+          <button
+            onClick={onNext}
+            disabled={submitting}
+            className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+          >
             {submitting && (
-              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/></svg>
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
+              </svg>
             )}
-            {submitting ? "Submitting..." : "Submit"}
+            {submitting ? "Submitting..." : submitLabel}
           </button>
         </div>
       </div>

@@ -78,10 +78,13 @@ export async function createListing(payload) {
 
 /**
  * GET /api/v1/listings
- * Fetches all listings for the authenticated provider.
+ * Fetches all listings for the authenticated provider with pagination.
+ *
+ * @param {number} page
+ * @param {number} limit
  */
-export async function getListings() {
-  return apiFetch("/api/v1/listings");
+export async function getListings(page = 1, limit = 10) {
+  return apiFetch(`/api/v1/listings?page=${page}&limit=${limit}`);
 }
 
 // ─── Draft listing APIs ───────────────────────────────────────────────────────
@@ -116,6 +119,40 @@ export async function deleteDraft() {
 }
 
 /**
+ * GET /api/v1/listings/:listingId
+ * Fetches a single listing by ID.
+ *
+ * @param {string} listingId
+ */
+export async function getListing(listingId) {
+  return apiFetch(`/api/v1/listings/${listingId}`);
+}
+
+/**
+ * PATCH /api/v1/listings/:listingId
+ * Updates an existing listing.
+ *
+ * @param {string} listingId
+ * @param {object} payload
+ */
+export async function updateListing(listingId, payload) {
+  return apiFetch(`/api/v1/listings/${listingId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+/**
+ * DELETE /api/v1/listings/:listingId
+ * Deletes a listing.
+ *
+ * @param {string} listingId
+ */
+export async function deleteListing(listingId) {
+  return apiFetch(`/api/v1/listings/${listingId}`, { method: "DELETE" });
+}
+
+/**
  * POST /api/v1/auth/google
  *
  * @param {{ idToken: string, role: string, city: string, agencyName: string }} payload
@@ -125,4 +162,12 @@ export async function loginWithGoogle(payload) {
     method: "POST",
     body: JSON.stringify(payload)
   });
+}
+
+/**
+ * GET /api/v1/auth/profile
+ * Returns the authenticated user's profile.
+ */
+export async function getProfile() {
+  return apiFetch("/api/v1/auth/profile");
 }

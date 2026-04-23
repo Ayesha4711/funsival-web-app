@@ -186,7 +186,7 @@ function LoginForm() {
       }
 
       toast.success("Signed in successfully", { description: "Welcome back!" });
-      const role = data?.role ?? data?.data?.role ?? "user";
+      const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "user";
       router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
     } catch {
       toast.error("Network error", { description: "Could not complete Google login." });
@@ -268,7 +268,7 @@ function LoginForm() {
           description: data?.message ?? "Welcome back! You're signed in."
         });
 
-        const role = data?.role ?? data?.data?.role ?? "user";
+        const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "user";
         if (role === "host") {
           router.push("/dashboard");
         } else {

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import logo from "@/assets/images/logo.svg";
 import balloonImg from "@/assets/images/BallonImg.svg";
 
@@ -23,13 +24,15 @@ export default function AuthLayout({
     <div className="min-h-screen flex flex-col bg-bg">
       {/* ── Teal header bar ─────────────────────────────────────────────────── */}
       <header className="bg-primary px-8 py-4 flex items-center shrink-0 z-10">
-        <Image
-          src={logo}
-          alt="Funsival Logo"
-          width={140}
-          height={40}
-          className="h-10 w-auto object-contain"
-        />
+        <Link href="/">
+          <Image
+            src={logo}
+            alt="Funsival Logo"
+            width={140}
+            height={40}
+            className="h-10 w-auto object-contain"
+          />
+        </Link>
       </header>
 
       {/* ── Body ────────────────────────────────────────────────────────────── */}

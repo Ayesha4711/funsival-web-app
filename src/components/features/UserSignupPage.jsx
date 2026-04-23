@@ -235,6 +235,24 @@ function UserSignupForm() {
           suffix={<button type="button" onClick={() => setShowPassword((v) => !v)} className="text-text-subtle hover:text-text transition-colors">{showPassword ? <EyeIcon /> : <EyeOffIcon />}</button>}
           value={form.password} onChange={handleChange} error={clientErrors.password}
         />
+        {form.password && (
+          <div className="bg-gray-50 rounded-xl px-4 py-3 -mt-2">
+            <p className="text-xs font-semibold text-gray-600 mb-2">Password requirements:</p>
+            <ul className="space-y-1">
+              {[
+                { text: "At least 8 characters long",                  met: form.password.length >= 8 },
+                { text: "Contains uppercase and lowercase letters",     met: /[A-Z]/.test(form.password) && /[a-z]/.test(form.password) },
+                { text: "Contains at least one number",                 met: /[0-9]/.test(form.password) },
+                { text: "Contains at least one special character",      met: /[^A-Za-z0-9]/.test(form.password) },
+              ].map(({ text, met }) => (
+                <li key={text} className="flex items-center gap-2 text-xs">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${met ? "bg-green-500" : "bg-gray-300"}`} />
+                  <span className={met ? "text-green-600" : "text-gray-400"}>{text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <Input
           id="confirmPassword" name="confirmPassword" type={showConfirm ? "text" : "password"} placeholder="Re-Enter Password" icon={<LockIcon />}
           autoComplete="new-password"
