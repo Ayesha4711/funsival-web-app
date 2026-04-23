@@ -149,7 +149,7 @@ export default function ResetPasswordPage() {
 
       <Link
         href="/login"
-        className="mt-3 block text-center text-sm font-bold text-primary hover:underline"
+        className="mt-3 block text-center text-sm font-bold text-primary underline hover:underline"
       >
         Back To Sign in
       </Link>

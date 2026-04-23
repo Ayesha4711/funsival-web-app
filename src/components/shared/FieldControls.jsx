@@ -68,6 +68,9 @@ export function DropdownField({
   menuClassName = "",
   disabled = false,
   error = false,
+  splitDisplay = false,
+  teal = false,
+  iconLeft = null,
 }) {
   const [open, setOpen] = useState(false);
   const ref = useOutsideClose(() => setOpen(false));
@@ -77,22 +80,33 @@ export function DropdownField({
   return (
     <div ref={ref} className={`relative ${className}`} style={{ zIndex: open ? 50 : "auto" }}>
       <div className={[
-        "flex items-stretch rounded-xl border bg-[#F9FAFB] overflow-hidden shadow-sm transition-colors",
+        "flex items-stretch rounded-xl border overflow-hidden shadow-sm transition-colors",
+        teal ? "bg-white" : "bg-[#F5F5F5]",
         open
           ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/15"
           : error
             ? "border-red-400 ring-2 ring-red-200"
-            : "border-gray-200 focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15",
+            : teal
+              ? "border-[#CEE6E5] focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15"
+              : "border-transparent focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15",
       ].join(" ")}>
         <button
           type="button"
           disabled={disabled}
           onClick={() => setOpen((current) => !current)}
-          className="flex-1 min-w-0 px-3 py-2.5 text-left text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex-1 min-w-0 px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60 flex items-center gap-2"
         >
-          <span className={selected ? "font-medium" : "text-gray-400"}>
-            {selected?.label || placeholder}
-          </span>
+          {iconLeft && <span className="shrink-0 text-gray-400">{iconLeft}</span>}
+          {splitDisplay && selected ? (
+            <span className="flex-1 flex items-center justify-between min-w-0">
+              <span className="text-gray-400 text-sm truncate hidden sm:inline">{placeholder}</span>
+              <span className="font-bold text-gray-800 text-sm shrink-0">{selected.label}</span>
+            </span>
+          ) : (
+            <span className={selected ? "font-medium text-gray-700" : "text-gray-400"}>
+              {selected?.label || placeholder}
+            </span>
+          )}
         </button>
         <button
           type="button"
@@ -195,12 +209,12 @@ export function ComboboxField({
       ) : (
         <div
           className={[
-            "flex items-stretch rounded-xl border bg-[#F9FAFB] overflow-hidden shadow-sm transition-colors",
+            "flex items-stretch rounded-xl border bg-[#F5F5F5] overflow-hidden shadow-sm transition-colors",
             disabled
-              ? "opacity-60 cursor-not-allowed border-gray-200"
+              ? "opacity-60 cursor-not-allowed border-transparent"
               : error
                 ? "border-red-400 ring-2 ring-red-200 cursor-pointer"
-                : "border-gray-200 hover:border-gray-300 cursor-pointer",
+                : "border-transparent hover:border-gray-200 cursor-pointer",
           ].join(" ")}
           onClick={openDropdown}
         >
@@ -247,7 +261,7 @@ export function ComboboxField({
   );
 }
 
-export function TagInputField({ tags, placeholder, onAdd, onRemove }) {
+export function TagInputField({ tags, placeholder, onAdd, onRemove, error = false }) {
   const [value, setValue] = useState("");
 
   const addTag = () => {
@@ -270,7 +284,12 @@ export function TagInputField({ tags, placeholder, onAdd, onRemove }) {
             }
           }}
           placeholder={placeholder}
-          className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 bg-[#F9FAFB] text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] focus:bg-white transition-colors"
+          className={[
+            "flex-1 px-3 py-2.5 rounded-xl border bg-[#F5F5F5] text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:bg-white transition-colors",
+            error
+              ? "border-red-400 focus:ring-red-200 focus:border-red-500"
+              : "border-transparent focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
+          ].join(" ")}
         />
         <button
           type="button"
@@ -314,29 +333,30 @@ export function CalendarField({ value, placeholder = "Select date", onChange }) 
   const ref = useOutsideClose(() => setOpen(false));
 
   return (
-    <div ref={ref} className="relative">
-      <div className="flex items-stretch rounded-2xl border border-gray-200 bg-[#F9FAFB] overflow-hidden shadow-sm focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15 transition-colors">
-        <button
-          type="button"
-          onClick={() => setOpen((current) => !current)}
-          className="flex-1 min-w-0 px-4 py-3 text-left text-sm text-gray-700"
-        >
-          <span className={value ? "font-semibold text-gray-800" : "text-gray-400"}>
-            {value || placeholder}
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen((current) => !current)}
-          className="shrink-0 px-4 text-[var(--color-primary)] hover:text-[var(--color-secondary)] transition-colors"
-          aria-label="Open calendar"
-        >
+    <div ref={ref} className="relative w-full">
+      {/* Trigger — always shows icon + text on every breakpoint */}
+      <div
+        onClick={() => setOpen((c) => !c)}
+        className={[
+          "flex items-center w-full rounded-xl border bg-white shadow-sm cursor-pointer transition-colors select-none",
+          open
+            ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/15"
+            : "border-[#CEE6E5] hover:border-[var(--color-primary)]/60",
+        ].join(" ")}
+      >
+        <span className="pl-3 py-2.5 text-[var(--color-primary)] flex items-center shrink-0">
           <CalendarIcon />
-        </button>
+        </span>
+        <span className={[
+          "flex-1 min-w-0 px-2 py-2.5 text-sm truncate",
+          value ? "font-semibold text-gray-800" : "text-gray-400",
+        ].join(" ")}>
+          {value || placeholder}
+        </span>
       </div>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-40">
+        <div className="absolute left-0 top-full mt-2 z-50 w-full min-w-[280px]">
           <CustomCalendar
             value={value}
             onChange={(nextValue) => {

@@ -1,67 +1,100 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import Image from "next/image";
-import heroImg from "@/assets/images/HeroImg.jpg";
 import Pagination from "@/components/shared/Pagination";
 
+/* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const LocationIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 shrink-0">
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 shrink-0">
     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
     <circle cx="12" cy="9" r="2.5"/>
   </svg>
 );
 
-const StarIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-400">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
-
 const MoreIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="1" />
-    <circle cx="12" cy="5" r="1" />
-    <circle cx="12" cy="19" r="1" />
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" />
   </svg>
 );
 
 const ChevronDown = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
 
-const STATUS_OPTIONS = ["Draft", "Active", "Inactive"];
-
-const STATUS_STYLES = {
-  Active:   { pill: "bg-green-50 text-green-500 border-green-100",   dot: "bg-green-400" },
-  Inactive: { pill: "bg-red-50 text-red-400 border-red-100",         dot: "bg-red-400" },
-  Draft:    { pill: "bg-orange-50 text-orange-400 border-orange-100", dot: "bg-orange-400" },
-};
-
 const CalendarIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
   </svg>
 );
 
-const MOCK_SLOTS = [
-  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
-  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
-  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
-  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
-  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
-  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
-  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
-  { date: "Sep 24, 2025", time: "9:30 to 10:30" },
-];
+/* ─── Status config ──────────────────────────────────────────────────────────── */
+const STATUS_OPTIONS = ["Draft", "Active", "Inactive"];
 
+const STATUS_STYLES = {
+  Active:   { pill: "bg-emerald-50 text-emerald-600 border-emerald-100", dot: "bg-emerald-400" },
+  Inactive: { pill: "bg-red-50 text-red-400 border-red-100",             dot: "bg-red-400" },
+  Draft:    { pill: "bg-amber-50 text-amber-500 border-amber-100",        dot: "bg-amber-400" },
+};
+
+/* ─── Helpers ────────────────────────────────────────────────────────────────── */
 function cap(str) {
   if (!str) return "—";
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+function formatSlotDay(raw) {
+  if (!raw) return "—";
+  if (raw.includes("T") || raw.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const d = new Date(raw);
+    if (!isNaN(d)) return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+  if (raw.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+    const d = new Date(raw);
+    if (!isNaN(d)) return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+  return cap(raw);
+}
+
+function formatTime(t) {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  if (isNaN(h)) return t;
+  const ampm = h < 12 ? "AM" : "PM";
+  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+/* ─── Type badge ─────────────────────────────────────────────────────────────── */
+const TYPE_COLORS = {
+  adventure: "bg-blue-50 text-blue-600 border-blue-100",
+  equipment: "bg-purple-50 text-purple-600 border-purple-100",
+  places:    "bg-teal-50 text-teal-600 border-teal-100",
+  events:    "bg-pink-50 text-pink-600 border-pink-100",
+};
+
+function TypeBadge({ type }) {
+  if (!type || type === "—") return <span className="text-gray-300 text-xs">—</span>;
+  const color = TYPE_COLORS[type.toLowerCase()] ?? "bg-gray-100 text-gray-500 border-gray-200";
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[10px] font-bold ${color}`}>
+      {cap(type)}
+    </span>
+  );
+}
+
+/* ─── Category badge ─────────────────────────────────────────────────────────── */
+function CategoryBadge({ category }) {
+  if (!category || category === "—") return <span className="text-gray-300 text-xs">—</span>;
+  return (
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#F3F4F6] border border-gray-200 text-[10px] font-bold text-gray-500">
+      {cap(category)}
+    </span>
+  );
+}
+
+/* ─── Availability cell ──────────────────────────────────────────────────────── */
 function AvailabilityCell({ slots = [] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -74,49 +107,63 @@ function AvailabilityCell({ slots = [] }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  if (!slots.length) return <span className="text-gray-400 text-xs">—</span>;
+  if (!slots.length) return <span className="text-gray-300 text-xs">—</span>;
 
-  // Single slot — show inline, no popover
-  if (slots.length === 1) {
-    const s = slots[0];
+  const renderSlotRow = (s, i) => {
+    const day  = formatSlotDay(s.day ?? s.date);
+    const time = s.startTime && s.endTime
+      ? `${formatTime(s.startTime)} – ${formatTime(s.endTime)}`
+      : s.time ?? "";
     return (
-      <div className="text-xs">
-        <p className="font-bold text-[var(--color-text)]">{cap(s.day ?? s.date)}</p>
-        <p className="text-[10px] text-gray-400 font-medium mt-0.5">
-          {s.startTime && s.endTime ? `${s.startTime} – ${s.endTime}` : s.time ?? ""}
-        </p>
+      <div key={i} className="flex items-start gap-2.5 px-4 py-2.5">
+        <div className="mt-0.5 w-5 h-5 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center shrink-0 text-[var(--color-primary)]">
+          <CalendarIcon />
+        </div>
+        <div>
+          <p className="text-xs font-bold text-[var(--color-text)] leading-tight">{day}</p>
+          <p className="text-[10px] text-gray-400 font-medium mt-0.5">{time}</p>
+        </div>
+      </div>
+    );
+  };
+
+  if (slots.length === 1) {
+    const s    = slots[0];
+    const day  = formatSlotDay(s.day ?? s.date);
+    const time = s.startTime && s.endTime
+      ? `${formatTime(s.startTime)} – ${formatTime(s.endTime)}`
+      : s.time ?? "";
+    return (
+      <div className="flex items-start gap-2">
+        <span className="mt-0.5 shrink-0 text-[var(--color-primary)]"><CalendarIcon /></span>
+        <div>
+          <p className="text-xs font-bold text-[var(--color-text)] leading-tight">{day}</p>
+          <p className="text-[10px] text-gray-400 font-medium mt-0.5">{time}</p>
+        </div>
       </div>
     );
   }
 
-  // Multiple slots — popover opening ABOVE the button
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F3F4F6] border border-gray-200 rounded-lg text-xs font-bold text-[var(--color-text)] w-fit hover:border-[var(--color-primary)] transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[var(--color-primary-light)] border border-[var(--color-primary)]/20 rounded-lg text-[10px] font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors"
       >
         <CalendarIcon />
-        <span>{slots.length} slots</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        {slots.length} slots
+        <ChevronDown />
       </button>
 
       {open && (
-        <div className="absolute left-0 bottom-10 z-40 bg-white rounded-2xl shadow-xl border border-gray-100 w-52 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-50">
-            <p className="text-xs font-bold text-[var(--color-text)]">Availability</p>
+        <div className="absolute left-0 top-full mt-2 z-40 bg-white rounded-2xl shadow-xl border border-gray-100 w-56 overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-gray-50 bg-gray-50/60">
+            <p className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wide">
+              {slots.length} Availability Slots
+            </p>
           </div>
           <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
-            {slots.map((slot, i) => (
-              <div key={i} className="px-4 py-2.5">
-                <p className="text-xs font-bold text-[var(--color-text)]">{cap(slot.day ?? slot.date)}</p>
-                <p className="text-[10px] text-gray-400 font-medium mt-0.5">
-                  {slot.startTime && slot.endTime ? `${slot.startTime} – ${slot.endTime}` : slot.time ?? ""}
-                </p>
-              </div>
-            ))}
+            {slots.map((slot, i) => renderSlotRow(slot, i))}
           </div>
         </div>
       )}
@@ -124,6 +171,7 @@ function AvailabilityCell({ slots = [] }) {
   );
 }
 
+/* ─── Status dropdown ────────────────────────────────────────────────────────── */
 function StatusDropdown({ status, onStatusChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -136,15 +184,15 @@ function StatusDropdown({ status, onStatusChange }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const styles = STATUS_STYLES[status] ?? { pill: "bg-gray-100 text-gray-400 border-gray-100", dot: "bg-gray-400" };
+  const styles = STATUS_STYLES[status] ?? { pill: "bg-gray-100 text-gray-400 border-gray-200", dot: "bg-gray-400" };
 
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-bold whitespace-nowrap transition-colors ${styles.pill}`}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[10px] font-bold whitespace-nowrap transition-colors ${styles.pill}`}
       >
-        <span className={`w-1.5 h-1.5 rounded-full ${styles.dot}`} />
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${styles.dot}`} />
         {status}
         <ChevronDown />
       </button>
@@ -157,12 +205,10 @@ function StatusDropdown({ status, onStatusChange }) {
               <button
                 key={opt}
                 onClick={() => { onStatusChange(opt); setOpen(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors hover:bg-gray-50 ${
-                  opt === status ? "opacity-100" : "opacity-70"
-                }`}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors hover:bg-gray-50 ${opt === status ? "opacity-100" : "opacity-60"}`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                <span className={s.pill.split(" ").filter(c => c.startsWith("text-")).join(" ")}>{opt}</span>
+                <span className={s.pill.split(" ").find(c => c.startsWith("text-"))}>{opt}</span>
               </button>
             );
           })}
@@ -172,74 +218,149 @@ function StatusDropdown({ status, onStatusChange }) {
   );
 }
 
-export default function ListingsTable({ data, onStatusChange }) {
+/* ─── Action menu ────────────────────────────────────────────────────────────── */
+function ActionMenu({ item, onEdit, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   return (
-    <div className="flex flex-col">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+    <div className="relative flex justify-center" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+      >
+        <MoreIcon />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-9 z-30 bg-white border border-gray-100 rounded-2xl shadow-lg py-1.5 min-w-[130px]">
+          <button
+            onClick={() => { setOpen(false); onEdit(item); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit
+          </button>
+          <button
+            onClick={() => { setOpen(false); onDelete(item); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Table ──────────────────────────────────────────────────────────────────── */
+export default function ListingsTable({
+  data,
+  currentPage = 1,
+  totalPages = 1,
+  onPageChange,
+  onStatusChange,
+  onEdit,
+  onDelete,
+}) {
+  return (
+    <div className="flex flex-col flex-1">
+      <div className="flex-1 overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[700px]">
           <thead>
-            <tr className="border-b border-gray-100 bg-[#F3F4F6] text-[10px] uppercase font-extrabold text-[#111827]">
-              <th className="px-6 py-4">Activity</th>
-              <th className="px-6 py-4">Category</th>
-              <th className="px-6 py-4">Price</th>
-              <th className="px-6 py-4">Bookings</th>
-              <th className="px-6 py-4 whitespace-nowrap">Availability</th>
-              <th className="px-6 py-4">Rating</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4">Actions</th>
+            <tr className="border-b-2 border-gray-100 bg-[#F8F9FA]">
+              {["Activity", "Category", "Type", "Price", "Availability", "Status", "Actions"].map((h) => (
+                <th
+                  key={h}
+                  className="px-5 py-3.5 text-[10px] uppercase font-extrabold tracking-wider text-gray-400 whitespace-nowrap"
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+
+          <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-sm text-gray-400 font-medium">
+                <td colSpan={7} className="px-6 py-16 text-center text-sm text-gray-400 font-medium">
                   No listings found.
                 </td>
               </tr>
             ) : (
-              data.map((item) => (
-                <tr key={item.id} className="text-[11px] font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 min-w-[200px]">
+              data.map((item, idx) => (
+                <tr
+                  key={item.id}
+                  className={`group transition-colors hover:bg-[#F8FFFA] ${idx !== data.length - 1 ? "border-b border-gray-50" : ""}`}
+                >
+                  {/* Activity */}
+                  <td className="px-5 py-3.5 min-w-[200px] max-w-[260px]">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 relative">
+                      <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 relative bg-gray-100 border border-gray-100">
                         {item.image && (item.image.startsWith("http") || item.image.startsWith("blob:") || item.image.startsWith("data:")) ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                         ) : (
-                          <Image src={heroImg} alt={item.name} fill className="object-cover" />
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                          </div>
                         )}
                       </div>
-                      <div>
-                        <p className="font-extrabold mb-0.5">{item.name}</p>
-                        <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
-                          <LocationIcon /> {item.location}
+                      <div className="min-w-0">
+                        <p className="text-xs font-extrabold text-[var(--color-text)] truncate leading-tight mb-0.5">
+                          {item.name}
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1 truncate">
+                          <LocationIcon />
+                          <span className="truncate">{item.location}</span>
                         </p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="bg-[#F3F4F6] px-3 py-1 rounded-full text-gray-500">{item.category}</span>
+
+                  {/* Category */}
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <CategoryBadge category={item.category} />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.price}</td>
-                  <td className="px-6 py-4">{item.bookings}</td>
-                  <td className="px-6 py-4 min-w-[140px]">
+
+                  {/* Type */}
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <TypeBadge type={item.type} />
+                  </td>
+
+                  {/* Price */}
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <span className="text-xs font-extrabold text-[var(--color-text)]">{item.price}</span>
+                  </td>
+
+                  {/* Availability */}
+                  <td className="px-5 py-3.5 min-w-[150px]">
                     <AvailabilityCell slots={item.slots || item.availability || []} />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap font-extrabold">
-                    <div className="flex items-center gap-1.5">
-                      <StarIcon /> {item.rating} <span className="text-gray-400 font-medium">({item.reviews})</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
+
+                  {/* Status */}
+                  <td className="px-5 py-3.5 whitespace-nowrap">
                     <StatusDropdown
                       status={item.status}
                       onStatusChange={(newStatus) => onStatusChange(item.id, newStatus)}
                     />
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="text-gray-300 hover:text-gray-600 transition-colors">
-                      <MoreIcon />
-                    </button>
+
+                  {/* Actions */}
+                  <td className="px-5 py-3.5">
+                    <ActionMenu item={item} onEdit={onEdit} onDelete={onDelete} />
                   </td>
                 </tr>
               ))
@@ -248,9 +369,13 @@ export default function ListingsTable({ data, onStatusChange }) {
         </table>
       </div>
 
-      {/* Pagination always at the bottom, outside the scrollable area */}
-      <div className="mt-auto px-6 py-4 border-t border-gray-50">
-        <Pagination currentPage={1} totalPages={Math.max(1, data.length)} onPageChange={() => {}} />
+      {/* Pagination */}
+      <div className="px-4 sm:px-6 py-4 border-t border-gray-100">
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+        />
       </div>
     </div>
   );

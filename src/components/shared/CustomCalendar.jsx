@@ -62,27 +62,27 @@ export default function CustomCalendar({ value, onChange, onClose }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 w-[280px] sm:w-[320px] select-none">
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-full select-none">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <button
           onClick={prevMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors shrink-0"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
 
-        <span className="text-sm font-bold text-gray-900">
+        <span className="text-xs font-bold text-gray-900 whitespace-nowrap">
           {MONTHS[viewMonth]} {viewYear}
         </span>
 
         <button
           onClick={nextMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors shrink-0"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
@@ -91,36 +91,36 @@ export default function CustomCalendar({ value, onChange, onClose }) {
       {/* Day-of-week headers */}
       <div className="grid grid-cols-7 mb-1">
         {DAYS.map((d) => (
-          <div key={d} className="text-center text-[11px] font-semibold text-gray-400 py-1">
+          <div key={d} className="text-center text-[10px] font-semibold text-gray-400 py-0.5">
             {d}
           </div>
         ))}
       </div>
 
       {/* Date grid */}
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 gap-y-0.5">
         {cells.map((cell, i) => {
-          const isCurrent  = cell.type === "current";
-          const sel        = isCurrent && isSelected(cell.day);
-          const tod        = isCurrent && isToday(cell.day);
+          const isCurrent = cell.type === "current";
+          const sel       = isCurrent && isSelected(cell.day);
+          const tod       = isCurrent && isToday(cell.day);
 
           return (
             <button
               key={i}
+              type="button"
               disabled={!isCurrent}
               onClick={() => isCurrent && handleSelect(cell.day)}
-              className={`
-                w-full aspect-square flex items-center justify-center text-sm font-medium rounded-full transition-all
-                ${!isCurrent ? "text-gray-300 cursor-default" : "cursor-pointer"}
-                ${sel
+              className={[
+                "w-full aspect-square flex items-center justify-center text-[11px] font-medium rounded-full transition-all",
+                !isCurrent ? "text-gray-300 cursor-default" : "cursor-pointer",
+                sel
                   ? "bg-[#F5C842] text-gray-900 font-bold shadow-sm"
                   : tod
                     ? "bg-[#F5C842]/20 text-[#d4a017] font-semibold"
                     : isCurrent
                       ? "text-gray-800 hover:bg-gray-100"
-                      : ""
-                }
-              `}
+                      : "",
+              ].join(" ")}
             >
               {cell.day}
             </button>

@@ -6,7 +6,8 @@ import ListingsStats from "@/components/dashboard/ListingsStats";
 import ListingsFilters from "@/components/dashboard/ListingsFilters";
 import ListingsTable from "@/components/dashboard/ListingsTable";
 import ListingsCards from "@/components/dashboard/ListingsCards";
-import { getListings, getDraft, BASE_URL } from "@/lib/api";
+import EditListingWizard from "@/components/dashboard/EditListingWizard";
+import { getListings, getDraft, deleteDraft, deleteListing, BASE_URL } from "@/lib/api";
 
 /* ─── Empty state ────────────────────────────────────────────────────────────── */
 function EmptyState() {
@@ -34,95 +35,130 @@ function EmptyState() {
 export default function ListingsPage() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10;
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === "undefined") return "all";
+    return new URLSearchParams(window.location.search).get("tab") ?? "all";
+  });
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Categories");
   const [viewMode, setViewMode] = useState("table");
+  const [editingListing, setEditingListing] = useState(null);
+  const [deletingListing, setDeletingListing] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const fetchListings = useCallback(async () => {
+    setLoading(true);
+    // Fetch both published listings and current in-progress draft
+    const [listingsRes, draftRes] = await Promise.all([
+      getListings(page, limit),
+      getDraft()
+    ]);
+
+    let allRaw = [];
+
+    // 1. Process published listings
+    if (listingsRes.ok) {
+      const listData = listingsRes.data?.data;
+      const list = listData?.listings ?? listData ?? listingsRes.data;
+      if (listData?.pagination) {
+        setTotalPages(listData.pagination.totalPages || 1);
+      }
+      if (Array.isArray(list)) allRaw = list.map(item => ({ ...item, _fromPublished: true }));
+    }
+
+    // 2. Process current draft (if not already in the list)
+    if (draftRes.ok) {
+      const draft = draftRes.data?.data?.draft || draftRes.data?.draft || draftRes.data;
+      if (draft && (draft.id || draft._id)) {
+        const draftId = draft.id ?? draft._id;
+        const exists = allRaw.some(item => (item.id ?? item._id) === draftId);
+        if (!exists) {
+          // Push it with forced "Draft" status
+          allRaw.push({ ...draft, status: "Draft" });
+        }
+      }
+    }
+
+    // 3. Normalize for UI
+    const normalized = allRaw.map((item) => {
+      // Get the first photo URL
+      let imageUrl = null;
+      if (Array.isArray(item.photos) && item.photos.length > 0) {
+        imageUrl = item.photos[0];
+      } else if (Array.isArray(item.details?.photos) && item.details.photos.length > 0) {
+        imageUrl = item.details.photos[0];
+      } else if (item.image) {
+        imageUrl = item.image;
+      }
+
+      // Convert relative paths to absolute URLs
+      if (imageUrl && !imageUrl.startsWith("http") && !imageUrl.startsWith("blob:") && !imageUrl.startsWith("data:")) {
+        imageUrl = `${BASE_URL}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+      }
+
+      return {
+        id: item.id ?? item._id,
+        name: item.basicInformation?.activityTitle || item.details?.title || item.name || "Untitled Draft",
+        location: item.basicInformation?.location || item.details?.location || item.placeLocation?.city || item.location || "—",
+        category: item.category ?? "—",
+        type: item.type ?? "—",
+        price: item.price?.amount != null
+          ? `$${item.price.amount} / person`
+          : (item.price && item.price !== "" ? `$${item.price}` : "—"),
+        bookings: item.bookings ?? 0,
+        rating: item.rating ?? "—",
+        reviews: item.reviews ?? 0,
+        status: item.status ?? (item._fromPublished ? "Active" : "Draft"),
+        image: imageUrl,
+        slots: Array.isArray(item.availability) ? item.availability : [],
+        date: item.availability?.[0]?.day ?? item.date ?? "—",
+        time: item.availability?.[0]
+          ? `${item.availability[0].startTime} – ${item.availability[0].endTime}`
+          : item.time ?? "—",
+      };
+    });
+
+    setListings(normalized);
+    if (!listingsRes.ok && !draftRes.ok) {
+      toast.error("Failed to load listings.");
+    }
+    setLoading(false);
+  }, [page, limit]);
 
   useEffect(() => {
-    async function fetchListings() {
-      setLoading(true);
-      // Fetch both published listings and current in-progress draft
-      const [listingsRes, draftRes] = await Promise.all([
-        getListings(),
-        getDraft()
-      ]);
+    setPage(1);
+  }, [activeTab, search, category]);
 
-      let allRaw = [];
-
-      // 1. Process published listings
-      if (listingsRes.ok) {
-        const list = listingsRes.data?.data?.listings ?? listingsRes.data?.data ?? listingsRes.data;
-        if (Array.isArray(list)) allRaw = [...list];
-      }
-
-      // 2. Process current draft (if not already in the list)
-      if (draftRes.ok) {
-        const draft = draftRes.data?.data?.draft || draftRes.data?.draft || draftRes.data;
-        if (draft && (draft.id || draft._id)) {
-          const draftId = draft.id ?? draft._id;
-          const exists = allRaw.some(item => (item.id ?? item._id) === draftId);
-          if (!exists) {
-            // Push it with forced "Draft" status
-            allRaw.push({ ...draft, status: "Draft" });
-          }
-        }
-      }
-
-      // 3. Normalize for UI
-      const normalized = allRaw.map((item) => {
-        // Get the first photo URL
-        let imageUrl = null;
-        if (Array.isArray(item.photos) && item.photos.length > 0) {
-          imageUrl = item.photos[0];
-        } else if (Array.isArray(item.details?.photos) && item.details.photos.length > 0) {
-          imageUrl = item.details.photos[0];
-        } else if (item.image) {
-          imageUrl = item.image;
-        }
-
-        // Convert relative paths to absolute URLs
-        if (imageUrl && !imageUrl.startsWith("http") && !imageUrl.startsWith("blob:") && !imageUrl.startsWith("data:")) {
-          imageUrl = `${BASE_URL}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
-        }
-
-        return {
-          id: item.id ?? item._id,
-          name: item.basicInformation?.activityTitle || item.details?.title || item.name || "Untitled Draft",
-          location: item.basicInformation?.location || item.details?.location || item.placeLocation?.city || item.location || "—",
-          category: item.category ?? "—",
-          type: item.type ?? "—",
-          price: item.price?.amount != null
-            ? `$${item.price.amount} / person`
-            : (item.price && item.price !== "" ? `$${item.price}` : "—"),
-          bookings: item.bookings ?? 0,
-          rating: item.rating ?? "—",
-          reviews: item.reviews ?? 0,
-          status: item.status ?? "Draft",
-          image: imageUrl,
-          slots: Array.isArray(item.availability) ? item.availability : [],
-          date: item.availability?.[0]?.day ?? item.date ?? "—",
-          time: item.availability?.[0]
-            ? `${item.availability[0].startTime} – ${item.availability[0].endTime}`
-            : item.time ?? "—",
-        };
-      });
-
-      setListings(normalized);
-      if (listingsRes.ok || draftRes.ok) {
-        toast.success("Listings fetched successfully.");
-      } else {
-        toast.error("Failed to load listings.");
-      }
-      setLoading(false);
-    }
+  useEffect(() => {
     fetchListings();
-  }, []);
+  }, [fetchListings]);
 
   const handleStatusChange = (id, newStatus) => {
     setListings((prev) =>
       prev.map((item) => item.id === id ? { ...item, status: newStatus } : item)
     );
+  };
+
+  const handleEditSaved = (updated) => {
+    setListings((prev) => prev.map((item) => item.id === updated.id ? updated : item));
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingListing) return;
+    setDeleteLoading(true);
+    const isDraft = deletingListing.status?.toLowerCase() === "draft";
+    const res = isDraft ? await deleteDraft() : await deleteListing(deletingListing.id);
+    setDeleteLoading(false);
+    if (res.ok) {
+      toast.success("Listing deleted.");
+      setListings((prev) => prev.filter((item) => item.id !== deletingListing.id));
+    } else {
+      toast.error(res.data?.message ?? "Failed to delete listing.");
+    }
+    setDeletingListing(null);
   };
 
   // Compute per-status counts from live data
@@ -153,7 +189,7 @@ export default function ListingsPage() {
     <div className="p-4 sm:p-6 lg:p-10 max-w-[1600px] mx-auto flex flex-col gap-6 flex-1">
       <ListingsStats />
 
-      <div className="bg-white rounded-[32px] p-4 sm:p-6 lg:p-8 shadow-sm border border-[var(--color-border)] flex flex-col min-h-[600px]">
+      <div className="bg-white rounded-[32px] p-4 sm:p-6 lg:p-8 shadow-sm border border-[var(--color-border)] flex flex-col" style={{ minHeight: 600 }}>
         <ListingsFilters
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -166,7 +202,7 @@ export default function ListingsPage() {
           tabCounts={tabCounts}
         />
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {loading ? (
             <div className="flex-1 flex items-center justify-center py-20">
               <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5">
@@ -176,12 +212,73 @@ export default function ListingsPage() {
           ) : isEmpty ? (
             <EmptyState />
           ) : viewMode === "table" ? (
-            <ListingsTable data={filtered} onStatusChange={handleStatusChange} />
+            <ListingsTable
+              data={filtered}
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              onStatusChange={handleStatusChange}
+              onEdit={setEditingListing}
+              onDelete={setDeletingListing}
+            />
           ) : (
-            <ListingsCards data={filtered} onStatusChange={handleStatusChange} />
+            <ListingsCards
+              data={filtered}
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              onStatusChange={handleStatusChange}
+              onEdit={setEditingListing}
+              onDelete={setDeletingListing}
+            />
           )}
         </div>
       </div>
+
+      {editingListing && (
+        <EditListingWizard
+          listing={editingListing}
+          onClose={() => setEditingListing(null)}
+          onSaved={handleEditSaved}
+        />
+      )}
+
+      {deletingListing && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setDeletingListing(null); }}
+        >
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 sm:p-8">
+            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+            </div>
+            <h2 className="text-base font-extrabold text-[var(--color-text)] mb-1">Delete listing?</h2>
+            <p className="text-sm text-gray-400 font-medium mb-6">
+              &ldquo;{deletingListing.name}&rdquo; will be permanently removed. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeletingListing(null)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleteLoading}
+                className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-60"
+              >
+                {deleteLoading ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

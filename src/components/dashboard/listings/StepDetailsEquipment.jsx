@@ -126,23 +126,44 @@ function PhotoUpload({ photos, onAdd }) {
 
 /* ─── Availability slot (equipment: start + end time, delete button) ─────────── */
 function AvailabilitySlot({ slot, index, onChange, onRemove, showDelete }) {
+  const timeOptions = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const val = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      const ampm = h < 12 ? "AM" : "PM";
+      const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      const label = `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+      timeOptions.push({ value: val, label });
+    }
+  }
+
   return (
     <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-      <div className="flex-1">
+      <div className="flex-1 min-w-[120px]">
         <Label>Select Date</Label>
         <CalendarField
-          value={slot.date}
-          placeholder="Select date"
-          onChange={(date) => onChange(index, "date", date)}
+          value={slot.day || ""}
+          placeholder="Pick a date"
+          onChange={(value) => onChange(index, "day", value)}
         />
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-w-[120px]">
         <Label>Start Time</Label>
-        <TextInput type="time" value={slot.startTime} onChange={e => onChange(index, "startTime", e.target.value)} />
+        <DropdownField
+          value={slot.startTime || ""}
+          placeholder="Begins"
+          options={timeOptions}
+          onChange={(value) => onChange(index, "startTime", value)}
+        />
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-w-[120px]">
         <Label>End Time</Label>
-        <TextInput type="time" value={slot.endTime} onChange={e => onChange(index, "endTime", e.target.value)} />
+        <DropdownField
+          value={slot.endTime || ""}
+          placeholder="Ends"
+          options={timeOptions}
+          onChange={(value) => onChange(index, "endTime", value)}
+        />
       </div>
       {showDelete && (
         <button
@@ -160,8 +181,15 @@ function AvailabilitySlot({ slot, index, onChange, onRemove, showDelete }) {
   );
 }
 
+function FieldError({ msg }) {
+  if (!msg) return null;
+  return <p className="mt-1 text-xs text-red-500 font-medium">{msg}</p>;
+}
+
 /* ─── Component ─────────────────────────────────────────────────────────────── */
-export default function StepDetailsEquipment({ details, onChange, onNext, onBack }) {
+export default function StepDetailsEquipment({ details, onChange, onNext, onBack, fieldErrors = null }) {
+  const [activeErrors, setActiveErrors] = useState(fieldErrors || {});
+
   const [form, setForm] = useState({
     equipmentName: "",
     location: "",
@@ -172,13 +200,20 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
     requirements: "",
     cancellationPolicy: "",
     photos: ["a", "b", "c", "d"],
-    slots: [{ date: "", startTime: "", endTime: "" }],
+    slots: [{ day: "", startTime: "", endTime: "" }],
     ...details,
   });
 
-  const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+  const fe = activeErrors;
 
-  const addSlot = () => set("slots", [...form.slots, { date: "", startTime: "", endTime: "" }]);
+  const set = (key, val) => {
+    if (activeErrors[key]) {
+      setActiveErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
+    }
+    setForm(prev => ({ ...prev, [key]: val }));
+  };
+
+  const addSlot = () => set("slots", [...form.slots, { day: "", startTime: "", endTime: "" }]);
   const updateSlot = (i, key, val) => {
     const next = [...form.slots];
     next[i] = { ...next[i], [key]: val };
@@ -273,6 +308,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
                 value={form.requirements}
                 onChange={e => set("requirements", e.target.value)}
               />
+              <FieldError msg={fe.requirements} />
             </div>
             <div>
               <Label>Cancellation Policy</Label>
@@ -345,7 +381,22 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
         <button onClick={onBack} className="px-10 py-3 rounded-full font-bold text-sm border-2 border-gray-300 text-gray-600 hover:border-gray-400 transition-colors">
           Go Back
         </button>
-        <button onClick={() => { save(); onNext(); }} className="px-10 py-3 rounded-full font-bold text-sm bg-[var(--color-secondary)] text-white hover:bg-[var(--color-secondary-dark)] transition-colors">
+        <button
+          onClick={() => {
+            const errs = {};
+            if (!form.equipmentName?.trim()) errs.equipmentName = "Equipment name is required";
+            if (!form.location?.trim()) errs.location = "Location is required";
+            if (!form.requirements?.trim()) errs.requirements = "At least one requirement is required";
+
+            if (Object.keys(errs).length > 0) {
+              setActiveErrors(errs);
+              return;
+            }
+            onChange(form);
+            onNext();
+          }}
+          className="px-10 py-3 rounded-full font-bold text-sm bg-[var(--color-secondary)] text-white hover:bg-[var(--color-secondary-dark)] transition-colors"
+        >
           Next
         </button>
       </div>
