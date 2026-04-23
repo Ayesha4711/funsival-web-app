@@ -58,6 +58,7 @@ function ExploreNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     const handleOutside = (e) => {
@@ -106,9 +107,40 @@ function ExploreNavbar() {
           {/* Right Actions */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* User label + chevron — desktop */}
-            <div className="hidden sm:flex items-center gap-1 text-white text-sm font-medium">
+            {/* <div className="hidden sm:flex items-center gap-1 text-white text-sm font-medium">
               User <ChevronDownIcon />
-            </div>
+            </div> */}
+
+             <div className="relative hidden sm:block">
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-1.5 text-white text-sm font-medium hover:text-white/80 transition-colors"
+          >
+            User
+            <ChevronDownIcon />
+          </button>
+          {dropdownOpen &&
+            <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg py-1 z-50">
+              <button
+                onClick={() => {
+                  setDropdownOpen(false);
+                  router.push("/dashboard");
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]"
+              >
+                Provider
+              </button>
+              <button
+                onClick={() => {
+                  setDropdownOpen(false);
+                  router.push("/user-dashboard/explore");
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]"
+              >
+                User
+              </button>
+            </div>}
+        </div>
 
             {/* Bell */}
             <div className="relative" ref={notifRef}>

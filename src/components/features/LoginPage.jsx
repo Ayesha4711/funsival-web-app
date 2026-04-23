@@ -186,7 +186,7 @@ function LoginForm() {
       }
 
       toast.success("Signed in successfully", { description: "Welcome back!" });
-      const role = data?.role ?? data?.data?.role ?? "user";
+      const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "user";
       router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
     } catch {
       toast.error("Network error", { description: "Could not complete Google login." });
@@ -268,7 +268,7 @@ function LoginForm() {
           description: data?.message ?? "Welcome back! You're signed in."
         });
 
-        const role = data?.role ?? data?.data?.role ?? "user";
+        const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "user";
         if (role === "host") {
           router.push("/dashboard");
         } else {
@@ -338,7 +338,7 @@ function LoginForm() {
         />
 
         {/* Remember Me & Forgot Password */}
-        <div className="flex items-center justify-between px-1">
+        {/* <div className="flex items-center justify-between px-1">
           <label className="flex items-center gap-2 cursor-pointer group">
             <div className="relative flex items-center justify-center w-5 h-5 rounded border-2 border-border group-hover:border-primary transition-colors bg-white">
               <input
@@ -368,7 +368,46 @@ function LoginForm() {
           >
             Forget Password?
           </Link>
-        </div>
+        </div> */}
+
+        <div className="flex items-center justify-between px-1">
+  <div className="flex items-center gap-2">
+    
+    {/* Label ONLY around checkbox */}
+    <label className="cursor-pointer group">
+      <div className="relative flex items-center justify-center w-5 h-5 rounded border-2 border-border group-hover:border-primary transition-colors bg-white">
+        <input
+          type="checkbox"
+          name="rememberMe"
+          checked={form.rememberMe}
+          onChange={handleChange}
+          className="peer absolute opacity-0 cursor-pointer w-full h-full"
+        />
+        <svg
+          className="w-3.5 h-3.5 text-primary hidden peer-checked:block"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth="4"
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </div>
+    </label>
+
+    {/* Text is NOT clickable anymore */}
+    <span className="text-sm font-medium text-text-subtle">
+      Remember me
+    </span>
+  </div>
+
+  <Link
+    href="/forgot-password/check-email"
+    className="text-sm font-bold text-primary hover:underline"
+  >
+    Forget Password?
+  </Link>
+</div>
 
         {/* Sign in button */}
         <Button
@@ -384,7 +423,7 @@ function LoginForm() {
 
         <p className="text-center text-sm text-[#909090]">
           Don&apos;t have an account?{" "}
-          <Link href="/signup/role-selection" className="text-primary font-bold hover:underline">
+          <Link href="/signup/role-selection" className="text-primary font-bold underline hover:underline">
             Sign up
           </Link>
         </p>

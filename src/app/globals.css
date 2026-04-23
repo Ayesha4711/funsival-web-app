@@ -64,14 +64,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-button, 
-[role="button"] {
-  cursor: pointer;
+button,
+[role="button"],
+a,
+label[for],
+select {
+  cursor: pointer !important;
 }
 
 button:disabled,
 [role="button"]:disabled {
-  cursor: not-allowed;
+  cursor: not-allowed !important;
 }
 
 /* ─── Utility layer additions ────────────────────────────────────────────────── */

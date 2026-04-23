@@ -204,7 +204,7 @@ function buildPayload(data) {
   const availability = (details.slots || [])
     .filter(slot => slot.day && slot.startTime && slot.endTime)
     .map((slot) => ({
-      day: slot.day,
+      date: slot.day, // Mapping UI 'day' field to API 'date' field
       startTime: slot.startTime,
       endTime: slot.endTime,
       isAvailable: true,
@@ -225,10 +225,12 @@ function buildPayload(data) {
       instructorName: details.instructorName || "",
       cancellationPolicy: details.cancellationPolicy || "",
       whatsIncluded: details.included || [],
-      // Split comma/newline separated requirements string into an array
-      requirements: details.requirements
-        ? details.requirements.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-        : [],
+      // Use requirementsList array directly if available, else fallback to splitting the string
+      requirements: (Array.isArray(details.requirementsList) && details.requirementsList.length > 0)
+        ? details.requirementsList
+        : (details.requirements
+            ? details.requirements.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+            : []),
     },
     placeLocation: {
       addressLine1: details.addressLine1 || "",
@@ -305,15 +307,22 @@ export default function AddListingWizard() {
     setDraftSaving(false);
   }, []);
 
+  const scrollToTop = () => {
+    const main = document.querySelector("main");
+    if (main) main.scrollTo({ top: 0, behavior: "smooth" });
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const next = useCallback((latestData) => {
     setStep(s => {
       const nextStep = Math.min(s + 1, 6);
       saveDraftSilently(nextStep, latestData ?? data);
       return nextStep;
     });
+    scrollToTop();
   }, [data, saveDraftSilently]);
 
-  const back = () => setStep(s => Math.max(s - 1, 1));
+  const back = () => { setStep(s => Math.max(s - 1, 1)); scrollToTop(); };
 
   // Refs mirror the latest values so saveDraft never captures stale state
   const pendingRef = React.useRef({ ...data });
@@ -326,7 +335,7 @@ export default function AddListingWizard() {
   const handleCategoryNext = () => next({ ...pendingRef.current });
   const handleTypeNext = () => next({ ...pendingRef.current });
 
-  const handleDetailsChange = (val) => update("details", val);
+  const handleDetailsChange = useCallback((val) => update("details", val), []);
   const handleDetailsNext = () => next({ ...pendingRef.current });
 
   const handlePriceChange = (val) => update("price", val);
@@ -337,11 +346,16 @@ export default function AddListingWizard() {
     setSubmitError(null);
     setFieldErrors(null);
     const payload = buildPayload(data);
+
+    // Always persist final state to draft first
+    await saveDraft({ currentStep: 5, ...data });
+
     const { ok, data: resData } = await createListing(payload);
     if (ok) {
       await deleteDraft();
       toast.success("Listing created successfully!");
       setStep(6);
+      scrollToTop();
     } else {
       const errorMsg = resData?.message || "Failed to create listing. Please try again.";
       setSubmitError(errorMsg);
@@ -479,8 +493,8 @@ export default function AddListingWizard() {
             />
           )}
           {step === 6 &&
-            <StepSuccess 
-              onDone={() => router.push("/dashboard/listings")} 
+            <StepSuccess
+              onDone={() => router.push("/dashboard/listings?tab=active")}
               onAddMore={resetWizard}
             />}
         </div>
