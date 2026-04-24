@@ -335,8 +335,7 @@ export default function ConfirmAndPayPage() {
   const canPay = agreed;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <PayNavbar />
+    <div className="bg-gray-50 flex flex-col">
 
       <main className="flex-1 max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-8">
         {/* Page header */}

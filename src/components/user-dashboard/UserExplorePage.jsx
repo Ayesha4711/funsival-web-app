@@ -433,11 +433,10 @@ export default function UserExplorePage() {
   const subFilters = SUB_FILTERS[activeTab] || [];
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <ExploreNavbar />
+    <div className="flex flex-col bg-gray-50">
 
       {/* ── Tab Bar + Controls ── */}
-      <div className="sticky top-[64px] md:top-[72px] z-40 bg-white border-b border-gray-200">
+      <div className="sticky top-[64px] md:top-[72px] z-30 bg-white border-b border-gray-200">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-2 py-3">
             {/* Tabs */}

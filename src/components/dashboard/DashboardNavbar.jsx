@@ -176,7 +176,7 @@ export default function DashboardNavbar({ onMenuToggle }) {
   };
 
   return (
-    <header className="h-14 sm:h-16 bg-[var(--color-primary)] flex items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4 shrink-0 z-40 sticky top-0">
+    <header className="h-14 sm:h-16 bg-[var(--color-primary)] flex items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4 shrink-0 z-50 sticky top-0">
       {/* Left: Logo only (mobile) | Desktop: nothing (sidebar has logo) */}
       <Link href="/dashboard" className="lg:hidden flex items-center shrink-0">
         <Image

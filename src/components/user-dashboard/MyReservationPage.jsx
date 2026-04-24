@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import UserDashboardShell from "@/components/user-dashboard/UserDashboardShell";
 import NewsletterSection from "@/components/landing/NewsletterSection";
 import LandingFooter from "@/components/landing/LandingFooter";
 
@@ -870,8 +869,7 @@ export default function MyReservationPage() {
   const closeModal = () => { setModal(null); setActiveReservation(null); };
 
   return (
-    <UserDashboardShell>
-      <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col">
         <main className="flex-1 max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-8">
 
           {/* Page header */}
@@ -935,28 +933,27 @@ export default function MyReservationPage() {
 
         <NewsletterSection />
         <LandingFooter />
-      </div>
 
-      {/* Modals */}
-      {modal === "review" && (
-        <LeaveReviewModal reservation={activeReservation || RESERVATIONS[0]} onClose={closeModal} />
-      )}
-      {modal === "cancel" && (
-        <CancelBookingModal onClose={closeModal} />
-      )}
-      {modal === "report-listing" && (
-        <ReportListingModal onClose={closeModal} />
-      )}
-      {modal === "host-profile" && (
-        <HostProfilePanel
-          host={RESERVATION_DETAIL.host}
-          onClose={closeModal}
-          onReportUser={() => { closeModal(); setTimeout(() => openModal("report-user"), 50); }}
-        />
-      )}
-      {modal === "report-user" && (
-        <ReportUserModal onClose={closeModal} />
-      )}
-    </UserDashboardShell>
+        {/* Modals */}
+        {modal === "review" && (
+          <LeaveReviewModal reservation={activeReservation || RESERVATIONS[0]} onClose={closeModal} />
+        )}
+        {modal === "cancel" && (
+          <CancelBookingModal onClose={closeModal} />
+        )}
+        {modal === "report-listing" && (
+          <ReportListingModal onClose={closeModal} />
+        )}
+        {modal === "host-profile" && (
+          <HostProfilePanel
+            host={RESERVATION_DETAIL.host}
+            onClose={closeModal}
+            onReportUser={() => { closeModal(); setTimeout(() => openModal("report-user"), 50); }}
+          />
+        )}
+        {modal === "report-user" && (
+          <ReportUserModal onClose={closeModal} />
+        )}
+      </div>
   );
 }

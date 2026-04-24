@@ -19,8 +19,8 @@ export default function OTPVerificationPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef([]);
 
-  const COOLDOWN = 30;
-  const [seconds, setSeconds] = useState(0);
+  const COOLDOWN = 60;
+  const [seconds, setSeconds] = useState(COOLDOWN);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
 

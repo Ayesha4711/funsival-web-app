@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import NotificationPopover from "@/components/shared/NotificationPopover";
+import { useProfile } from "@/lib/ProfileContext";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const BellIcon = () => (
@@ -49,12 +51,15 @@ const SearchIcon = () => (
 /* ─── Navbar ─────────────────────────────────────────────────────────────────── */
 function UserNavbar() {
   const router = useRouter();
+  const { profile } = useProfile();
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
   const roleRef = useRef(null);
+
+  const avatarLetter = profile?.email ? profile.email[0].toUpperCase() : "U";
 
   useEffect(() => {
     const h = (e) => {
@@ -82,7 +87,7 @@ function UserNavbar() {
   };
 
   return (
-    <header className="h-16 bg-[#4AA7A7] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0 z-40 sticky top-0">
+    <header className="h-16 bg-[#4AA7A7] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0 z-50 sticky top-0">
       {/* Logo */}
       <Link href="/user-dashboard/explore" className="flex items-center gap-2 shrink-0">
         <svg className="w-7 h-7 text-[#F5C842]" viewBox="0 0 24 24" fill="currentColor">
@@ -164,23 +169,21 @@ function UserNavbar() {
             className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm border-2 border-white/40 hover:border-white/70 transition-colors cursor-pointer"
             aria-label="Profile menu"
           >
-            U
+            {avatarLetter}
           </button>
           {profileOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg py-1.5 z-50 border border-gray-100">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg py-1.5 z-50 border border-gray-100">
+              {profile && (
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-xs font-bold text-gray-800 truncate">{profile.email}</p>
+                  {profile.city && <p className="text-[10px] text-gray-400 mt-0.5">{profile.city}</p>}
+                </div>
+              )}
               <button
                 onClick={() => { setProfileOpen(false); router.push("/user-dashboard/profile"); }}
                 className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 <span className="text-gray-500"><UserIcon /></span> View Profile
-              </button>
-              <button
-                onClick={() => { setProfileOpen(false); router.push("/user-dashboard/bookings"); }}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <span className="text-gray-500">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                </span> My Reservation
               </button>
               <button
                 onClick={() => { setProfileOpen(false); router.push("/user-dashboard/settings"); }}
@@ -205,11 +208,11 @@ function UserNavbar() {
 }
 
 /* ─── Shell ──────────────────────────────────────────────────────────────────── */
-/**
- * Shared layout shell for all user-dashboard pages (messages, settings, notifications, etc.).
- * Renders the teal navbar + children.
- */
 export default function UserDashboardShell({ children }) {
+  const { loading } = useProfile();
+
+  if (loading) return <FullPageLoader />;
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <UserNavbar />
