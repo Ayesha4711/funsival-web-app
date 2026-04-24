@@ -12,6 +12,13 @@ import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import Divider from "@/components/common/Divider";
 import SocialButton from "@/components/common/SocialButton";
 
+//  const errs = {};
+//     if (!form.city.trim()) errs.city = "City is required";
+//     if (Object.keys(errs).length > 0) {
+//       setClientErrors(errs);
+//       toast.error("Required info missing", { description: "Please fill City before continuing with Google." });
+//       return;
+//     }
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 
@@ -66,13 +73,13 @@ function UserSignupForm() {
   const googleButtonRef = useRef(null);
 
   const handleGoogleButtonClick = () => {
-    const errs = {};
-    if (!form.city.trim()) errs.city = "City is required";
-    if (Object.keys(errs).length > 0) {
-      setClientErrors(errs);
-      toast.error("Required info missing", { description: "Please fill City before continuing with Google." });
-      return;
-    }
+    //  const errs = {};
+    // if (!form.city.trim()) errs.city = "City is required";
+    // if (Object.keys(errs).length > 0) {
+    //   setClientErrors(errs);
+    //   toast.error("Required info missing", { description: "Please fill City before continuing with Google." });
+    //   return;
+    // }
     googleButtonRef.current?.querySelector("div[role=button]")?.click();
   };
 
@@ -97,7 +104,7 @@ function UserSignupForm() {
       }
 
       toast.success("Account created!", { description: "Welcome to Funsival." });
-      router.push("/signup/success?role=user");
+      router.push("/signup/success?role=user&google=true");
     } catch {
       toast.error("Network error", { description: "Could not complete Google signup." });
     } finally {

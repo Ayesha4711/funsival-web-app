@@ -462,8 +462,7 @@ export default function ListingDetailPage({ params }) {
   const bookingTitle = listing.type === "places" ? "Book Your Place" : listing.type === "equipment" ? "Book Your Equipment" : "Book Your Activity";
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 pb-20 lg:pb-0">
-      <DetailNavbar />
+    <div className="flex flex-col bg-gray-50 pb-20 lg:pb-0">
 
       <main className="flex-1 max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
 
