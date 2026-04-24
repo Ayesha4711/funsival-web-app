@@ -140,14 +140,14 @@ function HostSignupForm() {
   };
 
   const handleGoogleButtonClick = () => {
-    const errs = {};
-    if (!form.agencyName.trim()) errs.agencyName = "Agency name is required";
-    if (!form.city.trim()) errs.city = "City is required";
-    if (Object.keys(errs).length > 0) {
-      setClientErrors(errs);
-      toast.error("Required info missing", { description: "Please fill Agency Name and City before continuing with Google." });
-      return;
-    }
+    //   const errs = {};
+    // if (!form.agencyName.trim()) errs.agencyName = "Agency name is required";
+    // if (!form.city.trim()) errs.city = "City is required";
+    // if (Object.keys(errs).length > 0) {
+    //   setClientErrors(errs);
+    //   toast.error("Required info missing", { description: "Please fill Agency Name and City before continuing with Google." });
+    //   return;
+    // }
     googleButtonRef.current?.querySelector("div[role=button]")?.click();
   };
 
@@ -175,7 +175,7 @@ function HostSignupForm() {
       }
 
       toast.success("Login successful!", { description: "Welcome to Funsival." });
-      router.push("/dashboard/listings");
+      router.push("/dashboard");
     } catch {
       toast.error("Network error", { description: "Could not complete Google login." });
     } finally {

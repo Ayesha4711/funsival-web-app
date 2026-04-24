@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import DashboardNavbar from "@/components/dashboard/DashboardNavbar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardFooter from "@/components/dashboard/DashboardFooter";
+import { useProfile } from "@/lib/ProfileContext";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 // Pages that hide the sidebar on desktop (full-width layouts)
 const SIDEBAR_HIDDEN_PATHS = [
@@ -17,6 +19,9 @@ const SIDEBAR_HIDDEN_PATHS = [
 export default function DashboardShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { loading } = useProfile();
+
+  if (loading) return <FullPageLoader />;
 
   // Wizard pages get full-width layout — no sidebar, no desktop navbar
   const isWizard = pathname === "/dashboard/listings/add";

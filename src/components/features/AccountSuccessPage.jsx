@@ -13,7 +13,8 @@ export default function AccountSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const role = searchParams.get("role") ?? "user"; // "user" | "host"
-  const [showModal, setShowModal] = useState(false);
+  const isGoogle = searchParams.get("google") === "true";
+  const [showModal, setShowModal] = useState(isGoogle && role === "user");
 
 
   return (
