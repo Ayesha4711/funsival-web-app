@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { updateListing } from "@/lib/api";
+import { useDispatch } from "react-redux";
+import { updateListing } from "@/store/slices/listingsSlice";
 
 const XIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -11,6 +12,7 @@ const XIcon = () => (
 );
 
 export default function EditListingModal({ listing, onClose, onSaved }) {
+  const dispatch = useDispatch();
   const [form, setForm] = useState({
     name: listing?.name ?? "",
     location: listing?.location ?? "",
@@ -44,15 +46,24 @@ export default function EditListingModal({ listing, onClose, onSaved }) {
       category: form.category,
       price: { amount: Number(form.price) || form.price },
     };
-    const res = await updateListing(listing.id, payload);
+
+    const result = await dispatch(updateListing({ listingId: listing.id, payload }));
     setSaving(false);
-    if (res.ok) {
-      toast.success("Listing updated.");
-      onSaved({ ...listing, name: form.name, location: form.location, category: form.category, price: form.price ? `$${form.price} / person` : listing.price });
-      onClose();
-    } else {
-      toast.error(res.data?.message ?? "Failed to update listing.");
+
+    if (updateListing.rejected.match(result)) {
+      toast.error(result.payload ?? "Failed to update listing.");
+      return;
     }
+
+    toast.success("Listing updated.");
+    onSaved({
+      ...listing,
+      name: form.name,
+      location: form.location,
+      category: form.category,
+      price: form.price ? `$${form.price} / person` : listing.price,
+    });
+    onClose();
   }
 
   return (
@@ -62,13 +73,9 @@ export default function EditListingModal({ listing, onClose, onSaved }) {
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 relative">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-base font-extrabold text-[var(--color-text)]">Edit Listing</h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
-          >
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors">
             <XIcon />
           </button>
         </div>
@@ -76,62 +83,35 @@ export default function EditListingModal({ listing, onClose, onSaved }) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-extrabold uppercase text-gray-400">Activity Title</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="Activity title"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] transition-colors"
-            />
+            <input type="text" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Activity title"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] transition-colors" />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-extrabold uppercase text-gray-400">Location</label>
-            <input
-              type="text"
-              value={form.location}
-              onChange={(e) => set("location", e.target.value)}
-              placeholder="Location"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] transition-colors"
-            />
+            <input type="text" value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Location"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] transition-colors" />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-extrabold uppercase text-gray-400">Category</label>
-            <input
-              type="text"
-              value={form.category}
-              onChange={(e) => set("category", e.target.value)}
-              placeholder="Category"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] transition-colors"
-            />
+            <input type="text" value={form.category} onChange={(e) => set("category", e.target.value)} placeholder="Category"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] transition-colors" />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-extrabold uppercase text-gray-400">Price per person ($)</label>
-            <input
-              type="number"
-              min="0"
-              value={form.price}
-              onChange={(e) => set("price", e.target.value)}
-              placeholder="0"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] transition-colors"
-            />
+            <input type="number" min="0" value={form.price} onChange={(e) => set("price", e.target.value)} placeholder="0"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] transition-colors" />
           </div>
 
           <div className="flex gap-3 mt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-colors"
-            >
+            <button type="button" onClick={onClose}
+              className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-colors">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 py-3 rounded-xl bg-[var(--color-primary)] text-white text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60"
-            >
+            <button type="submit" disabled={saving}
+              className="flex-1 py-3 rounded-xl bg-[var(--color-primary)] text-white text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60">
               {saving ? "Saving…" : "Save Changes"}
             </button>
           </div>

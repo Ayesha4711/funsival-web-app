@@ -2,12 +2,20 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchListings,
+  fetchDraft,
+  deleteDraft,
+  deleteListing,
+  selectListingsStatus,
+} from "@/store/slices/listingsSlice";
+import { BASE_URL } from "@/lib/api";
 import ListingsStats from "@/components/dashboard/ListingsStats";
 import ListingsFilters from "@/components/dashboard/ListingsFilters";
 import ListingsTable from "@/components/dashboard/ListingsTable";
 import ListingsCards from "@/components/dashboard/ListingsCards";
 import EditListingWizard from "@/components/dashboard/EditListingWizard";
-import { getListings, getDraft, deleteDraft, deleteListing, BASE_URL } from "@/lib/api";
 
 /* ─── Empty state ────────────────────────────────────────────────────────────── */
 function EmptyState() {
@@ -33,8 +41,10 @@ function EmptyState() {
 
 /* ─── Page ───────────────────────────────────────────────────────────────────── */
 export default function ListingsPage() {
+  const dispatch = useDispatch();
+  const listingsStatus = useSelector(selectListingsStatus);
+
   const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
@@ -49,52 +59,41 @@ export default function ListingsPage() {
   const [deletingListing, setDeletingListing] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const fetchListings = useCallback(async () => {
-    setLoading(true);
-    // Fetch both published listings and current in-progress draft
-    const [listingsRes, draftRes] = await Promise.all([
-      getListings(page, limit),
-      getDraft()
+  const loading = listingsStatus === "loading";
+
+  const loadListings = useCallback(async () => {
+    const [listingsResult, draftResult] = await Promise.all([
+      dispatch(fetchListings({ page, limit })),
+      dispatch(fetchDraft()),
     ]);
 
     let allRaw = [];
 
-    // 1. Process published listings
-    if (listingsRes.ok) {
-      const listData = listingsRes.data?.data;
-      const list = listData?.listings ?? listData ?? listingsRes.data;
+    if (fetchListings.fulfilled.match(listingsResult)) {
+      const listData = listingsResult.payload?.data;
+      const list = listData?.listings ?? listData ?? listingsResult.payload;
       if (listData?.pagination) {
         setTotalPages(listData.pagination.totalPages || 1);
       }
       if (Array.isArray(list)) allRaw = list.map(item => ({ ...item, _fromPublished: true }));
     }
 
-    // 2. Process current draft (if not already in the list)
-    if (draftRes.ok) {
-      const draft = draftRes.data?.data?.draft || draftRes.data?.draft || draftRes.data;
+    if (fetchDraft.fulfilled.match(draftResult) && draftResult.payload) {
+      const res = draftResult.payload;
+      const draft = res?.data?.draft || res?.draft || res;
       if (draft && (draft.id || draft._id)) {
         const draftId = draft.id ?? draft._id;
         const exists = allRaw.some(item => (item.id ?? item._id) === draftId);
-        if (!exists) {
-          // Push it with forced "Draft" status
-          allRaw.push({ ...draft, status: "Draft" });
-        }
+        if (!exists) allRaw.push({ ...draft, status: "Draft" });
       }
     }
 
-    // 3. Normalize for UI
     const normalized = allRaw.map((item) => {
-      // Get the first photo URL
       let imageUrl = null;
-      if (Array.isArray(item.photos) && item.photos.length > 0) {
-        imageUrl = item.photos[0];
-      } else if (Array.isArray(item.details?.photos) && item.details.photos.length > 0) {
-        imageUrl = item.details.photos[0];
-      } else if (item.image) {
-        imageUrl = item.image;
-      }
+      if (Array.isArray(item.photos) && item.photos.length > 0) imageUrl = item.photos[0];
+      else if (Array.isArray(item.details?.photos) && item.details.photos.length > 0) imageUrl = item.details.photos[0];
+      else if (item.image) imageUrl = item.image;
 
-      // Convert relative paths to absolute URLs
       if (imageUrl && !imageUrl.startsWith("http") && !imageUrl.startsWith("blob:") && !imageUrl.startsWith("data:")) {
         imageUrl = `${BASE_URL}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
       }
@@ -102,7 +101,9 @@ export default function ListingsPage() {
       return {
         id: item.id ?? item._id,
         name: item.basicInformation?.activityTitle || item.details?.title || item.name || "Untitled Draft",
-        location: item.basicInformation?.location || item.details?.location || item.placeLocation?.city || item.location || "—",
+        location: item.placeLocation?.addressLine1
+          ? [item.placeLocation.addressLine1, item.placeLocation.city, item.placeLocation.state, item.placeLocation.country].filter(Boolean).join(", ")
+          : item.basicInformation?.location || item.details?.location || item.location || "—",
         category: item.category ?? "—",
         type: item.type ?? "—",
         price: item.price?.amount != null
@@ -122,24 +123,17 @@ export default function ListingsPage() {
     });
 
     setListings(normalized);
-    if (!listingsRes.ok && !draftRes.ok) {
+
+    if (!fetchListings.fulfilled.match(listingsResult) && !fetchDraft.fulfilled.match(draftResult)) {
       toast.error("Failed to load listings.");
     }
-    setLoading(false);
-  }, [page, limit]);
+  }, [dispatch, page, limit]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [activeTab, search, category]);
-
-  useEffect(() => {
-    fetchListings();
-  }, [fetchListings]);
+  useEffect(() => { setPage(1); }, [activeTab, search, category]);
+  useEffect(() => { loadListings(); }, [loadListings]);
 
   const handleStatusChange = (id, newStatus) => {
-    setListings((prev) =>
-      prev.map((item) => item.id === id ? { ...item, status: newStatus } : item)
-    );
+    setListings((prev) => prev.map((item) => item.id === id ? { ...item, status: newStatus } : item));
   };
 
   const handleEditSaved = (updated) => {
@@ -150,21 +144,25 @@ export default function ListingsPage() {
     if (!deletingListing) return;
     setDeleteLoading(true);
     const isDraft = deletingListing.status?.toLowerCase() === "draft";
-    const res = isDraft ? await deleteDraft() : await deleteListing(deletingListing.id);
+    const result = isDraft
+      ? await dispatch(deleteDraft())
+      : await dispatch(deleteListing(deletingListing.id));
     setDeleteLoading(false);
-    if (res.ok) {
+
+    const succeeded = isDraft
+      ? deleteDraft.fulfilled.match(result)
+      : deleteListing.fulfilled.match(result);
+
+    if (succeeded) {
       toast.success("Listing deleted.");
       setListings((prev) => prev.filter((item) => item.id !== deletingListing.id));
     } else {
-      toast.error(res.data?.message ?? "Failed to delete listing.");
+      toast.error(result.payload ?? "Failed to delete listing.");
     }
     setDeletingListing(null);
   };
 
-  // Compute per-status counts from live data
-  const countByStatus = (status) =>
-    listings.filter((item) => item.status?.toLowerCase() === status).length;
-
+  const countByStatus = (status) => listings.filter((item) => item.status?.toLowerCase() === status).length;
   const tabCounts = {
     active: countByStatus("active"),
     inactive: countByStatus("inactive"),
@@ -172,14 +170,9 @@ export default function ListingsPage() {
   };
 
   const filtered = listings.filter((item) => {
-    const matchesTab =
-      activeTab === "all" || item.status?.toLowerCase() === activeTab.toLowerCase();
-    const matchesSearch =
-      search === "" ||
-      item.name?.toLowerCase().includes(search.toLowerCase()) ||
-      item.location?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory =
-      category === "All Categories" || item.category === category;
+    const matchesTab = activeTab === "all" || item.status?.toLowerCase() === activeTab.toLowerCase();
+    const matchesSearch = search === "" || item.name?.toLowerCase().includes(search.toLowerCase()) || item.location?.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = category === "All Categories" || item.category === category;
     return matchesTab && matchesSearch && matchesCategory;
   });
 
@@ -213,34 +206,20 @@ export default function ListingsPage() {
             <EmptyState />
           ) : viewMode === "table" ? (
             <ListingsTable
-              data={filtered}
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              onStatusChange={handleStatusChange}
-              onEdit={setEditingListing}
-              onDelete={setDeletingListing}
+              data={filtered} currentPage={page} totalPages={totalPages} onPageChange={setPage}
+              onStatusChange={handleStatusChange} onEdit={setEditingListing} onDelete={setDeletingListing}
             />
           ) : (
             <ListingsCards
-              data={filtered}
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              onStatusChange={handleStatusChange}
-              onEdit={setEditingListing}
-              onDelete={setDeletingListing}
+              data={filtered} currentPage={page} totalPages={totalPages} onPageChange={setPage}
+              onStatusChange={handleStatusChange} onEdit={setEditingListing} onDelete={setDeletingListing}
             />
           )}
         </div>
       </div>
 
       {editingListing && (
-        <EditListingWizard
-          listing={editingListing}
-          onClose={() => setEditingListing(null)}
-          onSaved={handleEditSaved}
-        />
+        <EditListingWizard listing={editingListing} onClose={() => setEditingListing(null)} onSaved={handleEditSaved} />
       )}
 
       {deletingListing && (
@@ -261,17 +240,12 @@ export default function ListingsPage() {
               &ldquo;{deletingListing.name}&rdquo; will be permanently removed. This cannot be undone.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setDeletingListing(null)}
-                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-colors"
-              >
+              <button onClick={() => setDeletingListing(null)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={deleteLoading}
-                className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-60"
-              >
+              <button onClick={handleDeleteConfirm} disabled={deleteLoading}
+                className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-60">
                 {deleteLoading ? "Deleting…" : "Delete"}
               </button>
             </div>
@@ -281,4 +255,3 @@ export default function ListingsPage() {
     </div>
   );
 }
-

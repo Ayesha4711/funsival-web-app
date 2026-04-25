@@ -14,7 +14,7 @@ export async function signupHostAction(prevState, formData) {
     return { error: "Passwords do not match." };
   }
 
-  const { data, ok } = await apiFetch("/api/v1/auth/signup/host", {
+  const { data, ok } = await apiFetch("/auth/signup/host", {
     method: "POST",
     body: JSON.stringify({ agencyName, email, city, password, confirmPassword })
   });
@@ -58,7 +58,7 @@ export async function signupUserAction(prevState, formData) {
     return { error: "Passwords do not match." };
   }
 
-  const { data, ok } = await apiFetch("/api/v1/auth/signup/user", {
+  const { data, ok } = await apiFetch("/auth/signup/user", {
     method: "POST",
     body: JSON.stringify({ email, city, password, confirmPassword })
   });
@@ -96,7 +96,7 @@ export async function verifyEmailAction(prevState, formData) {
   const email = formData.get("email");
   const code = formData.get("otp");
 
-  const { data, ok } = await apiFetch("/api/v1/auth/verify-email", {
+  const { data, ok } = await apiFetch("/auth/verify-email", {
     method: "POST",
     body: JSON.stringify({ email, code })
   });

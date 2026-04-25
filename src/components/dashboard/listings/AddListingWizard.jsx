@@ -11,7 +11,8 @@ import StepDetails from "./StepDetails";
 import StepPrice from "./StepPrice";
 import StepReview from "./StepReview";
 import StepSuccess from "./StepSuccess";
-import { createListing, saveDraft, getDraft, deleteDraft } from "@/lib/api";
+import { useDispatch } from "react-redux";
+import { createListing, saveDraft, fetchDraft, deleteDraft } from "@/store/slices/listingsSlice";
 
 /* ─── Step config ──────────────────────────────────────────────────────────── */
 const STEPS = [
@@ -215,7 +216,10 @@ function buildPayload(data) {
     type: type || "",
     basicInformation: {
       activityTitle: details.title || "",
-      location: details.location || "",
+      location: details.location ||
+        [details.placeCity, details.state, details.country]
+          .filter(Boolean).join(", ") ||
+        details.addressLine1 || "",
       description: details.description || "",
     },
     serviceDetails: {
@@ -256,6 +260,7 @@ function buildPayload(data) {
 /* ─── Wizard ───────────────────────────────────────────────────────────────── */
 export default function AddListingWizard() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [step, setStep] = useState(1);
   const [data, setData] = useState({
     category: "",
@@ -272,15 +277,30 @@ export default function AddListingWizard() {
   // On mount: fetch existing draft and resume from saved step
   useEffect(() => {
     async function loadDraft() {
-      const { ok, data: res } = await getDraft();
-      if (ok && res) {
-        // Data might be in res.data.draft or res.data
+      // Read locally-cached details/price — backend draft doesn't persist these fields
+      let localDetails = {};
+      let localPrice = "";
+      try {
+        const raw = localStorage.getItem("listing_draft_local");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          localDetails = parsed.details ?? {};
+          localPrice = parsed.price ?? "";
+        }
+      } catch { /* ignore */ }
+
+      const result = await dispatch(fetchDraft());
+      if (fetchDraft.fulfilled.match(result) && result.payload) {
+        const res = result.payload;
         const draft = res.data?.draft || res.data || res;
         const loaded = {
           category: draft.category ?? "",
           type: draft.type ?? "",
-          details: draft.details ?? {},
-          price: draft.price ?? "",
+          // Server doesn't return details — fall back to localStorage copy
+          details: (draft.details && Object.keys(draft.details).length > 0)
+            ? draft.details
+            : localDetails,
+          price: draft.price || localPrice,
         };
         pendingRef.current = loaded;
         setData(loaded);
@@ -297,15 +317,22 @@ export default function AddListingWizard() {
   // Save draft after every step advance (fire-and-forget, no blocking UX)
   const saveDraftSilently = useCallback(async (nextStep, latestData) => {
     setDraftSaving(true);
-    await saveDraft({
+    // Mirror details + price to localStorage since the backend draft doesn't persist them
+    try {
+      localStorage.setItem("listing_draft_local", JSON.stringify({
+        details: latestData.details,
+        price: latestData.price,
+      }));
+    } catch { /* ignore */ }
+    await dispatch(saveDraft({
       currentStep: nextStep,
       category: latestData.category,
       type: latestData.type,
       details: latestData.details,
       price: latestData.price,
-    });
+    }));
     setDraftSaving(false);
-  }, []);
+  }, [dispatch]);
 
   const scrollToTop = () => {
     const main = document.querySelector("main");
@@ -341,48 +368,95 @@ export default function AddListingWizard() {
   const handlePriceChange = (val) => update("price", val);
   const handlePriceNext = () => next({ ...pendingRef.current });
 
+  // Maps backend field names → form field keys used by StepDetails
+  const BACKEND_TO_FORM_FIELD = {
+    difficultyLevel: "difficulty",
+    instructorName: "instructorName",
+    cancellationPolicy: "cancellationPolicy",
+    whatsIncluded: "whatsIncluded",
+    duration: "duration",
+    maxParticipants: "maxParticipants",
+    activityTitle: "activityTitle",
+    description: "description",
+    addressLine1: "addressLine1",
+    city: "placeCity",
+    state: "state",
+    country: "country",
+    postalCode: "postalCode",
+  };
+
+  // Fields that live in StepDetails (step 3) vs StepReview/other steps
+  const STEP3_FIELDS = new Set([
+    "difficultyLevel", "instructorName", "cancellationPolicy", "whatsIncluded",
+    "duration", "maxParticipants", "activityTitle", "description",
+    "addressLine1", "city", "state", "country", "postalCode",
+  ]);
+
   const handleSubmitListing = async () => {
     setSubmitting(true);
     setSubmitError(null);
     setFieldErrors(null);
     const payload = buildPayload(data);
 
-    // Always persist final state to draft first
-    await saveDraft({ currentStep: 5, ...data });
+    try {
+      // Always persist final state to draft first
+      await dispatch(saveDraft({ currentStep: 5, ...data }));
 
-    const { ok, data: resData } = await createListing(payload);
-    if (ok) {
-      await deleteDraft();
-      toast.success("Listing created successfully!");
-      setStep(6);
-      scrollToTop();
-    } else {
-      const errorMsg = resData?.message || "Failed to create listing. Please try again.";
-      setSubmitError(errorMsg);
-      setFieldErrors(resData?.errors || null);
+      const result = await dispatch(createListing(payload));
+      if (createListing.fulfilled.match(result)) {
+        // Fire cleanup in background — don't block the success UX on it
+        dispatch(deleteDraft());
+        try { localStorage.removeItem("listing_draft_local"); } catch { /* ignore */ }
+        toast.success("Listing created successfully!");
+        setSubmitting(false);
+        setStep(6);
+        scrollToTop();
+        return;
+      } else {
+        const resData = result.payload;
+        const errorMsg = typeof resData === "string" ? resData : resData?.message || "Failed to create listing. Please try again.";
+        const backendErrors = resData?.errors || null;
+
+        // Remap backend field names to form field keys
+        const remappedErrors = backendErrors
+          ? Object.fromEntries(
+              Object.entries(backendErrors).map(([k, v]) => [BACKEND_TO_FORM_FIELD[k] ?? k, v])
+            )
+          : null;
+
+        setSubmitError(errorMsg);
+        setFieldErrors(remappedErrors);
+
+        // Show toast with all error messages
+        const errorLines = backendErrors ? Object.values(backendErrors) : [];
+        toast.error(errorLines.length > 0 ? errorLines.join("\n") : errorMsg);
+
+        // Navigate to step 3 if any error belongs to a StepDetails field
+        const hasStep3Error = backendErrors && Object.keys(backendErrors).some(k => STEP3_FIELDS.has(k));
+        if (hasStep3Error) {
+          setStep(3);
+          scrollToTop();
+        }
+      }
+    } catch (err) {
+      console.error("Submit listing error:", err);
+      toast.error("An unexpected error occurred. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const handleDiscard = async () => {
-    await deleteDraft();
+    await dispatch(deleteDraft());
+    try { localStorage.removeItem("listing_draft_local"); } catch { /* ignore */ }
     router.push("/dashboard/listings");
   };
 
   const resetWizard = () => {
+    try { localStorage.removeItem("listing_draft_local"); } catch { /* ignore */ }
     setStep(1);
-    setData({
-      category: "",
-      type: "",
-      details: {},
-      price: ""
-    });
-    pendingRef.current = {
-      category: "",
-      type: "",
-      details: {},
-      price: ""
-    };
+    setData({ category: "", type: "", details: {}, price: "" });
+    pendingRef.current = { category: "", type: "", details: {}, price: "" };
   };
 
   if (draftLoading) {
@@ -402,7 +476,7 @@ export default function AddListingWizard() {
       <WizardNavbar step={step} onBack={back} router={router} />
 
       {/* Sub-header: back arrow + title + draft/discard — always pinned */}
-      <div className="shrink-0 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-3 z-30">
+      <div className="shrink-0 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-3 sticky top-0 lg:top-16 z-30">
         <div className="flex items-center gap-3">
           <button
             onClick={() => step === 1 ? router.push("/dashboard/listings") : back()}
@@ -444,7 +518,7 @@ export default function AddListingWizard() {
       </div>
 
       {/* Stepper — pinned below sub-header */}
-      <div className="shrink-0 px-2 sm:px-6 lg:px-10 pt-4 pb-2 bg-white border-b border-gray-50 z-20">
+      <div className="shrink-0 px-2 sm:px-6 lg:px-10 pt-4 pb-2 bg-white border-b border-gray-50 sticky top-[56px] lg:top-[120px] z-20">
         <Stepper current={step} />
       </div>
 

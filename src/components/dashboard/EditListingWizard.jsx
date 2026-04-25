@@ -8,7 +8,8 @@ import StepType from "./listings/StepType";
 import StepDetails from "./listings/StepDetails";
 import StepPrice from "./listings/StepPrice";
 import StepReview from "./listings/StepReview";
-import { getListing, updateListing } from "@/lib/api";
+import { useDispatch } from "react-redux";
+import { fetchListing, updateListing } from "@/store/slices/listingsSlice";
 import DashboardFooter from "@/components/dashboard/DashboardFooter";
 
 /* ─── Step config ──────────────────────────────────────────────────────────── */
@@ -126,9 +127,14 @@ function apiToWizardData(raw) {
     stateCode = stateObj?.isoCode || "";
   }
 
+  const addressLine1 = raw.placeLocation?.addressLine1 || "";
+  const derivedLocation = addressLine1
+    ? [addressLine1, raw.placeLocation?.city, raw.placeLocation?.state, raw.placeLocation?.country].filter(Boolean).join(", ")
+    : raw.basicInformation?.location || "";
+
   const details = {
     title: raw.basicInformation?.activityTitle || "",
-    location: raw.basicInformation?.location || "",
+    location: derivedLocation,
     description: raw.basicInformation?.description || "",
     difficulty: raw.serviceDetails?.difficultyLevel || "",
     duration: durationKey,
@@ -187,7 +193,10 @@ function buildPayload(data) {
     type: type || "",
     basicInformation: {
       activityTitle: details.title || "",
-      location: details.location || "",
+      location: details.location ||
+        [details.placeCity, details.state, details.country]
+          .filter(Boolean).join(", ") ||
+        details.addressLine1 || "",
       description: details.description || "",
     },
     serviceDetails: {
@@ -223,6 +232,7 @@ function buildPayload(data) {
 
 /* ─── Wizard ───────────────────────────────────────────────────────────────── */
 export default function EditListingWizard({ listing, onClose, onSaved }) {
+  const dispatch = useDispatch();
   const [step, setStep] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -235,9 +245,9 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
   // Fetch the full listing and seed wizard data
   useEffect(() => {
     async function load() {
-      const { ok, data: res } = await getListing(listing.id);
-      if (ok) {
-        // Extract listing from nested structure: res.data.listing or res.listing or res
+      const result = await dispatch(fetchListing(listing.id));
+      if (fetchListing.fulfilled.match(result)) {
+        const res = result.payload;
         const raw = res?.data?.listing || res?.listing || res?.data || res;
         const wizardData = apiToWizardData(raw);
         pendingRef.current = wizardData;
@@ -249,7 +259,7 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
       setLoading(false);
     }
     load();
-  }, [listing.id, onClose]);
+  }, [listing.id, onClose, dispatch]);
 
   // Escape key closes
   useEffect(() => {
@@ -280,25 +290,36 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
     setSubmitError(null);
     setFieldErrors(null);
     const payload = buildPayload(pendingRef.current);
-    const { ok, data: resData } = await updateListing(listing.id, payload);
-    if (ok) {
-      const raw = resData?.data || resData;
-      // Build a normalized UI listing to hand back
-      const updated = {
-        ...listing,
-        name: payload.basicInformation.activityTitle || listing.name,
-        location: payload.basicInformation.location || listing.location,
-        category: payload.category || listing.category,
-        price: payload.price?.amount != null ? `$${payload.price.amount} / person` : listing.price,
-        slots: payload.availability,
-      };
-      toast.success("Listing updated successfully.");
-      onSaved(updated);
-      onClose();
-    } else {
-      const errorMsg = resData?.message || "Failed to update listing. Please try again.";
-      setSubmitError(errorMsg);
-      setFieldErrors(resData?.errors || null);
+    try {
+      const result = await dispatch(updateListing({ listingId: listing.id, payload }));
+      if (updateListing.fulfilled.match(result)) {
+        const addr = payload.placeLocation;
+        const builtLocation = addr?.addressLine1
+          ? [addr.addressLine1, addr.city, addr.state, addr.country].filter(Boolean).join(", ")
+          : payload.basicInformation.location || listing.location;
+        const updated = {
+          ...listing,
+          name: payload.basicInformation.activityTitle || listing.name,
+          location: builtLocation,
+          category: payload.category || listing.category,
+          price: payload.price?.amount != null ? `$${payload.price.amount} / person` : listing.price,
+          slots: payload.availability,
+        };
+        toast.success("Listing updated successfully.");
+        setSubmitting(false);
+        onSaved(updated);
+        onClose();
+        return;
+      } else {
+        const resData = result.payload;
+        setSubmitError(typeof resData === "string" ? resData : resData?.message || "Failed to update listing. Please try again.");
+        setFieldErrors(resData?.errors || null);
+        toast.error(typeof resData === "string" ? resData : resData?.message || "Failed to update listing. Please try again.");
+      }
+    } catch (err) {
+      console.error("Update listing error:", err);
+      toast.error("An unexpected error occurred. Please try again.");
+    } finally {
       setSubmitting(false);
     }
   };
