@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { savePreferences } from "@/lib/api";
+import { useDispatch, useSelector } from "react-redux";
+import { savePreferences, selectProfileStatus } from "@/store/slices/profileSlice";
 import { toast } from "sonner";
 
 /* ─── Data ─────────────────────────────────────────────────────────────────── */
@@ -59,21 +60,19 @@ const Tag = ({ label, isSelected, onClick }) => (
 /* ─── Modal ──────────────────────────────────────────────────────────────────── */
 export default function PreferenceModal({ onClose, role = "user" }) {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const profileStatus = useSelector(selectProfileStatus);
+  const isPending = profileStatus === "loading";
+
   const [selected, setSelected] = useState({
     amenities: ["Tree house"],
     equipment: ["ATV's"],
     services: [],
   });
-  const [isPending, setIsPending] = useState(false);
-  const [expanded, setExpanded] = useState({
-    amenities: false,
-    equipment: false,
-    services: false
-  });
+  const [expanded, setExpanded] = useState({ amenities: false, equipment: false, services: false });
 
   const dashboardPath = role === "host" ? "/dashboard" : "/user-dashboard/explore";
 
-  // Prevent body scroll while modal is open
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
@@ -89,55 +88,26 @@ export default function PreferenceModal({ onClose, role = "user" }) {
   };
 
   const handleContinue = async () => {
-    setIsPending(true);
-    try {
-      const { data, status, ok } = await savePreferences(selected);
-      if (ok) {
-        toast.success("Preferences saved!");
-        router.push(dashboardPath);
-      } else {
-        toast.error("Failed to save preferences", {
-          description: data?.message || "Something went wrong"
-        });
-      }
-    } catch (err) {
-      toast.error("Network error", {
-        description: "Could not save preferences. Please try again."
-      });
-    } finally {
-      setIsPending(false);
+    const result = await dispatch(savePreferences(selected));
+    if (savePreferences.rejected.match(result)) {
+      toast.error("Failed to save preferences", { description: result.payload || "Something went wrong" });
+      return;
     }
-  };
-
-  const handleLater = () => {
+    toast.success("Preferences saved!");
     router.push(dashboardPath);
   };
 
+  const handleLater = () => router.push(dashboardPath);
+
   return (
-    /* ── Backdrop ── */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      {/*
-        Modal panel
-        - Mobile (< sm):      nearly full-screen, bottom-aligned feel
-        - iPad (sm–lg):       centred, max-w-md, taller
-        - Desktop (lg+):      centred, max-w-2xl, fixed max-height
-      */}
-      <div className="
-        relative bg-white rounded-3xl shadow-2xl flex flex-col
-        w-full
-        max-w-[22rem] sm:max-w-lg lg:max-w-2xl
-        max-h-[92vh] sm:max-h-[88vh] lg:max-h-[85vh]
-        overflow-hidden
-      ">
+      <div className="relative bg-white rounded-3xl shadow-2xl flex flex-col w-full max-w-[22rem] sm:max-w-lg lg:max-w-2xl max-h-[92vh] sm:max-h-[88vh] lg:max-h-[85vh] overflow-hidden">
 
-        {/* ── Header ── */}
         <div className="px-5 sm:px-8 py-4 sm:py-6 flex items-center justify-between shrink-0 border-b border-gray-100">
-          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-            Select Your Preferences
-          </h1>
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Select Your Preferences</h1>
           <button
             onClick={onClose}
             className="p-1.5 sm:p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
@@ -147,7 +117,6 @@ export default function PreferenceModal({ onClose, role = "user" }) {
           </button>
         </div>
 
-        {/* ── Scrollable Body ── */}
         <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-5 sm:py-6 space-y-7 sm:space-y-9">
           {Object.entries(CATEGORIES).map(([key, { label, items }]) => {
             const isExpanded = expanded[key];
@@ -159,27 +128,15 @@ export default function PreferenceModal({ onClose, role = "user" }) {
                 <h2 className="text-sm font-semibold text-gray-700 mb-3 sm:mb-4">{label}</h2>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                   {displayedItems.map((item) => (
-                    <Tag
-                      key={item}
-                      label={item}
-                      isSelected={selected[key].includes(item)}
-                      onClick={() => toggle(key, item)}
-                    />
+                    <Tag key={item} label={item} isSelected={selected[key].includes(item)} onClick={() => toggle(key, item)} />
                   ))}
-                  {/* "See more" toggle */}
                   {hasMore && !isExpanded && (
-                    <button 
-                      onClick={() => setExpanded(prev => ({ ...prev, [key]: true }))}
-                      className="text-sm font-bold text-[#FEB538] hover:underline px-1"
-                    >
+                    <button onClick={() => setExpanded(prev => ({ ...prev, [key]: true }))} className="text-sm font-bold text-[#FEB538] hover:underline px-1">
                       See {items.length - 11}+ more
                     </button>
                   )}
                   {isExpanded && (
-                    <button 
-                      onClick={() => setExpanded(prev => ({ ...prev, [key]: false }))}
-                      className="text-sm font-bold text-[#FEB538] hover:underline px-1"
-                    >
+                    <button onClick={() => setExpanded(prev => ({ ...prev, [key]: false }))} className="text-sm font-bold text-[#FEB538] hover:underline px-1">
                       Show less
                     </button>
                   )}
@@ -189,44 +146,20 @@ export default function PreferenceModal({ onClose, role = "user" }) {
           })}
         </div>
 
-        {/* ── Footer ── */}
-        {/*
-          Mobile:  Continue full-width solid, I'll do this later full-width outline below
-          iPad+:   side-by-side, outline left / solid right
-        */}
         <div className="px-5 sm:px-8 py-4 sm:py-5 border-t border-gray-100 shrink-0 bg-white">
-          {/* Mobile layout */}
           <div className="flex flex-col gap-3 sm:hidden">
-            <button
-              onClick={handleContinue}
-              disabled={isPending}
-              className="w-full py-3.5 rounded-full bg-[var(--color-primary)] text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
+            <button onClick={handleContinue} disabled={isPending} className="w-full py-3.5 rounded-full bg-[var(--color-primary)] text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
               {isPending ? "Saving..." : "Continue"}
             </button>
-            <button
-              onClick={handleLater}
-              disabled={isPending}
-              className="w-full py-3.5 rounded-full border-2 border-[#FEB538] text-[#FEB538] font-bold text-sm hover:bg-[#FFF5D9] transition-colors disabled:opacity-50"
-            >
-              I'll do this later
+            <button onClick={handleLater} disabled={isPending} className="w-full py-3.5 rounded-full border-2 border-[#FEB538] text-[#FEB538] font-bold text-sm hover:bg-[#FFF5D9] transition-colors disabled:opacity-50">
+              I&apos;ll do this later
             </button>
           </div>
-
-          {/* Tablet + Desktop layout */}
           <div className="hidden sm:flex items-center justify-end gap-4">
-            <button
-              onClick={handleLater}
-              disabled={isPending}
-              className="px-7 py-3 rounded-full border-2 border-[#FEB538] text-[#FEB538] font-bold text-sm hover:bg-[#FFF5D9] transition-colors disabled:opacity-50"
-            >
-              I'll do this later
+            <button onClick={handleLater} disabled={isPending} className="px-7 py-3 rounded-full border-2 border-[#FEB538] text-[#FEB538] font-bold text-sm hover:bg-[#FFF5D9] transition-colors disabled:opacity-50">
+              I&apos;ll do this later
             </button>
-            <button
-              onClick={handleContinue}
-              disabled={isPending}
-              className="px-10 py-3 rounded-full bg-[var(--color-primary)] text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
+            <button onClick={handleContinue} disabled={isPending} className="px-10 py-3 rounded-full bg-[var(--color-primary)] text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
               {isPending ? "Saving..." : "Continue"}
             </button>
           </div>

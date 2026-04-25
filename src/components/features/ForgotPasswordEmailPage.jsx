@@ -52,7 +52,7 @@ function ResendButton({ email }) {
   const disabled = isResending || seconds > 0;
 
   return (
-    <form action={resendAction}>
+    <form action={resendAction} className="inline">
       <input type="hidden" name="email" value={email} />
       <button
         type="submit"

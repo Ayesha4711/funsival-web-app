@@ -426,9 +426,16 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
   // Local copy of field errors — cleared per-field as the user edits
   const [activeErrors, setActiveErrors] = useState(fieldErrors || {});
 
-  // Sync when new errors arrive from parent (after a failed submit)
+  // Sync when new errors arrive from parent (after a failed submit) and scroll to first error
   useEffect(() => {
-    setActiveErrors(fieldErrors || {});
+    if (!fieldErrors || Object.keys(fieldErrors).length === 0) return;
+    setActiveErrors(fieldErrors);
+    // Scroll to the first field that has an error
+    const firstKey = Object.keys(fieldErrors)[0];
+    setTimeout(() => {
+      const el = document.querySelector(`[data-field="${firstKey}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
   }, [fieldErrors]);
 
   const fe = activeErrors;
@@ -501,8 +508,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
 
   const handleMapQueryChange = (val) => {
     setMapQuery(val);
-    // also update address line 1
-    setForm(prev => ({ ...prev, addressLine1: val }));
+    setForm(prev => ({ ...prev, addressLine1: val, location: val }));
     if (activeErrors.addressLine1) {
       setActiveErrors(prev => { const n = { ...prev }; delete n.addressLine1; return n; });
     }
@@ -510,17 +516,78 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
     mapDebounceRef.current = setTimeout(() => searchMap(val), 500);
   };
 
-  const handleMapSelect = (s) => {
+  const handleMapSelect = async (s) => {
     const lat = parseFloat(s.lat);
     const lon = parseFloat(s.lon);
     setMapCoords({ lat, lon });
     setMapSuggestions([]);
-    setMapQuery(s.display_name);
-    // push selected address into form.addressLine1 and form.location
-    setForm(prev => ({ ...prev, addressLine1: s.display_name, location: s.display_name }));
-    if (activeErrors.addressLine1) {
-      setActiveErrors(prev => { const n = { ...prev }; delete n.addressLine1; return n; });
+
+    // Fetch full address details to populate all fields
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      const data = await res.json();
+      const addr = data.address || {};
+
+      // Build address line 1 from street-level fields
+      const road = addr.road || addr.pedestrian || addr.footway || addr.path || "";
+      const houseNumber = addr.house_number || "";
+      const addressLine1 = [houseNumber, road].filter(Boolean).join(" ") || s.display_name;
+
+      // Resolve country ISO code
+      const countryName = addr.country || "";
+      const allCountries = Country.getAllCountries();
+      const countryObj = allCountries.find(
+        c => c.name.toLowerCase() === countryName.toLowerCase() ||
+             c.isoCode === (addr.country_code || "").toUpperCase()
+      );
+      const countryCode = countryObj?.isoCode || "";
+
+      // Resolve state ISO code
+      const stateName = addr.state || addr.region || addr.county || "";
+      let stateCode = "";
+      if (countryCode) {
+        const allStates = State.getStatesOfCountry(countryCode);
+        const stateObj = allStates.find(st => st.name.toLowerCase() === stateName.toLowerCase());
+        stateCode = stateObj?.isoCode || "";
+      }
+
+      // City: prefer city, then town, then village, then suburb
+      const placeCity =
+        addr.city || addr.town || addr.village || addr.suburb ||
+        addr.municipality || addr.district || "";
+
+      const postalCode = addr.postcode || form.postalCode || "";
+
+      setMapQuery(addressLine1);
+      setForm(prev => ({
+        ...prev,
+        addressLine1,
+        location: data.display_name || s.display_name,
+        countryCode,
+        country: countryObj?.name || countryName,
+        stateCode,
+        state: stateName,
+        placeCity,
+        postalCode,
+      }));
+    } catch {
+      // Fallback: just set address line from display_name
+      setMapQuery(s.display_name);
+      setForm(prev => ({ ...prev, addressLine1: s.display_name, location: s.display_name }));
     }
+
+    setActiveErrors(prev => {
+      const n = { ...prev };
+      delete n.addressLine1;
+      delete n.country;
+      delete n.state;
+      delete n.placeCity;
+      delete n.city;
+      return n;
+    });
   };
 
   const handleUseCurrentLocation = () => {
@@ -529,13 +596,55 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
       setMapCoords({ lat, lon });
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
           { headers: { "Accept-Language": "en" } }
         );
         const data = await res.json();
-        const name = data.display_name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-        setMapQuery(name);
-        setForm(prev => ({ ...prev, addressLine1: name, location: name }));
+        const addr = data.address || {};
+
+        const road = addr.road || addr.pedestrian || addr.footway || addr.path || "";
+        const houseNumber = addr.house_number || "";
+        const addressLine1 = [houseNumber, road].filter(Boolean).join(" ") || data.display_name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+
+        const countryName = addr.country || "";
+        const allCountries = Country.getAllCountries();
+        const countryObj = allCountries.find(
+          c => c.name.toLowerCase() === countryName.toLowerCase() ||
+               c.isoCode === (addr.country_code || "").toUpperCase()
+        );
+        const countryCode = countryObj?.isoCode || "";
+
+        const stateName = addr.state || addr.region || addr.county || "";
+        let stateCode = "";
+        if (countryCode) {
+          const allStates = State.getStatesOfCountry(countryCode);
+          const stateObj = allStates.find(st => st.name.toLowerCase() === stateName.toLowerCase());
+          stateCode = stateObj?.isoCode || "";
+        }
+
+        const placeCity =
+          addr.city || addr.town || addr.village || addr.suburb ||
+          addr.municipality || addr.district || "";
+
+        const postalCode = addr.postcode || form.postalCode || "";
+
+        setMapQuery(addressLine1);
+        setForm(prev => ({
+          ...prev,
+          addressLine1,
+          location: data.display_name || addressLine1,
+          countryCode,
+          country: countryObj?.name || countryName,
+          stateCode,
+          state: stateName,
+          placeCity,
+          postalCode,
+        }));
+        setActiveErrors(prev => {
+          const n = { ...prev };
+          delete n.addressLine1; delete n.country; delete n.state; delete n.placeCity; delete n.city;
+          return n;
+        });
       } catch {
         const name = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
         setMapQuery(name);
@@ -545,6 +654,21 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
   };
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
+
+  // Geocode a free-form query and pan the map there (fire-and-forget)
+  const geocodeAndPan = useCallback(async (query) => {
+    if (!query || query.length < 3) return;
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      const results = await res.json();
+      if (results[0]) {
+        setMapCoords({ lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon) });
+      }
+    } catch { /* ignore */ }
+  }, []);
   const addSlot = () => set("slots", [...form.slots, { day: "", startTime: "", endTime: "" }]);
   const removeSlot = (i) => set("slots", form.slots.filter((_, idx) => idx !== i));
   const updateSlot = (i, key, val) => {
@@ -617,8 +741,8 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
                 options={[
                   { value: "beginner", label: "Beginner" },
                   { value: "intermediate", label: "Intermediate" },
-                  { value: "advance", label: "Advance" },
-                  { value: "expert", label: "Expert" },
+                  { value: "advanced", label: "Advanced" },
+                  { value: "all_levels", label: "All Levels" },
                 ]}
                 onChange={(value) => setWithClear("difficulty", value, "difficulty")}
               />
@@ -759,7 +883,13 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
                   setWithClear("addressLine1", e.target.value, "addressLine1");
                   setMapQuery(e.target.value);
                   clearTimeout(mapDebounceRef.current);
-                  mapDebounceRef.current = setTimeout(() => searchMap(e.target.value), 500);
+                  mapDebounceRef.current = setTimeout(() => {
+                    searchMap(e.target.value);
+                    const stateName = State.getStateByCodeAndCountry(form.stateCode, form.countryCode)?.name || form.stateCode;
+                    const countryName = Country.getCountryByCode(form.countryCode)?.name || form.countryCode;
+                    const q = [e.target.value, stateName, countryName].filter(Boolean).join(", ");
+                    geocodeAndPan(q);
+                  }, 500);
                 }}
               />
               <FieldError msg={fe.addressLine1} />
@@ -776,13 +906,22 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
                 const countryObj = Country.getCountryByCode(val);
                 setWithClear("countryCode", val, "country");
                 set("country", countryObj?.name || val);
+                geocodeAndPan(countryObj?.name || val);
               }}
               onStateChange={(val) => {
                 const stateObj = State.getStateByCodeAndCountry(val, form.countryCode);
-                set("stateCode", val);
+                setWithClear("stateCode", val, "state");
                 set("state", stateObj?.name || val);
+                const q = [stateObj?.name || val, Country.getCountryByCode(form.countryCode)?.name].filter(Boolean).join(", ");
+                geocodeAndPan(q);
               }}
-              onCityChange={(val) => setWithClear("placeCity", val, fe.placeCity ? "placeCity" : "city")}
+              onCityChange={(val) => {
+                setWithClear("placeCity", val, fe.placeCity ? "placeCity" : "city");
+                const stateName = State.getStateByCodeAndCountry(form.stateCode, form.countryCode)?.name || form.stateCode;
+                const countryName = Country.getCountryByCode(form.countryCode)?.name || form.countryCode;
+                const q = [val, stateName, countryName].filter(Boolean).join(", ");
+                geocodeAndPan(q);
+              }}
               errors={fe}
             />
             <div>

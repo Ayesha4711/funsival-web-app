@@ -1,12 +1,10 @@
-export const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://funsival-backend-twvuq.ondigitalocean.app";
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /**
  * Thin fetch wrapper that prepends the base URL and always
  * sends/expects JSON.
  *
- * @param {string} path  - e.g. "/api/v1/auth/login"
+ * @param {string} path  - e.g. "/auth/login"
  * @param {RequestInit} options
  * @returns {Promise<{ data: any, status: number }>}
  */
@@ -45,7 +43,7 @@ export async function apiFetch(path, options = {}) {
  * @param {{ email: string, password: string }} credentials
  */
 export async function loginApi(credentials) {
-  return apiFetch("/api/v1/auth/login", {
+  return apiFetch("/auth/login", {
     method: "POST",
     body: JSON.stringify(credentials)
   });
@@ -57,7 +55,7 @@ export async function loginApi(credentials) {
  * @param {{ amenities: string[], equipment: string[], services: string[] }} preferences
  */
 export async function savePreferences(preferences) {
-  return apiFetch("/api/v1/users/preferences", {
+  return apiFetch("/users/preferences", {
     method: "POST",
     body: JSON.stringify(preferences)
   });
@@ -70,7 +68,7 @@ export async function savePreferences(preferences) {
  * @param {object} payload - Listing payload matching API contract
  */
 export async function createListing(payload) {
-  return apiFetch("/api/v1/listings", {
+  return apiFetch("/listings", {
     method: "POST",
     body: JSON.stringify(payload)
   });
@@ -84,7 +82,7 @@ export async function createListing(payload) {
  * @param {number} limit
  */
 export async function getListings(page = 1, limit = 10) {
-  return apiFetch(`/api/v1/listings?page=${page}&limit=${limit}`);
+  return apiFetch(`/listings?page=${page}&limit=${limit}`);
 }
 
 // ─── Draft listing APIs ───────────────────────────────────────────────────────
@@ -96,7 +94,7 @@ export async function getListings(page = 1, limit = 10) {
  * @param {{ currentStep: number, [key: string]: any }} payload
  */
 export async function saveDraft(payload) {
-  return apiFetch("/api/v1/listings/draft", {
+  return apiFetch("/listings/draft", {
     method: "POST",
     body: JSON.stringify(payload)
   });
@@ -107,7 +105,7 @@ export async function saveDraft(payload) {
  * Retrieves the current draft for the authenticated provider.
  */
 export async function getDraft() {
-  return apiFetch("/api/v1/listings/draft");
+  return apiFetch("/listings/draft");
 }
 
 /**
@@ -115,7 +113,7 @@ export async function getDraft() {
  * Discards the current draft (called after publish or explicit discard).
  */
 export async function deleteDraft() {
-  return apiFetch("/api/v1/listings/draft", { method: "DELETE" });
+  return apiFetch("/listings/draft", { method: "DELETE" });
 }
 
 /**
@@ -125,7 +123,7 @@ export async function deleteDraft() {
  * @param {string} listingId
  */
 export async function getListing(listingId) {
-  return apiFetch(`/api/v1/listings/${listingId}`);
+  return apiFetch(`/listings/${listingId}`);
 }
 
 /**
@@ -136,7 +134,7 @@ export async function getListing(listingId) {
  * @param {object} payload
  */
 export async function updateListing(listingId, payload) {
-  return apiFetch(`/api/v1/listings/${listingId}`, {
+  return apiFetch(`/listings/${listingId}`, {
     method: "PATCH",
     body: JSON.stringify(payload)
   });
@@ -149,7 +147,7 @@ export async function updateListing(listingId, payload) {
  * @param {string} listingId
  */
 export async function deleteListing(listingId) {
-  return apiFetch(`/api/v1/listings/${listingId}`, { method: "DELETE" });
+  return apiFetch(`/listings/${listingId}`, { method: "DELETE" });
 }
 
 /**
@@ -158,7 +156,7 @@ export async function deleteListing(listingId) {
  * @param {{ idToken: string, role: string, city: string, agencyName: string }} payload
  */
 export async function loginWithGoogle(payload) {
-  return apiFetch("/api/v1/auth/google", {
+  return apiFetch("/auth/google", {
     method: "POST",
     body: JSON.stringify(payload)
   });
@@ -169,5 +167,5 @@ export async function loginWithGoogle(payload) {
  * Returns the authenticated user's profile.
  */
 export async function getProfile() {
-  return apiFetch("/api/v1/auth/profile");
+  return apiFetch("/auth/profile");
 }

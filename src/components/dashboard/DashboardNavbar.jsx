@@ -5,8 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import logo from "@/assets/images/logo.svg";
+import { useSelector } from "react-redux";
+import { selectUser } from "@/store/slices/profileSlice";
 import NotificationPopover from "@/components/shared/NotificationPopover";
-import { useProfile } from "@/lib/ProfileContext";
 
 const UserIcon = () =>
   <svg
@@ -136,7 +137,7 @@ export default function DashboardNavbar({ onMenuToggle }) {
   const profileRef = useRef(null);
   const router = useRouter();
   const pathname = usePathname();
-  const { profile } = useProfile();
+  const profile = useSelector(selectUser);
 
   // Derive initial view from pathname, then let selection override it
   const [activeView, setActiveView] = useState(
