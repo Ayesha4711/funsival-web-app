@@ -3,16 +3,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import { verifyEmail, resendVerificationCode, selectAuthStatus } from "@/store/slices/authSlice";
 import Button from "@/components/common/Button";
 import AuthLayout from "@/components/layout/AuthLayout";
-import { BASE_URL } from "@/lib/api";
-
-
 
 /* ─── Component ─────────────────────────────────────────────────────────────── */
 export default function OTPVerificationPage() {
   const params = useSearchParams();
   const router = useRouter();
+  const dispatch = useDispatch();
+  const authStatus = useSelector(selectAuthStatus);
+
   const email = params.get("email") ?? "";
   const role = params.get("role") ?? "user";
 
@@ -21,14 +23,13 @@ export default function OTPVerificationPage() {
 
   const COOLDOWN = 60;
   const [seconds, setSeconds] = useState(COOLDOWN);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const isVerifying = authStatus === "loading";
 
   useEffect(() => {
     if (inputRefs.current[0]) inputRefs.current[0].focus();
   }, []);
 
-  // Countdown tick
   useEffect(() => {
     if (seconds <= 0) return;
     const id = setTimeout(() => setSeconds((s) => s - 1), 1000);
@@ -62,67 +63,35 @@ export default function OTPVerificationPage() {
 
   const verifyOtp = async (otpString) => {
     if (isVerifying) return;
-    setIsVerifying(true);
-    try {
-      const res = await fetch(`${BASE_URL}/api/v1/auth/verify-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: otpString }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error("Verification failed", { description: data?.message ?? data?.error ?? "Invalid code. Please try again." });
-        return;
-      }
-
-      const token = data?.token ?? data?.accessToken ?? data?.access_token ?? data?.data?.token ?? data?.data?.accessToken;
-      if (token) {
-        document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
-        localStorage.setItem("auth-token", token);
-      }
-      toast.success("Email verified!", { description: data.message ?? "Your account is ready." });
-      router.push(`/signup/success?role=${role}`);
-    } catch {
-      toast.error("Network error", { description: "Could not reach the server. Please try again." });
-    } finally {
-      setIsVerifying(false);
+    const result = await dispatch(verifyEmail({ email, code: otpString }));
+    if (verifyEmail.rejected.match(result)) {
+      toast.error("Verification failed", { description: result.payload || "Invalid code. Please try again." });
+      return;
     }
+    const data = result.payload?.data;
+    toast.success("Email verified!", { description: data?.message ?? "Your account is ready." });
+    router.push(`/signup/success?role=${role}`);
   };
 
-  // Auto-submit when all 6 digits are filled
   useEffect(() => {
     const otpString = otp.join("");
-    if (otpString.length === 6) {
-      verifyOtp(otpString);
-    }
+    if (otpString.length === 6) verifyOtp(otpString);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otp]);
 
   const handleResend = async () => {
     if (isResending || seconds > 0) return;
     setIsResending(true);
-    try {
-      const res = await fetch(`${BASE_URL}/api/v1/auth/resend-verification-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error("Resend failed", { description: data?.message ?? data?.error ?? "Please try again." });
-        return;
-      }
-      toast.success("Code resent", { description: data.message ?? "A new code has been sent to your email." });
-      setSeconds(COOLDOWN);
-      setOtp(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
-    } catch {
-      toast.error("Network error", { description: "Could not reach the server. Please try again." });
-    } finally {
-      setIsResending(false);
+    const result = await dispatch(resendVerificationCode(email));
+    setIsResending(false);
+    if (resendVerificationCode.rejected.match(result)) {
+      toast.error("Resend failed", { description: result.payload || "Please try again." });
+      return;
     }
+    toast.success("Code resent", { description: result.payload?.message ?? "A new code has been sent to your email." });
+    setSeconds(COOLDOWN);
+    setOtp(["", "", "", "", "", ""]);
+    inputRefs.current[0]?.focus();
   };
 
   const handleContinue = () => {
@@ -138,7 +107,6 @@ export default function OTPVerificationPage() {
         <span className="font-medium text-[var(--color-text)]">{email}</span>
       </p>
 
-      {/* OTP Inputs */}
       <div className="flex justify-center gap-1.5 xs:gap-2 sm:gap-3 mb-6" onPaste={handlePaste}>
         {otp.map((digit, index) => (
           <input

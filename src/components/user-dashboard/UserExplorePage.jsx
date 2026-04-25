@@ -339,7 +339,7 @@ function ListingCard({ listing }) {
   return (
     <div
       onClick={handleClick}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 group cursor-pointer border border-gray-100"
+      className="relative z-0 bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 group cursor-pointer border border-gray-100"
     >
       {/* Image */}
       <div className="relative h-44 sm:h-48 md:h-52 overflow-hidden">
@@ -436,7 +436,7 @@ export default function UserExplorePage() {
     <div className="flex flex-col bg-gray-50">
 
       {/* ── Tab Bar + Controls ── */}
-      <div className="sticky top-[64px] md:top-[72px] z-30 bg-white border-b border-gray-200">
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-200">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-2 py-3">
             {/* Tabs */}
@@ -496,7 +496,7 @@ export default function UserExplorePage() {
 
       {/* ── Sub Filters (Places / Equipment / Activities) ── */}
       {subFilters.length > 0 && (
-        <div className="bg-white border-b border-gray-100">
+        <div className="sticky top-[57px] z-20 bg-white border-b border-gray-100">
           <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-2 py-3 overflow-x-auto scrollbar-hide">
               {/* Prev arrow */}

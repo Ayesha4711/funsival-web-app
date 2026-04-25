@@ -3,8 +3,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchProfile, selectUser, selectProfileStatus } from "@/store/slices/profileSlice";
 import NotificationPopover from "@/components/shared/NotificationPopover";
-import { useProfile } from "@/lib/ProfileContext";
 import FullPageLoader from "@/components/common/FullPageLoader";
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
@@ -51,7 +52,7 @@ const SearchIcon = () => (
 /* ─── Navbar ─────────────────────────────────────────────────────────────────── */
 function UserNavbar() {
   const router = useRouter();
-  const { profile } = useProfile();
+  const profile = useSelector(selectUser);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
@@ -72,12 +73,8 @@ function UserNavbar() {
   }, []);
 
   const handleBellClick = () => {
-    if (window.innerWidth < 1024) {
-      router.push("/user-dashboard/notifications");
-    } else {
-      setNotifOpen((v) => !v);
-      setProfileOpen(false);
-    }
+    if (window.innerWidth < 1024) router.push("/user-dashboard/notifications");
+    else { setNotifOpen((v) => !v); setProfileOpen(false); }
   };
 
   const handleLogout = () => {
@@ -87,8 +84,7 @@ function UserNavbar() {
   };
 
   return (
-    <header className="h-16 bg-[#4AA7A7] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0 z-50 sticky top-0">
-      {/* Logo */}
+    <header className="h-16 bg-[#4AA7A7] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0">
       <Link href="/user-dashboard/explore" className="flex items-center gap-2 shrink-0">
         <svg className="w-7 h-7 text-[#F5C842]" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -96,79 +92,40 @@ function UserNavbar() {
         <span className="text-xl font-bold text-white hidden sm:inline">funsival</span>
       </Link>
 
-      {/* Search - hidden on mobile */}
       <div className="hidden sm:flex flex-1 justify-center px-4">
         <div className="relative w-full max-w-xs sm:max-w-sm lg:max-w-md">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><SearchIcon /></span>
-          <input
-            type="text"
-            placeholder="Search here"
-            className="w-full h-9 pl-10 pr-4 rounded-full bg-white text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
-          />
+          <input type="text" placeholder="Search here" className="w-full h-9 pl-10 pr-4 rounded-full bg-white text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
         </div>
       </div>
 
-      {/* Right controls */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        {/* Role switcher */}
         <div className="relative hidden sm:block" ref={roleRef}>
-          <button
-            onClick={() => setRoleOpen((v) => !v)}
-            className="flex items-center gap-1 text-white text-sm font-medium hover:text-white/80 transition-colors cursor-pointer"
-          >
+          <button onClick={() => setRoleOpen((v) => !v)} className="flex items-center gap-1 text-white text-sm font-medium hover:text-white/80 transition-colors cursor-pointer">
             User <ChevronDownIcon />
           </button>
           {roleOpen && (
             <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg py-1 z-50">
-              <button
-                onClick={() => { setRoleOpen(false); router.push("/dashboard"); }}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-gray-50 cursor-pointer"
-              >
-                Provider
-              </button>
-              <button
-                onClick={() => { setRoleOpen(false); router.push("/user-dashboard/explore"); }}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-gray-50 cursor-pointer"
-              >
-                User
-              </button>
+              <button onClick={() => { setRoleOpen(false); router.push("/dashboard"); }} className="block w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-gray-50 cursor-pointer">Provider</button>
+              <button onClick={() => { setRoleOpen(false); router.push("/user-dashboard/explore"); }} className="block w-full text-left px-4 py-2 text-sm text-gray-800 hover:bg-gray-50 cursor-pointer">User</button>
             </div>
           )}
         </div>
 
-        {/* Bell */}
         <div className="relative" ref={notifRef}>
-          <button
-            onClick={handleBellClick}
-            className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer"
-          >
+          <button onClick={handleBellClick} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer">
             <BellIcon />
             <span className="absolute top-1 right-1 w-3 h-3 bg-[#F5C842] rounded-full text-[8px] flex items-center justify-center text-gray-900 font-bold border border-[#4AA7A7]">3</span>
           </button>
-          {notifOpen && (
-            <NotificationPopover
-              viewAllHref="/user-dashboard/notifications"
-              onClose={() => setNotifOpen(false)}
-            />
-          )}
+          {notifOpen && <NotificationPopover viewAllHref="/user-dashboard/notifications" onClose={() => setNotifOpen(false)} />}
         </div>
 
-        {/* Messages */}
-        <button
-          onClick={() => router.push("/user-dashboard/messages")}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer"
-          aria-label="Messages"
-        >
+        <button onClick={() => router.push("/user-dashboard/messages")} className="w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer" aria-label="Messages">
           <MessageIcon />
         </button>
 
-        {/* Avatar + Profile Dropdown */}
         <div className="relative" ref={profileRef}>
-          <button
-            onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }}
-            className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm border-2 border-white/40 hover:border-white/70 transition-colors cursor-pointer"
-            aria-label="Profile menu"
-          >
+          <button onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }} className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm border-2 border-white/40 hover:border-white/70 transition-colors cursor-pointer" aria-label="Profile menu">
             {avatarLetter}
           </button>
           {profileOpen && (
@@ -179,24 +136,14 @@ function UserNavbar() {
                   {profile.city && <p className="text-[10px] text-gray-400 mt-0.5">{profile.city}</p>}
                 </div>
               )}
-              <button
-                onClick={() => { setProfileOpen(false); router.push("/user-dashboard/profile"); }}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
-              >
+              <button onClick={() => { setProfileOpen(false); router.push("/user-dashboard/profile"); }} className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer">
                 <span className="text-gray-500"><UserIcon /></span> View Profile
               </button>
-              <button
-                onClick={() => { setProfileOpen(false); router.push("/user-dashboard/settings"); }}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
-              >
+              <button onClick={() => { setProfileOpen(false); router.push("/user-dashboard/settings"); }} className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer">
                 <span className="text-gray-500"><SettingsIcon /></span> Settings
               </button>
               <div className="my-1 border-t border-gray-100" />
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-              >
+              <button type="button" onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
                 <LogoutIcon /> Logout
               </button>
             </div>
@@ -209,16 +156,19 @@ function UserNavbar() {
 
 /* ─── Shell ──────────────────────────────────────────────────────────────────── */
 export default function UserDashboardShell({ children }) {
-  const { loading } = useProfile();
+  const dispatch = useDispatch();
+  const status = useSelector(selectProfileStatus);
 
-  if (loading) return <FullPageLoader />;
+  useEffect(() => {
+    if (status === "idle") dispatch(fetchProfile());
+  }, [dispatch, status]);
+
+  if (status === "idle" || status === "loading") return <FullPageLoader />;
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <UserNavbar />
-      <div className="flex-1 flex flex-col">
-        {children}
-      </div>
+      <div className="flex-1 min-h-0">{children}</div>
     </div>
   );
 }

@@ -4,23 +4,16 @@ import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import { signupUser, loginWithGoogle, selectAuthStatus } from "@/store/slices/authSlice";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
-import { BASE_URL, loginWithGoogle } from "@/lib/api";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import Divider from "@/components/common/Divider";
 import SocialButton from "@/components/common/SocialButton";
 
-//  const errs = {};
-//     if (!form.city.trim()) errs.city = "City is required";
-//     if (Object.keys(errs).length > 0) {
-//       setClientErrors(errs);
-//       toast.error("Required info missing", { description: "Please fill City before continuing with Google." });
-//       return;
-//     }
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
-
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const MailIcon = () => (
@@ -65,51 +58,28 @@ const EyeOffIcon = () => (
 /* ─── Component ─────────────────────────────────────────────────────────────── */
 function UserSignupForm() {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const authStatus = useSelector(selectAuthStatus);
+  const isPending = authStatus === "loading";
+
   const [form, setForm] = useState({ email: "", city: "", password: "", confirmPassword: "" });
   const [clientErrors, setClientErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [isPending, setIsPending] = useState(false);
   const googleButtonRef = useRef(null);
 
-  const handleGoogleButtonClick = () => {
-    //  const errs = {};
-    // if (!form.city.trim()) errs.city = "City is required";
-    // if (Object.keys(errs).length > 0) {
-    //   setClientErrors(errs);
-    //   toast.error("Required info missing", { description: "Please fill City before continuing with Google." });
-    //   return;
-    // }
-    googleButtonRef.current?.querySelector("div[role=button]")?.click();
-  };
-
   const handleGoogleSuccess = async (credentialResponse) => {
-    setIsPending(true);
-    try {
-      const { ok, data } = await loginWithGoogle({
-        idToken: credentialResponse.credential,
-        role: "user",
-        city: form.city,
-      });
-
-      if (!ok) {
-        toast.error("Google signup failed", { description: data?.message || "Failed to authenticate with Google." });
-        return;
-      }
-
-      const token = data?.token ?? data?.accessToken ?? data?.data?.token;
-      if (token) {
-        document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
-        localStorage.setItem("auth-token", token);
-      }
-
-      toast.success("Account created!", { description: "Welcome to Funsival." });
-      router.push("/signup/success?role=user&google=true");
-    } catch {
-      toast.error("Network error", { description: "Could not complete Google signup." });
-    } finally {
-      setIsPending(false);
+    const result = await dispatch(loginWithGoogle({
+      idToken: credentialResponse.credential,
+      role: "user",
+      city: form.city,
+    }));
+    if (loginWithGoogle.rejected.match(result)) {
+      toast.error("Google signup failed", { description: result.payload || "Failed to authenticate with Google." });
+      return;
     }
+    toast.success("Account created!", { description: "Welcome to Funsival." });
+    router.push("/signup/success?role=user&google=true");
   };
 
   const validateEmail = (email) => {
@@ -128,36 +98,18 @@ function UserSignupForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // Prevent digits in city
-    if (name === "city" && /\d/.test(value)) {
-      return;
-    }
-
+    if (name === "city" && /\d/.test(value)) return;
     setForm((prev) => ({ ...prev, [name]: value }));
-
-    if (name === "email") {
-      setClientErrors((prev) => ({ ...prev, email: validateEmail(value) }));
-      return;
-    }
-
+    if (name === "email") { setClientErrors((prev) => ({ ...prev, email: validateEmail(value) })); return; }
     if (name === "password") {
-      const passwordError = validatePassword(value);
       const confirmError = form.confirmPassword && form.confirmPassword !== value ? "Passwords do not match" : "";
-      setClientErrors((prev) => ({ ...prev, password: passwordError, confirmPassword: confirmError }));
+      setClientErrors((prev) => ({ ...prev, password: validatePassword(value), confirmPassword: confirmError }));
       return;
     }
-
     if (name === "confirmPassword") {
-      const confirmError = !value
-        ? "Confirm password is required"
-        : value !== form.password
-        ? "Passwords do not match"
-        : "";
-      setClientErrors((prev) => ({ ...prev, confirmPassword: confirmError }));
+      setClientErrors((prev) => ({ ...prev, confirmPassword: !value ? "Confirm password is required" : value !== form.password ? "Passwords do not match" : "" }));
       return;
     }
-
     if (clientErrors[name]) setClientErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -165,13 +117,10 @@ function UserSignupForm() {
     const errs = {};
     const emailError = validateEmail(form.email);
     if (emailError) errs.email = emailError;
-
     if (!form.city.trim()) errs.city = "City is required";
     else if (!/^[a-zA-Z\s]+$/.test(form.city)) errs.city = "Only alphabets are allowed";
-
     const passwordError = validatePassword(form.password);
     if (passwordError) errs.password = passwordError;
-
     if (!form.confirmPassword) errs.confirmPassword = "Confirm password is required";
     else if (form.confirmPassword !== form.password) errs.confirmPassword = "Passwords do not match";
     return errs;
@@ -182,48 +131,27 @@ function UserSignupForm() {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setClientErrors(errs); return; }
 
-    setIsPending(true);
-    try {
-      const res = await fetch(`${BASE_URL}/api/v1/auth/signup/user`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: form.email,
-          city: form.city,
-          password: form.password,
-          confirmPassword: form.confirmPassword,
-        }),
-      });
-      const data = await res.json();
+    const result = await dispatch(signupUser({
+      email: form.email,
+      city: form.city,
+      password: form.password,
+      confirmPassword: form.confirmPassword,
+    }));
 
-      if (!res.ok) {
-        const errMsg =
-          (data?.errors && Object.values(data.errors)[0]) ??
-          data?.message ??
-          data?.error ??
-          "Please try again.";
-        toast.error("Signup failed", { description: errMsg });
-        return;
-      }
-
-      if (data?.data?.verificationRequired) {
-        toast.success("OTP sent!", { description: data.message ?? "Check your email for the verification code." });
-        router.push(`/verify?email=${encodeURIComponent(data.data.email)}&role=user`);
-        return;
-      }
-
-      const token = data?.token ?? data?.accessToken ?? data?.access_token ?? data?.data?.token ?? data?.data?.accessToken;
-      if (token) {
-        document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
-        localStorage.setItem("auth-token", token);
-      }
-      toast.success("Account created!", { description: data.message ?? "Welcome to Funsival." });
-      router.push("/signup/success?role=user");
-    } catch {
-      toast.error("Network error", { description: "Could not reach the server. Please try again." });
-    } finally {
-      setIsPending(false);
+    if (signupUser.rejected.match(result)) {
+      toast.error("Signup failed", { description: result.payload || "Please try again." });
+      return;
     }
+
+    const data = result.payload?.data;
+    if (data?.data?.verificationRequired) {
+      toast.success("OTP sent!", { description: data.message ?? "Check your email for the verification code." });
+      router.push(`/verify?email=${encodeURIComponent(data.data.email)}&role=user`);
+      return;
+    }
+
+    toast.success("Account created!", { description: data?.message ?? "Welcome to Funsival." });
+    router.push("/signup/success?role=user");
   };
 
   return (
@@ -247,10 +175,10 @@ function UserSignupForm() {
             <p className="text-xs font-semibold text-gray-600 mb-2">Password requirements:</p>
             <ul className="space-y-1">
               {[
-                { text: "At least 8 characters long",                  met: form.password.length >= 8 },
-                { text: "Contains uppercase and lowercase letters",     met: /[A-Z]/.test(form.password) && /[a-z]/.test(form.password) },
-                { text: "Contains at least one number",                 met: /[0-9]/.test(form.password) },
-                { text: "Contains at least one special character",      met: /[^A-Za-z0-9]/.test(form.password) },
+                { text: "At least 8 characters long", met: form.password.length >= 8 },
+                { text: "Contains uppercase and lowercase letters", met: /[A-Z]/.test(form.password) && /[a-z]/.test(form.password) },
+                { text: "Contains at least one number", met: /[0-9]/.test(form.password) },
+                { text: "Contains at least one special character", met: /[^A-Za-z0-9]/.test(form.password) },
               ].map(({ text, met }) => (
                 <li key={text} className="flex items-center gap-2 text-xs">
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${met ? "bg-green-500" : "bg-gray-300"}`} />
@@ -276,18 +204,13 @@ function UserSignupForm() {
           <Link href="/login" className="text-primary font-bold underline hover:underline">Sign in</Link>
         </p>
 
-        <div className="my-5">
-          <Divider label="OR" />
-        </div>
+        <div className="my-5"><Divider label="OR" /></div>
 
         <div className="flex flex-col gap-4">
           <div ref={googleButtonRef} className="hidden">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => toast.error("Google signup failed", { description: "Could not initialize Google login." })}
-            />
+            <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => toast.error("Google signup failed", { description: "Could not initialize Google login." })} />
           </div>
-          <SocialButton type="google" label="Continue with Google" onClick={handleGoogleButtonClick} />
+          <SocialButton type="google" label="Continue with Google" onClick={() => googleButtonRef.current?.querySelector("div[role=button]")?.click()} />
           <SocialButton type="facebook" label="Continue with Facebook" />
           <SocialButton type="apple" label="Continue with Apple" />
           <SocialButton type="email" label="Continue with Email" />

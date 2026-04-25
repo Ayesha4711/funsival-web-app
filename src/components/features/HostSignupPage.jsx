@@ -5,22 +5,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import { signupHost, loginWithGoogle, selectAuthStatus } from "@/store/slices/authSlice";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
-import { BASE_URL, loginWithGoogle } from "@/lib/api";
 import Divider from "@/components/common/Divider";
 import SocialButton from "@/components/common/SocialButton";
 import agencyIconSrc from "@/assets/icons/agencyIcon.svg";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
-
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
-const AgencyIcon = () => (
-  <Image src={agencyIconSrc} alt="" width={20} height={20} />
-);
+const AgencyIcon = () => <Image src={agencyIconSrc} alt="" width={20} height={20} />;
 
 const MailIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -64,11 +62,14 @@ const EyeOffIcon = () => (
 /* ─── Component ─────────────────────────────────────────────────────────────── */
 function HostSignupForm() {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const authStatus = useSelector(selectAuthStatus);
+  const isPending = authStatus === "loading";
+
   const [form, setForm] = useState({ agencyName: "", email: "", city: "", password: "", confirmPassword: "" });
   const [clientErrors, setClientErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [isPending, setIsPending] = useState(false);
   const googleButtonRef = useRef(null);
 
   const validateEmail = (email) => {
@@ -87,36 +88,18 @@ function HostSignupForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // Prevent digits in agencyName and city
-    if ((name === "agencyName" || name === "city") && /\d/.test(value)) {
-      return;
-    }
-
+    if ((name === "agencyName" || name === "city") && /\d/.test(value)) return;
     setForm((prev) => ({ ...prev, [name]: value }));
-
-    if (name === "email") {
-      setClientErrors((prev) => ({ ...prev, email: validateEmail(value) }));
-      return;
-    }
-
+    if (name === "email") { setClientErrors((prev) => ({ ...prev, email: validateEmail(value) })); return; }
     if (name === "password") {
-      const passwordError = validatePassword(value);
       const confirmError = form.confirmPassword && form.confirmPassword !== value ? "Passwords do not match" : "";
-      setClientErrors((prev) => ({ ...prev, password: passwordError, confirmPassword: confirmError }));
+      setClientErrors((prev) => ({ ...prev, password: validatePassword(value), confirmPassword: confirmError }));
       return;
     }
-
     if (name === "confirmPassword") {
-      const confirmError = !value
-        ? "Confirm password is required"
-        : value !== form.password
-        ? "Passwords do not match"
-        : "";
-      setClientErrors((prev) => ({ ...prev, confirmPassword: confirmError }));
+      setClientErrors((prev) => ({ ...prev, confirmPassword: !value ? "Confirm password is required" : value !== form.password ? "Passwords do not match" : "" }));
       return;
     }
-
     if (clientErrors[name]) setClientErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -124,63 +107,30 @@ function HostSignupForm() {
     const errs = {};
     if (!form.agencyName.trim()) errs.agencyName = "Agency name is required";
     else if (!/^[a-zA-Z\s]+$/.test(form.agencyName)) errs.agencyName = "Only alphabets are allowed";
-
     const emailError = validateEmail(form.email);
     if (emailError) errs.email = emailError;
-
     if (!form.city.trim()) errs.city = "City is required";
     else if (!/^[a-zA-Z\s]+$/.test(form.city)) errs.city = "Only alphabets are allowed";
-
     const passwordError = validatePassword(form.password);
     if (passwordError) errs.password = passwordError;
-    
     if (!form.confirmPassword) errs.confirmPassword = "Confirm password is required";
     else if (form.confirmPassword !== form.password) errs.confirmPassword = "Passwords do not match";
     return errs;
   };
 
-  const handleGoogleButtonClick = () => {
-    //   const errs = {};
-    // if (!form.agencyName.trim()) errs.agencyName = "Agency name is required";
-    // if (!form.city.trim()) errs.city = "City is required";
-    // if (Object.keys(errs).length > 0) {
-    //   setClientErrors(errs);
-    //   toast.error("Required info missing", { description: "Please fill Agency Name and City before continuing with Google." });
-    //   return;
-    // }
-    googleButtonRef.current?.querySelector("div[role=button]")?.click();
-  };
-
   const handleGoogleSuccess = async (credentialResponse) => {
-    setIsPending(true);
-    try {
-      const payload = {
-        idToken: credentialResponse.credential,
-        role: "host",
-        city: form.city,
-        agencyName: form.agencyName,
-      };
-
-      const { ok, data } = await loginWithGoogle(payload);
-
-      if (!ok) {
-        toast.error("Google login failed", { description: data?.message || "Failed to authenticate with Google." });
-        return;
-      }
-
-      const token = data?.token ?? data?.accessToken ?? data?.data?.token;
-      if (token) {
-        document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
-        localStorage.setItem("auth-token", token);
-      }
-
-      toast.success("Login successful!", { description: "Welcome to Funsival." });
-      router.push("/dashboard");
-    } catch {
-      toast.error("Network error", { description: "Could not complete Google login." });
-    } finally {
-      setIsPending(false);
+    const result = await dispatch(loginWithGoogle({
+      idToken: credentialResponse.credential,
+      role: "host",
+      city: form.city,
+      agencyName: form.agencyName,
+    }));
+    if (loginWithGoogle.rejected.match(result)) {
+      toast.error("Google login failed", { description: result.payload || "Failed to authenticate with Google." });
+      return;
     }
+    toast.success("Login successful!", { description: "Welcome to Funsival." });
+    router.push("/dashboard");
   };
 
   const handleSubmit = async (e) => {
@@ -188,49 +138,28 @@ function HostSignupForm() {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setClientErrors(errs); return; }
 
-    setIsPending(true);
-    try {
-      const res = await fetch(`${BASE_URL}/api/v1/auth/signup/host`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          agencyName: form.agencyName,
-          email: form.email,
-          city: form.city,
-          password: form.password,
-          confirmPassword: form.confirmPassword,
-        }),
-      });
-      const data = await res.json();
+    const result = await dispatch(signupHost({
+      agencyName: form.agencyName,
+      email: form.email,
+      city: form.city,
+      password: form.password,
+      confirmPassword: form.confirmPassword,
+    }));
 
-      if (!res.ok) {
-        const errMsg =
-          (data?.errors && Object.values(data.errors)[0]) ??
-          data?.message ??
-          data?.error ??
-          "Please try again.";
-        toast.error("Signup failed", { description: errMsg });
-        return;
-      }
-
-      if (data?.data?.verificationRequired) {
-        toast.success("OTP sent!", { description: data.message ?? "Check your email for the verification code." });
-        router.push(`/verify?email=${encodeURIComponent(data.data.email)}&role=host`);
-        return;
-      }
-
-      const token = data?.token ?? data?.accessToken ?? data?.access_token ?? data?.data?.token ?? data?.data?.accessToken;
-      if (token) {
-        document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
-        localStorage.setItem("auth-token", token);
-      }
-      toast.success("Account created!", { description: data.message ?? "Welcome to Funsival." });
-      router.push("/signup/success?role=host");
-    } catch {
-      toast.error("Network error", { description: "Could not reach the server. Please try again." });
-    } finally {
-      setIsPending(false);
+    if (signupHost.rejected.match(result)) {
+      toast.error("Signup failed", { description: result.payload || "Please try again." });
+      return;
     }
+
+    const data = result.payload?.data;
+    if (data?.data?.verificationRequired) {
+      toast.success("OTP sent!", { description: data.message ?? "Check your email for the verification code." });
+      router.push(`/verify?email=${encodeURIComponent(data.data.email)}&role=host`);
+      return;
+    }
+
+    toast.success("Account created!", { description: data?.message ?? "Welcome to Funsival." });
+    router.push("/signup/success?role=host");
   };
 
   return (
@@ -254,10 +183,10 @@ function HostSignupForm() {
             <p className="text-xs font-semibold text-gray-600 mb-2">Password requirements:</p>
             <ul className="space-y-1">
               {[
-                { text: "At least 8 characters long",                  met: form.password.length >= 8 },
-                { text: "Contains uppercase and lowercase letters",     met: /[A-Z]/.test(form.password) && /[a-z]/.test(form.password) },
-                { text: "Contains at least one number",                 met: /[0-9]/.test(form.password) },
-                { text: "Contains at least one special character",      met: /[^A-Za-z0-9]/.test(form.password) },
+                { text: "At least 8 characters long", met: form.password.length >= 8 },
+                { text: "Contains uppercase and lowercase letters", met: /[A-Z]/.test(form.password) && /[a-z]/.test(form.password) },
+                { text: "Contains at least one number", met: /[0-9]/.test(form.password) },
+                { text: "Contains at least one special character", met: /[^A-Za-z0-9]/.test(form.password) },
               ].map(({ text, met }) => (
                 <li key={text} className="flex items-center gap-2 text-xs">
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${met ? "bg-green-500" : "bg-gray-300"}`} />
@@ -282,20 +211,13 @@ function HostSignupForm() {
           <Link href="/login" className="text-primary font-bold underline">Sign in</Link>
         </p>
 
-        <div className="my-5">
-          <Divider label="OR" />
-        </div>
-                
-        {/* Social buttons */}
+        <div className="my-5"><Divider label="OR" /></div>
+
         <div className="flex flex-col gap-4">
-          {/* Hidden GoogleLogin triggers the real OAuth credential flow */}
           <div ref={googleButtonRef} className="hidden">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => toast.error("Google login failed", { description: "Could not initialize Google login." })}
-            />
+            <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => toast.error("Google login failed", { description: "Could not initialize Google login." })} />
           </div>
-          <SocialButton type="google" label="Continue with Google" onClick={handleGoogleButtonClick} />
+          <SocialButton type="google" label="Continue with Google" onClick={() => googleButtonRef.current?.querySelector("div[role=button]")?.click()} />
           <SocialButton type="facebook" label="Continue with Facebook" />
           <SocialButton type="apple" label="Continue with Apple" />
           <SocialButton type="email" label="Continue with Email" />

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 export async function resendVerificationAction(prevState, formData) {
   const email = formData.get("email");
 
-  const { data, ok } = await apiFetch("/api/v1/auth/resend-verification-code", {
+  const { data, ok } = await apiFetch("/auth/resend-verification-code", {
     method: "POST",
     body: JSON.stringify({ email }),
   });
@@ -25,7 +25,7 @@ export async function forgotPasswordAction(prevState, formData) {
     return { error: "Please enter a valid email address." };
   }
 
-  const { data, ok } = await apiFetch("/api/v1/auth/forgot-password", {
+  const { data, ok } = await apiFetch("/auth/forgot-password", {
     method: "POST",
     body: JSON.stringify({ email }),
   });
@@ -52,7 +52,7 @@ export async function resetPasswordAction(prevState, formData) {
     return { error: "Password must be at least 6 characters." };
   }
 
-  const { data, ok } = await apiFetch(`/api/v1/auth/reset-password/${token}`, {
+  const { data, ok } = await apiFetch(`/auth/reset-password/${token}`, {
     method: "POST",
     body: JSON.stringify({ password, confirmPassword }),
   });

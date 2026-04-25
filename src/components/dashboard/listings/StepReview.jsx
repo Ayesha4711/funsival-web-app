@@ -158,7 +158,9 @@ export default function StepReview({
   }, [submitError, fieldErrors]);
 
   const title = details.title || "—";
-  const location = details.location || "—";
+  const location = details.addressLine1
+    ? [details.addressLine1, details.placeCity, details.state, details.country].filter(Boolean).join(", ")
+    : details.location || "—";
   const description = details.description || "—";
   const difficulty = details.difficulty || "—";
   const duration = details.duration || "—";
