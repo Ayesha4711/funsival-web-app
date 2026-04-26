@@ -8,7 +8,7 @@ export const loginUser = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const { data } = await axiosInstance.post(
-        "api/v1/auth/login",
+        "/auth/login",
         credentials
       );
       const token =
