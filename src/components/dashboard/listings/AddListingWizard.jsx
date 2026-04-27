@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import Image from "next/image";
 import logo from "@/assets/images/logo.svg";
@@ -13,6 +13,7 @@ import StepReview from "./StepReview";
 import StepSuccess from "./StepSuccess";
 import { useDispatch } from "react-redux";
 import { createListing, saveDraft, fetchDraft, deleteDraft } from "@/store/slices/listingsSlice";
+import { buildListingPricePayload, createEmptyPrice, normalizeListingPrice } from "./listingPrice";
 
 /* ─── Step config ──────────────────────────────────────────────────────────── */
 const STEPS = [
@@ -254,23 +255,23 @@ function buildPayload(data) {
     },
     photos: details.photos || [],
     availability,
-    price: {
-      amount: Number(price) || 0,
-      currency: "USD",
-    },
+    price: buildListingPricePayload(category, price),
   };
 }
 
 /* ─── Wizard ───────────────────────────────────────────────────────────────── */
 export default function AddListingWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useDispatch();
+  const mode = searchParams.get("mode") ?? "resume";
+  const isFreshCreate = mode === "new";
   const [step, setStep] = useState(1);
   const [data, setData] = useState({
     category: "",
     type: "",
     details: {},
-    price: ""
+    price: createEmptyPrice(),
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -280,16 +281,29 @@ export default function AddListingWizard() {
 
   // On mount: fetch existing draft and resume from saved step
   useEffect(() => {
+    if (isFreshCreate) {
+      const blank = {
+        category: "",
+        type: "",
+        details: {},
+        price: createEmptyPrice(),
+      };
+      pendingRef.current = blank;
+      setData(blank);
+      setDraftLoading(false);
+      return;
+    }
+
     async function loadDraft() {
       // Read locally-cached details/price — backend draft doesn't persist these fields
       let localDetails = {};
-      let localPrice = "";
+      let localPrice = createEmptyPrice();
       try {
         const raw = localStorage.getItem("listing_draft_local");
         if (raw) {
           const parsed = JSON.parse(raw);
           localDetails = parsed.details ?? {};
-          localPrice = parsed.price ?? "";
+          localPrice = normalizeListingPrice(parsed.category ?? "", parsed.price ?? createEmptyPrice(parsed.category ?? ""));
         }
       } catch { /* ignore */ }
 
@@ -304,7 +318,7 @@ export default function AddListingWizard() {
           details: (draft.details && Object.keys(draft.details).length > 0)
             ? draft.details
             : localDetails,
-          price: draft.price || localPrice,
+          price: normalizeListingPrice(draft.category ?? "", draft.price ?? localPrice),
         };
         pendingRef.current = loaded;
         setData(loaded);
@@ -315,8 +329,7 @@ export default function AddListingWizard() {
       setDraftLoading(false);
     }
     loadDraft();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isFreshCreate, dispatch]);
 
   // Save draft after every step advance (fire-and-forget, no blocking UX)
   const saveDraftSilently = useCallback(async (nextStep, latestData) => {
@@ -324,6 +337,7 @@ export default function AddListingWizard() {
     // Mirror details + price to localStorage since the backend draft doesn't persist them
     try {
       localStorage.setItem("listing_draft_local", JSON.stringify({
+        category: latestData.category,
         details: latestData.details,
         price: latestData.price,
       }));
@@ -462,8 +476,9 @@ export default function AddListingWizard() {
   const resetWizard = () => {
     try { localStorage.removeItem("listing_draft_local"); } catch { /* ignore */ }
     setStep(1);
-    setData({ category: "", type: "", details: {}, price: "" });
-    pendingRef.current = { category: "", type: "", details: {}, price: "" };
+    const blank = { category: "", type: "", details: {}, price: createEmptyPrice() };
+    setData(blank);
+    pendingRef.current = blank;
   };
 
   if (draftLoading) {
@@ -557,6 +572,7 @@ export default function AddListingWizard() {
             />}
           {step === 4 &&
             <StepPrice
+              category={data.category}
               price={data.price}
               onChange={handlePriceChange}
               onNext={handlePriceNext}

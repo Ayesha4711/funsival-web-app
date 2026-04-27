@@ -16,6 +16,7 @@ import ListingsFilters from "@/components/dashboard/ListingsFilters";
 import ListingsTable from "@/components/dashboard/ListingsTable";
 import ListingsCards from "@/components/dashboard/ListingsCards";
 import EditListingWizard from "@/components/dashboard/EditListingWizard";
+import { describeListingPrice, formatListingPrice } from "@/components/dashboard/listings/listingPrice";
 
 /* ─── Empty state ────────────────────────────────────────────────────────────── */
 function EmptyState() {
@@ -104,11 +105,12 @@ export default function ListingsPage() {
         location: item.placeLocation?.addressLine1
           ? [item.placeLocation.addressLine1, item.placeLocation.city, item.placeLocation.state, item.placeLocation.country].filter(Boolean).join(", ")
           : item.basicInformation?.location || item.details?.location || item.location || "—",
+        description: item.basicInformation?.description || item.details?.description || "",
         category: item.category ?? "—",
         type: item.type ?? "—",
-        price: item.price?.amount != null
-          ? `$${item.price.amount} / person`
-          : (item.price && item.price !== "" ? `$${item.price}` : "—"),
+        price: item.price ?? null,
+        priceLabel: formatListingPrice(item.category, item.price),
+        priceDetails: describeListingPrice(item.category, item.price),
         bookings: item.bookings ?? 0,
         rating: item.rating ?? "—",
         reviews: item.reviews ?? 0,
@@ -129,11 +131,39 @@ export default function ListingsPage() {
     }
   }, [dispatch, page, limit]);
 
-  useEffect(() => { setPage(1); }, [activeTab, search, category]);
-  useEffect(() => { loadListings(); }, [loadListings]);
+  const handleTabChange = useCallback((value) => {
+    setActiveTab(value);
+    setPage(1);
+  }, []);
 
-  const handleStatusChange = (id, newStatus) => {
-    setListings((prev) => prev.map((item) => item.id === id ? { ...item, status: newStatus } : item));
+  const handleSearchChange = useCallback((value) => {
+    setSearch(value);
+    setPage(1);
+  }, []);
+
+  const handleCategoryChange = useCallback((value) => {
+    setCategory(value);
+    setPage(1);
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadListings();
+  }, [loadListings]);
+
+  const handleStatusChange = (itemOrId, newStatus) => {
+    const item = typeof itemOrId === "object"
+      ? itemOrId
+      : listings.find((entry) => entry.id === itemOrId);
+
+    if (!item) return;
+
+    if (item.status?.toLowerCase() === "draft" && newStatus === "Active") {
+      setEditingListing({ ...item, status: newStatus });
+      return;
+    }
+
+    setListings((prev) => prev.map((entry) => entry.id === item.id ? { ...entry, status: newStatus } : entry));
   };
 
   const handleEditSaved = (updated) => {
@@ -168,6 +198,7 @@ export default function ListingsPage() {
     inactive: countByStatus("inactive"),
     draft: countByStatus("draft"),
   };
+  const hasDraft = tabCounts.draft > 0;
 
   const filtered = listings.filter((item) => {
     const matchesTab = activeTab === "all" || item.status?.toLowerCase() === activeTab.toLowerCase();
@@ -179,23 +210,24 @@ export default function ListingsPage() {
   const isEmpty = !loading && filtered.length === 0;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10 max-w-[1600px] mx-auto flex flex-col gap-6 flex-1">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto flex flex-col gap-4 flex-1">
       <ListingsStats />
 
-      <div className="bg-white rounded-[32px] p-4 sm:p-6 lg:p-8 shadow-sm border border-[var(--color-border)] flex flex-col" style={{ minHeight: 600 }}>
+      <div className="bg-white flex flex-col" style={{ width: "100%", maxWidth: 1120, height: 820, gap: 16, borderRadius: 24, border: "1px solid var(--color-border)", padding: 20 }}>
         <ListingsFilters
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           category={category}
-          onCategoryChange={setCategory}
+          onCategoryChange={handleCategoryChange}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           tabCounts={tabCounts}
+          hasDraft={hasDraft}
         />
 
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col">
           {loading ? (
             <div className="flex-1 flex items-center justify-center py-20">
               <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5">

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import Image from "next/image";
 import { Country, State, City } from "country-state-city";
 import informationIcon from "@/assets/icons/informationicon.svg";
@@ -11,6 +12,18 @@ import {
   TagInputField,
 } from "@/components/shared/FieldControls";
 import { LocationMap } from "@/components/shared/MapControls";
+
+/* Match a raw city name from Nominatim against the country-state-city library */
+function resolveCity(rawCity, countryCode, stateCode) {
+  if (!rawCity || !countryCode || !stateCode) return rawCity || "";
+  const cities = City.getCitiesOfState(countryCode, stateCode);
+  if (!cities.length) return rawCity;
+  const lower = rawCity.toLowerCase();
+  const exact = cities.find(c => c.name.toLowerCase() === lower);
+  if (exact) return exact.name;
+  const partial = cities.find(c => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase()));
+  return partial ? partial.name : rawCity;
+}
 
 /* ─── Shared field components ───────────────────────────────────────────────── */
 function Label({ children, required }) {
@@ -492,9 +505,10 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
       }
 
       // City: prefer city, then town, then village, then suburb
-      const placeCity =
+      const rawCity =
         addr.city || addr.town || addr.village || addr.suburb ||
         addr.municipality || addr.district || "";
+      const placeCity = resolveCity(rawCity, countryCode, stateCode);
 
       const postalCode = addr.postcode || form.postalCode || "";
 
@@ -559,9 +573,10 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
           stateCode = stateObj?.isoCode || "";
         }
 
-        const placeCity =
+        const rawCity =
           addr.city || addr.town || addr.village || addr.suburb ||
           addr.municipality || addr.district || "";
+        const placeCity = resolveCity(rawCity, countryCode, stateCode);
 
         const postalCode = addr.postcode || form.postalCode || "";
 
@@ -606,7 +621,19 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
       }
     } catch { /* ignore */ }
   }, []);
-  const addSlot = () => set("slots", [...form.slots, { day: "", startTime: "", endTime: "" }]);
+  const addSlot = () => {
+    const last = form.slots[form.slots.length - 1];
+    if (last && last.day && last.startTime && last.endTime) {
+      const isDup = form.slots.slice(0, -1).some(
+        s => s.day === last.day && s.startTime === last.startTime && s.endTime === last.endTime
+      );
+      if (isDup) {
+        toast.error("Duplicate slot", { description: "A slot with the same date and time already exists." });
+        return;
+      }
+    }
+    set("slots", [...form.slots, { day: "", startTime: "", endTime: "" }]);
+  };
   const removeSlot = (i) => set("slots", form.slots.filter((_, idx) => idx !== i));
   const updateSlot = (i, key, val) => {
     const next = [...form.slots];
@@ -896,12 +923,14 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               </div>
             ))}
           </div>
-          <FieldError msg={fe.availability} />
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex items-center justify-between gap-3">
+            {(fe.availability || fe.slots) ? (
+              <p className="text-xs text-red-500 font-medium">{fe.availability || fe.slots}</p>
+            ) : <span />}
             <button
               type="button"
               onClick={addSlot}
-              className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-primary)] hover:underline"
+              className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-primary)] hover:underline shrink-0"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add Another Slot
@@ -934,6 +963,10 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             if (form.slots.some(s => !s.day || !s.startTime || !s.endTime)) {
               errs.availability = "Please complete all availability slots (date, start time, and end time).";
             }
+            // Duplicate slot check
+            const slotKeys = form.slots.map(s => `${s.day}|${s.startTime}|${s.endTime}`);
+            const hasDuplicateSlot = slotKeys.some((key, i) => key !== "||" && slotKeys.indexOf(key) !== i);
+            if (hasDuplicateSlot) errs.slots = "You have duplicate availability slots with the same date and time.";
 
             if (Object.keys(errs).length > 0) {
               setActiveErrors(errs);
