@@ -13,7 +13,7 @@ const SIDEBAR_HIDDEN_PATHS = [
   "/dashboard/messages",
   "/dashboard/settings",
   "/dashboard/notifications",
-  "/dashboard/earnings/withdraw",
+  "/dashboard/earnings/withdraw"
 ];
 
 export default function DashboardShell({ children }) {
@@ -22,14 +22,18 @@ export default function DashboardShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
-  useEffect(() => {
-    if (status === "idle") dispatch(fetchProfile());
-  }, [dispatch, status]);
+  useEffect(
+    () => {
+      if (status === "idle") dispatch(fetchProfile());
+    },
+    [dispatch, status]
+  );
 
   if (status === "idle" || status === "loading") return <FullPageLoader />;
 
   const isWizard = pathname === "/dashboard/listings/add";
-  const hideSidebarDesktop = isWizard || SIDEBAR_HIDDEN_PATHS.includes(pathname);
+  const hideSidebarDesktop =
+    isWizard || SIDEBAR_HIDDEN_PATHS.includes(pathname);
 
   return (
     <div className="flex h-screen bg-[var(--color-bg)]">
@@ -40,7 +44,7 @@ export default function DashboardShell({ children }) {
       />
       <div className="flex flex-col flex-1 min-w-0 h-screen overflow-hidden">
         <div className={`shrink-0 ${isWizard ? "lg:hidden" : ""}`}>
-          <DashboardNavbar onMenuToggle={() => setSidebarOpen((o) => !o)} />
+          <DashboardNavbar onMenuToggle={() => setSidebarOpen(o => !o)} />
         </div>
         <main className="flex-1 overflow-y-auto min-h-0">
           {children}

@@ -2,7 +2,9 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import logo from "@/assets/images/logo.svg";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProfile, selectUser, selectProfileStatus } from "@/store/slices/profileSlice";
 import NotificationPopover from "@/components/shared/NotificationPopover";
@@ -85,11 +87,14 @@ function UserNavbar() {
 
   return (
     <header className="h-16 bg-[#4AA7A7] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0">
-      <Link href="/user-dashboard/explore" className="flex items-center gap-2 shrink-0">
-        <svg className="w-7 h-7 text-[#F5C842]" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-        </svg>
-        <span className="text-xl font-bold text-white hidden sm:inline">funsival</span>
+      <Link href="/user-dashboard/explore" className="flex items-center shrink-0">
+        <Image
+          src={logo}
+          alt="Funsival"
+          width={110}
+          height={32}
+          className="h-7 sm:h-8 w-auto object-contain"
+        />
       </Link>
 
       <div className="hidden sm:flex flex-1 justify-center px-4">

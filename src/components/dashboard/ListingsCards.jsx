@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Pagination from "@/components/shared/Pagination";
+import { formatListingPrice } from "./listings/listingPrice";
 
 const StarIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-400">
@@ -163,7 +164,7 @@ export default function ListingsCards({
           <div className="flex items-center gap-2 mb-6">
             <StatusDropdown
               status={item.status}
-              onStatusChange={(newStatus) => onStatusChange(item.id, newStatus)}
+              onStatusChange={(newStatus) => onStatusChange(item, newStatus)}
             />
             <div className="px-4 py-1.5 rounded-full bg-[#F3F4F6] text-gray-500 text-[11px] font-bold">
               {item.category}
@@ -171,9 +172,9 @@ export default function ListingsCards({
           </div>
 
           <div className="grid grid-cols-2 gap-y-6 pt-5 border-t border-gray-50 ">
-             <div>
+            <div>
                 <p className="text-[10px] font-extrabold text-gray-400 uppercase mb-1">Price</p>
-                <p className="text-xs font-bold text-[var(--color-text)]">{item.price}</p>
+                <p className="text-xs font-bold text-[var(--color-text)]">{item.priceLabel ?? formatListingPrice(item.category, item.price)}</p>
              </div>
              <div>
                 <p className="text-[10px] font-extrabold text-gray-400 uppercase mb-1">Bookings</p>
