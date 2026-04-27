@@ -11,6 +11,15 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  async redirects() {
+    return [
+      {
+        source: '/auth/reset-password/:token',
+        destination: '/forgot-password/reset?token=:token',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
