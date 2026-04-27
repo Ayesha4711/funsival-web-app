@@ -40,10 +40,10 @@ const ArrowRightIcon = () => (
 );
 
 /* ─── Component ─────────────────────────────────────────────────────────────── */
-export default function ResetPasswordPage() {
+export default function ResetPasswordPage({ initialToken = "" } = {}) {
   const router = useRouter();
   const params = useSearchParams();
-  const token = params.get("token") ?? "";
+  const token = params.get("token") ?? initialToken;
 
   const [form, setForm] = useState({ password: "", confirmPassword: "" });
   const [clientErrors, setClientErrors] = useState({});
