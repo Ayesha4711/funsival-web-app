@@ -106,7 +106,8 @@ export default function ListingsFilters({
   onCategoryChange,
   viewMode,
   onViewModeChange,
-  tabCounts = { active: 0, inactive: 0, draft: 0 }
+  tabCounts = { active: 0, inactive: 0, draft: 0 },
+  hasDraft = false,
 }) {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -145,7 +146,7 @@ export default function ListingsFilters({
       {/* Header Row — wraps on mobile */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-[var(--color-text)]">Listings</h1>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* View mode toggle — hidden on mobile (card view forced) */}
           <div className="hidden sm:flex items-center gap-1 bg-[#EDF6F6] p-1 rounded-xl">
             <button
@@ -169,12 +170,21 @@ export default function ListingsFilters({
           </div>
 
           <button
-            onClick={() => router.push("/dashboard/listings/add")}
+            onClick={() => router.push("/dashboard/listings/add?mode=new")}
             className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white rounded-full text-xs sm:text-sm font-bold shadow-sm transition-colors"
           >
             <PlusIcon />
             <span>Add New Listing</span>
           </button>
+
+          {hasDraft && (
+            <button
+              onClick={() => router.push("/dashboard/listings/add?mode=resume")}
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-white border border-[var(--color-primary)] text-[var(--color-primary)] rounded-full text-xs sm:text-sm font-bold shadow-sm transition-colors hover:bg-[var(--color-primary-light)]"
+            >
+              <span>Resume Draft</span>
+            </button>
+          )}
         </div>
       </div>
 
