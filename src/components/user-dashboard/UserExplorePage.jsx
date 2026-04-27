@@ -317,8 +317,9 @@ function ListingCard({ listing }) {
   
   const locationStr = [loc.city, loc.state, loc.country].filter(Boolean).join(', ') || info.location || listing.location || '—';
   
-  // Try all possible price fields
-  const price = listing.price?.amount || info.pricePerPerson || info.pricePerHour || info.dailyRate || listing.price || 0;
+  // Try all possible price fields; listing.price may be an object {hourly, daily, delivery, currency}
+  const priceObj = typeof listing.price === 'object' && listing.price !== null ? listing.price : null;
+  const price = listing.price?.amount ?? priceObj?.daily ?? priceObj?.hourly ?? priceObj?.delivery ?? info.pricePerPerson ?? info.pricePerHour ?? info.dailyRate ?? (typeof listing.price === 'number' ? listing.price : 0);
   const rating = listing.rating ?? 4.5;
   const reviews = listing.reviewCount ?? listing.reviews ?? 0;
 
