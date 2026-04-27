@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { toast } from "sonner";
+import { SimpleMap } from "@/components/shared/MapControls";
 
 function cap(str) {
   if (!str) return "—";
@@ -26,44 +27,6 @@ function IncludedTag({ children }) {
     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#FFF3CD] text-[#92600A]">
       {children}
     </span>
-  );
-}
-
-function ReviewMap({ location }) {
-  const [coords, setCoords] = React.useState(null);
-  const [resolved, setResolved] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!location || location === "—") { setResolved(true); return; }
-    fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
-      { headers: { "Accept-Language": "en" } }
-    )
-      .then(r => r.json())
-      .then(data => {
-        if (data && data[0]) setCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) });
-        setResolved(true);
-      })
-      .catch(() => setResolved(true));
-  }, [location]);
-
-  if (!resolved) {
-    return <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl" style={{ height: 200 }}><span className="text-xs text-gray-400">Loading map…</span></div>;
-  }
-
-  if (!coords) return null;
-
-  const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.05}%2C${coords.lat - 0.05}%2C${coords.lon + 0.05}%2C${coords.lat + 0.05}&layer=mapnik&marker=${coords.lat}%2C${coords.lon}`;
-
-  return (
-    <div className="w-full overflow-hidden rounded-xl" style={{ height: 200 }}>
-      <iframe
-        src={mapSrc}
-        className="w-full h-full border-0"
-        title="Activity location"
-        loading="lazy"
-      />
-    </div>
   );
 }
 
@@ -303,7 +266,7 @@ export default function StepReview({
         <Divider />
 
         {/* Map */}
-        <ReviewMap location={location} />
+        <SimpleMap location={location} />
 
         <Divider />
 

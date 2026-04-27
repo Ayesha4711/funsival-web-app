@@ -1,97 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
+import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
+import { fetchListing, selectSelectedListing, selectListingsStatus } from "@/store/slices/listingsSlice";
+import { SimpleMap } from "@/components/shared/MapControls";
 import NewsletterSection from "@/components/landing/NewsletterSection";
 import LandingFooter from "@/components/landing/LandingFooter";
-
-/* ─── Mock data keyed by listing id ─────────────────────────────────────────── */
-const LISTINGS_DATA = {
-  1: {
-    type: "places",
-    title: "Private Hot Tub, Zion Canyon Views",
-    location: "New York, Japan",
-    rating: 4.8,
-    reviews: 279,
-    price: 450,
-    priceUnit: "/night",
-    images: [
-      "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=800&q=80",
-      "https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?w=400&q=80",
-      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80",
-      "https://images.unsplash.com/photo-1542382257-80dedb977b0d?w=400&q=80",
-    ],
-    host: { name: "Sarah Brown", avatar: "https://i.pravatar.cc/60?img=47", joinDate: "January 2021", responseRate: "98%", responseTime: "within an hour" },
-    details: { placeType: "Entire Pool", location: "New York", floorType: "Tile" },
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\nSed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
-    amenities: ["Pool", "WiFi", "Parking", "Hot Tub", "Air Conditioning", "Kitchen"],
-    cancellationPolicy: "Free cancellation within 48 hours of booking.",
-    requirements: "Minimum age 18. Valid ID required.",
-    mapLat: 40.7128,
-    mapLng: -74.0060,
-    reviews_list: [
-      { name: "Amy", avatar: "https://i.pravatar.cc/40?img=1", rating: 5, text: "Amazing place! Absolutely loved the views and the hot tub was perfect. Host was super responsive and helpful." },
-      { name: "Alejandro Pro", avatar: "https://i.pravatar.cc/40?img=3", rating: 4, text: "Great experience overall. The pool area was clean and well maintained. Would definitely come back!" },
-      { name: "Ana Mo", avatar: "https://i.pravatar.cc/40?img=5", rating: 5, text: "Stunning views and a beautiful pool. Perfect weekend getaway. Highly recommend!" },
-    ],
-  },
-  2: {
-    type: "activities",
-    title: "Scuba Diving",
-    location: "Tokyo, Japan",
-    rating: 4.5,
-    reviews: 74,
-    price: 299,
-    priceUnit: "/person",
-    images: [
-      "https://images.unsplash.com/photo-1601024445121-e5b82f020549?w=800&q=80",
-      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80",
-      "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&q=80",
-    ],
-    host: { name: "Kevin Brown", avatar: "https://i.pravatar.cc/60?img=12", joinDate: "March 2020", responseRate: "95%", responseTime: "within 2 hours" },
-    details: { activityTitle: "Scuba Diving", location: "Tokyo Bay", duration: "3 Hours", maxParticipants: "10" },
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Scuba diving adventure in the crystal clear waters of Tokyo Bay. Our certified instructors ensure maximum safety and enjoyment. All equipment provided. Suitable for beginners and experienced divers alike.\n\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.",
-    includes: ["All diving equipment", "Certified instructor", "Underwater photos", "Safety briefing", "Light refreshments"],
-    cancellationPolicy: "Full refund if cancelled 72 hours before activity.",
-    requirements: "Must be able to swim. Minimum age 16.",
-    mapLat: 35.6762,
-    mapLng: 139.6503,
-    reviews_list: [
-      { name: "Amy", avatar: "https://i.pravatar.cc/40?img=1", rating: 5, text: "Incredible experience! The instructor was amazing and the underwater views were breathtaking." },
-      { name: "Alex", avatar: "https://i.pravatar.cc/40?img=7", rating: 4, text: "Very well organized. Safety was prioritized throughout. Great for beginners!" },
-    ],
-  },
-  3: {
-    type: "equipment",
-    title: "Dirt Bike",
-    location: "Tokyo, Japan",
-    rating: 4.5,
-    reviews: 74,
-    price: 150,
-    priceUnit: "/day",
-    images: [
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
-      "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80",
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80",
-    ],
-    host: { name: "Kevin Brown", avatar: "https://i.pravatar.cc/60?img=12", joinDate: "June 2019", responseRate: "92%", responseTime: "within 3 hours" },
-    details: { equipmentType: "Dirt Bike", location: "Tokyo", availableQty: "3 Units" },
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. High-performance dirt bikes available for rent by the day or week. All bikes are regularly maintained and serviced. Helmets and protective gear included.\n\nPerfect for off-road adventures and trail riding. Suitable for experienced riders. Delivery available within 20km radius.",
-    includes: ["Helmet", "Gloves", "Knee pads", "Trail map", "24/7 roadside support"],
-    cancellationPolicy: "50% refund if cancelled 24 hours before rental start.",
-    requirements: "Valid motorcycle license required. Minimum age 21.",
-    mapLat: 35.6762,
-    mapLng: 139.6503,
-    reviews_list: [
-      { name: "Amy", avatar: "https://i.pravatar.cc/40?img=1", rating: 5, text: "Excellent bikes in perfect condition. The trail recommendations were spot on!" },
-      { name: "Mark", avatar: "https://i.pravatar.cc/40?img=8", rating: 4, text: "Great rental experience. Bike was powerful and well-maintained." },
-    ],
-  },
-};
-
-/* fallback for any id not in the map */
-const FALLBACK = LISTINGS_DATA[1];
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const StarIcon = ({ filled }) => (
@@ -100,7 +16,7 @@ const StarIcon = ({ filled }) => (
   </svg>
 );
 
-const StarRating = ({ rating, size = "sm" }) => (
+const StarRating = ({ rating }) => (
   <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => <StarIcon key={s} filled={s <= Math.floor(rating)} />)}
   </div>
@@ -119,42 +35,104 @@ const BackIcon = () => (
   </svg>
 );
 
-const CheckIcon = () => (
-  <svg className="w-4 h-4 text-[#4AA7A7]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+const HeartIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
   </svg>
 );
 
-/* ─── Navbar (same as explore) ───────────────────────────────────────────────── */
-function DetailNavbar() {
-  const router = useRouter();
+const ShareIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+  </svg>
+);
+
+const CalendarIcon = () => (
+  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 2m5-2a8 8 0 11-16 0 8 8 0 0116 0z" />
+  </svg>
+);
+
+const UserOutlineIcon = () => (
+  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A4 4 0 018.94 15h6.12a4 4 0 013.82 2.804M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const CheckBadge = () => (
+  <span className="absolute right-2 top-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#4AA7A7] text-white shadow-sm">
+    <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 6.5l2 2 5-5" />
+    </svg>
+  </span>
+);
+
+function BookingField({ label, children, icon }) {
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#4AA7A7] shadow-sm">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-3">
-          <Link href="/user-dashboard/explore" className="flex items-center gap-2 shrink-0">
-            <svg className="w-7 h-7 text-[#F5C842]" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-            <span className="text-xl font-bold text-white hidden sm:inline">funsival</span>
-          </Link>
-          <div className="flex-1 max-w-xl mx-2 sm:mx-4">
-            <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2">
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input type="text" placeholder="Search here" className="bg-transparent text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none w-full" />
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1 text-white text-sm font-medium">
-              User <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-            </div>
-            <button className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm border-2 border-white/40">U</button>
+    <label className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 focus-within:border-[#4AA7A7]">
+      {icon}
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 leading-none mb-1">{label}</p>
+        {children}
+      </div>
+    </label>
+  );
+}
+
+function BookingSummaryLine({ label, value, bold = false }) {
+  return (
+    <div className={`flex items-center justify-between gap-4 ${bold ? "font-bold text-gray-900" : "text-sm text-gray-500"}`}>
+      <span className={bold ? "text-sm" : ""}>{label}</span>
+      <span className={bold ? "text-base" : "text-sm text-gray-900"}>{value}</span>
+    </div>
+  );
+}
+
+function ModePill({ active, label, icon, onClick, compact = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "relative flex-1 rounded-2xl border px-4 py-4 text-center transition-colors",
+        active ? "border-[#4AA7A7] bg-[#D7ECEB]" : "border-gray-200 bg-white hover:border-[#8bbcbc]",
+        compact ? "py-3" : "",
+      ].join(" ")}
+    >
+      {active && <CheckBadge />}
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-[#4AA7A7]">{icon}</span>
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+      </div>
+    </button>
+  );
+}
+
+function BookingShell({ children, title, price, priceUnit, rating, reviews }) {
+  const ratingText = Number.isFinite(Number(rating)) ? Number(rating).toFixed(1).replace(/\.0$/, "") : "4.4";
+  return (
+    <div className="w-full rounded-[24px] border border-gray-200 bg-white p-4 sm:p-5 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
+      {children}
+      <div className="mt-4 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">{title}</h2>
+          <div className="mt-1 flex items-center gap-1 text-sm text-gray-600">
+            <StarRating rating={rating} />
+            <span className="ml-1 whitespace-nowrap">{ratingText}</span>
+            <span className="text-gray-400">({reviews} Reviews)</span>
           </div>
         </div>
+        <div className="shrink-0 text-right">
+          <div className="text-xl sm:text-2xl font-semibold text-gray-900">${price}<span className="text-base text-gray-500">{priceUnit}</span></div>
+        </div>
       </div>
-    </header>
+    </div>
   );
 }
 
@@ -162,18 +140,16 @@ function DetailNavbar() {
 function ImageGallery({ images, title }) {
   const [active, setActive] = useState(0);
   return (
-    <div className="flex flex-col gap-2 sm:gap-3">
-      {/* Main image */}
-      <div className="relative w-full rounded-2xl overflow-hidden" style={{ height: "clamp(200px, 40vw, 420px)" }}>
+    <div className="flex flex-col gap-3 sm:gap-4">
+      <div className="relative w-full overflow-hidden rounded-[22px] bg-gray-100 aspect-[16/10]">
         <img src={images[active]} alt={title} className="w-full h-full object-cover" />
       </div>
-      {/* Thumbnails */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-3 overflow-x-auto pb-1">
         {images.map((img, i) => (
           <button
             key={i}
             onClick={() => setActive(i)}
-            className={`shrink-0 w-20 h-14 sm:w-24 sm:h-16 rounded-xl overflow-hidden border-2 transition-all ${i === active ? "border-[#4AA7A7]" : "border-transparent"}`}
+            className={`shrink-0 w-24 h-16 sm:w-28 sm:h-20 rounded-2xl overflow-hidden border-2 transition-all ${i === active ? "border-[#F5C842]" : "border-transparent"}`}
           >
             <img src={img} alt="" className="w-full h-full object-cover" />
           </button>
@@ -184,215 +160,262 @@ function ImageGallery({ images, title }) {
 }
 
 /* ─── Booking Card (Places) ──────────────────────────────────────────────────── */
-function PlacesBookingCard({ listing }) {
+function PlacesBookingCard({ listing, listingId }) {
   const router = useRouter();
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
+  const [date, setDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [guests, setGuests] = useState(1);
-  const nights = checkIn && checkOut
-    ? Math.max(1, Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000))
-    : 1;
-  const subtotal = listing.price * nights;
-  const serviceFee = Math.round(subtotal * 0.12);
+  const hours = startTime && endTime
+    ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
+    : 3;
+  const subtotal = listing.price * hours;
+  const serviceFee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + serviceFee;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-md p-5 flex flex-col gap-4">
-      <div className="flex items-end justify-between">
-        <div>
-          <span className="text-2xl font-extrabold text-gray-900">${listing.price}</span>
-          <span className="text-sm text-gray-400 ml-1">{listing.priceUnit}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <StarRating rating={listing.rating} />
-          <span className="text-xs text-gray-500 ml-1">{listing.reviews} Reviews</span>
-        </div>
-      </div>
-
-      <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-200">
-        <div className="grid grid-cols-2 divide-x divide-gray-200">
-          <div className="p-3">
-            <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Check-In</p>
-            <input type="date" className="w-full text-sm font-semibold text-gray-900 focus:outline-none bg-transparent" value={checkIn} onChange={e => setCheckIn(e.target.value)} />
+    <BookingShell title="Book Your Place" price={listing.price} priceUnit="/Hr" rating={listing.rating} reviews={listing.reviews}>
+      <div className="space-y-3">
+        <div className="rounded-[22px] border border-[#4AA7A7] bg-[#D7ECEB] px-4 py-4 text-center">
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-[#4AA7A7]">
+            <ClockIcon />
           </div>
-          <div className="p-3">
-            <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Check-Out</p>
-            <input type="date" className="w-full text-sm font-semibold text-gray-900 focus:outline-none bg-transparent" value={checkOut} onChange={e => setCheckOut(e.target.value)} />
-          </div>
+          <p className="mt-1 text-sm font-medium text-gray-700">Per Hour</p>
         </div>
-        <div className="p-3">
-          <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Guests</p>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setGuests(g => Math.max(1, g - 1))} className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-[#4AA7A7]">-</button>
-            <span className="text-sm font-bold text-gray-900 w-4 text-center">{guests}</span>
-            <button onClick={() => setGuests(g => g + 1)} className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-[#4AA7A7]">+</button>
+
+        <div className="grid gap-3">
+          <BookingField label="Date" icon={<CalendarIcon />}>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
+          </BookingField>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <BookingField label="Start time" icon={<ClockIcon />}>
+              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
+            </BookingField>
+            <BookingField label="End time" icon={<ClockIcon />}>
+              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
+            </BookingField>
           </div>
+
+          <BookingField label="Select guest number" icon={<UserOutlineIcon />}>
+            <input
+              type="number"
+              min="1"
+              value={guests}
+              onChange={(e) => setGuests(Math.max(1, Number(e.target.value || 1)))}
+              className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+            />
+          </BookingField>
         </div>
-      </div>
 
-      <button
-        onClick={() => router.push(`/user-dashboard/confirm-and-pay?title=${encodeURIComponent(listing.title)}&image=${encodeURIComponent(listing.images[0])}&dateFrom=${encodeURIComponent(checkIn || "Nov 26")}&dateTo=${encodeURIComponent(checkOut || "Dec 01")}&guests=${encodeURIComponent(guests + " guest")}&pricePerUnit=${listing.price}&hours=${nights * 24}&funsivalFee=30`)}
-        className="w-full py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-xl text-sm transition-colors"
-      >Reserve</button>
+        <div className="space-y-1 border-t border-gray-100 pt-3 text-sm">
+          <BookingSummaryLine label={`$${listing.price}/hr x ${hours} hour${hours > 1 ? "s" : ""}`} value={`$${subtotal}`} />
+          <BookingSummaryLine label="Service fee" value={`$${serviceFee}`} />
+          <BookingSummaryLine label="Total" value={`$${total}`} bold />
+        </div>
 
-      <div className="flex flex-col gap-2 text-sm">
-        <div className="flex justify-between"><span className="text-gray-500">${listing.price} × {nights} night{nights > 1 ? "s" : ""}</span><span className="font-semibold">${subtotal}</span></div>
-        <div className="flex justify-between"><span className="text-gray-500">Service fee</span><span className="font-semibold">${serviceFee}</span></div>
-        <div className="flex justify-between pt-2 border-t border-gray-100 font-bold"><span>Total</span><span>${total}</span></div>
+        <button
+          onClick={() => {
+            if (!listingId) { toast.error("Listing not available for booking."); return; }
+            router.push(
+              `/user-dashboard/confirm-and-pay` +
+              `?listingId=${encodeURIComponent(listingId)}` +
+              `&bookingType=per_hour` +
+              `&title=${encodeURIComponent(listing.title)}` +
+              `&image=${encodeURIComponent(listing.images[0])}` +
+              `&dateFrom=${encodeURIComponent(date || "")}` +
+              `&dateTo=${encodeURIComponent(date || "")}` +
+              `&startDate=${encodeURIComponent(date || "")}` +
+              `&endDate=${encodeURIComponent(date || "")}` +
+              `&startTime=${encodeURIComponent(startTime || "")}` +
+              `&endTime=${encodeURIComponent(endTime || "")}` +
+              `&guests=${encodeURIComponent(guests + " guest")}` +
+              `&numberOfGuests=${guests}` +
+              `&pricePerUnit=${listing.price}` +
+              `&hours=${hours}` +
+              `&funsivalFee=${serviceFee}`
+            );
+          }}
+          className="mt-2 w-full rounded-full bg-[#F5C842] py-3.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-[#e0b430]"
+        >
+          Reserve
+        </button>
       </div>
-    </div>
+    </BookingShell>
   );
 }
 
 /* ─── Booking Card (Equipment) ───────────────────────────────────────────────── */
-function EquipmentBookingCard({ listing }) {
+function EquipmentBookingCard({ listing, listingId }) {
   const router = useRouter();
+  const [mode, setMode] = useState("hourly");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [qty, setQty] = useState(1);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const hours = startTime && endTime
+    ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
+    : 3;
   const days = startDate && endDate
-    ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000))
+    ? Math.max(1, Math.round((new Date(`${endDate}T00:00:00`) - new Date(`${startDate}T00:00:00`)) / 86400000))
     : 1;
-  const subtotal = listing.price * days * qty;
-  const fee = Math.round(subtotal * 0.08);
+  const activeSpan = mode === "daily" ? days : hours;
+  const subtotal = listing.price * activeSpan;
+  const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-md p-5 flex flex-col gap-4">
-      <div className="flex items-end justify-between">
-        <div>
-          <span className="text-2xl font-extrabold text-gray-900">${listing.price}</span>
-          <span className="text-sm text-gray-400 ml-1">{listing.priceUnit}</span>
+    <BookingShell title="Book Your Equipment" price={listing.price} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}>
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <ModePill
+            active={mode === "hourly"}
+            label="Hourly"
+            icon={<ClockIcon />}
+            onClick={() => setMode("hourly")}
+          />
+          <ModePill
+            active={mode === "daily"}
+            label="Daily"
+            icon={<CalendarIcon />}
+            onClick={() => setMode("daily")}
+          />
         </div>
-        <div className="flex items-center gap-1">
-          <StarRating rating={listing.rating} />
-          <span className="text-xs text-gray-500 ml-1">{listing.reviews} Reviews</span>
-        </div>
-      </div>
 
-      <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-200">
-        <div className="grid grid-cols-2 divide-x divide-gray-200">
-          <div className="p-3">
-            <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Start Date</p>
-            <input type="date" className="w-full text-sm font-semibold text-gray-900 focus:outline-none bg-transparent" value={startDate} onChange={e => setStartDate(e.target.value)} />
+        <div className="grid gap-3">
+          <BookingField label="Date" icon={<CalendarIcon />}>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
+          </BookingField>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <BookingField label="Start time" icon={<ClockIcon />}>
+              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
+            </BookingField>
+            <BookingField label="End time" icon={<ClockIcon />}>
+              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
+            </BookingField>
           </div>
-          <div className="p-3">
-            <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">End Date</p>
-            <input type="date" className="w-full text-sm font-semibold text-gray-900 focus:outline-none bg-transparent" value={endDate} onChange={e => setEndDate(e.target.value)} />
-          </div>
+          <BookingField label="Return date" icon={<CalendarIcon />}>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
+          </BookingField>
         </div>
-        <div className="p-3">
-          <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Quantity</p>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-[#4AA7A7]">-</button>
-            <span className="text-sm font-bold text-gray-900 w-4 text-center">{qty}</span>
-            <button onClick={() => setQty(q => q + 1)} className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-[#4AA7A7]">+</button>
-          </div>
+
+        <div className="space-y-1 border-t border-gray-100 pt-3 text-sm">
+          <BookingSummaryLine label={`$${listing.price}${mode === "daily" ? "/day" : "/hr"} x ${activeSpan} ${mode === "daily" ? "day" : "hour"}${activeSpan > 1 ? "s" : ""}`} value={`$${subtotal}`} />
+          <BookingSummaryLine label="Service fee" value={`$${fee}`} />
+          <BookingSummaryLine label="Total" value={`$${total}`} bold />
         </div>
-      </div>
 
-      <button
-        onClick={() => router.push(`/user-dashboard/confirm-and-pay?title=${encodeURIComponent(listing.title)}&image=${encodeURIComponent(listing.images[0])}&dateFrom=${encodeURIComponent(startDate || "Nov 26")}&dateTo=${encodeURIComponent(endDate || "Dec 01")}&guests=${encodeURIComponent(qty + " unit")}&pricePerUnit=${listing.price}&hours=${days * 24}&funsivalFee=30`)}
-        className="w-full py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-xl text-sm transition-colors"
-      >Reserve</button>
-
-      <div className="flex flex-col gap-2 text-sm">
-        <div className="flex justify-between"><span className="text-gray-500">${listing.price} × {days} day{days > 1 ? "s" : ""} × {qty}</span><span className="font-semibold">${subtotal}</span></div>
-        <div className="flex justify-between"><span className="text-gray-500">Processing fee</span><span className="font-semibold">${fee}</span></div>
-        <div className="flex justify-between pt-2 border-t border-gray-100 font-bold"><span>Total</span><span>${total}</span></div>
+        <button
+          onClick={() => {
+            if (!listingId) { toast.error("Listing not available for booking."); return; }
+            router.push(
+              `/user-dashboard/confirm-and-pay` +
+              `?listingId=${encodeURIComponent(listingId)}` +
+              `&bookingType=${mode === "daily" ? "daily" : "per_hour"}` +
+              `&title=${encodeURIComponent(listing.title)}` +
+              `&image=${encodeURIComponent(listing.images[0])}` +
+              `&dateFrom=${encodeURIComponent(startDate || "")}` +
+              `&dateTo=${encodeURIComponent(endDate || "")}` +
+              `&startDate=${encodeURIComponent(startDate || "")}` +
+              `&endDate=${encodeURIComponent(endDate || "")}` +
+              `&startTime=${encodeURIComponent(startTime || "")}` +
+              `&endTime=${encodeURIComponent(endTime || "")}` +
+              `&guests=${encodeURIComponent("1 unit")}` +
+              `&pricePerUnit=${listing.price}` +
+              `&hours=${activeSpan}` +
+              `&funsivalFee=${fee}`
+            );
+          }}
+          className="mt-2 w-full rounded-full bg-[#F5C842] py-3.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-[#e0b430]"
+        >
+          Reserve
+        </button>
       </div>
-    </div>
+    </BookingShell>
   );
 }
 
 /* ─── Booking Card (Activities) ──────────────────────────────────────────────── */
-function ActivityBookingCard({ listing }) {
+function ActivityBookingCard({ listing, listingId }) {
   const router = useRouter();
   const [date, setDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [persons, setPersons] = useState(1);
+  const hours = startTime && endTime
+    ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
+    : 3;
   const subtotal = listing.price * persons;
-  const fee = Math.round(subtotal * 0.1);
+  const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-md p-5 flex flex-col gap-4">
-      <div className="flex items-end justify-between">
-        <div>
-          <span className="text-2xl font-extrabold text-gray-900">${listing.price}</span>
-          <span className="text-sm text-gray-400 ml-1">{listing.priceUnit}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <StarRating rating={listing.rating} />
-          <span className="text-xs text-gray-500 ml-1">{listing.reviews} Reviews</span>
-        </div>
-      </div>
-
-      <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-200">
-        <div className="p-3">
-          <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Date</p>
-          <input type="date" className="w-full text-sm font-semibold text-gray-900 focus:outline-none bg-transparent" value={date} onChange={e => setDate(e.target.value)} />
-        </div>
-        <div className="p-3">
-          <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Persons</p>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setPersons(p => Math.max(1, p - 1))} className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-[#4AA7A7]">-</button>
-            <span className="text-sm font-bold text-gray-900 w-4 text-center">{persons}</span>
-            <button onClick={() => setPersons(p => p + 1)} className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 font-bold text-lg flex items-center justify-center hover:border-[#4AA7A7]">+</button>
+    <BookingShell title="Book Your Activity" price={listing.price} priceUnit="/Hr" rating={listing.rating} reviews={listing.reviews}>
+      <div className="space-y-3">
+        <div className="rounded-[22px] border border-[#4AA7A7] bg-[#D7ECEB] px-4 py-4 text-center">
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-[#4AA7A7]">
+            <UserOutlineIcon />
           </div>
+          <p className="mt-1 text-sm font-medium text-gray-700">Per Person</p>
         </div>
-      </div>
 
-      <button
-        onClick={() => router.push(`/user-dashboard/confirm-and-pay?title=${encodeURIComponent(listing.title)}&image=${encodeURIComponent(listing.images[0])}&dateFrom=${encodeURIComponent(date || "Nov 26")}&dateTo=${encodeURIComponent(date || "Nov 26")}&guests=${encodeURIComponent(persons + " person")}&pricePerUnit=${listing.price}&hours=${persons}&funsivalFee=30`)}
-        className="w-full py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-xl text-sm transition-colors"
-      >Reserve</button>
-
-      <div className="flex flex-col gap-2 text-sm">
-        <div className="flex justify-between"><span className="text-gray-500">${listing.price} × {persons} person{persons > 1 ? "s" : ""}</span><span className="font-semibold">${subtotal}</span></div>
-        <div className="flex justify-between"><span className="text-gray-500">Service fee</span><span className="font-semibold">${fee}</span></div>
-        <div className="flex justify-between pt-2 border-t border-gray-100 font-bold"><span>Total</span><span>${total}</span></div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Static Map Placeholder ─────────────────────────────────────────────────── */
-function StaticMap({ listing }) {
-  return (
-    <div className="relative w-full rounded-2xl overflow-hidden bg-gray-100" style={{ height: "clamp(200px, 30vw, 340px)" }}>
-      <img
-        src={`https://maps.googleapis.com/maps/api/staticmap?center=${listing.mapLat},${listing.mapLng}&zoom=12&size=800x340&markers=color:red%7C${listing.mapLat},${listing.mapLng}&key=DEMO`}
-        alt="Map"
-        className="w-full h-full object-cover"
-        onError={e => { e.target.style.display = "none"; }}
-      />
-      {/* Fallback visual map */}
-      <div className="absolute inset-0 bg-gradient-to-br from-green-100 via-blue-50 to-green-200 flex items-center justify-center">
-        <div className="relative">
-          {/* Grid lines for map feel */}
-          <div className="absolute inset-0 opacity-20" style={{
-            backgroundImage: "linear-gradient(#4AA7A7 1px, transparent 1px), linear-gradient(90deg, #4AA7A7 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-            width: "800px", height: "340px", left: "-400px", top: "-170px"
-          }} />
-          {/* Pin */}
-          <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center shadow-lg border-4 border-white z-10 relative">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-            </svg>
+        <div className="grid gap-3">
+          <BookingField label="Date" icon={<CalendarIcon />}>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
+          </BookingField>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <BookingField label="Start time" icon={<ClockIcon />}>
+              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
+            </BookingField>
+            <BookingField label="End time" icon={<ClockIcon />}>
+              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
+            </BookingField>
           </div>
-          {/* Popup card on map */}
-          <div className="absolute -top-24 left-6 bg-white rounded-xl shadow-lg p-3 w-40 z-20">
-            <img src={listing.images[0]} alt="" className="w-full h-16 object-cover rounded-lg mb-2" />
-            <p className="text-xs font-bold text-gray-900 line-clamp-1">{listing.title}</p>
-            <div className="flex items-center gap-1 mt-1">
-              <LocationPinIcon />
-              <span className="text-[10px] text-gray-500">{listing.location}</span>
-            </div>
-          </div>
+          <BookingField label="Select guest number" icon={<UserOutlineIcon />}>
+            <input
+              type="number"
+              min="1"
+              value={persons}
+              onChange={(e) => setPersons(Math.max(1, Number(e.target.value || 1)))}
+              className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+            />
+          </BookingField>
         </div>
+
+        <div className="space-y-1 border-t border-gray-100 pt-3 text-sm">
+          <BookingSummaryLine label={`$${listing.price}/hr x ${hours} hour${hours > 1 ? "s" : ""}`} value={`$${subtotal}`} />
+          <BookingSummaryLine label="Service fee" value={`$${fee}`} />
+          <BookingSummaryLine label="Total" value={`$${total}`} bold />
+        </div>
+
+        <button
+          onClick={() => {
+            if (!listingId) { toast.error("Listing not available for booking."); return; }
+            router.push(
+              `/user-dashboard/confirm-and-pay` +
+              `?listingId=${encodeURIComponent(listingId)}` +
+              `&bookingType=per_person` +
+              `&title=${encodeURIComponent(listing.title)}` +
+              `&image=${encodeURIComponent(listing.images[0])}` +
+              `&dateFrom=${encodeURIComponent(date || "")}` +
+              `&dateTo=${encodeURIComponent(date || "")}` +
+              `&startDate=${encodeURIComponent(date || "")}` +
+              `&endDate=${encodeURIComponent(date || "")}` +
+              `&startTime=${encodeURIComponent(startTime || "")}` +
+              `&endTime=${encodeURIComponent(endTime || "")}` +
+              `&guests=${encodeURIComponent(persons + " person")}` +
+              `&numberOfGuests=${persons}` +
+              `&pricePerUnit=${listing.price}` +
+              `&hours=${hours}` +
+              `&funsivalFee=${fee}`
+            );
+          }}
+          className="mt-2 w-full rounded-full bg-[#F5C842] py-3.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-[#e0b430]"
+        >
+          Reserve
+        </button>
       </div>
-    </div>
+    </BookingShell>
   );
 }
 
@@ -412,210 +435,227 @@ function ReviewCard({ review }) {
   );
 }
 
-/* ─── Mobile sticky booking bar ──────────────────────────────────────────────── */
-function MobileStickyBar({ listing }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-between shadow-lg">
-        <div>
-          <span className="text-xl font-extrabold text-gray-900">${listing.price}</span>
-          <span className="text-sm text-gray-400 ml-1">{listing.priceUnit}</span>
-        </div>
-        <button onClick={() => setOpen(true)} className="px-6 py-2.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-xl text-sm transition-colors">
-          Book Your {listing.type === "places" ? "Place" : listing.type === "equipment" ? "Equipment" : "Activity"}
-        </button>
-      </div>
+/* ─── Adapt real API listing → internal shape ────────────────────────────────── */
+function adaptApiListing(apiListing, urlType) {
+  const info = apiListing.basicInformation ?? {};
+  const loc = apiListing.placeLocation ?? {};
+  const category = apiListing.category ?? urlType ?? "places";
 
-      {/* Mobile booking sheet */}
-      {open && (
-        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setOpen(false)}>
-          <div className="bg-black/40 absolute inset-0" />
-          <div className="relative bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
-            {listing.type === "places" && <PlacesBookingCard listing={listing} />}
-            {listing.type === "equipment" && <EquipmentBookingCard listing={listing} />}
-            {listing.type === "activities" && <ActivityBookingCard listing={listing} />}
-          </div>
-        </div>
-      )}
-    </>
-  );
+  const title = info.activityTitle || info.equipmentName || info.placeName || "Listing";
+  const location = [loc.city, loc.state, loc.country].filter(Boolean).join(", ") || info.location || "—";
+  
+  // Handle price from nested price object
+  const price = apiListing.price?.amount || info.pricePerPerson || info.pricePerHour || info.dailyRate || 0;
+  const priceUnit = category === "activities" ? "/person" : category === "equipment" ? "/day" : "/night";
+  
+  // Handle photos from listing.photos (as sent by AddListingWizard)
+  const images = (Array.isArray(apiListing.photos) && apiListing.photos.length > 0)
+    ? apiListing.photos
+    : ((Array.isArray(info.images) && info.images.length > 0)
+        ? info.images
+        : ["https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=800&q=80"]);
+
+  const host = apiListing.host ?? {};
+  const hostName = host.name || host.email || "Host";
+  const hostAvatar = host.avatar || `https://i.pravatar.cc/60?img=1`;
+
+  // Merge serviceDetails if available (backend sometimes flattens or nests these)
+  const service = apiListing.serviceDetails ?? {};
+  const description = info.description || apiListing.description || "No description provided.";
+  
+  // Extract amenities/includes
+  const amenities = info.amenities || service.whatsIncluded || [];
+  const includes = info.includes || service.whatsIncluded || [];
+
+  return {
+    _id: apiListing._id,
+    type: category,
+    title,
+    location,
+    rating: apiListing.rating ?? 4.5,
+    reviews: apiListing.reviewCount ?? 0,
+    price,
+    priceUnit,
+    images,
+    host: { name: hostName, avatar: hostAvatar, joinDate: "2021", responseRate: "95%", responseTime: "within an hour" },
+    details: {
+      ...info,
+      ...service,
+      duration: typeof service.duration === 'object' ? `${service.duration.value} ${service.duration.unit}` : service.duration
+    },
+    description,
+    amenities: Array.isArray(amenities) ? amenities : [],
+    includes: Array.isArray(includes) ? includes : [],
+    cancellationPolicy: service.cancellationPolicy || apiListing.cancellationPolicy || "Contact host for cancellation policy.",
+    requirements: service.requirements || apiListing.requirements || "",
+    mapLat: loc.latitude ?? 40.7128,
+    mapLng: loc.longitude ?? -74.006,
+    reviews_list: apiListing.reviews ?? [],
+  };
 }
 
 /* ─── Main Page ──────────────────────────────────────────────────────────────── */
-export default function ListingDetailPage({ params }) {
+export default function ListingDetailPage({ params: paramsPromise }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const id = parseInt(params?.id) || 1;
-
-  // Use URL type param to override listing type so any card navigates correctly
+  const dispatch = useDispatch();
+  
+  // Unwrap params Promise (Next.js 15+ requirement)
+  const params = React.use(paramsPromise);
+  const rawId = params?.id;
   const urlType = searchParams.get("type"); // 'places' | 'equipment' | 'activities'
-  const baseListing = LISTINGS_DATA[id] || FALLBACK;
 
-  // Map correct mock data by type when the id doesn't match exactly
-  const typeToId = { places: 1, equipment: 3, activities: 2 };
-  const resolvedId = urlType && !LISTINGS_DATA[id] ? (typeToId[urlType] || id) : id;
-  const resolvedListing = LISTINGS_DATA[resolvedId] || FALLBACK;
-  const listing = urlType ? { ...resolvedListing, type: urlType } : resolvedListing;
+  const apiListing = useSelector(selectSelectedListing);
+  const allListings = useSelector((state) => state.listings.items);
+  const fetchStatus = useSelector(selectListingsStatus);
 
-  const bookingTitle = listing.type === "places" ? "Book Your Place" : listing.type === "equipment" ? "Book Your Equipment" : "Book Your Activity";
+  // Optimistic listing: find in cache if not yet loaded in selectedListing
+  const cachedListing = React.useMemo(() => {
+    if (apiListing && (apiListing._id === rawId || apiListing.id === rawId)) return apiListing;
+    return allListings.find(l => l._id === rawId || l.id === rawId);
+  }, [apiListing, allListings, rawId]);
+
+  useEffect(() => {
+    if (rawId) {
+      dispatch(fetchListing(rawId));
+    }
+  }, [dispatch, rawId]);
+
+  // While loading, only show full spinner if we have NO data at all
+  if (fetchStatus === "loading" && !cachedListing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // If fetch failed and we have no cache, show error
+  if (fetchStatus === "failed" && !cachedListing) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
+        <p className="text-gray-500 font-medium">Failed to load listing details.</p>
+        <button onClick={() => router.back()} className="px-6 py-2 bg-[#4AA7A7] text-white rounded-full text-sm font-bold">
+          Go Back
+        </button>
+      </div>
+    );
+  }
+
+  // Use cachedListing (which defaults to apiListing if ID matches)
+  const displayListing = cachedListing || apiListing;
+
+  if (!displayListing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const listing = adaptApiListing(displayListing, urlType);
+  const listingId = displayListing._id || displayListing.id;
 
   return (
-    <div className="flex flex-col bg-gray-50 pb-20 lg:pb-0">
-
-      <main className="flex-1 max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
-          <button onClick={() => router.back()} className="flex items-center gap-1 hover:text-[#4AA7A7] transition-colors">
-            <BackIcon /> Back
-          </button>
-          <span>/</span>
-          <span className="capitalize">{listing.type}</span>
-          <span>/</span>
-          <span className="text-gray-700 font-medium line-clamp-1">{listing.title}</span>
-        </div>
-
-        {/* Title row (mobile + tablet) */}
-        <div className="lg:hidden mb-4">
-          <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">{listing.title}</h1>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1">
-              <StarRating rating={listing.rating} />
-              <span className="text-sm text-gray-500 ml-1">{listing.reviews} Reviews</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <LocationPinIcon />
-              <span className="text-sm text-gray-500">{listing.location}</span>
-            </div>
+    <div className="flex flex-col bg-gray-50">
+      <main className="flex-1 max-w-[1440px] mx-auto w-full px-4 sm:px-5 lg:px-6 xl:px-8 py-5 sm:py-6 lg:py-8">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <button onClick={() => router.back()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 transition-colors hover:border-[#4AA7A7] hover:text-[#4AA7A7]">
+              <BackIcon />
+            </button>
+            <h1 className="truncate text-lg font-semibold text-gray-900 sm:text-xl lg:text-2xl">{listing.title}</h1>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition-colors hover:border-[#4AA7A7] hover:text-[#4AA7A7]">
+              <HeartIcon />
+            </button>
+            <button className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition-colors hover:border-[#4AA7A7] hover:text-[#4AA7A7]">
+              <ShareIcon />
+            </button>
           </div>
         </div>
 
-        {/* Two-column layout on desktop */}
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-
-          {/* ── Left column ── */}
-          <div className="flex-1 min-w-0 flex flex-col gap-6">
-
-            {/* Gallery */}
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_420px] lg:gap-6 items-start">
+          <div className="min-w-0 space-y-5">
             <ImageGallery images={listing.images} title={listing.title} />
+          </div>
 
-            {/* Title row (desktop only) */}
-            <div className="hidden lg:block">
-              <h1 className="text-2xl xl:text-3xl font-extrabold text-gray-900 mb-2">{listing.title}</h1>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <StarRating rating={listing.rating} />
-                  <span className="text-sm text-gray-500 ml-1">{listing.reviews} Reviews</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <LocationPinIcon />
-                  <span className="text-sm text-gray-500">{listing.location}</span>
-                </div>
+          <div className="w-full xl:sticky xl:top-24">
+            {listing.type === "places" && <PlacesBookingCard listing={listing} listingId={listingId} />}
+            {listing.type === "equipment" && <EquipmentBookingCard listing={listing} listingId={listingId} />}
+            {listing.type === "activities" && <ActivityBookingCard listing={listing} listingId={listingId} />}
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-[22px] border border-gray-200 bg-white p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img src={listing.host.avatar} alt={listing.host.name} className="h-12 w-12 rounded-full object-cover" />
+              <div>
+                <p className="text-xs font-medium text-[#F5C842]">Hosted by</p>
+                <p className="text-sm font-semibold text-gray-900">{listing.host.name}</p>
+                <p className="text-xs text-gray-400">{listing.location}</p>
               </div>
             </div>
+            <button className="rounded-full border border-[#4AA7A7] px-5 py-2.5 text-sm font-medium text-[#4AA7A7] transition-colors hover:bg-[#4AA7A7] hover:text-white">
+              Contact Host
+            </button>
+          </div>
+        </div>
 
-            {/* Host row */}
-            <div className="flex items-center justify-between bg-white rounded-2xl p-4 border border-gray-100">
-              <div className="flex items-center gap-3">
-                <img src={listing.host.avatar} alt={listing.host.name} className="w-11 h-11 rounded-full object-cover" />
-                <div>
-                  <p className="text-sm font-bold text-gray-900">{listing.host.name}</p>
-                  <p className="text-xs text-gray-400">Host since {listing.host.joinDate}</p>
+        <div className="mt-5 grid gap-5">
+          <div className="rounded-[22px] border border-gray-200 bg-white p-4 sm:p-5">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">Details</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {Object.entries(listing.details).map(([key, val]) => (
+                <div key={key} className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{key.replace(/([A-Z])/g, " $1").trim()}</p>
+                  <p className="mt-1 text-sm text-gray-700">{val}</p>
                 </div>
-              </div>
-              <button className="px-4 py-2 border border-[#4AA7A7] text-[#4AA7A7] rounded-full text-xs font-bold hover:bg-[#4AA7A7] hover:text-white transition-colors">
-                Contact Host
-              </button>
+              ))}
             </div>
-
-            {/* Details section */}
-            <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 flex flex-col gap-4">
-              <h2 className="text-base font-extrabold text-gray-900">Details</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                {Object.entries(listing.details).map(([key, val]) => (
-                  <div key={key}>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">{key.replace(/([A-Z])/g, " $1").trim()}</p>
-                    <p className="text-sm font-bold text-gray-900">{val}</p>
-                  </div>
+            {(listing.amenities || listing.includes) && (
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-4">
+                {(listing.amenities || listing.includes).map((item) => (
+                  <span key={item} className="rounded-full bg-[#F5C842]/20 px-3 py-1.5 text-xs font-semibold text-yellow-700">{item}</span>
                 ))}
               </div>
-
-              {/* Amenities / Includes tags */}
-              {(listing.amenities || listing.includes) && (
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-50">
-                  {(listing.amenities || listing.includes).map((item) => (
-                    <span key={item} className="px-3 py-1.5 bg-[#F5C842]/20 text-yellow-700 text-xs font-semibold rounded-full">{item}</span>
-                  ))}
-                </div>
-              )}
-
-              {/* Description */}
-              <div className="pt-2 border-t border-gray-50">
-                <h3 className="text-sm font-extrabold text-gray-900 mb-2">Description</h3>
-                <p className="text-sm text-gray-500 leading-relaxed whitespace-pre-line">{listing.description}</p>
-              </div>
-
-              {/* Cancellation */}
-              <div className="pt-2 border-t border-gray-50">
-                <h3 className="text-sm font-extrabold text-gray-900 mb-1">Cancellation Policy</h3>
-                <p className="text-sm text-gray-500">{listing.cancellationPolicy}</p>
-              </div>
-
-              {/* Requirements */}
-              <div className="pt-2 border-t border-gray-50">
-                <h3 className="text-sm font-extrabold text-gray-900 mb-1">Requirements</h3>
-                <p className="text-sm text-gray-500">{listing.requirements}</p>
-              </div>
-            </div>
-
-            {/* Location */}
-            <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 flex flex-col gap-3">
-              <h2 className="text-base font-extrabold text-gray-900">Location</h2>
-              <StaticMap listing={listing} />
-              <div className="flex items-center gap-2">
-                <LocationPinIcon />
-                <span className="text-sm text-gray-600 font-medium">{listing.location}</span>
-              </div>
-            </div>
-
-            {/* Reviews */}
-            <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 flex flex-col gap-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-extrabold text-gray-900">Reviews</h2>
-                <div className="flex items-center gap-1.5">
-                  <StarRating rating={listing.rating} />
-                  <span className="text-sm font-bold text-gray-700">{listing.rating}</span>
-                  <span className="text-sm text-gray-400">({listing.reviews})</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-6">
-                {listing.reviews_list.map((r, i) => <ReviewCard key={i} review={r} />)}
-              </div>
-              <button className="text-[#4AA7A7] text-sm font-bold hover:underline self-start">Show all reviews</button>
-            </div>
-
+            )}
           </div>
 
-          {/* ── Right column: booking card (desktop only) ── */}
-          <div className="hidden lg:block w-80 xl:w-96 shrink-0">
-            <div className="sticky top-24">
-              <h3 className="text-base font-extrabold text-gray-900 mb-3">{bookingTitle}</h3>
-              {listing.type === "places" && <PlacesBookingCard listing={listing} />}
-              {listing.type === "equipment" && <EquipmentBookingCard listing={listing} />}
-              {listing.type === "activities" && <ActivityBookingCard listing={listing} />}
+          <div className="rounded-[22px] border border-gray-200 bg-white p-4 sm:p-5">
+            <h3 className="mb-3 text-lg font-semibold text-gray-900">Description</h3>
+            <p className="text-sm leading-7 text-gray-500 whitespace-pre-line">{listing.description}</p>
+          </div>
+
+          <div className="rounded-[22px] border border-gray-200 bg-white p-4 sm:p-5">
+            <h2 className="mb-3 text-lg font-semibold text-gray-900">Location</h2>
+            <SimpleMap location={listing.location} height={360} />
+            <div className="mt-3 flex items-center gap-2">
+              <LocationPinIcon />
+              <span className="text-sm font-medium text-gray-600">{listing.location}</span>
             </div>
           </div>
 
+          <div className="rounded-[22px] border border-gray-200 bg-white p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-lg font-semibold text-gray-900">Reviews</h2>
+              <div className="flex items-center gap-1.5">
+                <StarRating rating={listing.rating} />
+                <span className="text-sm font-semibold text-gray-700">{listing.rating}</span>
+                <span className="text-sm text-gray-400">({listing.reviews})</span>
+              </div>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {listing.reviews_list.map((r, i) => <ReviewCard key={i} review={r} />)}
+            </div>
+          </div>
         </div>
       </main>
 
       <NewsletterSection />
       <LandingFooter />
-
-      {/* Mobile sticky CTA */}
-      <MobileStickyBar listing={listing} />
     </div>
   );
 }

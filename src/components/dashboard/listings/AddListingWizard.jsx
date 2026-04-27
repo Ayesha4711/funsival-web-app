@@ -211,9 +211,13 @@ function buildPayload(data) {
       isAvailable: true,
     }));
 
+  const firstSlot = availability[0] || {};
+
   return {
     category: category || "",
     type: type || "",
+    startTime: firstSlot.startTime || "",
+    endTime: firstSlot.endTime || "",
     basicInformation: {
       activityTitle: details.title || "",
       location: details.location ||
@@ -383,6 +387,8 @@ export default function AddListingWizard() {
     state: "state",
     country: "country",
     postalCode: "postalCode",
+    startTime: "availability",
+    endTime: "availability",
   };
 
   // Fields that live in StepDetails (step 3) vs StepReview/other steps
@@ -390,6 +396,7 @@ export default function AddListingWizard() {
     "difficultyLevel", "instructorName", "cancellationPolicy", "whatsIncluded",
     "duration", "maxParticipants", "activityTitle", "description",
     "addressLine1", "city", "state", "country", "postalCode",
+    "startTime", "endTime",
   ]);
 
   const handleSubmitListing = async () => {

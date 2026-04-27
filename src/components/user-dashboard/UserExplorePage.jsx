@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchListings, selectListings, selectListingsStatus, selectListingsPagination } from '@/store/slices/listingsSlice';
 import NewsletterSection from '@/components/landing/NewsletterSection';
 import LandingFooter from '@/components/landing/LandingFooter';
 import NotificationPopover from '@/components/shared/NotificationPopover';
@@ -280,33 +282,6 @@ const SUB_FILTERS = {
   ],
 };
 
-/* ─── Mock listing data ──────────────────────────────────────────────────────── */
-const ALL_LISTINGS = [
-  { id: 1, tab: ['all', 'places'], title: 'Swimming pool', image: 'https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 120, badge: null },
-  { id: 2, tab: ['all', 'activities'], title: 'Skydiving Adventures', image: 'https://images.unsplash.com/photo-1601024445121-e5b82f020549?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 299, badge: null },
-  { id: 3, tab: ['all', 'equipment'], title: 'Dirt Bike', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 150, badge: null },
-  { id: 4, tab: ['all', 'places'], title: 'Swimming pool', image: 'https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 100, badge: null },
-  { id: 5, tab: ['all', 'equipment'], title: 'Dirt Bike', image: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 180, badge: 'Popular' },
-  { id: 6, tab: ['all', 'activities'], title: 'Skydiving Adventures', image: 'https://images.unsplash.com/photo-1601024445121-e5b82f020549?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 350, badge: null },
-  { id: 7, tab: ['all', 'places'], title: 'Swimming pool', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 90, badge: null },
-  { id: 8, tab: ['all', 'equipment'], title: 'Dirt Bike', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 200, badge: null },
-  // Places
-  { id: 9, tab: ['places'], title: 'Swimming pool', image: 'https://images.unsplash.com/photo-1542382257-80dedb977b0d?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 110, badge: null },
-  { id: 10, tab: ['places'], title: 'Swimming pool', image: 'https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 130, badge: null },
-  { id: 11, tab: ['places'], title: 'Swimming pool', image: 'https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 120, badge: 'New' },
-  { id: 12, tab: ['places'], title: 'Swimming pool', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 95, badge: null },
-  // Equipment
-  { id: 13, tab: ['equipment'], title: 'Dirt Bike', image: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 160, badge: 'Popular' },
-  { id: 14, tab: ['equipment'], title: 'Dirt Bike', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 175, badge: null },
-  { id: 15, tab: ['equipment'], title: 'Dirt Bike', image: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 190, badge: null },
-  { id: 16, tab: ['equipment'], title: 'Dirt Bike', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 145, badge: 'New' },
-  // Activities
-  { id: 17, tab: ['activities'], title: 'Skydiving Adventures', image: 'https://images.unsplash.com/photo-1601024445121-e5b82f020549?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 299, badge: null },
-  { id: 18, tab: ['activities'], title: 'Skydiving Adventures', image: 'https://images.unsplash.com/photo-1601024445121-e5b82f020549?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 320, badge: 'Popular' },
-  { id: 19, tab: ['activities'], title: 'Skydiving Adventures', image: 'https://images.unsplash.com/photo-1601024445121-e5b82f020549?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 280, badge: null },
-  { id: 20, tab: ['activities'], title: 'Skydiving Adventures', image: 'https://images.unsplash.com/photo-1601024445121-e5b82f020549?w=400&q=80', rating: 4.5, reviews: '(74 Reviews)', location: 'Tokyo, Japan', price: 350, badge: null },
-];
-
 /* ─── Star Rating ────────────────────────────────────────────────────────────── */
 function StarRating({ rating }) {
   return (
@@ -324,16 +299,31 @@ function StarRating({ rating }) {
   );
 }
 
-/* ─── Listing Card ───────────────────────────────────────────────────────────── */
+/* ─── Listing Card — works with real API shape ───────────────────────────────── */
 function ListingCard({ listing }) {
   const router = useRouter();
-  const { id, title, image, rating, reviews, location, price, badge, tab } = listing;
 
-  // Determine the type for the detail page based on the tab
-  const type = tab.includes('places') ? 'places' : tab.includes('equipment') ? 'equipment' : 'activities';
+  // Real API listing shape
+  const id = listing._id || listing.id;
+  const info = listing.basicInformation ?? {};
+  const loc = listing.placeLocation ?? {};
+  const category = listing.category ?? (listing.tab?.includes('places') ? 'places' : listing.tab?.includes('equipment') ? 'equipment' : 'activities');
+  
+  const title = info.activityTitle || info.equipmentName || info.placeName || listing.title || 'Listing';
+  
+  // Try all possible image fields
+  const images = listing.photos || info.images || listing.images || [];
+  const image = (Array.isArray(images) && images.length > 0 ? images[0] : images) || listing.image || 'https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80';
+  
+  const locationStr = [loc.city, loc.state, loc.country].filter(Boolean).join(', ') || info.location || listing.location || '—';
+  
+  // Try all possible price fields
+  const price = listing.price?.amount || info.pricePerPerson || info.pricePerHour || info.dailyRate || listing.price || 0;
+  const rating = listing.rating ?? 4.5;
+  const reviews = listing.reviewCount ?? listing.reviews ?? 0;
 
   const handleClick = () => {
-    router.push(`/user-dashboard/listing/${id}?type=${type}`);
+    router.push(`/user-dashboard/listing/${id}?type=${category}`);
   };
 
   return (
@@ -347,12 +337,6 @@ function ListingCard({ listing }) {
           className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
           style={{ backgroundImage: `url('${image}')` }}
         />
-        {/* Badge */}
-        {badge && (
-          <div className="absolute top-3 right-3 bg-[#F5C842] text-gray-900 text-[10px] font-bold px-2.5 py-1 rounded-full">
-            {badge}
-          </div>
-        )}
         {/* Favorite */}
         <button
           onClick={e => e.stopPropagation()}
@@ -370,7 +354,7 @@ function ListingCard({ listing }) {
 
         <div className="flex items-center gap-1.5 mb-2">
           <StarRating rating={rating} />
-          <span className="text-xs text-gray-500">{reviews}</span>
+          <span className="text-xs text-gray-500">({reviews} Reviews)</span>
         </div>
 
         <div className="flex items-center gap-1 mb-3 text-gray-500">
@@ -378,7 +362,7 @@ function ListingCard({ listing }) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <span className="text-xs">{location}</span>
+          <span className="text-xs">{locationStr}</span>
         </div>
 
         <div className="flex items-center justify-between pt-2.5 border-t border-gray-100">
@@ -400,11 +384,20 @@ function ListingCard({ listing }) {
 
 /* ─── Main Page ──────────────────────────────────────────────────────────────── */
 export default function UserExplorePage() {
+  const dispatch = useDispatch();
+  const apiListings = useSelector(selectListings);
+  const listingsStatus = useSelector(selectListingsStatus);
+  const pagination = useSelector(selectListingsPagination);
+
   const [activeTab, setActiveTab] = useState('all');
   const [activeSubFilter, setActiveSubFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
-  const ITEMS_PER_PAGE = 8;
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    dispatch(fetchListings({ page: currentPage, limit: ITEMS_PER_PAGE }));
+  }, [dispatch, currentPage]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -422,13 +415,20 @@ export default function UserExplorePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Filter listings
-  const filteredListings = ALL_LISTINGS.filter((l) => l.tab.includes(activeTab));
-  const totalPages = Math.ceil(filteredListings.length / ITEMS_PER_PAGE);
-  const paginatedListings = filteredListings.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  // Only use real API listings
+  const allListings = apiListings || [];
+  const filteredListings = activeTab === 'all'
+    ? allListings
+    : allListings.filter((l) => {
+        const cat = l.category ?? (l.tab?.includes(activeTab) ? activeTab : null);
+        return cat === activeTab || l.tab?.includes(activeTab);
+      });
+
+  const totalPages = pagination.totalPages || Math.ceil(filteredListings.length / ITEMS_PER_PAGE);
+  // When using API, pagination is server-side so show all on current page
+  const paginatedListings = apiListings.length > 0
+    ? filteredListings
+    : filteredListings.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const subFilters = SUB_FILTERS[activeTab] || [];
 
@@ -537,32 +537,35 @@ export default function UserExplorePage() {
         {viewMode === 'map' ? (
           /* ── Map View ── */
           <MapView listings={filteredListings} />
+        ) : listingsStatus === 'loading' ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : paginatedListings.length > 0 ? (
           /* ── Grid View ── */
           <>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
               {paginatedListings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+                <ListingCard key={listing._id || listing.id} listing={listing} />
               ))}
             </div>
 
             {/* Pagination info + controls */}
-            <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-3">
-              <p className="text-sm text-gray-500 order-2 sm:order-1">
-                Showing{' '}
-                <span className="font-semibold text-gray-700">
-                  {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredListings.length)}
-                </span>{' '}
-                of <span className="font-semibold text-gray-700">{filteredListings.length}</span>
-              </p>
-              <div className="order-1 sm:order-2">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-3">
+                <p className="text-sm text-gray-500 order-2 sm:order-1">
+                  Page <span className="font-semibold text-gray-700">{currentPage}</span> of{' '}
+                  <span className="font-semibold text-gray-700">{totalPages}</span>
+                </p>
+                <div className="order-1 sm:order-2">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 text-center">
