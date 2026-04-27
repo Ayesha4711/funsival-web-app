@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Pagination from "@/components/shared/Pagination";
+import { describeListingPrice, formatListingPrice } from "./listings/listingPrice";
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const LocationIcon = () => (
@@ -28,6 +29,67 @@ const CalendarIcon = () => (
     <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
   </svg>
 );
+
+/* Offering icons — one per amenity type */
+const IconParking = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>
+  </svg>
+);
+const IconWasher = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="2"/><circle cx="12" cy="13" r="4"/><circle cx="8" cy="6" r="1" fill="#6B7280"/>
+  </svg>
+);
+const IconDrink = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 2h8l-1 7H9L8 2z"/><path d="M9 9c0 5 6 5 6 10"/><path d="M9 19h6"/><line x1="6" y1="22" x2="18" y2="22"/>
+  </svg>
+);
+const IconFridge = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="9" y1="6" x2="9" y2="8"/><line x1="9" y1="14" x2="9" y2="18"/>
+  </svg>
+);
+const IconWifi = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#6B7280"/>
+  </svg>
+);
+const IconFood = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+  </svg>
+);
+const IconIron = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 20h16"/><path d="M6 20V10a6 6 0 0 1 12 0v2H6"/><line x1="12" y1="4" x2="12" y2="7"/>
+  </svg>
+);
+const IconFirstAid = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+  </svg>
+);
+
+const OFFERING_ICONS = {
+  "Free parking on premises": <IconParking />,
+  "Washer": <IconWasher />,
+  "Non-Alcoholic Drink Service": <IconDrink />,
+  "Refrigerator": <IconFridge />,
+  "Wifi": <IconWifi />,
+  "WiFi": <IconWifi />,
+  "Food Service": <IconFood />,
+  "Iron": <IconIron />,
+  "First aid kit": <IconFirstAid />,
+};
+
+const DEFAULT_OFFERINGS = [
+  "Free parking on premises", "Washer",
+  "Non-Alcoholic Drink Service", "Refrigerator",
+  "Wifi", "Food Service",
+  "Iron", "First aid kit",
+];
 
 /* ─── Status config ──────────────────────────────────────────────────────────── */
 const STATUS_OPTIONS = ["Draft", "Active", "Inactive"];
@@ -171,6 +233,172 @@ function AvailabilityCell({ slots = [] }) {
   );
 }
 
+function ListingPreviewModal({ item, onClose, onEdit }) {
+  const [showSlots, setShowSlots] = useState(false);
+  const [readMore, setReadMore] = useState(false);
+
+  const priceLines = item.priceDetails?.length ? item.priceDetails : describeListingPrice(item.category, item.price);
+  const offerings = item.included?.length ? item.included : DEFAULT_OFFERINGS;
+  const slots = item.slots || [];
+  const description = item.description || "No description added yet.";
+  const DESC_LIMIT = 120;
+  const isLong = description.length > DESC_LIMIT;
+
+  function handleBackdrop(e) {
+    if (e.target === e.currentTarget) onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex justify-center p-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.35)", paddingTop: 24 }}
+      onMouseDown={handleBackdrop}
+    >
+      <div
+        className="bg-white rounded-[20px] shadow-2xl overflow-hidden flex flex-col w-full"
+        style={{ maxWidth: 648, maxHeight: "calc(100vh - 48px)" }}
+      >
+        {/* Header — 58px tall, X top-left, title centered */}
+        <div
+          className="relative flex items-center justify-center px-6 shrink-0 border-b border-gray-100"
+          style={{ height: 58 }}
+        >
+          <button
+            onClick={onClose}
+            className="absolute left-4 w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition-colors"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <p className="text-sm font-bold text-[#1A1A2E]">{item.name}</p>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          {/* Hero image */}
+          <div className="h-48 rounded-xl overflow-hidden bg-gray-100">
+            {item.image && (item.image.startsWith("http") || item.image.startsWith("blob:") || item.image.startsWith("data:")) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* About Service */}
+          <div>
+            <p className="text-sm font-bold text-[#1A1A2E] mb-1.5">About Service</p>
+            <p className="text-xs leading-5 text-gray-400">
+              {isLong && !readMore ? description.slice(0, DESC_LIMIT) + "… " : description + " "}
+              {isLong && (
+                <button
+                  onClick={() => setReadMore((v) => !v)}
+                  className="text-[var(--color-primary)] font-semibold hover:underline"
+                >
+                  {readMore ? "Read Less" : "Read More"}
+                </button>
+              )}
+            </p>
+          </div>
+
+          {/* Info rows */}
+          <div className="divide-y divide-gray-100">
+            {[
+              { label: "Amenities", value: cap(item.category) },
+              { label: "Location",  value: item.location },
+              { label: "Category",  value: cap(item.category) },
+              { label: "Price",     value: formatListingPrice(item.category, item.price) },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex items-center justify-between py-2.5 text-xs">
+                <span className="text-gray-400">{label}</span>
+                <span className="text-gray-700 font-medium text-right max-w-[60%]">{value || "—"}</span>
+              </div>
+            ))}
+
+            {/* Time Slot row */}
+            <div className="py-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400">Time Slot</span>
+                <button
+                  onClick={() => setShowSlots((v) => !v)}
+                  className="text-[#F59E0B] font-semibold hover:underline flex items-center gap-1"
+                >
+                  {slots.length > 0 ? (showSlots ? "Hide Slots" : "View Slots") : "No Slots"}
+                  {slots.length > 0 && (
+                    <svg
+                      width="10" height="10" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                      style={{ transform: showSlots ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+              {showSlots && slots.length > 0 && (
+                <div className="mt-2 rounded-xl border border-gray-100 overflow-hidden">
+                  {slots.map((s, i) => {
+                    const day  = formatSlotDay(s.day ?? s.date);
+                    const time = s.startTime && s.endTime
+                      ? `${formatTime(s.startTime)} – ${formatTime(s.endTime)}`
+                      : s.time ?? "—";
+                    return (
+                      <div key={i} className={`flex items-center gap-3 px-4 py-2.5 text-xs ${i !== slots.length - 1 ? "border-b border-gray-50" : ""}`}>
+                        <span className="text-[var(--color-primary)] shrink-0"><CalendarIcon /></span>
+                        <span className="font-semibold text-gray-700">{day}</span>
+                        <span className="text-gray-400 ml-auto">{time}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Offering */}
+          <div>
+            <p className="text-sm font-bold text-[#1A1A2E] mb-3">Offering</p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+              {offerings.map((name) => (
+                <div key={name} className="flex items-center gap-2 text-xs text-gray-600">
+                  <span className="shrink-0">{OFFERING_ICONS[name] ?? <IconFirstAid />}</span>
+                  {name}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pricing details */}
+          {priceLines.length > 0 && (
+            <div className="rounded-xl bg-[#F8FAFC] border border-gray-100 px-4 py-3">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Pricing Details</p>
+              {priceLines.map((line) => (
+                <p key={line} className="text-xs font-semibold text-gray-700">{line}</p>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer — Edit button pinned bottom-right */}
+        <div className="shrink-0 flex justify-end px-6 py-4 border-t border-gray-100">
+          <button
+            onClick={() => { onClose(); onEdit(item); }}
+            className="px-8 py-2.5 rounded-full bg-[var(--color-primary)] text-white text-sm font-bold hover:opacity-90 transition-opacity"
+          >
+            Edit
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Status dropdown ────────────────────────────────────────────────────────── */
 function StatusDropdown({ status, onStatusChange }) {
   const [open, setOpen] = useState(false);
@@ -275,8 +503,18 @@ export default function ListingsTable({
   onEdit,
   onDelete,
 }) {
+  const [previewItem, setPreviewItem] = useState(null);
+
   return (
     <div className="flex flex-col flex-1">
+      {previewItem && (
+        <ListingPreviewModal
+          item={previewItem}
+          onClose={() => setPreviewItem(null)}
+          onEdit={(item) => { setPreviewItem(null); onEdit(item); }}
+        />
+      )}
+
       <div className="flex-1 overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[700px]">
           <thead>
@@ -303,12 +541,15 @@ export default function ListingsTable({
               data.map((item, idx) => (
                 <tr
                   key={item.id}
-                  className={`group transition-colors hover:bg-[#F8FFFA] ${idx !== data.length - 1 ? "border-b border-gray-50" : ""}`}
+                  className={`transition-colors hover:bg-[#F8FFFA] ${idx !== data.length - 1 ? "border-b border-gray-50" : ""}`}
                 >
-                  {/* Activity */}
+                  {/* Activity — click thumbnail/name to open preview */}
                   <td className="px-5 py-3.5 min-w-[200px] max-w-[260px]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 relative bg-gray-100 border border-gray-100">
+                    <button
+                      onClick={() => setPreviewItem(item)}
+                      className="flex items-center gap-3 text-left w-full"
+                    >
+                      <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 bg-gray-100 border border-gray-100">
                         {item.image && (item.image.startsWith("http") || item.image.startsWith("blob:") || item.image.startsWith("data:")) ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
@@ -327,7 +568,7 @@ export default function ListingsTable({
                           <span className="truncate">{item.location}</span>
                         </p>
                       </div>
-                    </div>
+                    </button>
                   </td>
 
                   {/* Category */}
@@ -342,7 +583,7 @@ export default function ListingsTable({
 
                   {/* Price */}
                   <td className="px-5 py-3.5 whitespace-nowrap">
-                    <span className="text-xs font-extrabold text-[var(--color-text)]">{item.price}</span>
+                    <span className="text-xs font-extrabold text-[var(--color-text)]">{item.priceLabel ?? formatListingPrice(item.category, item.price)}</span>
                   </td>
 
                   {/* Availability */}
@@ -354,7 +595,7 @@ export default function ListingsTable({
                   <td className="px-5 py-3.5 whitespace-nowrap">
                     <StatusDropdown
                       status={item.status}
-                      onStatusChange={(newStatus) => onStatusChange(item.id, newStatus)}
+                      onStatusChange={(newStatus) => onStatusChange(item, newStatus)}
                     />
                   </td>
 

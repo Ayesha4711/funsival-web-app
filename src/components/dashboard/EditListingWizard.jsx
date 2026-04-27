@@ -11,6 +11,7 @@ import StepReview from "./listings/StepReview";
 import { useDispatch } from "react-redux";
 import { fetchListing, updateListing } from "@/store/slices/listingsSlice";
 import DashboardFooter from "@/components/dashboard/DashboardFooter";
+import { buildListingPricePayload, createEmptyPrice, formatListingPrice, normalizeListingPrice } from "./listings/listingPrice";
 
 /* ─── Step config ──────────────────────────────────────────────────────────── */
 const STEPS = [
@@ -161,14 +162,15 @@ function apiToWizardData(raw) {
   return {
     category: raw.category || "",
     type: raw.type || "",
+    status: raw.status || "Active",
     details,
-    price: raw.price?.amount != null ? String(raw.price.amount) : "",
+    price: normalizeListingPrice(raw.category || "", raw.price ?? createEmptyPrice(raw.category || "")),
   };
 }
 
 /* ─── Build API payload (same logic as AddListingWizard) ───────────────────── */
 function buildPayload(data) {
-  const { category, type, details = {}, price } = data;
+  const { category, type, details = {}, price, status = "Active" } = data;
 
   const durationMap = {
     "30min": { value: 30, unit: "minutes" },
@@ -223,10 +225,8 @@ function buildPayload(data) {
     },
     photos: details.photos || [],
     availability,
-    price: {
-      amount: Number(price) || 0,
-      currency: "USD",
-    },
+    price: buildListingPricePayload(category, price),
+    status,
   };
 }
 
@@ -302,7 +302,9 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
           name: payload.basicInformation.activityTitle || listing.name,
           location: builtLocation,
           category: payload.category || listing.category,
-          price: payload.price?.amount != null ? `$${payload.price.amount} / person` : listing.price,
+          price: formatListingPrice(payload.category || listing.category, payload.price),
+          priceLabel: formatListingPrice(payload.category || listing.category, payload.price),
+          status: payload.status || listing.status,
           slots: payload.availability,
         };
         toast.success("Listing updated successfully.");
@@ -404,6 +406,7 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
             />}
           {step === 4 &&
             <StepPrice
+              category={data.category}
               price={data.price}
               onChange={val => update("price", val)}
               onNext={next}
@@ -412,6 +415,8 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
           {step === 5 && (
             <StepReview
               data={data}
+              editableStatus
+              onStatusChange={(value) => update("status", value)}
               onNext={handleSubmit}
               onBack={back}
               onBackToDetails={() => setStep(3)}

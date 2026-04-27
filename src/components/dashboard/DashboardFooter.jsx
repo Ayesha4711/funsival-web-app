@@ -49,7 +49,7 @@ const footerLinks = {
 
 export default function DashboardFooter() {
   return (
-    <footer className="bg-[#F3F4F6]">
+    <footer className="bg-[#FBFBFB]">
       {/* Newsletter */}
       <div className="px-6 sm:px-10 lg:px-16 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-[var(--color-border)]">
         <div>
