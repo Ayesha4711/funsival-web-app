@@ -419,8 +419,6 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
           {step === 5 && (
             <StepReview
               data={data}
-              editableStatus
-              onStatusChange={(value) => update("status", value)}
               onNext={handleSubmit}
               onBack={back}
               onBackToDetails={() => setStep(3)}
