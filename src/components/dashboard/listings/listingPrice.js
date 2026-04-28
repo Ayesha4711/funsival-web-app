@@ -1,9 +1,9 @@
 const USD = "USD";
 
 function toNumber(value) {
-  if (value === "" || value === null || value === undefined) return "";
+  if (value === "" || value === null || value === undefined || value === 0 || value === "0") return "";
   const num = Number(value);
-  return Number.isFinite(num) && num >= 0 ? num : "";
+  return Number.isFinite(num) && num > 0 ? num : "";
 }
 
 function formatMoney(value) {

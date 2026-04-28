@@ -303,7 +303,12 @@ export default function StepReview({
         <Divider />
 
         {/* Map */}
-        <SimpleMap location={location} />
+        <SimpleMap
+          location={fullAddress !== "—" ? fullAddress : location}
+          lat={details.mapLat}
+          lng={details.mapLng}
+          height={240}
+        />
 
         <Divider />
 
