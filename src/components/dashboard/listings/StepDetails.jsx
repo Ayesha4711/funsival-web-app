@@ -15,14 +15,37 @@ import { LocationMap } from "@/components/shared/MapControls";
 
 /* Match a raw city name from Nominatim against the country-state-city library */
 function resolveCity(rawCity, countryCode, stateCode) {
-  if (!rawCity || !countryCode || !stateCode) return rawCity || "";
-  const cities = City.getCitiesOfState(countryCode, stateCode);
-  if (!cities.length) return rawCity;
+  if (!rawCity || !countryCode) return rawCity || "";
   const lower = rawCity.toLowerCase();
-  const exact = cities.find(c => c.name.toLowerCase() === lower);
-  if (exact) return exact.name;
-  const partial = cities.find(c => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase()));
-  return partial ? partial.name : rawCity;
+
+  // 1. Try exact match within the state
+  if (stateCode) {
+    const stateCities = City.getCitiesOfState(countryCode, stateCode);
+    const exact = stateCities.find(c => c.name.toLowerCase() === lower);
+    if (exact) return exact.name;
+    const partial = stateCities.find(c =>
+      c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase())
+    );
+    if (partial) return partial.name;
+  }
+
+  // 2. Fall back: search all cities in the country (Nominatim city may belong to a neighbouring state)
+  const allStates = State.getStatesOfCountry(countryCode);
+  for (const st of allStates) {
+    const cities = City.getCitiesOfState(countryCode, st.isoCode);
+    const exact = cities.find(c => c.name.toLowerCase() === lower);
+    if (exact) return exact.name;
+  }
+  for (const st of allStates) {
+    const cities = City.getCitiesOfState(countryCode, st.isoCode);
+    const partial = cities.find(c =>
+      c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase())
+    );
+    if (partial) return partial.name;
+  }
+
+  // 3. Return the raw string as last resort (won't match dropdown but keeps the value visible)
+  return rawCity;
 }
 
 /* ─── Shared field components ───────────────────────────────────────────────── */
@@ -438,9 +461,26 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
   // ── Map search state ────────────────────────────────────────────────────────
   const [mapQuery, setMapQuery] = useState(details?.addressLine1 || "");
   const [mapSuggestions, setMapSuggestions] = useState([]);
-  const [mapCoords, setMapCoords] = useState({ lat: 24.8607, lon: 67.0011 });
+  const [mapCoords, setMapCoords] = useState(() => {
+    if (details?.mapLat && details?.mapLng) return { lat: details.mapLat, lon: details.mapLng };
+    return { lat: 24.8607, lon: 67.0011 };
+  });
   const [mapLoading, setMapLoading] = useState(false);
   const mapDebounceRef = useRef(null);
+
+  // On mount: if address is pre-filled but coords are still default, geocode to pan the map
+  useEffect(() => {
+    const prefilled = details?.addressLine1 || details?.location;
+    if (!prefilled || (details?.mapLat && details?.mapLng)) return;
+    fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(prefilled)}&format=json&limit=1`,
+      { headers: { "Accept-Language": "en" } }
+    )
+      .then(r => r.json())
+      .then(results => { if (results?.[0]) setMapCoords({ lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon) }); })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const searchMap = useCallback(async (q) => {
     if (!q.trim() || q.length < 3) { setMapSuggestions([]); return; }
@@ -463,7 +503,11 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
       setActiveErrors(prev => { const n = { ...prev }; delete n.addressLine1; return n; });
     }
     clearTimeout(mapDebounceRef.current);
-    mapDebounceRef.current = setTimeout(() => searchMap(val), 500);
+    mapDebounceRef.current = setTimeout(async () => {
+      await searchMap(val);
+      // Also pan the map to the top result so the iframe updates immediately
+      await geocodeAndPan(val);
+    }, 600);
   };
 
   const handleMapSelect = async (s) => {
@@ -508,7 +552,38 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
       const rawCity =
         addr.city || addr.town || addr.village || addr.suburb ||
         addr.municipality || addr.district || "";
-      const placeCity = resolveCity(rawCity, countryCode, stateCode);
+
+      // Resolve city — may find it in a different state than what Nominatim returned
+      let resolvedStateCode = stateCode;
+      let resolvedStateName = stateName;
+      let placeCity = "";
+      if (rawCity && countryCode) {
+        const lower = rawCity.toLowerCase();
+        const allStates = State.getStatesOfCountry(countryCode);
+
+        // Try state from Nominatim first
+        const tryState = (sc) => {
+          const cities = City.getCitiesOfState(countryCode, sc);
+          return cities.find(c => c.name.toLowerCase() === lower)
+            || cities.find(c => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase()));
+        };
+
+        let found = stateCode ? tryState(stateCode) : null;
+
+        // Fall back to any state in the country
+        if (!found) {
+          for (const st of allStates) {
+            found = tryState(st.isoCode);
+            if (found) {
+              resolvedStateCode = st.isoCode;
+              resolvedStateName = st.name;
+              break;
+            }
+          }
+        }
+
+        placeCity = found ? found.name : rawCity;
+      }
 
       const postalCode = addr.postcode || form.postalCode || "";
 
@@ -519,8 +594,8 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         location: data.display_name || s.display_name,
         countryCode,
         country: countryObj?.name || countryName,
-        stateCode,
-        state: stateName,
+        stateCode: resolvedStateCode,
+        state: resolvedStateName,
         placeCity,
         postalCode,
       }));
@@ -542,7 +617,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
   };
 
   const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) { toast.error("Geolocation is not supported by your browser."); return; }
     navigator.geolocation.getCurrentPosition(async ({ coords: { latitude: lat, longitude: lon } }) => {
       setMapCoords({ lat, lon });
       try {
@@ -576,7 +651,27 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         const rawCity =
           addr.city || addr.town || addr.village || addr.suburb ||
           addr.municipality || addr.district || "";
-        const placeCity = resolveCity(rawCity, countryCode, stateCode);
+
+        let resolvedStateCode = stateCode;
+        let resolvedStateName = stateName;
+        let placeCity = "";
+        if (rawCity && countryCode) {
+          const lower = rawCity.toLowerCase();
+          const allStatesForCity = State.getStatesOfCountry(countryCode);
+          const tryStateForCity = (sc) => {
+            const cities = City.getCitiesOfState(countryCode, sc);
+            return cities.find(c => c.name.toLowerCase() === lower)
+              || cities.find(c => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase()));
+          };
+          let found = stateCode ? tryStateForCity(stateCode) : null;
+          if (!found) {
+            for (const st of allStatesForCity) {
+              found = tryStateForCity(st.isoCode);
+              if (found) { resolvedStateCode = st.isoCode; resolvedStateName = st.name; break; }
+            }
+          }
+          placeCity = found ? found.name : rawCity;
+        }
 
         const postalCode = addr.postcode || form.postalCode || "";
 
@@ -587,8 +682,8 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
           location: data.display_name || addressLine1,
           countryCode,
           country: countryObj?.name || countryName,
-          stateCode,
-          state: stateName,
+          stateCode: resolvedStateCode,
+          state: resolvedStateName,
           placeCity,
           postalCode,
         }));
@@ -602,7 +697,9 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         setMapQuery(name);
         setForm(prev => ({ ...prev, addressLine1: name, location: name }));
       }
-    });
+    }, (err) => {
+      toast.error("Location access denied.", { description: err.message });
+    }, { enableHighAccuracy: true, timeout: 10000 });
   };
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
@@ -633,12 +730,19 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
       }
     }
     set("slots", [...form.slots, { day: "", startTime: "", endTime: "" }]);
+    clearSlotErrors();
   };
-  const removeSlot = (i) => set("slots", form.slots.filter((_, idx) => idx !== i));
+  const clearSlotErrors = () => {
+    if (activeErrors.slots || activeErrors.availability) {
+      setActiveErrors(prev => { const n = { ...prev }; delete n.slots; delete n.availability; return n; });
+    }
+  };
+  const removeSlot = (i) => { set("slots", form.slots.filter((_, idx) => idx !== i)); clearSlotErrors(); };
   const updateSlot = (i, key, val) => {
     const next = [...form.slots];
     next[i] = { ...next[i], [key]: val };
     set("slots", next);
+    clearSlotErrors();
   };
 
   return (
@@ -712,7 +816,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               />
               <FieldError msg={fe.difficulty} />
             </div>
-            <div>
+            <div data-field="duration">
               <Label required>Duration</Label>
               <DropdownField
                 value={form.duration}
@@ -764,7 +868,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               <TextInput placeholder="Enter the name of the guide or instructor leading this activity" value={form.instructorName} error={!!fe.instructorName} onChange={(e) => setWithClear("instructorName", e.target.value, "instructorName")} />
               <FieldError msg={fe.instructorName} />
             </div>
-            <div>
+            <div data-field="cancellationPolicy">
               <Label required>Cancellation Policy</Label>
               <div className="flex items-center gap-2">
                 <div className="flex-1">
@@ -862,6 +966,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               <Label>Address Line 2</Label>
               <TextInput placeholder="Apt, suite, unit (optional)" value={form.addressLine2} onChange={(e) => set("addressLine2", e.target.value)} />
             </div>
+            <div data-field="country" className="contents">
             <LocationDropdowns
               country={form.countryCode}
               state={form.stateCode}
@@ -888,6 +993,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               }}
               errors={fe}
             />
+            </div>
             <div>
               <Label>Postal Code</Label>
               <TextInput placeholder="Postal / ZIP code" value={form.postalCode} onChange={(e) => set("postalCode", e.target.value)} />
@@ -980,7 +1086,8 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               }
               return;
             }
-            onChange(form);
+            const hasAddress = !!(form.addressLine1?.trim() || form.location?.trim());
+            onChange({ ...form, mapLat: hasAddress ? mapCoords.lat : undefined, mapLng: hasAddress ? mapCoords.lon : undefined });
             onNext();
           }}
           className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all"

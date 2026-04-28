@@ -82,27 +82,48 @@ export function LocationMap({ coords, searchValue, onSearchChange, onSelect, onU
   );
 }
 
-export function SimpleMap({ location, height = 200 }) {
-  const [coords, setCoords] = useState(null);
+export function SimpleMap({ location, lat: latProp, lng: lngProp, height = 200 }) {
+  const hasCoords = Number.isFinite(latProp) && Number.isFinite(lngProp);
+  const [coords, setCoords] = useState(hasCoords ? { lat: latProp, lon: lngProp } : null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (!location) return;
+    // If coordinates were passed directly, skip geocoding
+    if (Number.isFinite(latProp) && Number.isFinite(lngProp)) { setCoords({ lat: latProp, lon: lngProp }); return; }
+    if (!location) { setFailed(true); return; }
+
+    let cancelled = false;
+    const timeout = setTimeout(() => { if (!cancelled) setFailed(true); }, 8000);
+
     async function geocode() {
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`);
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
+          { headers: { "Accept-Language": "en" } }
+        );
         const data = await res.json();
-        if (data && data[0]) {
-          setCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) });
+        if (!cancelled) {
+          if (data && data[0]) {
+            setCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) });
+          } else {
+            setFailed(true);
+          }
         }
-      } catch (err) { console.error("Geocoding error:", err); }
+      } catch { if (!cancelled) setFailed(true); }
+      clearTimeout(timeout);
     }
     geocode();
-  }, [location]);
+    return () => { cancelled = true; clearTimeout(timeout); };
+  }, [location, latProp, lngProp]);
 
   if (!coords) {
     return (
-      <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl animate-pulse" style={{ height }}>
-        <span className="text-xs text-gray-400 font-medium">Locating on map…</span>
+      <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl" style={{ height }}>
+        {failed ? (
+          <span className="text-xs text-gray-400 font-medium">Map unavailable for this location.</span>
+        ) : (
+          <span className="text-xs text-gray-400 font-medium animate-pulse">Locating on map…</span>
+        )}
       </div>
     );
   }

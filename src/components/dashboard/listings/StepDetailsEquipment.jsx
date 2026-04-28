@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { toast } from "sonner";
 import {
   CalendarField,
   DropdownField,
@@ -224,11 +225,24 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
   };
 
   const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const { latitude, longitude } = pos.coords;
-      handleMapSelect({ lat: latitude, lon: longitude, display_name: "Current Location" });
-    });
+    if (!navigator.geolocation) { toast.error("Geolocation is not supported by your browser."); return; }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+            { headers: { "Accept-Language": "en" } }
+          );
+          const data = await res.json();
+          handleMapSelect({ lat, lon, display_name: data.display_name || `${lat.toFixed(4)}, ${lon.toFixed(4)}` });
+        } catch {
+          handleMapSelect({ lat, lon, display_name: `${lat.toFixed(4)}, ${lon.toFixed(4)}` });
+        }
+      },
+      (err) => { toast.error("Location access denied.", { description: err.message }); },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const set = (key, val) => {
@@ -238,13 +252,19 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
     setForm(prev => ({ ...prev, [key]: val }));
   };
 
-  const addSlot = () => set("slots", [...form.slots, { day: "", startTime: "", endTime: "" }]);
+  const clearSlotErrors = () => {
+    if (activeErrors.slots || activeErrors.availability) {
+      setActiveErrors(prev => { const n = { ...prev }; delete n.slots; delete n.availability; return n; });
+    }
+  };
+  const addSlot = () => { set("slots", [...form.slots, { day: "", startTime: "", endTime: "" }]); clearSlotErrors(); };
   const updateSlot = (i, key, val) => {
     const next = [...form.slots];
     next[i] = { ...next[i], [key]: val };
     set("slots", next);
+    clearSlotErrors();
   };
-  const removeSlot = (i) => set("slots", form.slots.filter((_, j) => j !== i));
+  const removeSlot = (i) => { set("slots", form.slots.filter((_, j) => j !== i)); clearSlotErrors(); };
 
   const save = () => onChange(form);
 
@@ -263,20 +283,23 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
         <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="1">Basic Information</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
+            <div data-field="equipmentName">
               <Label required>Equipment Name</Label>
               <TextInput
                 placeholder="Give your equipment a name shown publicly"
                 value={form.equipmentName}
+                error={!!fe.equipmentName}
                 onChange={e => set("equipmentName", e.target.value)}
               />
+              <FieldError msg={fe.equipmentName} />
             </div>
-            <div>
+            <div data-field="location">
               <Label required>Location (City & State)</Label>
               <div className="relative">
                 <TextInput
                   placeholder="Help renters find your equipment"
                   value={form.location}
+                  error={!!fe.location}
                   onChange={e => set("location", e.target.value)}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300">
@@ -285,6 +308,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
                   </svg>
                 </span>
               </div>
+              <FieldError msg={fe.location} />
             </div>
             <div className="sm:col-span-2">
               <Label>Description</Label>
@@ -326,7 +350,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
                 onRemove={(index) => set("included", form.included.filter((_, i) => i !== index))}
               />
             </div>
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-2" data-field="requirements">
               <Label>Rules & Requirements</Label>
               <Textarea
                 placeholder="Let renters know what rules or requirements apply"
@@ -423,6 +447,11 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
 
             if (Object.keys(errs).length > 0) {
               setActiveErrors(errs);
+              const firstKey = Object.keys(errs)[0];
+              setTimeout(() => {
+                const el = document.querySelector(`[data-field="${firstKey}"]`);
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+              }, 50);
               return;
             }
             onChange(form);

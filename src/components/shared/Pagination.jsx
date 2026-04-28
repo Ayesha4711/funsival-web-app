@@ -31,7 +31,7 @@ export default function Pagination({
       <button
         onClick={() => goTo(currentPage - 1)}
         disabled={currentPage === 1}
-        className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-900 hover:text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
@@ -45,10 +45,10 @@ export default function Pagination({
           <button
             key={page}
             onClick={() => goTo(page)}
-            className={`w-9 h-9 rounded-full text-sm font-semibold transition-colors ${
+            className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${
               page === currentPage
                 ? "bg-[#4AA7A7] text-white"
-                : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                : "text-gray-900 hover:bg-gray-100"
             }`}
           >
             {page}
@@ -60,7 +60,7 @@ export default function Pagination({
       <button
         onClick={() => goTo(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-900 hover:text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         Next
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
