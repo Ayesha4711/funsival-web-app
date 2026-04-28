@@ -138,7 +138,7 @@ export default function LandingNavbar() {
               </button>
 
               {profileOpen && (
-                <div className="absolute top-full right-0 mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-[#F0E8D8] z-50 py-3 overflow-hidden">
+                <div className="absolute top-full right-0 mt-2 w-60 bg-white rounded-2xl border border-[#F0E8D8] z-50 py-3 overflow-hidden">
                   {profileMenuItems.map((item, i) =>
                     item === null ? (
                       <div key={i} className="my-2 mx-4 border-t border-gray-200" />
@@ -165,7 +165,7 @@ export default function LandingNavbar() {
       {menuOpen && (
         <>
           <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMenuOpen(false)} />
-          <div className="absolute top-full right-4 w-52 max-h-[60vh] overflow-y-auto bg-white z-50 md:hidden shadow-2xl rounded-2xl border border-gray-100 py-1">
+          <div className="absolute top-full right-4 w-52 max-h-[60vh] overflow-y-auto bg-white z-50 md:hidden rounded-2xl border border-gray-100 py-1">
             {profileMenuItems.map((item, i) =>
               item === null ? (
                 <div key={i} className="mx-3 my-1 border-t border-gray-100" />

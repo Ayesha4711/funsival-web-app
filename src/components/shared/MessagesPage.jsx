@@ -194,7 +194,7 @@ function ChatMenu() {
         <MoreIcon />
       </button>
       {open && (
-        <div className="absolute right-0 top-10 z-30 bg-white border border-gray-200 rounded-2xl shadow-lg py-1.5 min-w-[160px]">
+        <div className="absolute right-0 top-10 z-30 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[160px]">
           <button onClick={() => setOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50">View Profile</button>
           <button onClick={() => setOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50">Search message</button>
           <button onClick={() => setOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">Report</button>
@@ -337,7 +337,7 @@ export default function MessagesPage() {
 
       {/* Content area */}
       <div className="flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6">
-        <div className="h-full bg-white rounded-3xl border border-[var(--color-border)] shadow-sm overflow-hidden flex">
+        <div className="h-full bg-white rounded-3xl border border-[var(--color-border)] overflow-hidden flex">
 
           {/* Contact list panel */}
           <div className={`

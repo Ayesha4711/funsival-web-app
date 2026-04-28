@@ -111,7 +111,7 @@ export default function ReservationDetailView({ reservation, onBack, onCancel })
       </h1>
 
       {/* Main card */}
-      <div className="bg-white rounded-[32px] shadow-sm border border-[var(--color-border)] overflow-hidden">
+      <div className="bg-white rounded-[32px] border border-[var(--color-border)] overflow-hidden">
 
         {/* Hero image */}
         <div className="relative w-full h-48 sm:h-64 lg:h-72">

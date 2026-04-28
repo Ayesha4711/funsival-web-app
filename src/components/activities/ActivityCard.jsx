@@ -7,7 +7,7 @@ export default function ActivityCard({ activity }) {
   const { image, title, rating = 4.8, reviewCount = '24K Reviews', location, price, duration, difficulty, badge } = activity;
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer group">
+    <div className="bg-white rounded-2xl overflow-hidden duration-200 cursor-pointer group hover:shadow-md transition-shadow">
       {/* Image */}
       <div className="relative h-44 w-full overflow-hidden">
         {image ? (

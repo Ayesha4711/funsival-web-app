@@ -56,7 +56,7 @@ function ActionMenu({ item, onViewDetails, onCancel }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-2xl shadow-lg py-1.5 min-w-[140px]">
+        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[140px]">
           <button
             onClick={() => { setOpen(false); onViewDetails(item); }}
             className="w-full text-left px-4 py-2.5 text-sm font-medium text-[var(--color-text)] hover:bg-gray-50 transition-colors"
@@ -107,7 +107,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[var(--color-border)] overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>

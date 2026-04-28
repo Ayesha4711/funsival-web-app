@@ -83,7 +83,7 @@ export default function StepCategory({ selected, onSelect, onNext }) {
               "w-[200px] min-[320px]:w-[220px] h-[110px] sm:w-full sm:h-[180px]",
               selected === id
                 ? "border-[var(--color-primary)] bg-[var(--color-primary-light)]"
-                : "border-gray-200 bg-white hover:border-[var(--color-primary-light)] hover:shadow-sm"
+                : "border-gray-200 bg-white hover:border-[var(--color-primary-light)]"
             ].join(" ")}
           >
             <Image

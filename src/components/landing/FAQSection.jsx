@@ -56,7 +56,7 @@ export default function FAQSection() {
             <div
               key={faq.id}
               className={`rounded-2xl p-5 md:p-6 transition-all duration-200 cursor-pointer ${
-                openId === faq.id ? 'bg-[#FFF8E6]' : 'bg-white border border-gray-100 shadow-sm'
+                openId === faq.id ? 'bg-[#FFF8E6]' : 'bg-white border border-gray-100'
               }`}
               onClick={() => toggleFAQ(faq.id)}
             >

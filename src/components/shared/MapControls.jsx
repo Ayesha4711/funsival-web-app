@@ -6,7 +6,7 @@ export function LocationMap({ coords, searchValue, onSearchChange, onSelect, onU
   const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.05}%2C${coords.lat - 0.05}%2C${coords.lon + 0.05}%2C${coords.lat + 0.05}&layer=mapnik&marker=${coords.lat}%2C${coords.lon}`;
 
   return (
-    <div className="relative w-full h-64 sm:h-80 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 shadow-inner">
+    <div className="relative w-full h-64 sm:h-80 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
       {/* Real OSM Map Iframe */}
       <div className="absolute inset-0">
         <iframe 
@@ -18,32 +18,46 @@ export function LocationMap({ coords, searchValue, onSearchChange, onSelect, onU
         />
       </div>
 
-      {/* Search overlay — centered vertically over the map */}
-      <div className="absolute top-4 left-4 right-4 z-10">
-        <div className="relative group max-w-sm mx-auto sm:mx-0">
-          <div className="flex items-center gap-2 bg-white rounded-2xl px-4 py-3 shadow-xl border border-gray-100 transition-all focus-within:ring-2 focus-within:ring-[var(--color-primary)]">
+      {/* Search overlay — centered in middle of map */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center px-4 pointer-events-none">
+        <div className="relative pointer-events-auto w-full max-w-md">
+          <div className="flex items-center gap-2 bg-white rounded-full px-4 py-3 border border-gray-200 transition-all focus-within:ring-2 focus-within:ring-[var(--color-primary)]">
+            {/* Location pin icon */}
             {searchLoading ? (
-              <svg className="animate-spin h-4 w-4 text-[var(--color-primary)]" viewBox="0 0 24 24">
+              <svg className="animate-spin h-4 w-4 text-[var(--color-primary)] shrink-0" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
             ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
               </svg>
             )}
             <input
               type="text"
-              placeholder="Search for an address or place…"
-              className="flex-1 bg-transparent text-sm font-semibold text-gray-900 placeholder-gray-400 focus:outline-none"
+              placeholder="Enter exact address"
+              className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none min-w-0"
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
             />
+            {/* Divider */}
+            <div className="w-px h-5 bg-gray-200 shrink-0" />
+            {/* Use my current location */}
+            <button
+              type="button"
+              onClick={onUseCurrentLocation}
+              className="shrink-0 flex items-center gap-2 text-sm text-[var(--color-primary)] font-medium hover:opacity-80 transition-opacity whitespace-nowrap"
+            >
+              <span className="hidden sm:inline">Use my current location</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" strokeDasharray="2 2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
+              </svg>
+            </button>
           </div>
 
           {/* Suggestions Dropdown */}
           {suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto">
               {suggestions.map((s) => (
                 <button
                   key={s.place_id}
@@ -60,21 +74,10 @@ export function LocationMap({ coords, searchValue, onSearchChange, onSelect, onU
       </div>
 
       {/* Map attribution overlay */}
+
       <div className="absolute bottom-2 left-2 bg-white/70 backdrop-blur-sm px-1.5 py-0.5 rounded text-[8px] text-gray-400 pointer-events-none">
         © OpenStreetMap contributors
       </div>
-
-      {/* Use current location button */}
-      <button
-        type="button"
-        onClick={onUseCurrentLocation}
-        className="absolute bottom-4 right-4 flex items-center gap-2 bg-white rounded-full px-4 py-2.5 shadow-xl border border-gray-100 text-xs text-[var(--color-primary)] font-bold hover:bg-gray-50 transition-all active:scale-95 z-10"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
-        </svg>
-        Current Location
-      </button>
     </div>
   );
 }
@@ -107,7 +110,7 @@ export function SimpleMap({ location, height = 200 }) {
   const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.05}%2C${coords.lat - 0.05}%2C${coords.lon + 0.05}%2C${coords.lat + 0.05}&layer=mapnik&marker=${coords.lat}%2C${coords.lon}`;
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden shadow-inner border border-gray-100" style={{ height }}>
+    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-100" style={{ height }}>
       <iframe
         title="Map location"
         width="100%"

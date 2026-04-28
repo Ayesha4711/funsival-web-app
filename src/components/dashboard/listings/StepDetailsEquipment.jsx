@@ -260,7 +260,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
 
       <div className="space-y-8 max-w-3xl mx-auto">
         {/* ── 1. Basic Information ─────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="1">Basic Information</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -298,7 +298,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
         </section>
 
         {/* ── 2. Equipment Details ──────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="2">Equipment Details</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -353,7 +353,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
         </section>
 
         {/* ── 3. Location Map ──────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm overflow-visible">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 overflow-visible">
           <SectionTitle num="3">Where&apos;s Your Equipment Located?</SectionTitle>
           <p className="text-xs text-gray-400 mb-3">
             Your address is only shown to renters after they&apos;ve made a booking.
@@ -370,7 +370,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
         </section>
 
         {/* ── 4. Photos ────────────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="4">Add Some Photos Of Your Equipment</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">
             Add at least 5 photos to increase your bookings. You can edit or add more later.
@@ -379,7 +379,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
         </section>
 
         {/* ── 5. Availability ──────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="5">Availability</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">
             Set when this equipment is available for rental.

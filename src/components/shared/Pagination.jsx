@@ -22,7 +22,7 @@ function PageButton({ children, disabled, active = false, onClick, ariaLabel }) 
   const base =
     "inline-flex items-center justify-center min-w-8 h-8 rounded-full border text-xs font-semibold transition-colors";
   const styles = active
-    ? "border-[#F4B84E] bg-white text-[#D89A16] shadow-sm"
+    ? "border-[#F4B84E] bg-white text-[#D89A16]"
     : "border-gray-200 bg-white text-gray-400 hover:border-gray-300 hover:text-gray-700";
 
   return (
@@ -74,7 +74,7 @@ export default function Pagination({
           <PrevIcon />
         </PageButton>
 
-        <div className="inline-flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#F4B84E]/60 bg-white shadow-sm text-xs font-semibold">
+        <div className="inline-flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#F4B84E]/60 bg-white text-xs font-semibold">
           <span className="text-[#D89A16]">{currentPage}</span>
           <span className="text-gray-300">/</span>
           <span className="text-gray-500">{totalPages}</span>

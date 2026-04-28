@@ -77,7 +77,7 @@ export default function TransactionHistory() {
   const [activeTab, setActiveTab] = React.useState("transaction");
 
   return (
-    <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[var(--color-border)]">
+    <div className="bg-white rounded-[32px] p-6 border border-[var(--color-border)]">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-xl font-bold text-[var(--color-text)]">Transaction History</h2>
@@ -92,13 +92,13 @@ export default function TransactionHistory() {
         <div className="flex p-1 bg-gray-100 rounded-full w-fit">
           <button
             onClick={() => setActiveTab("transaction")}
-            className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${activeTab === "transaction" ? "bg-white text-[var(--color-text)] shadow-sm" : "text-gray-400"}`}
+            className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${activeTab === "transaction" ? "bg-white text-[var(--color-text)]" : "text-gray-400"}`}
           >
             Transaction History
           </button>
           <button
             onClick={() => setActiveTab("withdrawal")}
-            className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${activeTab === "withdrawal" ? "bg-white text-[var(--color-text)] shadow-sm" : "text-gray-400"}`}
+            className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${activeTab === "withdrawal" ? "bg-white text-[var(--color-text)]" : "text-gray-400"}`}
           >
             Withdrawals History
           </button>

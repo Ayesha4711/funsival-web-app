@@ -218,7 +218,7 @@ function AvailabilityCell({ slots = [] }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-40 bg-white rounded-2xl shadow-xl border border-gray-100 w-56 overflow-hidden">
+        <div className="absolute left-0 top-full mt-2 z-40 bg-white rounded-2xl border border-gray-100 w-56 overflow-hidden">
           <div className="px-4 py-2.5 border-b border-gray-50 bg-gray-50/60">
             <p className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wide">
               {slots.length} Availability Slots
@@ -255,7 +255,7 @@ function ListingPreviewModal({ item, onClose, onEdit }) {
       onMouseDown={handleBackdrop}
     >
       <div
-        className="bg-white rounded-[20px] shadow-2xl overflow-hidden flex flex-col w-full"
+        className="bg-white rounded-[20px] overflow-hidden flex flex-col w-full"
         style={{ maxWidth: 648, maxHeight: "calc(100vh - 48px)" }}
       >
         {/* Header — 58px tall, X top-left, title centered */}
@@ -374,15 +374,6 @@ function ListingPreviewModal({ item, onClose, onEdit }) {
             </div>
           </div>
 
-          {/* Pricing details */}
-          {priceLines.length > 0 && (
-            <div className="rounded-xl bg-[#F8FAFC] border border-gray-100 px-4 py-3">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Pricing Details</p>
-              {priceLines.map((line) => (
-                <p key={line} className="text-xs font-semibold text-gray-700">{line}</p>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Footer — Edit button pinned bottom-right */}
@@ -426,7 +417,7 @@ function StatusDropdown({ status, onStatusChange }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-9 z-30 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[110px]">
+        <div className="absolute left-0 top-9 z-30 bg-white rounded-xl border border-gray-100 py-1 min-w-[110px]">
           {STATUS_OPTIONS.map((opt) => {
             const s = STATUS_STYLES[opt];
             return (
@@ -466,7 +457,7 @@ function ActionMenu({ item, onEdit, onDelete }) {
         <MoreIcon />
       </button>
       {open && (
-        <div className="absolute right-0 top-9 z-30 bg-white border border-gray-100 rounded-2xl shadow-lg py-1.5 min-w-[130px]">
+        <div className="absolute right-0 top-9 z-30 bg-white border border-gray-100 rounded-2xl py-1.5 min-w-[130px]">
           <button
             onClick={() => { setOpen(false); onEdit(item); }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"

@@ -78,9 +78,9 @@ export default function MapView({ listings }) {
           <button
             key={pin.id}
             onClick={() => setActivePin(isActive ? null : pin.id)}
-            className={`absolute z-10 px-3 py-1.5 rounded-full font-bold text-sm shadow-md transition-all duration-200 ${
+            className={`absolute z-10 px-3 py-1.5 rounded-full font-bold text-sm transition-all duration-200 ${
               isActive
-                ? "bg-[#4AA7A7] text-white scale-110 shadow-lg border-2 border-white"
+                ? "bg-[#4AA7A7] text-white scale-110 border-2 border-white"
                 : "bg-white text-gray-900 hover:bg-[#4AA7A7] hover:text-white hover:scale-105 border border-gray-200"
             }`}
             style={{ top: pin.top, left: pin.left, transform: "translate(-50%, -50%)" }}
@@ -93,35 +93,34 @@ export default function MapView({ listings }) {
       {/* ── Popup card when pin is active ── */}
       {activeListing && activePinObj && (
         <div
-          className="absolute z-20 bg-white rounded-2xl shadow-xl overflow-hidden w-48 sm:w-56"
+          className="absolute z-20 bg-white rounded-2xl overflow-hidden w-48 sm:w-56"
           style={{
             top: `calc(${activePinObj.top} - 130px)`,
             left: activePinObj.left,
             transform: "translateX(-50%)",
           }}
         >
-          {/* Close */}
-          <button
-            onClick={() => setActivePin(null)}
-            className="absolute top-2 right-2 z-10 w-5 h-5 bg-[#F5C842] rounded-full flex items-center justify-center text-gray-900"
-          >
-            <CloseIcon />
-          </button>
           {/* Image */}
           <div className="relative h-24 sm:h-28">
-            <img 
-              src={(Array.isArray(activeListing.photos) ? activeListing.photos[0] : activeListing.image) || 'https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80'} 
-              alt="" 
-              className="w-full h-full object-cover" 
+            <img
+              src={(Array.isArray(activeListing.photos) ? activeListing.photos[0] : activeListing.image) || 'https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80'}
+              alt=""
+              className="w-full h-full object-cover"
             />
+            {/* Close — top-right over image */}
+            <button
+              onClick={() => setActivePin(null)}
+              className="absolute top-2 right-2 z-10 w-5 h-5 bg-white/90 hover:bg-white rounded-full flex items-center justify-center text-gray-700 transition-colors"
+            >
+              <CloseIcon />
+            </button>
           </div>
           {/* Info */}
           <div className="p-3 flex flex-col gap-1">
-            <div className="flex items-start justify-between gap-1">
-              <p className="text-xs font-bold text-gray-900 leading-tight line-clamp-2">
+            <div className="flex items-start gap-1">
+              <p className="text-xs font-bold text-gray-900 leading-tight line-clamp-2 flex-1">
                 {activeListing.basicInformation?.activityTitle || activeListing.title || "Listing"}
               </p>
-              <span className="shrink-0 px-1.5 py-0.5 bg-green-100 text-green-600 text-[9px] font-bold rounded-full">Active</span>
             </div>
             <div className="flex items-center gap-1">
               <StarIcon />
@@ -145,7 +144,7 @@ export default function MapView({ listings }) {
       )}
 
       {/* ── Map attribution ── */}
-      <div className="absolute bottom-2 right-3 text-[9px] text-gray-400 bg-white/80 backdrop-blur-sm rounded px-1.5 py-0.5 border border-gray-100 shadow-sm">
+      <div className="absolute bottom-2 right-3 text-[9px] text-gray-400 bg-white/80 backdrop-blur-sm rounded px-1.5 py-0.5 border border-gray-100">
         Map data © OpenStreetMap
       </div>
     </div>

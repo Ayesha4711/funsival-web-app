@@ -176,7 +176,7 @@ export default function StepReview({
       </div>
 
       {/* Main card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-7">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-7">
 
         {/* Row 1 — title / location / price / category */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">

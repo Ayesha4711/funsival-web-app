@@ -2,9 +2,9 @@ import React from 'react';
 
 const variants = {
   primary:
-    'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] shadow-sm hover:-translate-y-0.5 focus:ring-[var(--color-primary)]',
+    'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] hover:-translate-y-0.5 focus:ring-[var(--color-primary)]',
   secondary:
-    'bg-white text-gray-700 border border-[var(--color-border)] hover:bg-gray-50 shadow-sm hover:-translate-y-0.5 focus:ring-gray-300',
+    'bg-white text-gray-700 border border-[var(--color-border)] hover:bg-gray-50 hover:-translate-y-0.5 focus:ring-gray-300',
   accent:
     'bg-[var(--color-secondary)] text-[#4A4A4A] hover:bg-[var(--color-secondary-dark)] hover:-translate-y-0.5 focus:ring-[var(--color-secondary)]',
   outline:
@@ -72,7 +72,7 @@ export default function Button({
       </span>
       
       {(iconRight || showArrow) && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm transition-transform group-hover:translate-x-1">
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white transition-transform group-hover:translate-x-1">
           {showArrow ? (
             <ArrowIcon />
           ) : (

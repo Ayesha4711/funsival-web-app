@@ -66,7 +66,7 @@ const UserOutlineIcon = () => (
 );
 
 const CheckBadge = () => (
-  <span className="absolute right-2 top-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#4AA7A7] text-white shadow-sm">
+  <span className="absolute right-2 top-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#4AA7A7] text-white">
     <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.2">
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 6.5l2 2 5-5" />
     </svg>
@@ -117,7 +117,7 @@ function ModePill({ active, label, icon, onClick, compact = false }) {
 function BookingShell({ children, title, price, priceUnit, rating, reviews }) {
   const ratingText = Number.isFinite(Number(rating)) ? Number(rating).toFixed(1).replace(/\.0$/, "") : "4.4";
   return (
-    <div className="w-full rounded-[24px] border border-gray-200 bg-white p-4 sm:p-5 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
+    <div className="w-full rounded-[24px] border border-gray-200 bg-white p-4 sm:p-5 ">
       {children}
       <div className="mt-4 flex items-start justify-between gap-4">
         <div className="min-w-0">

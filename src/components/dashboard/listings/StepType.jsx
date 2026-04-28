@@ -60,7 +60,7 @@ function TypeTile({ item, selected, onClick }) {
         "rounded-[12px] border border-gray-200 transition-all duration-150 cursor-pointer text-center",
         selected
           ? "border-[var(--color-primary)] bg-[var(--color-primary-light)]"
-          : "bg-white hover:border-[var(--color-primary-light)] hover:shadow-sm",
+          : "bg-white hover:border-[var(--color-primary-light)]",
       ].join(" ")}
     >
       {selected && (
@@ -104,7 +104,7 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
           placeholder="Search here"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-12 pr-5 py-3 sm:py-3.5 rounded-full border border-gray-200 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] shadow-sm"
+          className="w-full pl-12 pr-5 py-3 sm:py-3.5 rounded-full border border-gray-200 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
         />
       </div>
 

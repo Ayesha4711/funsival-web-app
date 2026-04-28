@@ -18,7 +18,7 @@ const notifications = [
  */
 export default function NotificationPopover({ onClose, viewAllHref = "/dashboard/notifications" }) {
   return (
-    <div className="absolute right-0 top-full mt-3 w-[320px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[60]">
+    <div className="absolute right-0 top-full mt-3 w-[320px] bg-white rounded-2xl border border-gray-100 overflow-hidden z-[60]">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-50">
         <h3 className="text-base font-extrabold text-[var(--color-text,#1a1a1a)]">Notifications</h3>

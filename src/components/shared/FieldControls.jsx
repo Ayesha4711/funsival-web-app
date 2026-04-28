@@ -80,7 +80,7 @@ export function DropdownField({
   return (
     <div ref={ref} className={`relative ${className}`} style={{ zIndex: open ? 50 : "auto" }}>
       <div className={[
-        "flex items-stretch rounded-xl border overflow-hidden shadow-sm transition-colors",
+        "flex items-stretch rounded-xl border overflow-hidden transition-colors",
         teal ? "bg-white" : "bg-[#F5F5F5]",
         open
           ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/15"
@@ -121,7 +121,7 @@ export function DropdownField({
 
       {open && !disabled && (
         <div
-          className={`absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-gray-100 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] overflow-hidden ${menuClassName}`}
+          className={`absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-gray-100 bg-white  overflow-hidden ${menuClassName}`}
         >
           <div className="max-h-60 overflow-y-auto py-1">
             {options.map((option) => {
@@ -189,7 +189,7 @@ export function ComboboxField({
   return (
     <div ref={ref} className={`relative ${className}`} style={{ zIndex: open ? 50 : "auto" }}>
       {open ? (
-        <div className="flex items-stretch rounded-xl border border-[var(--color-primary)] bg-white ring-2 ring-[var(--color-primary)]/20 overflow-hidden shadow-sm">
+        <div className="flex items-stretch rounded-xl border border-[var(--color-primary)] bg-white ring-2 ring-[var(--color-primary)]/20 overflow-hidden">
           <input
             ref={inputRef}
             type="text"
@@ -209,7 +209,7 @@ export function ComboboxField({
       ) : (
         <div
           className={[
-            "flex items-stretch rounded-xl border bg-[#F5F5F5] overflow-hidden shadow-sm transition-colors",
+            "flex items-stretch rounded-xl border bg-[#F5F5F5] overflow-hidden transition-colors",
             disabled
               ? "opacity-60 cursor-not-allowed border-transparent"
               : error
@@ -230,7 +230,7 @@ export function ComboboxField({
       )}
 
       {open && !disabled && (
-        <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-gray-100 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] overflow-hidden">
+        <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-gray-100 bg-white  overflow-hidden">
           <div className="max-h-56 overflow-y-auto py-1">
             {filtered.length === 0 ? (
               <p className="px-4 py-3 text-xs text-gray-400 text-center">No results found</p>
@@ -338,7 +338,7 @@ export function CalendarField({ value, placeholder = "Select date", onChange }) 
       <div
         onClick={() => setOpen((c) => !c)}
         className={[
-          "flex items-center w-full rounded-xl border bg-white shadow-sm cursor-pointer transition-colors select-none",
+          "flex items-center w-full rounded-xl border bg-white cursor-pointer transition-colors select-none",
           open
             ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/15"
             : "border-[#CEE6E5] hover:border-[var(--color-primary)]/60",

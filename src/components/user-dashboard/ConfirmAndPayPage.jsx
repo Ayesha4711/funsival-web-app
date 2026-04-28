@@ -131,7 +131,7 @@ function PaymentSavedCards({ onSelectCard, selectedCardId, onClose }) {
         </div>
         <ChevronUpIcon />
       </button>
-      <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white shadow-sm">
+      <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
         {SAVED_CARDS.map((card) => (
           <button
             key={card.id}
@@ -169,7 +169,7 @@ function PaymentNewCardForm() {
           <ChevronDownIcon />
         </button>
         {cardTypeOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl z-10 overflow-hidden">
             {cardTypes.map((t) => (
               <button
                 key={t}
@@ -365,7 +365,7 @@ export default function ConfirmAndPayPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8 items-start">
 
           {/* LEFT column */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-6">
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col gap-6">
 
             {/* Trip Details */}
             <div>
@@ -444,7 +444,7 @@ export default function ConfirmAndPayPage() {
 
           {/* RIGHT column */}
           <div className="flex flex-col gap-4">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5">
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col gap-5">
 
               {/* Listing summary */}
               <div className="flex items-start gap-4">
@@ -509,7 +509,7 @@ export default function ConfirmAndPayPage() {
               <button
                 onClick={handleConfirmAndPay}
                 disabled={!canPay}
-                className={`w-full py-4 rounded-full text-sm font-bold transition-all ${canPay ? "bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 shadow-md" : "bg-[#F5C842]/50 text-gray-500 cursor-not-allowed"}`}
+                className={`w-full py-4 rounded-full text-sm font-bold transition-all ${canPay ? "bg-[#F5C842] hover:bg-[#e0b430] text-gray-900" : "bg-[#F5C842]/50 text-gray-500 cursor-not-allowed"}`}
               >
                 {isSubmitting ? "Processing..." : "Confirm & Pay"}
               </button>

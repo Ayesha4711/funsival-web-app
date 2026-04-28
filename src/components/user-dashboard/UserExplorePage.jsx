@@ -81,7 +81,7 @@ function ExploreNavbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#4AA7A7] shadow-sm">
+    <header className="sticky top-0 z-50 w-full bg-[#4AA7A7]">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3">
           {/* Logo */}
@@ -122,7 +122,7 @@ function ExploreNavbar() {
             <ChevronDownIcon />
           </button>
           {dropdownOpen &&
-            <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg py-1 z-50">
+            <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl py-1 z-50">
               <button
                 onClick={() => {
                   setDropdownOpen(false);
@@ -178,7 +178,7 @@ function ExploreNavbar() {
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg py-1.5 z-50 border border-gray-100">
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl py-1.5 z-50 border border-gray-100">
                   <button
                     onClick={() => { setProfileOpen(false); router.push('/user-dashboard/profile'); }}
                     className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors"
@@ -330,7 +330,7 @@ function ListingCard({ listing }) {
   return (
     <div
       onClick={handleClick}
-      className="relative z-0 bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 group cursor-pointer border border-gray-100"
+      className="relative z-0 bg-white rounded-2xl overflow-hidden duration-300 group cursor-pointer border border-gray-100 hover:shadow-md transition-shadow"
     >
       {/* Image */}
       <div className="relative h-44 sm:h-48 md:h-52 overflow-hidden">
@@ -341,7 +341,7 @@ function ListingCard({ listing }) {
         {/* Favorite */}
         <button
           onClick={e => e.stopPropagation()}
-          className="absolute top-3 left-3 w-7 h-7 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-colors shadow-sm"
+          className="absolute top-3 left-3 w-7 h-7 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-colors"
         >
           <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -448,7 +448,7 @@ export default function UserExplorePage() {
                   onClick={() => handleTabChange(tab.id)}
                   className={`px-4 sm:px-6 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
                     activeTab === tab.id
-                      ? 'bg-[#4AA7A7] text-white shadow-sm'
+                      ? 'bg-[#4AA7A7] text-white'
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >

@@ -121,7 +121,7 @@ export default function ReservationsPage() {
     <div className="p-4 sm:p-6 lg:p-10 max-w-400 mx-auto flex-1 flex flex-col">
       <ReservationStats />
 
-      <div className="bg-white rounded-4xl p-4 sm:p-6 lg:p-8 shadow-sm border border-border">
+      <div className="bg-white rounded-4xl p-4 sm:p-6 lg:p-8 border border-border">
         <ReservationFilters activeTab={activeTab} onTabChange={setActiveTab} />
 
         {status === "loading" && (

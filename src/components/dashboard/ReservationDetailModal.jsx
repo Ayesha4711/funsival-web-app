@@ -117,7 +117,7 @@ export default function ReservationDetailModal({ reservation, onClose, onCancel 
     >
       {/* Panel — stops propagation so clicks inside don't close */}
       <div
-        className="relative bg-white rounded-3xl shadow-2xl w-full max-w-[420px] sm:max-w-[520px] lg:max-w-[560px] max-h-[90vh] overflow-y-auto"
+        className="relative bg-white rounded-3xl w-full max-w-[420px] sm:max-w-[520px] lg:max-w-[560px] max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Hero image ─────────────────────────────────────── */}
@@ -129,7 +129,7 @@ export default function ReservationDetailModal({ reservation, onClose, onCancel 
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-gray-600 hover:bg-white shadow transition-colors"
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-gray-600 hover:bg-white transition-colors"
           >
             <CloseIcon />
           </button>

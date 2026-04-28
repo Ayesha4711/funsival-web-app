@@ -132,7 +132,7 @@ function LeaveReviewModal({ booking, onClose }) {
   ];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.45)" }}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div className="bg-white rounded-2xl w-full max-w-md overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900">Leave a Review</h2>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"><CloseIcon /></button>
@@ -185,7 +185,7 @@ function CancelBookingModal({ onClose, onConfirm, loading }) {
   const [details, setDetails] = useState("");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.45)" }}>
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div className="bg-white rounded-2xl w-full max-w-sm overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="text-base font-bold text-gray-900">Cancel Booking</h2>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"><CloseIcon /></button>
@@ -236,7 +236,7 @@ function ReportListingModal({ onClose }) {
   const [details, setDetails] = useState("");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.45)" }}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div className="bg-white rounded-2xl w-full max-w-md overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="text-base font-bold text-gray-900">Reporting a Listing</h2>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"><CloseIcon /></button>
@@ -278,7 +278,7 @@ function DotsMenu({ onReportListing }) {
         <DotsIcon />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-30">
+        <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl border border-gray-100 py-1.5 z-30">
           <button onClick={() => { setOpen(false); onReportListing(); }}
             className="flex items-center gap-2.5 w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
@@ -304,7 +304,7 @@ function BookingRow({ booking, onViewDetail, onCancel, onReportListing }) {
   const guests = booking.numberOfGuests ? `${booking.numberOfGuests} Guest${booking.numberOfGuests > 1 ? "s" : ""}` : null;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 flex flex-col sm:flex-row overflow-hidden">
       {/* Image */}
       <button onClick={() => onViewDetail(booking)} className="sm:w-52 lg:w-60 h-44 sm:h-auto shrink-0 overflow-hidden">
         <img src={getImage(booking)} alt={getTitle(booking)}
@@ -401,7 +401,7 @@ function BookingDetailView({ booking, onBack, onLeaveReview, onCancel }) {
   return (
     <div className="flex flex-col gap-6">
       {/* Header card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <div className="flex flex-col sm:flex-row gap-4">
           <img src={getImage(booking)} alt={getTitle(booking)} className="w-full sm:w-48 h-36 rounded-xl object-cover shrink-0" />
           <div className="flex-1 flex flex-col gap-3">
@@ -441,7 +441,7 @@ function BookingDetailView({ booking, onBack, onLeaveReview, onCancel }) {
       </div>
 
       {/* Price breakdown */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <h3 className="text-base font-bold text-gray-900 mb-4">Price Breakdown</h3>
         <div className="flex flex-col gap-2 text-sm">
           <div className="flex justify-between"><span className="text-gray-500 capitalize">{booking.bookingType?.replace(/_/g," ")} × {booking.unitsBooked}</span><span className="font-medium">${booking.subtotal}</span></div>
@@ -455,7 +455,7 @@ function BookingDetailView({ booking, onBack, onLeaveReview, onCancel }) {
 
       {/* Host */}
       {booking.host && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src={`https://i.pravatar.cc/60?u=${booking.host.id}`} alt="host" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
             <div>
@@ -470,7 +470,7 @@ function BookingDetailView({ booking, onBack, onLeaveReview, onCancel }) {
       )}
 
       {/* Listing details */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <h3 className="text-base font-bold text-gray-900 mb-4">Details</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
           {info.location && <div><p className="text-xs text-gray-400 mb-1">Location</p><div className="flex items-center gap-1"><LocationPinIcon /><p className="text-sm font-medium text-gray-800">{info.location}</p></div></div>}
@@ -499,11 +499,11 @@ function BookingDetailView({ booking, onBack, onLeaveReview, onCancel }) {
 
       {/* Location */}
       {(loc.city || info.location) && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <h3 className="text-base font-bold text-gray-900 mb-3">Location</h3>
           <div className="w-full h-48 rounded-xl bg-gradient-to-br from-green-100 via-blue-50 to-green-200 flex items-center justify-center">
             <div className="text-center">
-              <div className="w-10 h-10 bg-[#4AA7A7] rounded-full flex items-center justify-center mx-auto shadow-lg">
+              <div className="w-10 h-10 bg-[#4AA7A7] rounded-full flex items-center justify-center mx-auto">
                 <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
               </div>
               <p className="text-xs text-gray-600 mt-2 font-medium">{getLocation(booking) || info.location}</p>
@@ -548,7 +548,7 @@ function EmptyState({ onStartBooking }) {
       </div>
       <button
         onClick={onStartBooking}
-        className="flex items-center gap-3 px-8 py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors shadow-md"
+        className="flex items-center gap-3 px-8 py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors"
       >
         Start Booking
         <span className="w-7 h-7 rounded-full bg-white/40 flex items-center justify-center">

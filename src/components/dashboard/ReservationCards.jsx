@@ -56,7 +56,7 @@ function ActionMenu({ item, onViewDetails, onCancel }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-2xl shadow-lg py-1.5 min-w-[140px]">
+        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[140px]">
           <button
             onClick={() => { setOpen(false); onViewDetails(item); }}
             className="w-full text-left px-4 py-2.5 text-sm font-medium text-[var(--color-text)] hover:bg-gray-50 transition-colors"
@@ -109,7 +109,7 @@ export default function ReservationCards({ data, onViewDetails, onCancel }) {
   return (
     <div className="flex flex-col gap-4">
       {data.map((item) => (
-        <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-[var(--color-border)] relative">
+        <div key={item.id} className="bg-white rounded-2xl p-4 border border-[var(--color-border)] relative">
           {/* Three-dot menu */}
           <div className="absolute top-4 right-4">
             <ActionMenu item={item} onViewDetails={onViewDetails} onCancel={onCancel} />

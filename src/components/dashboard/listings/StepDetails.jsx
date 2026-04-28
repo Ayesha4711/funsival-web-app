@@ -123,7 +123,7 @@ function PhotoUpload({ photos, onPhotosChange }) {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setOpenMenuIndex(openMenuIndex === i ? null : i); }}
-                className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white flex items-center justify-center shadow-md transition-colors"
+                className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white flex items-center justify-center transition-colors"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="1" />
@@ -134,7 +134,7 @@ function PhotoUpload({ photos, onPhotosChange }) {
 
               {/* Dropdown menu */}
               {openMenuIndex === i && (
-                <div className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 py-1 min-w-[120px] z-20">
+                <div className="absolute top-full right-0 mt-1 bg-white rounded-lg border border-gray-100 py-1 min-w-[120px] z-20">
                   <button
                     type="button"
                     onClick={() => deletePhoto(i)}
@@ -650,7 +650,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
 
       <div className="space-y-6">
         {/* ── 1. Basic Information ─────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="1">Basic Information</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div data-field="activityTitle">
@@ -691,7 +691,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         </section>
 
         {/* ── 2. Service Details ────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="2">Service Details</SectionTitle>
 
           {/* Row 1: Difficulty | Duration | Max Participants */}
@@ -832,7 +832,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         </section>
 
         {/* ── 3. Location Map ──────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="3">Where&apos;s Your Place Located?</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">Your address is only shown to guests after they&apos;ve made a booking.</p>
 
@@ -906,14 +906,14 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         </section>
 
         {/* ── 4. Photos ──────────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="4">Add Some Photos Of Your Activity</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">Add at least 5 photos to increase your bookings. You can edit or add more later.</p>
           <PhotoUpload photos={form.photos} onPhotosChange={(photos) => set("photos", photos)} />
         </section>
 
         {/* ── 5. Availability ─────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm overflow-visible" data-field="availability">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 overflow-visible" data-field="availability">
           <SectionTitle num="5">Availability</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">Choose when this activity is available for booking</p>
           <div className="flex flex-col gap-3">

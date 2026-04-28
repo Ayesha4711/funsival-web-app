@@ -12,7 +12,7 @@ import {
 /* ─── Stat Card ─────────────────────────────────────────────────────────────── */
 function StatCard({ label, value, sub, subColor = "text-green-500" }) {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)] flex flex-col gap-1">
+    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)] flex flex-col gap-1">
       <p className="text-xs text-[var(--color-text-muted)] font-medium">{label}</p>
       <p className="text-2xl lg:text-3xl font-extrabold text-[var(--color-text)]">{value}</p>
       {sub && <p className={`text-xs font-medium ${subColor}`}>{sub}</p>}
@@ -45,7 +45,7 @@ const reservations = [
 
 function RecentReservations() {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)]">
+    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)]">
       <h2 className="text-base font-bold text-[var(--color-text)] mb-4">Recent Reservations</h2>
       <div className="flex flex-col gap-3">
         {reservations.map((r) => (
@@ -100,7 +100,7 @@ function renderPerfLabel({ cx, cy, midAngle, outerRadius, name, value }) {
 
 function DonutChart() {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)]">
+    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)]">
       <h2 className="text-base font-bold text-[var(--color-text)] mb-2">Listing Performance</h2>
       {/* Extra vertical space so labels above/below the donut aren't clipped */}
       <ResponsiveContainer width="100%" height={260}>
@@ -147,7 +147,7 @@ const utilizationData = [
 function UtilizationTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs font-bold text-gray-700">
+    <div className="bg-white border border-gray-100 rounded-xl px-3 py-2 text-xs font-bold text-gray-700">
       {payload[0].payload.name}: {payload[0].value}%
     </div>
   );
@@ -155,7 +155,7 @@ function UtilizationTooltip({ active, payload }) {
 
 function UtilizationCard() {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)] flex flex-col h-full min-h-[320px]">
+    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)] flex flex-col h-full min-h-[320px]">
       <h2 className="text-base font-bold text-[var(--color-text)] mb-2">Utilization</h2>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
@@ -207,7 +207,7 @@ const earningsData = [
 function EarningsTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs">
+    <div className="bg-white border border-gray-100 rounded-xl px-3 py-2 text-xs">
       <p className="font-bold text-gray-500 mb-1">{label}</p>
       {payload.map((p) => (
         <p key={p.name} className="font-semibold" style={{ color: p.color }}>
@@ -223,7 +223,7 @@ function EarningsChart() {
   const periods = ["12 months", "30 days", "7 days", "24 hours"];
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)]">
+    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)]">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h2 className="text-base font-bold text-[var(--color-text)]">Earnings</h2>
         <div className="flex items-center gap-1 sm:gap-3">

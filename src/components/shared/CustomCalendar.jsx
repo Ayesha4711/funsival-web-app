@@ -62,7 +62,7 @@ export default function CustomCalendar({ value, onChange, onClose }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-full select-none">
+    <div className="bg-white rounded-2xl border border-gray-100 p-3 w-full select-none">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <button
@@ -114,7 +114,7 @@ export default function CustomCalendar({ value, onChange, onClose }) {
                 "w-full aspect-square flex items-center justify-center text-[11px] font-medium rounded-full transition-all",
                 !isCurrent ? "text-gray-300 cursor-default" : "cursor-pointer",
                 sel
-                  ? "bg-[#F5C842] text-gray-900 font-bold shadow-sm"
+                  ? "bg-[#F5C842] text-gray-900 font-bold"
                   : tod
                     ? "bg-[#F5C842]/20 text-[#d4a017] font-semibold"
                     : isCurrent

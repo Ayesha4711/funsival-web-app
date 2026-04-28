@@ -27,23 +27,24 @@ export default function RootLayout({ children }) {
           {children}
           <Toaster
             position="top-right"
+            closeButton
             toastOptions={{
               unstyled: true,
               classNames: {
                 toast:
-                  "flex items-center gap-3 w-full bg-white rounded-2xl border border-[#F5C842] px-4 py-3.5 shadow-md",
+                  "relative flex items-center gap-3 w-full bg-white rounded-2xl border border-[#F5C842] px-4 py-3.5",
                 title: "text-sm font-semibold text-[#1A1A1A] leading-snug",
                 description: "text-xs text-[#6B6B6B] mt-0.5 leading-snug",
                 closeButton:
-                  "ml-auto shrink-0 text-[#9E9E9E] hover:text-[#1A1A1A] transition-colors",
+                  "!absolute !top-1/2 !-translate-y-1/2 !right-2 !left-auto !translate-x-0 !bg-gray-100 hover:!bg-gray-200 !border-0 !shadow-none !rounded-full !w-5 !h-5 !flex !items-center !justify-center text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors",
                 error:
-                  "flex items-center gap-3 w-full bg-white rounded-2xl border border-[#F5C842] px-4 py-3.5 shadow-md",
+                  "relative flex items-center gap-3 w-full bg-white rounded-2xl border border-[#F5C842] px-4 py-3.5",
                 success:
-                  "flex items-center gap-3 w-full bg-white rounded-2xl border border-[#F5C842] px-4 py-3.5 shadow-md",
+                  "relative flex items-center gap-3 w-full bg-white rounded-2xl border border-[#F5C842] px-4 py-3.5",
                 warning:
-                  "flex items-center gap-3 w-full bg-white rounded-2xl border border-[#F5C842] px-4 py-3.5 shadow-md",
+                  "relative flex items-center gap-3 w-full bg-white rounded-2xl border border-[#F5C842] px-4 py-3.5",
                 info:
-                  "flex items-center gap-3 w-full bg-white rounded-2xl border border-[#4A90D9] px-4 py-3.5 shadow-md",
+                  "relative flex items-center gap-3 w-full bg-white rounded-2xl border border-[#4A90D9] px-4 py-3.5",
               },
             }}
           />

@@ -152,7 +152,7 @@ export default function ListingsFilters({
             <button
               onClick={() => onViewModeChange("table")}
               className={`p-2 rounded-lg transition-all ${viewMode === "table"
-                ? "bg-white text-[var(--color-primary)] shadow-sm"
+                ? "bg-white text-[var(--color-primary)]"
                 : "text-gray-400 hover:text-gray-600"}`}
               title="Table view"
             >
@@ -161,7 +161,7 @@ export default function ListingsFilters({
             <button
               onClick={() => onViewModeChange("grid")}
               className={`p-2 rounded-lg transition-all ${viewMode === "grid"
-                ? "bg-white text-[var(--color-primary)] shadow-sm"
+                ? "bg-white text-[var(--color-primary)]"
                 : "text-gray-400 hover:text-gray-600"}`}
               title="Grid view"
             >
@@ -171,7 +171,7 @@ export default function ListingsFilters({
 
           <button
             onClick={() => router.push("/dashboard/listings/add?mode=new")}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white rounded-full text-xs sm:text-sm font-bold shadow-sm transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white rounded-full text-xs sm:text-sm font-bold transition-colors"
           >
             <PlusIcon />
             <span>Add New Listing</span>
@@ -180,7 +180,7 @@ export default function ListingsFilters({
           {hasDraft && (
             <button
               onClick={() => router.push("/dashboard/listings/add?mode=resume")}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-white border border-[var(--color-primary)] text-[var(--color-primary)] rounded-full text-xs sm:text-sm font-bold shadow-sm transition-colors hover:bg-[var(--color-primary-light)]"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-white border border-[var(--color-primary)] text-[var(--color-primary)] rounded-full text-xs sm:text-sm font-bold transition-colors hover:bg-[var(--color-primary-light)]"
             >
               <span>Resume Draft</span>
             </button>
@@ -197,7 +197,7 @@ export default function ListingsFilters({
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`px-3 sm:px-5 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab.id
-                ? "bg-white text-[var(--color-primary)] shadow-sm font-extrabold"
+                ? "bg-white text-[var(--color-primary)] font-extrabold"
                 : "text-gray-400 hover:text-[var(--color-text-muted)]"}`}
             >
               {tab.label}
@@ -249,7 +249,7 @@ export default function ListingsFilters({
               <ChevronDown />
             </button>
             {categoryOpen &&
-              <div className="absolute right-0 top-12 z-20 bg-white rounded-2xl shadow-lg border border-[var(--color-border)] py-2 min-w-[160px]">
+              <div className="absolute right-0 top-12 z-20 bg-white rounded-2xl border border-[var(--color-border)] py-2 min-w-[160px]">
                 {CATEGORIES.map(cat =>
                   <button
                     key={cat}

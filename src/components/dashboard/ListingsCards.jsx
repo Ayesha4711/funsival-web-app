@@ -56,7 +56,7 @@ function StatusDropdown({ status, onStatusChange }) {
         <ChevronDown />
       </button>
       {open && (
-        <div className="absolute left-0 top-9 z-30 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[110px]">
+        <div className="absolute left-0 top-9 z-30 bg-white rounded-xl border border-gray-100 py-1 min-w-[110px]">
           {STATUS_OPTIONS.map((opt) => {
             const s = STATUS_STYLES[opt];
             return (
@@ -95,7 +95,7 @@ function ActionMenu({ item, onEdit, onDelete }) {
         <MoreIcon />
       </button>
       {open && (
-        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-100 rounded-2xl shadow-lg py-1.5 min-w-[130px]">
+        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-100 rounded-2xl py-1.5 min-w-[130px]">
           <button
             onClick={() => { setOpen(false); onEdit(item); }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"
@@ -137,7 +137,7 @@ export default function ListingsCards({
         <p className="text-center text-sm text-gray-400 font-medium py-12">No listings found.</p>
       )}
       {data.map((item) => (
-        <div key={item.id} className="bg-white rounded-[32px] p-5 shadow-sm border border-[var(--color-border)] relative">
+        <div key={item.id} className="bg-white rounded-[32px] p-5 border border-[var(--color-border)] relative">
           <div className="absolute top-5 right-5">
             <ActionMenu item={item} onEdit={onEdit} onDelete={onDelete} />
           </div>
