@@ -72,7 +72,7 @@ export default function EditListingModal({ listing, onClose, onSaved }) {
       style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 relative">
+      <div className="bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 relative">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-base font-extrabold text-[var(--color-text)]">Edit Listing</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors">

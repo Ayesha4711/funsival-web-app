@@ -6,6 +6,7 @@ import {
   DropdownField,
   TagInputField,
 } from "@/components/shared/FieldControls";
+import { LocationMap } from "@/components/shared/MapControls";
 
 /* ─── Shared field components ────────────────────────────────────────────────── */
 function Label({ children, required }) {
@@ -43,49 +44,6 @@ function SectionTitle({ num, children }) {
       </span>
       {children}
     </h3>
-  );
-}
-
-/* ─── Map placeholder ───────────────────────────────────────────────────────── */
-function MapPlaceholder() {
-  return (
-    <div className="relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
-      <div className="absolute inset-0 grid grid-cols-4 grid-rows-3 opacity-30">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className={`border border-gray-300 ${i % 3 === 0 ? "bg-green-100" : i % 2 === 0 ? "bg-blue-50" : "bg-gray-50"}`} />
-        ))}
-      </div>
-      <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 400 200" preserveAspectRatio="none">
-        <line x1="0" y1="100" x2="400" y2="100" stroke="#666" strokeWidth="2"/>
-        <line x1="200" y1="0" x2="200" y2="200" stroke="#666" strokeWidth="2"/>
-        <line x1="0" y1="50" x2="400" y2="50" stroke="#999" strokeWidth="1"/>
-        <line x1="0" y1="150" x2="400" y2="150" stroke="#999" strokeWidth="1"/>
-        <line x1="100" y1="0" x2="100" y2="200" stroke="#999" strokeWidth="1"/>
-        <line x1="300" y1="0" x2="300" y2="200" stroke="#999" strokeWidth="1"/>
-      </svg>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-        <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center shadow-lg">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-            <circle cx="12" cy="9" r="2.5"/>
-          </svg>
-        </div>
-      </div>
-      <div className="absolute top-3 left-3 right-3">
-        <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <span className="text-xs text-gray-300">Search location…</span>
-        </div>
-      </div>
-      <button className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-white rounded-xl px-3 py-1.5 shadow-sm border border-gray-100 text-xs text-[var(--color-primary)] font-semibold">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
-        </svg>
-        Use my current location
-      </button>
-    </div>
   );
 }
 
@@ -201,10 +159,77 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
     cancellationPolicy: "",
     photos: ["a", "b", "c", "d"],
     slots: [{ day: "", startTime: "", endTime: "" }],
+    addressLine1: "",
+    placeCity: "",
+    state: "",
+    country: "",
+    postalCode: "",
     ...details,
   });
 
   const fe = activeErrors;
+
+  // ── Map search state ────────────────────────────────────────────────────────
+  const [mapQuery, setMapQuery] = useState(form.addressLine1 || form.location || "");
+  const [mapSuggestions, setMapSuggestions] = useState([]);
+  const [mapCoords, setMapCoords] = useState({ lat: 24.8607, lon: 67.0011 });
+  const [mapLoading, setMapLoading] = useState(false);
+  const mapDebounceRef = React.useRef(null);
+
+  const searchMap = React.useCallback(async (q) => {
+    if (!q.trim() || q.length < 3) { setMapSuggestions([]); return; }
+    setMapLoading(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`);
+      const data = await res.json();
+      setMapSuggestions(data);
+    } catch { setMapSuggestions([]); }
+    finally { setMapLoading(false); }
+  }, []);
+
+  const handleMapQueryChange = (val) => {
+    setMapQuery(val);
+    setForm(prev => ({ ...prev, location: val, addressLine1: val }));
+    clearTimeout(mapDebounceRef.current);
+    mapDebounceRef.current = setTimeout(() => searchMap(val), 500);
+  };
+
+  const handleMapSelect = async (s) => {
+    const lat = parseFloat(s.lat);
+    const lon = parseFloat(s.lon);
+    setMapCoords({ lat, lon });
+    setMapSuggestions([]);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`);
+      const data = await res.json();
+      const addr = data.address || {};
+      const street = addr.road || addr.pedestrian || "";
+      const house = addr.house_number || "";
+      const addressLine1 = [house, street].filter(Boolean).join(" ") || s.display_name;
+      const placeCity = addr.city || addr.town || addr.village || "";
+      const stateName = addr.state || "";
+      const countryName = addr.country || "";
+      
+      setForm(prev => ({ 
+        ...prev, 
+        addressLine1, 
+        placeCity, 
+        state: stateName, 
+        country: countryName, 
+        postalCode: addr.postcode || "",
+        location: addressLine1
+      }));
+      setMapQuery(addressLine1);
+    } catch (err) { console.error("Reverse geocode error:", err); }
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      handleMapSelect({ lat: latitude, lon: longitude, display_name: "Current Location" });
+    });
+  };
 
   const set = (key, val) => {
     if (activeErrors[key]) {
@@ -235,7 +260,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
 
       <div className="space-y-8 max-w-3xl mx-auto">
         {/* ── 1. Basic Information ─────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="1">Basic Information</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -273,7 +298,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
         </section>
 
         {/* ── 2. Equipment Details ──────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="2">Equipment Details</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -328,16 +353,24 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
         </section>
 
         {/* ── 3. Location Map ──────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 overflow-visible">
           <SectionTitle num="3">Where&apos;s Your Equipment Located?</SectionTitle>
           <p className="text-xs text-gray-400 mb-3">
             Your address is only shown to renters after they&apos;ve made a booking.
           </p>
-          <MapPlaceholder />
+          <LocationMap 
+            coords={mapCoords}
+            searchValue={mapQuery}
+            onSearchChange={handleMapQueryChange}
+            onSelect={handleMapSelect}
+            onUseCurrentLocation={handleUseCurrentLocation}
+            searchLoading={mapLoading}
+            suggestions={mapSuggestions}
+          />
         </section>
 
         {/* ── 4. Photos ────────────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="4">Add Some Photos Of Your Equipment</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">
             Add at least 5 photos to increase your bookings. You can edit or add more later.
@@ -346,7 +379,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
         </section>
 
         {/* ── 5. Availability ──────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="5">Availability</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">
             Set when this equipment is available for rental.

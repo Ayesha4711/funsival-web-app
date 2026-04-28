@@ -4,7 +4,7 @@
 
 // function StatCard({ label, value, sub, subColor = "text-[#16A34A]" }) {
 //   return (
-//     <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)] flex flex-col gap-1">
+//     <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)] flex flex-col gap-1">
 //       <p className="text-xs text-[var(--color-text-muted)] font-medium">
 //         {label}
 //       </p>
@@ -63,7 +63,7 @@ function StatCard({ label, value, sub, subType = "neutral" }) {
   const colorClass = SUB_COLORS[subType] || SUB_COLORS.neutral;
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)] flex flex-col gap-1">
+    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)] flex flex-col gap-1">
       <p className="text-xs text-[var(--color-text-muted)] font-medium">
         {label}
       </p>

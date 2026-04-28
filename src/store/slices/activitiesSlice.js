@@ -1,16 +1,42 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axiosInstance from "../axiosInstance";
 
 // ─── Async thunks ─────────────────────────────────────────────────────────────
+
+export const fetchBrowseListings = createAsyncThunk(
+  "activities/fetchBrowseListings",
+  async ({ page = 1, limit = 10, category, type } = {}, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams({ page, limit });
+      if (category) params.set("category", category);
+      if (type) params.set("type", type);
+      const { data } = await axiosInstance.get(`/listings/browse?${params}`);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const fetchBrowseListing = createAsyncThunk(
+  "activities/fetchBrowseListing",
+  async (id, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.get(`/listings/browse/${id}`);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
 
 export const fetchActivities = createAsyncThunk(
   "activities/fetchActivities",
   async ({ page = 1, limit = 10, filters = {} } = {}, { rejectWithValue }) => {
     try {
-      // TODO: replace with axiosInstance call
-      // const params = new URLSearchParams({ page, limit, ...filters }).toString();
-      // const { data } = await axiosInstance.get(`/api/v1/activities?${params}`);
-      // return data;
-      throw new Error("Not implemented — wire up axiosInstance when ready");
+      const params = new URLSearchParams({ page, limit, ...filters }).toString();
+      const { data } = await axiosInstance.get(`/listings/browse?${params}`);
+      return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
@@ -21,10 +47,8 @@ export const fetchActivity = createAsyncThunk(
   "activities/fetchActivity",
   async (activityId, { rejectWithValue }) => {
     try {
-      // TODO: replace with axiosInstance call
-      // const { data } = await axiosInstance.get(`/api/v1/activities/${activityId}`);
-      // return data;
-      throw new Error("Not implemented — wire up axiosInstance when ready");
+      const { data } = await axiosInstance.get(`/listings/${activityId}`);
+      return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
@@ -38,6 +62,7 @@ const activitiesSlice = createSlice({
   initialState: {
     items: [],
     selectedActivity: null,
+    selectedActivityStatus: "idle",
     filters: {},
     pagination: { page: 1, limit: 10, total: 0 },
     status: "idle",   // "idle" | "loading" | "succeeded" | "failed"
@@ -59,6 +84,20 @@ const activitiesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // fetchBrowseListings
+      .addCase(fetchBrowseListings.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(fetchBrowseListings.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.items = action.payload?.data?.listings ?? [];
+        state.pagination = action.payload?.data?.pagination ?? state.pagination;
+      })
+      .addCase(fetchBrowseListings.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
       // fetchActivities
       .addCase(fetchActivities.pending, (state) => {
         state.status = "loading";
@@ -66,8 +105,8 @@ const activitiesSlice = createSlice({
       })
       .addCase(fetchActivities.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.items = action.payload?.data ?? [];
-        state.pagination = action.payload?.pagination ?? state.pagination;
+        state.items = action.payload?.data?.listings ?? [];
+        state.pagination = action.payload?.data?.pagination ?? state.pagination;
       })
       .addCase(fetchActivities.rejected, (state, action) => {
         state.status = "failed";
@@ -80,10 +119,23 @@ const activitiesSlice = createSlice({
       })
       .addCase(fetchActivity.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.selectedActivity = action.payload;
+        state.selectedActivity = action.payload?.data ?? action.payload;
       })
       .addCase(fetchActivity.rejected, (state, action) => {
         state.status = "failed";
+        state.error = action.payload;
+      })
+      // fetchBrowseListing (single listing from browse)
+      .addCase(fetchBrowseListing.pending, (state) => {
+        state.selectedActivityStatus = "loading";
+        state.error = null;
+      })
+      .addCase(fetchBrowseListing.fulfilled, (state, action) => {
+        state.selectedActivityStatus = "succeeded";
+        state.selectedActivity = action.payload?.data ?? action.payload;
+      })
+      .addCase(fetchBrowseListing.rejected, (state, action) => {
+        state.selectedActivityStatus = "failed";
         state.error = action.payload;
       });
   },
@@ -99,6 +151,7 @@ export const {
 // ─── Selectors ───────────────────────────────────────────────────────────────
 export const selectActivities = (state) => state.activities.items;
 export const selectSelectedActivity = (state) => state.activities.selectedActivity;
+export const selectSelectedActivityStatus = (state) => state.activities.selectedActivityStatus;
 export const selectActivityFilters = (state) => state.activities.filters;
 export const selectActivitiesPagination = (state) => state.activities.pagination;
 export const selectActivitiesStatus = (state) => state.activities.status;

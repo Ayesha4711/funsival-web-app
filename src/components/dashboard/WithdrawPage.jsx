@@ -103,7 +103,7 @@ function AddPaymentModal({ onClose, onAdd }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto flex flex-col max-h-[92vh] overflow-hidden">
+      <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col max-h-[92vh] overflow-hidden">
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex items-start justify-between shrink-0">
           <div>
@@ -122,7 +122,7 @@ function AddPaymentModal({ onClose, onAdd }) {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex-1 px-3 py-2 rounded-full text-xs font-bold transition-all ${tab === t.id ? "bg-white text-[var(--color-primary)] shadow-sm" : "text-gray-400"}`}
+                className={`flex-1 px-3 py-2 rounded-full text-xs font-bold transition-all ${tab === t.id ? "bg-white text-[var(--color-primary)]" : "text-gray-400"}`}
               >
                 {t.label}
               </button>
@@ -301,7 +301,7 @@ function WithdrawModal({ availableBalance, paymentMethod, onClose, onConfirm }) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto flex flex-col max-h-[92vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex items-start justify-between shrink-0">
           <div className="flex items-center gap-2">
@@ -407,7 +407,7 @@ function SuccessModal({ withdrawalData, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto flex flex-col">
+      <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col">
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex items-start justify-between shrink-0">
           <div className="flex items-center gap-2">
@@ -516,7 +516,7 @@ export default function WithdrawPage() {
         </div>
 
         {/* Available Balance card */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 border border-gray-100">
           <p className="text-sm font-semibold text-gray-500 mb-2">Available Balance</p>
           <p className="text-4xl font-extrabold text-green-500 mb-1">
             ${availableBalance.toLocaleString()}
@@ -525,7 +525,7 @@ export default function WithdrawPage() {
             <p className="text-xs text-gray-400">Ready for withdrawal</p>
             <button
               onClick={() => setModal("withdraw")}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white text-sm font-bold rounded-full transition-colors shadow-sm"
+              className="flex items-center gap-2 px-6 py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white text-sm font-bold rounded-full transition-colors"
             >
               Get Paid <ArrowRightIcon />
             </button>
@@ -533,7 +533,7 @@ export default function WithdrawPage() {
         </div>
 
         {/* Payment Methods card */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 border border-gray-100">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-bold text-gray-900">Select Payment Method</h2>
             <button

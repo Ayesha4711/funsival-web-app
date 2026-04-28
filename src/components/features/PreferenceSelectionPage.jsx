@@ -86,7 +86,7 @@ export default function PreferenceSelectionPage() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-10">
-        <div className="bg-white rounded-[2rem] w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+        <div className="bg-white rounded-[2rem] w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden">
 
           <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between shrink-0">
             <h1 className="text-2xl font-bold text-[var(--color-text)]">Select Your Preferences</h1>

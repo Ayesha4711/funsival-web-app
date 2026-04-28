@@ -4,7 +4,7 @@ import React from "react";
 
 function StatCard({ label, value, sub, subColor = "text-green-500" }) {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)] flex flex-col gap-1">
+    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)] flex flex-col gap-1">
       <p className="text-xs text-[var(--color-text-muted)] font-medium">{label}</p>
       <p className="text-2xl lg:text-3xl font-extrabold text-[var(--color-text)]">{value}</p>
       {sub && <p className={`text-xs font-medium ${subColor}`}>{sub}</p>}

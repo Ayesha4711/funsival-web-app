@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
-import Pagination from "@/components/shared/Pagination";
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const MoreIcon = () => (
@@ -56,7 +55,7 @@ function ActionMenu({ item, onViewDetails, onCancel }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-2xl shadow-lg py-1.5 min-w-[140px]">
+        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[140px]">
           <button
             onClick={() => { setOpen(false); onViewDetails(item); }}
             className="w-full text-left px-4 py-2.5 text-sm font-medium text-[var(--color-text)] hover:bg-gray-50 transition-colors"
@@ -78,7 +77,7 @@ function ActionMenu({ item, onViewDetails, onCancel }) {
 }
 
 /* ─── Table ──────────────────────────────────────────────────────────────────── */
-export default function ReservationTable({ data, onViewDetails, onCancel }) {
+export default function ReservationTable({ data, onViewDetails, onCancel, currentPage = 1, totalPages = 1, onPageChange }) {
   const getStatusStyle = (status) => {
     switch (status) {
       case "Upcoming": return "bg-blue-50 text-blue-400 border border-blue-100";
@@ -107,7 +106,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden">
+    <div className="overflow-x-auto">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -132,7 +131,8 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-[var(--color-text)] whitespace-nowrap">{item.name}</p>
                       <p className="text-[10px] text-[var(--color-text-muted)] whitespace-nowrap flex items-center gap-1">
-                        <span className="w-1 h-1 rounded-full bg-gray-300" /> {item.location}
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {item.location}
                       </p>
                     </div>
                   </div>
@@ -167,10 +167,6 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
             ))}
           </tbody>
         </table>
-      </div>
-
-      <div className="px-6 py-4 border-t border-[var(--color-border)]">
-        <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />
       </div>
     </div>
   );

@@ -40,7 +40,7 @@ export default function AuthLayout({
         {/* ── LEFT: balloon panel (lg+ only) ────────────────────────────────── */}
         {showHero &&
           <div className="hidden lg:block lg:w-1/2 xl:w-[55%] shrink-0 py-6 px-6 xl:pt-10 xl:pb-22 xl:px-5 sticky top-0 h-screen">
-            <div className="relative h-full w-full rounded-[2.5rem] overflow-hidden shadow-2xl">
+            <div className="relative h-full w-full rounded-[2.5rem] overflow-hidden">
               <Image
                 src={balloonImg}
                 alt="Hot air balloon illustration"
@@ -82,7 +82,7 @@ export default function AuthLayout({
           {/* ── BOTTOM: balloon panel (iPad md–lg only, hidden on mobile & desktop) */}
           {showHero &&
             <div className="hidden md:block lg:hidden px-6 pb-20 md:px-8 md:pb-24">
-              <div className="relative w-full h-80 md:h-96 rounded-[2.5rem] overflow-hidden shadow-2xl">
+              <div className="relative w-full h-80 md:h-96 rounded-[2.5rem] overflow-hidden">
                 <Image
                   src={balloonImg}
                   alt="Hot air balloon illustration"

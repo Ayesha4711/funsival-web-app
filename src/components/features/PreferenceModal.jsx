@@ -104,7 +104,7 @@ export default function PreferenceModal({ onClose, role = "user" }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative bg-white rounded-3xl shadow-2xl flex flex-col w-full max-w-[22rem] sm:max-w-lg lg:max-w-2xl max-h-[92vh] sm:max-h-[88vh] lg:max-h-[85vh] overflow-hidden">
+      <div className="relative bg-white rounded-3xl flex flex-col w-full max-w-[22rem] sm:max-w-lg lg:max-w-2xl max-h-[92vh] sm:max-h-[88vh] lg:max-h-[85vh] overflow-hidden">
 
         <div className="px-5 sm:px-8 py-4 sm:py-6 flex items-center justify-between shrink-0 border-b border-gray-100">
           <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Select Your Preferences</h1>

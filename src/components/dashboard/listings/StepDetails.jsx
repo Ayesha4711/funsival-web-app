@@ -11,6 +11,7 @@ import {
   ComboboxField,
   TagInputField,
 } from "@/components/shared/FieldControls";
+import { LocationMap } from "@/components/shared/MapControls";
 
 /* Match a raw city name from Nominatim against the country-state-city library */
 function resolveCity(rawCity, countryCode, stateCode) {
@@ -79,70 +80,6 @@ function SectionTitle({ num, children }) {
   );
 }
 
-/* ─── Map with search overlay ────────────────────────────────────────────────── */
-function LocationMap({ coords, searchValue, onSearchChange, onSelect, onUseCurrentLocation, searchLoading, suggestions }) {
-  const wrapRef = useRef(null);
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    function handle(e) { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); }
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, []);
-
-  const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.05}%2C${coords.lat - 0.05}%2C${coords.lon + 0.05}%2C${coords.lat + 0.05}&layer=mapnik&marker=${coords.lat}%2C${coords.lon}`;
-
-  return (
-    <div className="relative w-full rounded-2xl overflow-visible border border-gray-200" style={{ height: 260 }}>
-      <div className="w-full h-full rounded-2xl overflow-hidden">
-        <iframe key={`${coords.lat}-${coords.lon}`} src={mapSrc} className="w-full h-full border-0" title="Location map" loading="lazy" />
-      </div>
-
-      {/* Search overlay — centered vertically over the map */}
-      <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 z-10 w-full px-3 sm:px-6 sm:max-w-2xl" ref={wrapRef}>
-        <div className="relative">
-          <div className="flex items-center gap-2 bg-white rounded-full px-3 sm:px-4 py-2 sm:py-2.5 shadow-lg border border-gray-100">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-              <circle cx="12" cy="9" r="2.5"/>
-            </svg>
-            <input
-              type="text"
-              value={searchValue}
-              placeholder="Enter address"
-              onChange={(e) => { onSearchChange(e.target.value); setOpen(true); }}
-              onFocus={() => suggestions.length > 0 && setOpen(true)}
-              className="flex-1 min-w-0 text-xs sm:text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent"
-            />
-            {searchLoading && <svg className="animate-spin shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/></svg>}
-            <div className="w-px h-4 bg-gray-200 shrink-0" />
-            <button type="button" onClick={onUseCurrentLocation} className="flex items-center gap-1 text-[10px] sm:text-xs text-[var(--color-primary)] font-semibold hover:opacity-80 whitespace-nowrap shrink-0">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-              <span className="hidden sm:inline">Use my current location</span>
-              <span className="sm:hidden">My location</span>
-            </button>
-          </div>
-          {open && suggestions.length > 0 && (
-            <div className="absolute bottom-full mb-2 left-0 right-0 bg-white rounded-xl shadow-lg border border-gray-100 z-20 max-h-48 overflow-y-auto">
-              {suggestions.map((s) => (
-                <button
-                  key={s.place_id}
-                  type="button"
-                  onClick={() => { onSelect(s); setOpen(false); }}
-                  className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 border-b border-gray-50 last:border-0 transition-colors flex items-start gap-2"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                  <span className="line-clamp-2">{s.display_name}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ─── Photo upload ───────────────────────────────────────────────────────────── */
 function PhotoUpload({ photos, onPhotosChange }) {
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
@@ -186,7 +123,7 @@ function PhotoUpload({ photos, onPhotosChange }) {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setOpenMenuIndex(openMenuIndex === i ? null : i); }}
-                className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white flex items-center justify-center shadow-md transition-colors"
+                className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white flex items-center justify-center transition-colors"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="1" />
@@ -197,7 +134,7 @@ function PhotoUpload({ photos, onPhotosChange }) {
 
               {/* Dropdown menu */}
               {openMenuIndex === i && (
-                <div className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 py-1 min-w-[120px] z-20">
+                <div className="absolute top-full right-0 mt-1 bg-white rounded-lg border border-gray-100 py-1 min-w-[120px] z-20">
                   <button
                     type="button"
                     onClick={() => deletePhoto(i)}
@@ -713,7 +650,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
 
       <div className="space-y-6">
         {/* ── 1. Basic Information ─────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="1">Basic Information</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div data-field="activityTitle">
@@ -754,7 +691,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         </section>
 
         {/* ── 2. Service Details ────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="2">Service Details</SectionTitle>
 
           {/* Row 1: Difficulty | Duration | Max Participants */}
@@ -895,7 +832,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         </section>
 
         {/* ── 3. Location Map ──────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="3">Where&apos;s Your Place Located?</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">Your address is only shown to guests after they&apos;ve made a booking.</p>
 
@@ -969,14 +906,14 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         </section>
 
         {/* ── 4. Photos ──────────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="4">Add Some Photos Of Your Activity</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">Add at least 5 photos to increase your bookings. You can edit or add more later.</p>
           <PhotoUpload photos={form.photos} onPhotosChange={(photos) => set("photos", photos)} />
         </section>
 
         {/* ── 5. Availability ─────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm overflow-visible">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 overflow-visible" data-field="availability">
           <SectionTitle num="5">Availability</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">Choose when this activity is available for booking</p>
           <div className="flex flex-col gap-3">
@@ -987,8 +924,8 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             ))}
           </div>
           <div className="mt-4 flex items-center justify-between gap-3">
-            {fe.slots ? (
-              <p className="text-xs text-red-500 font-medium">{fe.slots}</p>
+            {(fe.availability || fe.slots) ? (
+              <p className="text-xs text-red-500 font-medium">{fe.availability || fe.slots}</p>
             ) : <span />}
             <button
               type="button"
@@ -1022,6 +959,10 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             }
             if (!form.placeCity?.trim()) errs.placeCity = "City is required";
 
+            // Availability validation
+            if (form.slots.some(s => !s.day || !s.startTime || !s.endTime)) {
+              errs.availability = "Please complete all availability slots (date, start time, and end time).";
+            }
             // Duplicate slot check
             const slotKeys = form.slots.map(s => `${s.day}|${s.startTime}|${s.endTime}`);
             const hasDuplicateSlot = slotKeys.some((key, i) => key !== "||" && slotKeys.indexOf(key) !== i);

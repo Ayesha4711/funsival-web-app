@@ -232,14 +232,14 @@ export default function DashboardNavbar({ onMenuToggle }) {
             <ChevronDownIcon />
           </button>
           {dropdownOpen &&
-            <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg py-1 z-50">
+            <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl py-1 z-50">
               <button
                 onClick={() => {
                   setDropdownOpen(false);
                   setActiveView("provider");
                   router.push("/dashboard");
                 }}
-                className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]"
+                className={`block w-full text-left px-4 py-2 text-sm font-medium hover:bg-[var(--color-primary-light)] transition-colors ${activeView === "provider" ? "text-[#228E8A] font-semibold bg-[var(--color-primary-light)]" : "text-[var(--color-text)]"}`}
               >
                 Provider
               </button>
@@ -249,7 +249,7 @@ export default function DashboardNavbar({ onMenuToggle }) {
                   setActiveView("user");
                   router.push("/user-dashboard/explore");
                 }}
-                className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]"
+                className={`block w-full text-left px-4 py-2 text-sm font-medium hover:bg-[var(--color-primary-light)] transition-colors ${activeView === "user" ? "text-[#228E8A] font-semibold bg-[var(--color-primary-light)]" : "text-[var(--color-text)]"}`}
               >
                 User
               </button>
@@ -290,7 +290,7 @@ export default function DashboardNavbar({ onMenuToggle }) {
             {avatarLetter}
           </button>
           {profileOpen &&
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg py-1.5 z-50 border border-gray-100">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl py-1.5 z-50 border border-gray-100">
               {profile && (
                 <div className="px-4 py-3 border-b border-gray-100">
                   <p className="text-xs font-bold text-[var(--color-text)] truncate">{profile.email}</p>
