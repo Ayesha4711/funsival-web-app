@@ -54,28 +54,40 @@ export default function ResetPasswordPage({ initialToken = "" } = {}) {
   useEffect(() => {
     if (!serverState) return;
     if (serverState.success) {
-      toast.success("Password reset!", { description: serverState.message });
-      router.push("/forgot-password/success");
+      toast.success("Password reset!", { description: serverState.message ?? "You can now sign in with your new password." });
+      router.push("/login");
     } else if (serverState.error) {
       toast.error("Reset failed", { description: serverState.error });
     }
   }, [serverState, router]);
 
+  const validatePassword = (password) => {
+    if (!password) return "Password is required.";
+    if (/\s/.test(password)) return "Spaces are not allowed in password.";
+    if (password.length < 8) return "Password must be at least 8 characters.";
+    if (!/^[A-Z]/.test(password)) return "Password must start with an uppercase letter.";
+    return "";
+  };
+
   const handleChange = e => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+    if (name === "password") {
+      const confirmError = form.confirmPassword && form.confirmPassword !== value ? "Passwords do not match." : "";
+      setClientErrors(prev => ({ ...prev, password: validatePassword(value), confirmPassword: confirmError }));
+      return;
+    }
+    if (name === "confirmPassword") {
+      setClientErrors(prev => ({ ...prev, confirmPassword: !value ? "Confirm password is required." : value !== form.password ? "Passwords do not match." : "" }));
+      return;
+    }
     if (clientErrors[name]) setClientErrors(prev => ({ ...prev, [name]: "" }));
   };
 
   const handleSubmit = e => {
     const errs = {};
-    if (!form.password) {
-      errs.password = "Password is required.";
-    } else if (/\s/.test(form.password)) {
-      errs.password = "Spaces are not allowed in password.";
-    } else if (form.password.length < 8) {
-      errs.password = "Password must be at least 8 characters.";
-    }
+    const passwordError = validatePassword(form.password);
+    if (passwordError) errs.password = passwordError;
 
     if (!form.confirmPassword) {
       errs.confirmPassword = "Confirm password is required.";
@@ -111,13 +123,32 @@ export default function ResetPasswordPage({ initialToken = "" } = {}) {
           icon={<LockIcon />}
           suffix={
             <button type="button" onClick={() => setShowPassword(v => !v)} className="text-text-subtle hover:text-text transition-colors">
-              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              {showPassword ? <EyeIcon /> : <EyeOffIcon />}
             </button>
           }
           value={form.password}
           onChange={handleChange}
           error={clientErrors.password}
         />
+
+        {form.password && (
+          <div className="bg-gray-50 rounded-xl px-4 py-3 -mt-2">
+            <p className="text-xs font-semibold text-gray-600 mb-2">Password requirements:</p>
+            <ul className="space-y-1">
+              {[
+                { text: "At least 8 characters long", met: form.password.length >= 8 },
+                { text: "Contains uppercase and lowercase letters", met: /[A-Z]/.test(form.password) && /[a-z]/.test(form.password) },
+                { text: "Contains at least one number", met: /[0-9]/.test(form.password) },
+                { text: "Contains at least one special character", met: /[^A-Za-z0-9]/.test(form.password) },
+              ].map(({ text, met }) => (
+                <li key={text} className="flex items-center gap-2 text-xs">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${met ? "bg-green-500" : "bg-gray-300"}`} />
+                  <span className={met ? "text-green-600" : "text-gray-400"}>{text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <Input
           id="confirmPassword"
