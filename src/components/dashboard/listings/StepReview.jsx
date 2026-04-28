@@ -107,8 +107,6 @@ export default function StepReview({
   submitError = null,
   fieldErrors = null,
   submitLabel = "Submit",
-  editableStatus = false,
-  onStatusChange,
 }) {
   const { category, type, details = {}, price } = data;
 
@@ -142,7 +140,6 @@ export default function StepReview({
   const serviceCategory = cap(type) || "—";
   const displayPrice = formatListingPrice(category, price);
   const priceLines = describeListingPrice(category, price);
-  const listingStatus = data.status || "Active";
   const priceMode = getPriceMode(category);
 
   const addressLine1 = details.addressLine1 || "";
@@ -210,30 +207,6 @@ export default function StepReview({
             <p className="text-sm font-semibold text-gray-800">{serviceCategory}</p>
           </div>
         </div>
-
-        {editableStatus && (
-          <>
-            <Divider />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-              <div>
-                <FieldLabel>Listing Status</FieldLabel>
-                <select
-                  value={listingStatus}
-                  onChange={(e) => onStatusChange?.(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 outline-none focus:border-[var(--color-primary)] transition-colors bg-white"
-                >
-                  <option value="Draft">Draft</option>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-              <div className="rounded-2xl border border-gray-100 bg-[#F8FAFC] px-4 py-3">
-                <p className="text-xs font-semibold text-gray-500">Current status</p>
-                <p className="mt-1 text-sm font-bold text-gray-800">{listingStatus}</p>
-              </div>
-            </div>
-          </>
-        )}
 
         <Divider />
 
