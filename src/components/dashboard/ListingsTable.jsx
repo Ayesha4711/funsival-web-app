@@ -438,7 +438,7 @@ function StatusDropdown({ status, onStatusChange }) {
 }
 
 /* ─── Action menu ────────────────────────────────────────────────────────────── */
-function ActionMenu({ item, onEdit, onDelete }) {
+function ActionMenu({ item, onEdit, onDelete, isLast }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -457,7 +457,7 @@ function ActionMenu({ item, onEdit, onDelete }) {
         <MoreIcon />
       </button>
       {open && (
-        <div className="absolute right-0 top-9 z-30 bg-white border border-gray-100 rounded-2xl py-1.5 min-w-[130px]">
+        <div className={`absolute right-0 z-30 bg-white border border-gray-100 rounded-2xl py-1.5 min-w-32 ${isLast ? "bottom-full mb-1" : "top-9"}`}>
           <button
             onClick={() => { setOpen(false); onEdit(item); }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"
@@ -592,7 +592,7 @@ export default function ListingsTable({
 
                   {/* Actions */}
                   <td className="px-5 py-3.5">
-                    <ActionMenu item={item} onEdit={onEdit} onDelete={onDelete} />
+                    <ActionMenu item={item} onEdit={onEdit} onDelete={onDelete} isLast={idx === data.length - 1} />
                   </td>
                 </tr>
               ))
