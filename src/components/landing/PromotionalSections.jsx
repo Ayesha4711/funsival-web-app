@@ -28,7 +28,7 @@ export default function PromotionalSections() {
 
             {/* Phone Mockup Card */}
             <div className="mt-8 flex items-end justify-between gap-4">
-              <div className="bg-white rounded-3xl shadow-xl p-5 w-52 flex-shrink-0">
+              <div className="bg-white rounded-3xl p-5 w-52 flex-shrink-0">
                 {/* App header */}
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-6 h-6 bg-[#4AA7A7] rounded-full flex items-center justify-center">
@@ -80,19 +80,19 @@ export default function PromotionalSections() {
               {/* Scattered image layout */}
               <div className="relative h-44">
                 {/* Top-left: img4 (large, partially cut at left) */}
-                <div className="absolute -left-4 bottom-0 w-36 h-36 rounded-2xl overflow-hidden shadow-lg">
+                <div className="absolute -left-4 bottom-0 w-36 h-36 rounded-2xl overflow-hidden">
                   <Image src={Img4} alt="Adventure 4" fill className="object-cover" />
                 </div>
                 {/* Center: img2 (tall, center) */}
-                <div className="absolute left-28 bottom-4 w-28 h-32 rounded-2xl overflow-hidden shadow-lg">
+                <div className="absolute left-28 bottom-4 w-28 h-32 rounded-2xl overflow-hidden">
                   <Image src={Img2} alt="Adventure 2" fill className="object-cover" />
                 </div>
                 {/* Top-right: img1 (medium, rotated slightly) */}
-                <div className="absolute right-24 top-0 w-32 h-24 rounded-2xl overflow-hidden shadow-lg rotate-2">
+                <div className="absolute right-24 top-0 w-32 h-24 rounded-2xl overflow-hidden rotate-2">
                   <Image src={Img1} alt="Adventure 1" fill className="object-cover" />
                 </div>
                 {/* Far right: img3 (partially cut) */}
-                <div className="absolute -right-4 bottom-2 w-24 h-28 rounded-2xl overflow-hidden shadow-lg">
+                <div className="absolute -right-4 bottom-2 w-24 h-28 rounded-2xl overflow-hidden">
                   <Image src={Img3} alt="Adventure 3" fill className="object-cover" />
                 </div>
               </div>

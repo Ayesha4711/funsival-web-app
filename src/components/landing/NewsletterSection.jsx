@@ -27,7 +27,7 @@ export default function NewsletterSection() {
           {/* Right: input + button */}
           <form
             onSubmit={handleSubscribe}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-2xl sm:rounded-full shadow-sm border border-gray-200 overflow-hidden p-1.5 sm:pr-1.5 sm:pl-5 w-full md:w-auto lg:min-w-[420px] gap-2 sm:gap-0"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-2xl sm:rounded-full border border-gray-200 overflow-hidden p-1.5 sm:pr-1.5 sm:pl-5 w-full md:w-auto lg:min-w-[420px] gap-2 sm:gap-0"
           >
             <input
               type="email"

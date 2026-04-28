@@ -35,7 +35,7 @@ const trendData = [
 function TrendTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2">
+    <div className="bg-white border border-gray-100 rounded-xl px-3 py-2">
       <p className="text-xs font-bold text-gray-500 mb-0.5">{label}</p>
       <p className="text-sm font-extrabold" style={{ color: COLORS.places }}>
         ${payload[0].value.toLocaleString()}
@@ -46,7 +46,7 @@ function TrendTooltip({ active, payload, label }) {
 
 export function EarningsTrend() {
   return (
-    <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[var(--color-border)]">
+    <div className="bg-white rounded-[32px] p-6 border border-[var(--color-border)]">
       <h2 className="text-base font-bold text-[var(--color-text)] mb-6">Earnings Trend</h2>
       <ResponsiveContainer width="100%" height={260}>
         <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
@@ -103,7 +103,7 @@ function renderCustomLabel({ cx, cy, midAngle, outerRadius, name, value }) {
     <foreignObject x={x - 28} y={y - 18} width={56} height={36}>
       <div
         xmlns="http://www.w3.org/1999/xhtml"
-        className="bg-white border border-gray-100 rounded-lg shadow-sm px-1.5 py-0.5 text-center"
+        className="bg-white border border-gray-100 rounded-lg px-1.5 py-0.5 text-center"
       >
         <p className="text-[10px] font-extrabold text-gray-800 leading-tight">{value}%</p>
         <p className="text-[8px] text-gray-400 leading-tight">{name}</p>
@@ -114,7 +114,7 @@ function renderCustomLabel({ cx, cy, midAngle, outerRadius, name, value }) {
 
 export function RevenueByCategory() {
   return (
-    <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[var(--color-border)] h-full flex flex-col">
+    <div className="bg-white rounded-[32px] p-6 border border-[var(--color-border)] h-full flex flex-col">
       <h2 className="text-base font-bold text-[var(--color-text)] mb-4">Revenue by Category</h2>
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <ResponsiveContainer width="100%" height={220}>

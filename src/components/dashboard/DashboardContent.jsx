@@ -6,13 +6,13 @@ import heroImg from "@/assets/images/HeroImg.jpg";
 import {
   PieChart, Pie, Cell, Tooltip as PieTooltip,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar,
+  ResponsiveContainer,
 } from "recharts";
 
 /* ─── Stat Card ─────────────────────────────────────────────────────────────── */
 function StatCard({ label, value, sub, subColor = "text-green-500" }) {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)] flex flex-col gap-1">
+    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)] flex flex-col gap-1">
       <p className="text-xs text-[var(--color-text-muted)] font-medium">{label}</p>
       <p className="text-2xl lg:text-3xl font-extrabold text-[var(--color-text)]">{value}</p>
       {sub && <p className={`text-xs font-medium ${subColor}`}>{sub}</p>}
@@ -23,12 +23,12 @@ function StatCard({ label, value, sub, subColor = "text-green-500" }) {
 /* ─── Status Badge ───────────────────────────────────────────────────────────── */
 function StatusBadge({ status }) {
   const map = {
-    Completed: "bg-green-100 text-green-700",
-    Pending: "bg-yellow-100 text-yellow-700",
-    Cancelled: "bg-red-100 text-red-700",
+    Completed: "bg-green-500 text-white",
+    Pending: "bg-yellow-400 text-white",
+    Cancelled: "bg-red-400 text-white",
   };
   return (
-    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${map[status] ?? "bg-gray-100 text-gray-600"}`}>
+    <span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${map[status] ?? "bg-gray-400 text-white"}`}>
       {status}
     </span>
   );
@@ -45,21 +45,18 @@ const reservations = [
 
 function RecentReservations() {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)]">
+    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)] h-full flex flex-col">
       <h2 className="text-base font-bold text-[var(--color-text)] mb-4">Recent Reservations</h2>
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4 flex-1">
         {reservations.map((r) => (
           <div key={r.id} className="flex items-center gap-3">
-            {/* Thumbnail */}
             <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 relative">
               <Image src={heroImg} alt={r.name} fill className="object-cover" />
             </div>
-            {/* Info */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-[var(--color-text)] truncate">{r.name}</p>
               <p className="text-xs text-[var(--color-text-muted)]">{r.date}</p>
             </div>
-            {/* Status + type */}
             <div className="flex flex-col items-end gap-1 shrink-0">
               <StatusBadge status={r.status} />
               <span className="text-[11px] text-[var(--color-text-subtle)]">{r.type}</span>
@@ -80,19 +77,33 @@ const performanceData = [
 
 function renderPerfLabel({ cx, cy, midAngle, outerRadius, name, value }) {
   const RADIAN = Math.PI / 180;
-  // Push labels further out so longer names like "Completed" don't clip
-  const radius = outerRadius + 42;
+  const radius = outerRadius + 6;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  // Width wide enough for "Completed", anchored at centre of label
+  const offsets = {
+    Completed: { x: 6, y: 10 },
+    Pending: { x: -66, y: -6 },
+    Canceled: { x: -10, y: -34 },
+  };
+  const { x: offsetX, y: offsetY } = offsets[name] ?? { x: -36, y: -20 };
   return (
-    <foreignObject x={x - 36} y={y - 20} width={72} height={40}>
+    <foreignObject x={x + offsetX} y={y + offsetY} width={76} height={42}>
       <div
         xmlns="http://www.w3.org/1999/xhtml"
-        style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "3px 6px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          background: "#fff",
+          border: "1px solid #e5e7eb",
+          borderRadius: 8,
+          padding: "3px 6px",
+          boxShadow: "0 1px 4px rgba(15, 23, 42, 0.08)",
+          whiteSpace: "nowrap",
+        }}
       >
-        <span style={{ fontSize: 11, fontWeight: 800, color: "#111827", lineHeight: 1.2 }}>{value}%</span>
-        <span style={{ fontSize: 9, color: "#9ca3af", lineHeight: 1.2, whiteSpace: "nowrap" }}>{name}</span>
+        <span style={{ fontSize: 11, fontWeight: 800, color: "#111827", lineHeight: 1.1 }}>{value}%</span>
+        <span style={{ fontSize: 9, color: "#94a3b8", lineHeight: 1.1 }}>{name}</span>
       </div>
     </foreignObject>
   );
@@ -100,37 +111,38 @@ function renderPerfLabel({ cx, cy, midAngle, outerRadius, name, value }) {
 
 function DonutChart() {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)]">
-      <h2 className="text-base font-bold text-[var(--color-text)] mb-2">Listing Performance</h2>
-      {/* Extra vertical space so labels above/below the donut aren't clipped */}
-      <ResponsiveContainer width="100%" height={260}>
-        <PieChart margin={{ top: 28, right: 28, bottom: 28, left: 28 }}>
-          <Pie
-            data={performanceData}
-            cx="50%"
-            cy="50%"
-            innerRadius={58}
-            outerRadius={84}
-            paddingAngle={3}
-            dataKey="value"
-            labelLine={false}
-            label={renderPerfLabel}
-          >
-            {performanceData.map((entry, i) => (
-              <Cell key={i} fill={entry.color} />
-            ))}
-          </Pie>
-          <PieTooltip
-            formatter={(value, name) => [`${value}%`, name]}
-            contentStyle={{ borderRadius: 12, border: "1px solid #f1f5f9", fontSize: 12 }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-      <div className="flex items-center justify-center gap-5 mt-1">
+    <div className="bg-white rounded-2xl border border-[var(--color-border)] flex flex-col h-full">
+      <h2 className="text-base font-bold text-[var(--color-text)] px-5 pt-5 pb-0">Listing Performance</h2>
+      <div className="flex-1 flex flex-col items-center justify-center px-2 py-3">
+        <ResponsiveContainer width="100%" height={320}>
+          <PieChart margin={{ top: 28, right: 28, bottom: 18, left: 28 }}>
+            <Pie
+              data={performanceData}
+              cx="50%"
+              cy="54%"
+              innerRadius={64}
+              outerRadius={98}
+              paddingAngle={4}
+              dataKey="value"
+              labelLine={false}
+              label={renderPerfLabel}
+            >
+              {performanceData.map((entry, i) => (
+                <Cell key={i} fill={entry.color} />
+              ))}
+            </Pie>
+            <PieTooltip
+              formatter={(value, name) => [`${value}%`, name]}
+              contentStyle={{ borderRadius: 12, border: "1px solid #f1f5f9", fontSize: 12 }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex items-center justify-center gap-6 px-5 pb-5">
         {performanceData.map((s) => (
           <div key={s.name} className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-            <span className="text-xs font-semibold text-[var(--color-text-muted)]">{s.name}</span>
+            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+            <span className="text-sm font-semibold text-[var(--color-text-muted)]">{s.name}</span>
           </div>
         ))}
       </div>
@@ -144,45 +156,65 @@ const utilizationData = [
   { name: "Pending", value: 40, fill: "#FEB538" },
 ];
 
-function UtilizationTooltip({ active, payload }) {
-  if (!active || !payload?.length) return null;
+function UtilizationBar({ name, value, fill }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs font-bold text-gray-700">
-      {payload[0].payload.name}: {payload[0].value}%
+    <div className="flex flex-col items-center gap-2 shrink-0" style={{ width: 68 }}>
+      <div
+        className="w-full relative overflow-hidden"
+        style={{ background: "#e5e7eb", borderRadius: 8, height: 292 }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: `${value}%`,
+            background: fill,
+            borderRadius: 8,
+          }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            top: 16,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            fontSize: 12,
+            fontWeight: 700,
+            color: "#374151",
+          }}
+        >
+          {value}%
+        </span>
+        <span
+          style={{
+            position: "absolute",
+            bottom: 16,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#ffffff",
+          }}
+        >
+          {name}
+        </span>
+      </div>
     </div>
   );
 }
 
 function UtilizationCard() {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)] flex flex-col h-full min-h-[320px]">
-      <h2 className="text-base font-bold text-[var(--color-text)] mb-2">Utilization</h2>
-      <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={utilizationData} barSize={64} margin={{ top: 16, right: 16, left: -16, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={true} vertical={false} />
-            <XAxis
-              dataKey="name"
-              tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fill: "#94a3b8", fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-              domain={[0, 100]}
-              tickFormatter={(v) => `${v}%`}
-              ticks={[0, 25, 50, 75, 100]}
-            />
-            <Tooltip content={<UtilizationTooltip />} cursor={{ fill: "#f8fafc" }} />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-              {utilizationData.map((entry, i) => (
-                <Cell key={i} fill={entry.fill} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+    <div className="bg-white rounded-2xl border border-[var(--color-border)] flex flex-col h-full min-w-0">
+      <h2 className="text-base font-bold text-[var(--color-text)] px-4 pt-5 pb-4">Utilization</h2>
+      <div className="flex-1 flex items-end justify-center px-4 pb-5 gap-5">
+        {utilizationData.map((d) => (
+          <UtilizationBar key={d.name} name={d.name} value={d.value} fill={d.fill} />
+        ))}
       </div>
     </div>
   );
@@ -207,7 +239,7 @@ const earningsData = [
 function EarningsTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs">
+    <div className="bg-white border border-gray-100 rounded-xl px-3 py-2 text-xs">
       <p className="font-bold text-gray-500 mb-1">{label}</p>
       {payload.map((p) => (
         <p key={p.name} className="font-semibold" style={{ color: p.color }}>
@@ -223,27 +255,29 @@ function EarningsChart() {
   const periods = ["12 months", "30 days", "7 days", "24 hours"];
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-[var(--color-border)]">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)]">
+      {/* Row 1: Earnings title + View report button */}
+      <div className="flex items-center justify-between mb-2">
         <h2 className="text-base font-bold text-[var(--color-text)]">Earnings</h2>
-        <div className="flex items-center gap-1 sm:gap-3">
-          {periods.map((p) => (
-            <button
-              key={p}
-              onClick={() => setActivePeriod(p)}
-              className={`text-xs font-medium px-2 sm:px-3 py-1 transition-colors ${
-                activePeriod === p
-                  ? "text-[var(--color-primary)] border-b-2 border-[var(--color-primary)]"
-                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-          <button className="ml-2 text-xs font-semibold text-[var(--color-text)] border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors hidden sm:block">
-            View report
+        <button className="text-xs font-semibold text-[var(--color-text)] border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+          View report
+        </button>
+      </div>
+      {/* Row 2: Period tabs — sits below the heading row */}
+      <div className="flex items-center gap-1 mb-4 border-b border-gray-100">
+        {periods.map((p) => (
+          <button
+            key={p}
+            onClick={() => setActivePeriod(p)}
+            className={`text-xs font-medium px-3 py-2 transition-colors ${
+              activePeriod === p
+                ? "text-[var(--color-primary)] border-b-2 border-[var(--color-primary)]"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            }`}
+          >
+            {p}
           </button>
-        </div>
+        ))}
       </div>
       <ResponsiveContainer width="100%" height={150}>
         <AreaChart data={earningsData} margin={{ top: 5, right: 5, left: -32, bottom: 0 }}>
@@ -287,7 +321,7 @@ export default function DashboardContent() {
       </div>
 
       {/* Middle section: Reservations | Listing Performance | Utilization */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(0,0.72fr)] gap-4 items-stretch">
         <RecentReservations />
         <DonutChart />
         <UtilizationCard />

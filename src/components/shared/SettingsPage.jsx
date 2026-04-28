@@ -131,7 +131,7 @@ const EyeIcon = () => (
 
 function AutoSaveNotice() {
   return (
-    <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-5 py-4 text-sm text-gray-600 shadow-sm">
+    <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-5 py-4 text-sm text-gray-600">
       <span className="shrink-0 text-[var(--color-primary)]"><InfoIcon /></span>
       <span>Your settings are automatically saved. Changes will take effect immediately.</span>
     </div>
@@ -157,7 +157,7 @@ function Toggle({ checked, onChange }) {
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors shrink-0 ${checked ? "bg-[var(--color-primary)]" : "bg-gray-200"}`}
     >
-      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-md transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`} />
+      <span className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`} />
     </button>
   );
 }
@@ -178,7 +178,7 @@ function SelectField({ label, value, onChange, options }) {
           <ChevronDownIcon />
         </button>
         {open && (
-          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-52 overflow-y-auto">
+          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl z-20 max-h-52 overflow-y-auto">
             {options.map((opt) => {
               const isSelected = opt.value === value;
               return (
@@ -258,7 +258,7 @@ function AddPaymentModal({ onClose, onAdd }) {
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -381,7 +381,7 @@ function ChangePasswordModal({ onClose }) {
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -457,7 +457,7 @@ function ChangePasswordModal({ onClose }) {
 function DeleteAccountModal({ onClose }) {
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm px-6 py-8 text-center">
+      <div className="bg-white rounded-3xl w-full max-w-sm px-6 py-8 text-center">
         {/* Icon */}
         <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
           <TrashIcon />
@@ -499,7 +499,7 @@ function NotificationsTab() {
   const [state, setState] = useState({ booking: true, messages: true, reminders: false, promotions: false });
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
         <SectionHeader emoji="🔔" title="Notifications" subtitle="Manage your notification preferences" />
         <div className="divide-y divide-gray-100">
           {notifItems.map((item) => (
@@ -534,7 +534,7 @@ function PreferencesTab() {
   const [tz, setTz] = useState("est");
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
         <SectionHeader emoji="🌍" title="Preferences" subtitle="Customize your experience" />
         <SelectField label="Language" value={lang} onChange={setLang} options={languages} />
         <SelectField label="Currency" value={currency} onChange={setCurrency} options={currencies} />
@@ -572,7 +572,7 @@ function SecurityTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
         <SectionHeader emoji="🔒" title="Security" subtitle="Manage your security settings" />
 
         {/* 2FA toggle row */}
@@ -627,7 +627,7 @@ const legalItems = [
 function LegalTab() {
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
         <SectionHeader emoji="📜" title="Legal & Account" subtitle="Legal documents and account options" />
         <div className="space-y-3">
           {legalItems.map((item) => (
@@ -658,7 +658,7 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
   return (
     <div className="space-y-6">
       {/* Main profile card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
         <SectionHeader emoji="👤" title="Account Settings" subtitle="Manage your account details and security" />
 
         {/* Avatar row */}
@@ -742,7 +742,7 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
       </div>
 
       {/* Account Settings card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-5">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-5">
         <p className="text-sm font-bold text-[var(--color-text)] mb-4">Account Settings</p>
         <div className="space-y-2">
           <button
@@ -801,7 +801,7 @@ function PaymentMethodTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
         {/* Header row with Add Method button */}
         <div className="flex items-start justify-between mb-1">
           <div>
@@ -943,7 +943,7 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 {TABS.map((tab, i) => (
                   <button
                     key={tab.key}
@@ -1001,7 +1001,7 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
 
           <div className="flex gap-6 items-start">
             {/* Sidebar */}
-            <aside className="w-56 lg:w-64 shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+            <aside className="w-56 lg:w-64 shrink-0 bg-white border border-gray-100 rounded-2xl overflow-hidden">
               <div className="p-3 space-y-1">
                 {TABS.map((tab) => {
                   const isActive = activeTab === tab.key;

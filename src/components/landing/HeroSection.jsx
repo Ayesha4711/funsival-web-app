@@ -204,21 +204,21 @@ export default function HeroSection() {
         <div className="relative z-10 md:hidden flex flex-col items-center pt-24 pb-6 px-4 gap-4">
           {/* Book Your Jump button */}
           <a href="/signup/role-selection">
-            <button className="px-6 py-2.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold rounded-full text-sm transition-colors whitespace-nowrap shadow">
+            <button className="px-6 py-2.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold rounded-full text-sm transition-colors whitespace-nowrap">
               Book Your Jump
             </button>
           </a>
 
           {/* Hero text */}
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white leading-tight drop-shadow">
+            <h1 className="text-2xl font-bold text-white leading-tight">
               All the fun, none of the commitment.
             </h1>
-            <p className="text-sm text-white/90 mt-1 drop-shadow">Find new fun. Leave the hassle.</p>
+            <p className="text-sm text-white/90 mt-1">Find new fun. Leave the hassle.</p>
           </div>
 
           {/* Search card */}
-          <div ref={searchRef} className="w-full bg-white rounded-2xl shadow-xl overflow-visible">
+          <div ref={searchRef} className="w-full bg-white rounded-2xl overflow-visible">
             {/* Where are you going? */}
             <div className="relative border-b border-gray-100">
               <button
@@ -234,7 +234,7 @@ export default function HeroSection() {
                 </span>
               </button>
               {openDropdown === "city" && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl border border-gray-100 z-50 overflow-hidden">
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
                       <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,7 +271,7 @@ export default function HeroSection() {
                 </span>
               </button>
               {openDropdown === "activity" && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl border border-gray-100 z-50 overflow-hidden">
                   <div className="py-1">
                     {activities.map(act => (
                       <button key={act.name} onClick={() => { setSearchData({ ...searchData, activity: act.name }); setOpenDropdown(null); }}
@@ -315,7 +315,7 @@ export default function HeroSection() {
               {openDropdown === "date" && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 p-4">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl border border-gray-100 z-50 p-4">
                     <div className="flex items-center justify-between mb-4">
                       <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
                         <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -373,7 +373,7 @@ export default function HeroSection() {
       {/* Desktop search bar — floats up over image bottom edge */}
       <div className="hidden md:block relative z-20 -mt-10 lg:-mt-12">
         <div ref={searchRef} className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="md:flex bg-white rounded-full shadow-xl px-4 py-4 items-center gap-1">
+          <div className="md:flex bg-white rounded-full px-4 py-4 items-center gap-1">
             {/* ── Where ── */}
             <div className="flex-1 min-w-0 relative">
               <button
@@ -390,7 +390,7 @@ export default function HeroSection() {
                 </div>
               </button>
               {openDropdown === "city" && (
-                <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-white rounded-2xl border border-gray-100 z-50 overflow-hidden">
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
                       <input autoFocus type="text" placeholder="Select City" className="flex-1 text-xs bg-transparent focus:outline-none text-gray-700"
@@ -424,7 +424,7 @@ export default function HeroSection() {
                 </div>
               </button>
               {openDropdown === "activity" && (
-                <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-white rounded-2xl border border-gray-100 z-50 overflow-hidden">
                   <div className="py-1">
                     {activities.map(act => (
                       <button key={act.name} onClick={() => { setSearchData({ ...searchData, activity: act.name }); setOpenDropdown(null); }}
@@ -469,7 +469,7 @@ export default function HeroSection() {
               {openDropdown === "date" && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
-                  <div className="absolute top-full right-0 left-auto mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 p-4 w-[340px] lg:w-[520px]">
+                  <div className="absolute top-full right-0 left-auto mt-2 bg-white rounded-2xl border border-gray-100 z-50 p-4 w-[340px] lg:w-[520px]">
                     <div className="flex items-center justify-between mb-4">
                       <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
                         <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,6 +1,4 @@
 import ActivityListingPage from '@/components/activities/ActivityListingPage';
-import { jetSkiingActivities, jetSkiingFilters } from '@/data/activityData';
-
 
 export default function JetSkiingPage() {
   return (
@@ -8,8 +6,8 @@ export default function JetSkiingPage() {
       heroTitle="Adventure Backed by Safety"
       heroSubtitle="High-speed water adventures with professional instructors"
       heroBackground="/images/activities/scubadiving.svg"
-      filters={jetSkiingFilters}
-      activities={jetSkiingActivities}
+      category="activity"
+      type="jet_skiing"
     />
   );
 }

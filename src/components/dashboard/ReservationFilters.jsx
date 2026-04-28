@@ -91,7 +91,7 @@ export default function ReservationFilters({ activeTab, onTabChange }) {
               onClick={() => onTabChange(tab.id)}
               className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                 activeTab === tab.id
-                  ? "bg-white text-[var(--color-primary)] shadow-sm font-extrabold"
+                  ? "bg-white text-[var(--color-primary)] font-extrabold"
                   : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
               }`}
             >

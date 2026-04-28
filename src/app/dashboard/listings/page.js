@@ -85,7 +85,7 @@ export default function ListingsPage() {
       if (draft && (draft.id || draft._id)) {
         const draftId = draft.id ?? draft._id;
         const exists = allRaw.some(item => (item.id ?? item._id) === draftId);
-        if (!exists) allRaw.push({ ...draft, status: "Draft" });
+        if (!exists) allRaw.push({ ...draft, status: "Draft", _currentStep: draft.currentStep ?? 1 });
       }
     }
 
@@ -121,6 +121,7 @@ export default function ListingsPage() {
         time: item.availability?.[0]
           ? `${item.availability[0].startTime} – ${item.availability[0].endTime}`
           : item.time ?? "—",
+        currentStep: item._currentStep ?? null,
       };
     });
 
@@ -159,7 +160,7 @@ export default function ListingsPage() {
     if (!item) return;
 
     if (item.status?.toLowerCase() === "draft" && newStatus === "Active") {
-      setEditingListing({ ...item, status: newStatus });
+      setEditingListing({ ...item, _initialStep: item.currentStep ?? 1, _targetStatus: "Active" });
       return;
     }
 
@@ -251,7 +252,13 @@ export default function ListingsPage() {
       </div>
 
       {editingListing && (
-        <EditListingWizard listing={editingListing} onClose={() => setEditingListing(null)} onSaved={handleEditSaved} />
+        <EditListingWizard
+          listing={editingListing}
+          initialStep={editingListing._initialStep}
+          targetStatus={editingListing._targetStatus}
+          onClose={() => setEditingListing(null)}
+          onSaved={handleEditSaved}
+        />
       )}
 
       {deletingListing && (
@@ -260,7 +267,7 @@ export default function ListingsPage() {
           style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
           onMouseDown={(e) => { if (e.target === e.currentTarget) setDeletingListing(null); }}
         >
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 sm:p-8">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 sm:p-8">
             <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>

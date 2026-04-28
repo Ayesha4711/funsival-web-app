@@ -190,9 +190,13 @@ function buildPayload(data) {
       isAvailable: true,
     }));
 
+  const firstSlot = availability[0] || {};
+
   return {
     category: category || "",
     type: type || "",
+    startTime: firstSlot.startTime || "",
+    endTime: firstSlot.endTime || "",
     basicInformation: {
       activityTitle: details.title || "",
       location: details.location ||
