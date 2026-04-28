@@ -16,6 +16,7 @@ import ReservationFilters from "@/components/dashboard/ReservationFilters";
 import ReservationTable from "@/components/dashboard/ReservationTable";
 import ReservationCards from "@/components/dashboard/ReservationCards";
 import ReservationDetailView from "@/components/dashboard/ReservationDetailView";
+import Pagination from "@/components/shared/Pagination";
 
 /* ─── Map API booking → shape expected by table/detail components ─────────── */
 function mapBookingToRow(b) {
@@ -57,7 +58,10 @@ function mapBookingToRow(b) {
 
   const timeRange = b.startTime && b.endTime ? `${b.startTime} to ${b.endTime}` : "—";
 
-  const reservedBy = b.bookedBy ?? "Guest";
+  const bookedBy = b.bookedBy;
+  const reservedBy = typeof bookedBy === "string"
+    ? bookedBy
+    : bookedBy?.email || bookedBy?.name || bookedBy?.id || "Guest";
 
   return {
     id: b.id,
@@ -117,11 +121,14 @@ export default function ReservationsPage() {
     );
   }
 
+  const totalPages = pagination?.totalPages ?? 1;
+
   return (
-    <div className="p-4 sm:p-6 lg:p-10 max-w-400 mx-auto flex-1 flex flex-col">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-400 mx-auto flex-1 flex flex-col gap-4">
       <ReservationStats />
 
-      <div className="bg-white rounded-4xl p-4 sm:p-6 lg:p-8 border border-border">
+      {/* White card — matches image: width ~1080, border-radius 16, border 1px */}
+      <div className="bg-white border border-gray-200 flex flex-col gap-4" style={{ borderRadius: 16, padding: 20 }}>
         <ReservationFilters activeTab={activeTab} onTabChange={setActiveTab} />
 
         {status === "loading" && (
@@ -161,6 +168,15 @@ export default function ReservationsPage() {
           </>
         )}
       </div>
+
+      {/* Pagination — centered below card, matching image */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(p) => setCurrentPage(p)}
+        />
+      )}
     </div>
   );
 }

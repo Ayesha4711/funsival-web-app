@@ -309,11 +309,10 @@ export default function ConfirmAndPayPage() {
   const handleConfirmAndPay = async () => {
     const payload = buildBookingPayload(params);
 
-    // Uncomment this guard once listing pages pass listingId in the URL
-    // if (!payload.listingId) {
-    //   toast.error("Missing listing information. Please go back and try again.");
-    //   return;
-    // }
+    if (!payload.listingId) {
+      toast.error("Missing listing information. Please go back and try again.");
+      return;
+    }
 
     try {
       await dispatch(createBooking(payload)).unwrap();

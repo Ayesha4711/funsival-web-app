@@ -4,7 +4,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchListings, selectListings, selectListingsStatus, selectListingsPagination } from '@/store/slices/listingsSlice';
+import {
+  fetchBrowseListings,
+  selectActivities,
+  selectActivitiesPagination,
+  selectActivitiesStatus,
+} from '@/store/slices/activitiesSlice';
 import NewsletterSection from '@/components/landing/NewsletterSection';
 import LandingFooter from '@/components/landing/LandingFooter';
 import NotificationPopover from '@/components/shared/NotificationPopover';
@@ -299,84 +304,131 @@ function StarRating({ rating }) {
   );
 }
 
-/* ─── Listing Card — works with real API shape ───────────────────────────────── */
+/* ─── Listing Card — matches design: image, title+tag row, rating, price pills, location ── */
 function ListingCard({ listing }) {
   const router = useRouter();
 
-  // Real API listing shape
   const id = listing._id || listing.id;
   const info = listing.basicInformation ?? {};
   const loc = listing.placeLocation ?? {};
   const category = listing.category ?? (listing.tab?.includes('places') ? 'places' : listing.tab?.includes('equipment') ? 'equipment' : 'activities');
-  
+
   const title = info.activityTitle || info.equipmentName || info.placeName || listing.title || 'Listing';
-  
-  // Try all possible image fields
+
   const images = listing.photos || info.images || listing.images || [];
   const image = (Array.isArray(images) && images.length > 0 ? images[0] : images) || listing.image || 'https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80';
-  
-  const locationStr = [loc.city, loc.state, loc.country].filter(Boolean).join(', ') || info.location || listing.location || '—';
-  
-  // Try all possible price fields; listing.price may be an object {hourly, daily, delivery, currency}
-  const priceObj = typeof listing.price === 'object' && listing.price !== null ? listing.price : null;
-  const price = listing.price?.amount ?? priceObj?.daily ?? priceObj?.hourly ?? priceObj?.delivery ?? info.pricePerPerson ?? info.pricePerHour ?? info.dailyRate ?? (typeof listing.price === 'number' ? listing.price : 0);
-  const rating = listing.rating ?? 4.5;
-  const reviews = listing.reviewCount ?? listing.reviews ?? 0;
 
-  const handleClick = () => {
+  const locationStr = [loc.city, loc.state, loc.country].filter(Boolean).join(', ') || info.location || listing.location || '—';
+
+  const priceObj = typeof listing.price === 'object' && listing.price !== null ? listing.price : null;
+
+  const toNum = (v) => {
+    const n = Number(v);
+    return !isNaN(n) && isFinite(n) && n > 0 ? n : null;
+  };
+
+  const hourlyPrice = toNum(priceObj?.hourly ?? priceObj?.perHour ?? info.pricePerHour);
+  const dailyPrice = toNum(priceObj?.daily ?? priceObj?.dailyRate ?? info.dailyRate);
+  const perPersonPrice = toNum(priceObj?.perPerson ?? info.pricePerPerson);
+  const fallbackPrice = toNum(priceObj?.amount) ?? (typeof listing.price === 'number' ? toNum(listing.price) : null);
+
+  const rating = listing.rating ?? 4.4;
+  const reviews = listing.reviewCount ?? listing.reviews ?? '21K';
+
+  const categoryLabel = info.category || listing.categoryLabel || (
+    category === 'places' ? 'Swimming' : category === 'equipment' ? 'Equipment' : 'Diving'
+  );
+
+  const navigateToListing = () => {
     router.push(`/user-dashboard/listing/${id}?type=${category}`);
   };
 
   return (
     <div
-      onClick={handleClick}
-      className="relative z-0 bg-white rounded-2xl overflow-hidden duration-300 group cursor-pointer border border-gray-100 hover:shadow-md transition-shadow"
+      onClick={navigateToListing}
+      className="bg-white rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow duration-300 group"
     >
       {/* Image */}
-      <div className="relative h-44 sm:h-48 md:h-52 overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
-          style={{ backgroundImage: `url('${image}')` }}
+      <div className="relative h-48 sm:h-52 overflow-hidden rounded-2xl">
+        <img
+          src={image}
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        {/* Favorite */}
+        {/* Favorite — top right, orange bg */}
         <button
           onClick={e => e.stopPropagation()}
-          className="absolute top-3 left-3 w-7 h-7 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-colors"
+          className="absolute top-3 right-3 w-8 h-8 bg-[#F5823A] hover:bg-[#e06d2a] rounded-full flex items-center justify-center transition-colors shadow"
         >
-          <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
         </button>
       </div>
 
       {/* Content */}
-      <div className="p-3 sm:p-4">
-        <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-1.5 line-clamp-1">{title}</h3>
-
-        <div className="flex items-center gap-1.5 mb-2">
-          <StarRating rating={rating} />
-          <span className="text-xs text-gray-500">({reviews} Reviews)</span>
+      <div className="px-3 pt-3 pb-4 sm:px-4 sm:pt-3.5 sm:pb-4">
+        {/* Title + category tag */}
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <h3 className="text-[15px] font-bold text-[#3DAA8A] leading-tight line-clamp-1">{title}</h3>
+          <span className="shrink-0 text-[11px] font-medium text-[#F5823A] border border-[#F5823A] rounded-full px-2.5 py-0.5 whitespace-nowrap bg-white">
+            {categoryLabel}
+          </span>
         </div>
 
-        <div className="flex items-center gap-1 mb-3 text-gray-500">
-          <svg className="w-3.5 h-3.5 shrink-0 text-[#4AA7A7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        {/* Rating row */}
+        <div className="flex items-center gap-1.5 mb-3">
+          <span className="text-sm font-semibold text-gray-800">{typeof rating === 'number' ? rating.toFixed(1) : rating}</span>
+          <svg className="w-4 h-4 text-[#F5C842] fill-current" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
-          <span className="text-xs">{locationStr}</span>
+          <span className="text-xs text-gray-400">({reviews} Reviews)</span>
         </div>
 
-        <div className="flex items-center justify-between pt-2.5 border-t border-gray-100">
-          <div>
-            <p className="text-[10px] text-gray-400 leading-none mb-0.5">From</p>
-            <p className="text-base font-bold text-gray-900">${price}<span className="text-xs font-normal text-gray-400">/day</span></p>
-          </div>
-          <button
-            onClick={e => { e.stopPropagation(); handleClick(); }}
-            className="bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold text-xs px-4 py-2 rounded-full transition-colors duration-200"
-          >
-            Book Now
-          </button>
+        {/* Price pills — full width single, half-width each when two */}
+        {(() => {
+          const hasHourly = hourlyPrice != null;
+          const hasDaily = dailyPrice != null;
+          const hasPerPerson = perPersonPrice != null;
+          const hasFallback = !hasHourly && !hasDaily && !hasPerPerson && fallbackPrice != null;
+          const twoCol = hasHourly && hasDaily;
+
+          return (
+            <div className={`flex gap-2 mb-3 ${twoCol ? '' : ''}`}>
+              {hasHourly && (
+                <div className={`flex items-center rounded-full border border-[#F5C842] overflow-hidden text-xs font-medium ${twoCol ? 'flex-1' : 'w-full'}`}>
+                  <span className="px-3 py-1.5 text-gray-400 bg-[#FFF9EC] whitespace-nowrap">Hourly</span>
+                  <span className="flex-1 text-right px-3 py-1.5 text-[#F5823A] font-bold bg-[#FFF9EC]">${hourlyPrice}</span>
+                </div>
+              )}
+              {hasDaily && (
+                <div className={`flex items-center rounded-full border border-[#4AA7A7] overflow-hidden text-xs font-medium ${twoCol ? 'flex-1' : 'w-full'}`}>
+                  <span className="px-3 py-1.5 text-gray-400 bg-[#EDF8F8] whitespace-nowrap">Daily</span>
+                  <span className="flex-1 text-right px-3 py-1.5 text-[#4AA7A7] font-bold bg-[#EDF8F8]">${dailyPrice}</span>
+                </div>
+              )}
+              {hasPerPerson && !hasHourly && !hasDaily && (
+                <div className="flex items-center rounded-full border border-[#F5C842] overflow-hidden text-xs font-medium w-full">
+                  <span className="px-3 py-1.5 text-gray-400 bg-[#FFF9EC] whitespace-nowrap">Per Person</span>
+                  <span className="flex-1 text-right px-3 py-1.5 text-[#F5823A] font-bold bg-[#FFF9EC]">${perPersonPrice}</span>
+                </div>
+              )}
+              {hasFallback && (
+                <div className="flex items-center rounded-full border border-[#F5C842] overflow-hidden text-xs font-medium w-full">
+                  <span className="px-3 py-1.5 text-gray-400 bg-[#FFF9EC] whitespace-nowrap">From</span>
+                  <span className="flex-1 text-right px-3 py-1.5 text-[#F5823A] font-bold bg-[#FFF9EC]">${fallbackPrice}</span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Location — orange filled pin */}
+        <div className="flex items-center gap-1.5">
+          <svg className="w-4 h-4 shrink-0 text-[#F5823A] fill-current" viewBox="0 0 24 24">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+          </svg>
+          <span className="text-xs text-gray-500">{locationStr}</span>
         </div>
       </div>
     </div>
@@ -386,9 +438,9 @@ function ListingCard({ listing }) {
 /* ─── Main Page ──────────────────────────────────────────────────────────────── */
 export default function UserExplorePage() {
   const dispatch = useDispatch();
-  const apiListings = useSelector(selectListings);
-  const listingsStatus = useSelector(selectListingsStatus);
-  const pagination = useSelector(selectListingsPagination);
+  const apiListings = useSelector(selectActivities);
+  const listingsStatus = useSelector(selectActivitiesStatus);
+  const pagination = useSelector(selectActivitiesPagination);
 
   const [activeTab, setActiveTab] = useState('all');
   const [activeSubFilter, setActiveSubFilter] = useState('all');
@@ -397,8 +449,9 @@ export default function UserExplorePage() {
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
-    dispatch(fetchListings({ page: currentPage, limit: ITEMS_PER_PAGE }));
-  }, [dispatch, currentPage]);
+    const category = activeTab === 'all' ? undefined : activeTab;
+    dispatch(fetchBrowseListings({ page: currentPage, limit: ITEMS_PER_PAGE, category }));
+  }, [dispatch, currentPage, activeTab]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -416,40 +469,38 @@ export default function UserExplorePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Only use real API listings
+  // API already filters by category; apply sub-filter (type) client-side
   const allListings = apiListings || [];
-  const filteredListings = activeTab === 'all'
-    ? allListings
-    : allListings.filter((l) => {
-        const cat = l.category ?? (l.tab?.includes(activeTab) ? activeTab : null);
-        return cat === activeTab || l.tab?.includes(activeTab);
-      });
+  const filteredListings =
+    activeSubFilter === 'all'
+      ? allListings
+      : allListings.filter((l) => l.type === activeSubFilter);
 
-  const totalPages = pagination.totalPages || Math.ceil(filteredListings.length / ITEMS_PER_PAGE);
-  // When using API, pagination is server-side so show all on current page
-  const paginatedListings = apiListings.length > 0
-    ? filteredListings
-    : filteredListings.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = pagination.totalPages || 1;
+  // Pagination is server-side — show whatever the API returned
+  const paginatedListings = filteredListings;
 
   const subFilters = SUB_FILTERS[activeTab] || [];
 
   return (
-    <div className="flex flex-col bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-[#F5F5F5]">
 
-      {/* ── Tab Bar + Controls ── */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-200">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between gap-2 py-3">
+      {/* ── Main content: single white rounded card ── */}
+      <main className="flex-1 max-w-350 mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+        <div className="bg-white rounded-3xl shadow-sm p-4 sm:p-6 lg:p-8">
+
+          {/* ── Tabs row + Map View + Filter — inside the card ── */}
+          <div className="flex items-center justify-between gap-2 mb-6">
             {/* Tabs */}
-            <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide bg-[#F0FAFA] rounded-full p-1">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`px-4 sm:px-6 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
+                  className={`px-5 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
                     activeTab === tab.id
-                      ? 'bg-[#4AA7A7] text-white'
-                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                      ? 'bg-white text-gray-800 shadow-sm'
+                      : 'text-gray-400 hover:text-gray-700'
                   }`}
                 >
                   {tab.label}
@@ -462,10 +513,10 @@ export default function UserExplorePage() {
               {/* Map / Grid View toggle */}
               <button
                 onClick={() => setViewMode(v => v === 'grid' ? 'map' : 'grid')}
-                className={`hidden sm:flex items-center gap-1.5 px-3 sm:px-4 py-2 border rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`hidden sm:flex items-center gap-2 px-4 py-2 border rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
                   viewMode === 'map'
                     ? 'border-[#4AA7A7] bg-[#4AA7A7] text-white'
-                    : 'border-gray-300 text-gray-700 hover:border-[#4AA7A7] hover:text-[#4AA7A7]'
+                    : 'border-[#4AA7A7] text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white'
                 }`}
               >
                 {viewMode === 'map' ? (
@@ -484,29 +535,24 @@ export default function UserExplorePage() {
                   </>
                 )}
               </button>
-              {/* Filter Button */}
-              <button className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-full text-gray-600 hover:border-[#4AA7A7] hover:text-[#4AA7A7] transition-colors">
+
+              {/* Filter icon button */}
+              <button className="flex items-center justify-center w-9 h-9 border border-[#4AA7A7] rounded-full text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white transition-colors">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
               </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ── Sub Filters (Places / Equipment / Activities) ── */}
-      {subFilters.length > 0 && (
-        <div className="sticky top-[57px] z-20 bg-white border-b border-gray-100">
-          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-2 py-3 overflow-x-auto scrollbar-hide">
-              {/* Prev arrow */}
-              <button className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-[#4AA7A7] hover:text-[#4AA7A7] transition-colors">
+          {/* ── Sub Filters ── */}
+          {subFilters.length > 0 && (
+            <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide">
+              <button className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-[#4AA7A7] hover:text-[#4AA7A7] transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-
               {subFilters.map((filter) => (
                 <button
                   key={filter.id}
@@ -514,71 +560,59 @@ export default function UserExplorePage() {
                   className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 border ${
                     activeSubFilter === filter.id
                       ? 'bg-[#4AA7A7] text-white border-[#4AA7A7]'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#4AA7A7] hover:text-[#4AA7A7]'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-[#4AA7A7] hover:text-[#4AA7A7]'
                   }`}
                 >
                   {filter.label}
                 </button>
               ))}
-
-              {/* Next arrow */}
-              <button className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-[#4AA7A7] hover:text-[#4AA7A7] transition-colors">
+              <button className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-[#4AA7A7] hover:text-[#4AA7A7] transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* ── Main content: Map or Grid ── */}
-      <main className="flex-1 max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-
-        {viewMode === 'map' ? (
-          /* ── Map View ── */
-          <MapView listings={filteredListings} />
-        ) : listingsStatus === 'loading' ? (
-          <div className="flex items-center justify-center py-24">
-            <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : paginatedListings.length > 0 ? (
-          /* ── Grid View ── */
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-              {paginatedListings.map((listing) => (
-                <ListingCard key={listing._id || listing.id} listing={listing} />
-              ))}
+          {/* ── Grid / Map / States ── */}
+          {viewMode === 'map' ? (
+            <MapView listings={filteredListings} />
+          ) : listingsStatus === 'loading' ? (
+            <div className="flex items-center justify-center py-24">
+              <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
             </div>
+          ) : paginatedListings.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
+                {paginatedListings.map((listing) => (
+                  <ListingCard key={listing._id || listing.id} listing={listing} />
+                ))}
+              </div>
 
-            {/* Pagination info + controls */}
-            {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-3">
-                <p className="text-sm text-gray-500 order-2 sm:order-1">
-                  Page <span className="font-semibold text-gray-700">{currentPage}</span> of{' '}
-                  <span className="font-semibold text-gray-700">{totalPages}</span>
-                </p>
-                <div className="order-1 sm:order-2">
+              {/* Pagination — centered */}
+              {totalPages >= 1 && (
+                <div className="flex justify-center mt-8">
                   <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
                     onPageChange={handlePageChange}
                   />
                 </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-            )}
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <p className="text-lg font-semibold text-gray-700 mb-1">No listings found</p>
+              <p className="text-sm text-gray-400">Try a different category or filter</p>
             </div>
-            <p className="text-lg font-semibold text-gray-700 mb-1">No listings found</p>
-            <p className="text-sm text-gray-400">Try a different category or filter</p>
-          </div>
-        )}
+          )}
+
+        </div>
       </main>
 
       <NewsletterSection />

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
-import { fetchListing, selectSelectedListing, selectListingsStatus } from "@/store/slices/listingsSlice";
+import { selectActivities } from "@/store/slices/activitiesSlice";
+import { createBooking } from "@/store/slices/bookingsSlice";
 import { SimpleMap } from "@/components/shared/MapControls";
 import NewsletterSection from "@/components/landing/NewsletterSection";
 import LandingFooter from "@/components/landing/LandingFooter";
@@ -159,13 +160,35 @@ function ImageGallery({ images, title }) {
   );
 }
 
+/* ─── Shared reserve handler ─────────────────────────────────────────────────── */
+function useReserve(listingId) {
+  const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false);
+
+  const reserve = async (payload) => {
+    setLoading(true);
+    try {
+      await dispatch(createBooking({ listingId, ...payload })).unwrap();
+      toast.success("Booking confirmed!");
+    } catch (err) {
+      toast.error(typeof err === "string" ? err : err?.message ?? "Booking failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { reserve, loading };
+}
+
 /* ─── Booking Card (Places) ──────────────────────────────────────────────────── */
 function PlacesBookingCard({ listing, listingId }) {
-  const router = useRouter();
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [guests, setGuests] = useState(1);
+  const { reserve, loading } = useReserve(listingId);
+  const bookingType = listing.bookingType;
+
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
     : 3;
@@ -187,7 +210,6 @@ function PlacesBookingCard({ listing, listingId }) {
           <BookingField label="Date" icon={<CalendarIcon />}>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
           </BookingField>
-
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <BookingField label="Start time" icon={<ClockIcon />}>
               <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
@@ -196,15 +218,8 @@ function PlacesBookingCard({ listing, listingId }) {
               <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
             </BookingField>
           </div>
-
           <BookingField label="Select guest number" icon={<UserOutlineIcon />}>
-            <input
-              type="number"
-              min="1"
-              value={guests}
-              onChange={(e) => setGuests(Math.max(1, Number(e.target.value || 1)))}
-              className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-            />
+            <input type="number" min="1" value={guests} onChange={(e) => setGuests(Math.max(1, Number(e.target.value || 1)))} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
           </BookingField>
         </div>
 
@@ -215,30 +230,11 @@ function PlacesBookingCard({ listing, listingId }) {
         </div>
 
         <button
-          onClick={() => {
-            if (!listingId) { toast.error("Listing not available for booking."); return; }
-            router.push(
-              `/user-dashboard/confirm-and-pay` +
-              `?listingId=${encodeURIComponent(listingId)}` +
-              `&bookingType=per_hour` +
-              `&title=${encodeURIComponent(listing.title)}` +
-              `&image=${encodeURIComponent(listing.images[0])}` +
-              `&dateFrom=${encodeURIComponent(date || "")}` +
-              `&dateTo=${encodeURIComponent(date || "")}` +
-              `&startDate=${encodeURIComponent(date || "")}` +
-              `&endDate=${encodeURIComponent(date || "")}` +
-              `&startTime=${encodeURIComponent(startTime || "")}` +
-              `&endTime=${encodeURIComponent(endTime || "")}` +
-              `&guests=${encodeURIComponent(guests + " guest")}` +
-              `&numberOfGuests=${guests}` +
-              `&pricePerUnit=${listing.price}` +
-              `&hours=${hours}` +
-              `&funsivalFee=${serviceFee}`
-            );
-          }}
-          className="mt-2 w-full rounded-full bg-[#F5C842] py-3.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-[#e0b430]"
+          disabled={loading}
+          onClick={() => reserve({ bookingType, startDate: date, endDate: date, startTime, endTime, numberOfGuests: guests })}
+          className="mt-2 w-full rounded-full bg-[#F5C842] py-3.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-[#e0b430] disabled:opacity-60"
         >
-          Reserve
+          {loading ? "Reserving..." : "Reserve"}
         </button>
       </div>
     </BookingShell>
@@ -247,12 +243,14 @@ function PlacesBookingCard({ listing, listingId }) {
 
 /* ─── Booking Card (Equipment) ───────────────────────────────────────────────── */
 function EquipmentBookingCard({ listing, listingId }) {
-  const router = useRouter();
   const [mode, setMode] = useState("hourly");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const { reserve, loading } = useReserve(listingId);
+  const bookingType = listing.bookingType;
+
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
     : 3;
@@ -268,18 +266,8 @@ function EquipmentBookingCard({ listing, listingId }) {
     <BookingShell title="Book Your Equipment" price={listing.price} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}>
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
-          <ModePill
-            active={mode === "hourly"}
-            label="Hourly"
-            icon={<ClockIcon />}
-            onClick={() => setMode("hourly")}
-          />
-          <ModePill
-            active={mode === "daily"}
-            label="Daily"
-            icon={<CalendarIcon />}
-            onClick={() => setMode("daily")}
-          />
+          <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
+          <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
         </div>
 
         <div className="grid gap-3">
@@ -306,29 +294,11 @@ function EquipmentBookingCard({ listing, listingId }) {
         </div>
 
         <button
-          onClick={() => {
-            if (!listingId) { toast.error("Listing not available for booking."); return; }
-            router.push(
-              `/user-dashboard/confirm-and-pay` +
-              `?listingId=${encodeURIComponent(listingId)}` +
-              `&bookingType=${mode === "daily" ? "daily" : "per_hour"}` +
-              `&title=${encodeURIComponent(listing.title)}` +
-              `&image=${encodeURIComponent(listing.images[0])}` +
-              `&dateFrom=${encodeURIComponent(startDate || "")}` +
-              `&dateTo=${encodeURIComponent(endDate || "")}` +
-              `&startDate=${encodeURIComponent(startDate || "")}` +
-              `&endDate=${encodeURIComponent(endDate || "")}` +
-              `&startTime=${encodeURIComponent(startTime || "")}` +
-              `&endTime=${encodeURIComponent(endTime || "")}` +
-              `&guests=${encodeURIComponent("1 unit")}` +
-              `&pricePerUnit=${listing.price}` +
-              `&hours=${activeSpan}` +
-              `&funsivalFee=${fee}`
-            );
-          }}
-          className="mt-2 w-full rounded-full bg-[#F5C842] py-3.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-[#e0b430]"
+          disabled={loading}
+          onClick={() => reserve({ bookingType, startDate, endDate, startTime, endTime })}
+          className="mt-2 w-full rounded-full bg-[#F5C842] py-3.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-[#e0b430] disabled:opacity-60"
         >
-          Reserve
+          {loading ? "Reserving..." : "Reserve"}
         </button>
       </div>
     </BookingShell>
@@ -337,11 +307,13 @@ function EquipmentBookingCard({ listing, listingId }) {
 
 /* ─── Booking Card (Activities) ──────────────────────────────────────────────── */
 function ActivityBookingCard({ listing, listingId }) {
-  const router = useRouter();
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [persons, setPersons] = useState(1);
+  const { reserve, loading } = useReserve(listingId);
+  const bookingType = listing.bookingType;
+
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
     : 3;
@@ -372,13 +344,7 @@ function ActivityBookingCard({ listing, listingId }) {
             </BookingField>
           </div>
           <BookingField label="Select guest number" icon={<UserOutlineIcon />}>
-            <input
-              type="number"
-              min="1"
-              value={persons}
-              onChange={(e) => setPersons(Math.max(1, Number(e.target.value || 1)))}
-              className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-            />
+            <input type="number" min="1" value={persons} onChange={(e) => setPersons(Math.max(1, Number(e.target.value || 1)))} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none" />
           </BookingField>
         </div>
 
@@ -389,30 +355,11 @@ function ActivityBookingCard({ listing, listingId }) {
         </div>
 
         <button
-          onClick={() => {
-            if (!listingId) { toast.error("Listing not available for booking."); return; }
-            router.push(
-              `/user-dashboard/confirm-and-pay` +
-              `?listingId=${encodeURIComponent(listingId)}` +
-              `&bookingType=per_person` +
-              `&title=${encodeURIComponent(listing.title)}` +
-              `&image=${encodeURIComponent(listing.images[0])}` +
-              `&dateFrom=${encodeURIComponent(date || "")}` +
-              `&dateTo=${encodeURIComponent(date || "")}` +
-              `&startDate=${encodeURIComponent(date || "")}` +
-              `&endDate=${encodeURIComponent(date || "")}` +
-              `&startTime=${encodeURIComponent(startTime || "")}` +
-              `&endTime=${encodeURIComponent(endTime || "")}` +
-              `&guests=${encodeURIComponent(persons + " person")}` +
-              `&numberOfGuests=${persons}` +
-              `&pricePerUnit=${listing.price}` +
-              `&hours=${hours}` +
-              `&funsivalFee=${fee}`
-            );
-          }}
-          className="mt-2 w-full rounded-full bg-[#F5C842] py-3.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-[#e0b430]"
+          disabled={loading}
+          onClick={() => reserve({ bookingType, startDate: date, endDate: date, startTime, endTime, numberOfGuests: persons })}
+          className="mt-2 w-full rounded-full bg-[#F5C842] py-3.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-[#e0b430] disabled:opacity-60"
         >
-          Reserve
+          {loading ? "Reserving..." : "Reserve"}
         </button>
       </div>
     </BookingShell>
@@ -467,9 +414,20 @@ function adaptApiListing(apiListing, urlType) {
   const amenities = info.amenities || service.whatsIncluded || [];
   const includes = info.includes || service.whatsIncluded || [];
 
+  // Derive bookingType from the price object keys the API returns
+  const priceKeys = apiListing.price ? Object.keys(apiListing.price).filter(k => k !== 'currency') : [];
+  const bookingType = apiListing.bookingType
+    || (priceKeys.includes('perPerson') ? 'per_person'
+      : priceKeys.includes('hourly') ? 'per_hour'
+      : priceKeys.includes('daily') ? 'per_day'
+      : category === 'activities' ? 'per_person'
+      : category === 'equipment' ? 'per_day'
+      : 'per_person');
+
   return {
     _id: apiListing._id,
     type: category,
+    bookingType,
     title,
     location,
     rating: apiListing.rating ?? 4.5,
@@ -498,43 +456,18 @@ function adaptApiListing(apiListing, urlType) {
 export default function ListingDetailPage({ params: paramsPromise }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const dispatch = useDispatch();
-  
-  // Unwrap params Promise (Next.js 15+ requirement)
+
   const params = React.use(paramsPromise);
-  const rawId = params?.id;
-  const urlType = searchParams.get("type"); // 'places' | 'equipment' | 'activities'
+  const rawId = params?.id;           // this IS the listingId — use it directly
+  const urlType = searchParams.get("type");
 
-  const apiListing = useSelector(selectSelectedListing);
-  const allListings = useSelector((state) => state.listings.items);
-  const fetchStatus = useSelector(selectListingsStatus);
+  const browseListings = useSelector(selectActivities);
+  const displayListing = browseListings.find(l => (l._id || l.id) === rawId) ?? null;
 
-  // Optimistic listing: find in cache if not yet loaded in selectedListing
-  const cachedListing = React.useMemo(() => {
-    if (apiListing && (apiListing._id === rawId || apiListing.id === rawId)) return apiListing;
-    return allListings.find(l => l._id === rawId || l.id === rawId);
-  }, [apiListing, allListings, rawId]);
-
-  useEffect(() => {
-    if (rawId) {
-      dispatch(fetchListing(rawId));
-    }
-  }, [dispatch, rawId]);
-
-  // While loading, only show full spinner if we have NO data at all
-  if (fetchStatus === "loading" && !cachedListing) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  // If fetch failed and we have no cache, show error
-  if (fetchStatus === "failed" && !cachedListing) {
+  if (!displayListing) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
-        <p className="text-gray-500 font-medium">Failed to load listing details.</p>
+        <p className="text-gray-500 font-medium">Listing not found. Please go back and try again.</p>
         <button onClick={() => router.back()} className="px-6 py-2 bg-[#4AA7A7] text-white rounded-full text-sm font-bold">
           Go Back
         </button>
@@ -542,19 +475,8 @@ export default function ListingDetailPage({ params: paramsPromise }) {
     );
   }
 
-  // Use cachedListing (which defaults to apiListing if ID matches)
-  const displayListing = cachedListing || apiListing;
-
-  if (!displayListing) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   const listing = adaptApiListing(displayListing, urlType);
-  const listingId = displayListing._id || displayListing.id;
+  const listingId = rawId;  // rawId from the URL is the listing id
 
   return (
     <div className="flex flex-col bg-gray-50">

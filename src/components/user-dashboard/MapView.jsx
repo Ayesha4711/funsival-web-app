@@ -3,61 +3,90 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const StarIcon = () => (
-  <svg className="w-3.5 h-3.5 text-[#F5C842] fill-current" viewBox="0 0 20 20">
-    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-  </svg>
-);
-
-const LocationPinIcon = () => (
-  <svg className="w-3.5 h-3.5 text-[#4AA7A7] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 18" />
-  </svg>
-);
-
-/* Price pins scattered across the fake map */
-const PRICE_PINS = [
-  { id: 1, price: 30,  top: "42%", left: "18%", listingId: 1 },
-  { id: 2, price: 485, top: "35%", left: "52%", listingId: 2 },
-  { id: 3, price: 17,  top: "62%", left: "28%", listingId: 3 },
-];
-
 export default function MapView({ listings }) {
   const router = useRouter();
   const [activePin, setActivePin] = useState(null);
 
-  // For demo, we use a fixed center (e.g., New York) since listings don't have real coordinates yet
   const center = { lat: 40.7128, lon: -74.0060 };
   const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${center.lon - 0.1}%2C${center.lat - 0.1}%2C${center.lon + 0.1}%2C${center.lat + 0.1}&layer=mapnik`;
 
-  // Map real listings to pins if they have IDs, or fallback to mock
-  const pins = listings.length > 0 
-    ? listings.slice(0, 5).map((l, i) => ({
+  const toNum = (v) => { const n = Number(v); return !isNaN(n) && n > 0 ? n : null; };
+
+  const extractPrice = (l) => {
+    const p = l.price;
+    if (typeof p === 'number') return toNum(p);
+    if (p && typeof p === 'object') {
+      return toNum(p.amount) ?? toNum(p.hourly) ?? toNum(p.daily) ?? toNum(p.perPerson) ?? 50;
+    }
+    return toNum(l.basicInformation?.pricePerHour) ?? toNum(l.basicInformation?.pricePerPerson) ?? 50;
+  };
+
+  const extractPriceLabel = (l) => {
+    const p = l.price;
+    if (p && typeof p === 'object') {
+      if (toNum(p.hourly)) return { label: 'Hourly', value: toNum(p.hourly) };
+      if (toNum(p.perPerson)) return { label: 'Per Person', value: toNum(p.perPerson) };
+      if (toNum(p.daily)) return { label: 'Daily', value: toNum(p.daily) };
+    }
+    const fallback = extractPrice(l);
+    return { label: 'From', value: fallback };
+  };
+
+  const FALLBACK_PINS = [
+    { id: 'mock-1', price: 30,  top: '42%', left: '18%', listing: null },
+    { id: 'mock-2', price: 485, top: '35%', left: '52%', listing: null },
+    { id: 'mock-3', price: 17,  top: '62%', left: '28%', listing: null },
+  ];
+
+  const pins = listings.length > 0
+    ? listings.slice(0, 6).map((l, i) => ({
         id: l._id || l.id,
-        price: l.price?.amount || l.price || 50,
-        // Spread them out mock-style over the map
-        top: `${20 + (i * 15) % 60}%`,
-        left: `${20 + (i * 25) % 60}%`,
-        listing: l
+        price: extractPrice(l),
+        top: `${15 + (i * 13) % 58}%`,
+        left: `${12 + (i * 18) % 68}%`,
+        listing: l,
       }))
-    : PRICE_PINS.map(p => ({ ...p, listing: listings.find(l => l.id === p.listingId) }));
+    : FALLBACK_PINS;
 
   const activePinObj = pins.find(p => p.id === activePin);
   const activeListing = activePinObj?.listing;
 
+  const getTitle = (l) =>
+    l?.basicInformation?.activityTitle ||
+    l?.basicInformation?.equipmentName ||
+    l?.basicInformation?.placeName ||
+    l?.title || 'Listing';
+
+  const getImage = (l) =>
+    (Array.isArray(l?.photos) ? l.photos[0] : null) ||
+    l?.image ||
+    'https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80';
+
+  const getLocation = (l) =>
+    [l?.placeLocation?.city, l?.placeLocation?.country].filter(Boolean).join(', ') ||
+    l?.location || 'Tokyo, Japan';
+
+  const getCategoryLabel = (l) => {
+    const cat = l?.category;
+    if (cat === 'places') return 'Swimming';
+    if (cat === 'equipment') return 'Equipment';
+    return l?.basicInformation?.category || 'Diving';
+  };
+
+  const getRating = (l) => {
+    const r = Number(l?.rating);
+    return !isNaN(r) && r > 0 ? r.toFixed(1) : '4.4';
+  };
+
+  const getReviews = (l) => l?.reviewCount ?? l?.reviews ?? '21K';
+
   return (
     <div
       className="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-100"
-      style={{ height: "clamp(420px, 60vh, 680px)" }}
+      style={{ height: '842px' }}
+      onClick={() => setActivePin(null)}
     >
-      {/* ── Real Map Background ── */}
+      {/* Map iframe */}
       <div className="absolute inset-0">
         <iframe
           title="Explore Map"
@@ -66,85 +95,117 @@ export default function MapView({ listings }) {
           frameBorder="0"
           scrolling="no"
           src={mapSrc}
-          className="grayscale-[20%] contrast-[1.1] opacity-80"
+          className="opacity-90"
         />
-        <div className="absolute inset-0 bg-blue-50/10 pointer-events-none" />
       </div>
 
-      {/* ── Price pins ── */}
+      {/* Price pins */}
       {pins.map((pin) => {
         const isActive = activePin === pin.id;
         return (
           <button
             key={pin.id}
-            onClick={() => setActivePin(isActive ? null : pin.id)}
-            className={`absolute z-10 px-3 py-1.5 rounded-full font-bold text-sm transition-all duration-200 ${
+            onClick={(e) => { e.stopPropagation(); setActivePin(isActive ? null : pin.id); }}
+            className={`absolute z-10 px-3.5 py-1.5 rounded-full font-bold text-sm shadow-md transition-all duration-200 ${
               isActive
-                ? "bg-[#4AA7A7] text-white scale-110 border-2 border-white"
-                : "bg-white text-gray-900 hover:bg-[#4AA7A7] hover:text-white hover:scale-105 border border-gray-200"
+                ? 'bg-[#F5823A] text-white scale-110 shadow-lg'
+                : 'bg-white text-gray-900 hover:scale-105'
             }`}
-            style={{ top: pin.top, left: pin.left, transform: "translate(-50%, -50%)" }}
+            style={{ top: pin.top, left: pin.left, transform: 'translate(-50%, -50%)' }}
           >
             ${pin.price}
           </button>
         );
       })}
 
-      {/* ── Popup card when pin is active ── */}
-      {activeListing && activePinObj && (
+      {/* Popup card — flips above pin when pin is in lower half of map */}
+      {activePinObj && activeListing && (() => {
+        const pinTopPct = parseFloat(activePinObj.top);
+        const pinLeftPct = parseFloat(activePinObj.left);
+        const flipUp = pinTopPct > 55;
+        const clampLeft = Math.min(Math.max(pinLeftPct, 18), 82);
+        return (
         <div
-          className="absolute z-20 bg-white rounded-2xl overflow-hidden w-48 sm:w-56"
+          className="absolute z-20 bg-white rounded-2xl overflow-hidden shadow-xl cursor-pointer"
           style={{
-            top: `calc(${activePinObj.top} - 130px)`,
-            left: activePinObj.left,
-            transform: "translateX(-50%)",
+            width: 220,
+            ...(flipUp
+              ? { bottom: `calc(${100 - pinTopPct}% + 14px)` }
+              : { top: `calc(${activePinObj.top} + 14px)` }),
+            left: `${clampLeft}%`,
+            transform: 'translateX(-50%)',
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            const id = activeListing._id || activeListing.id;
+            const cat = activeListing.category ?? 'activity';
+            router.push(`/user-dashboard/listing/${id}?type=${cat}`);
           }}
         >
           {/* Image */}
-          <div className="relative h-24 sm:h-28">
+          <div className="relative h-36">
             <img
-              src={(Array.isArray(activeListing.photos) ? activeListing.photos[0] : activeListing.image) || 'https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80'}
-              alt=""
+              src={getImage(activeListing)}
+              alt={getTitle(activeListing)}
               className="w-full h-full object-cover"
             />
-            {/* Close — top-right over image */}
+            {/* Orange heart button — top right */}
             <button
-              onClick={() => setActivePin(null)}
-              className="absolute top-2 right-2 z-10 w-5 h-5 bg-white/90 hover:bg-white rounded-full flex items-center justify-center text-gray-700 transition-colors"
+              className="absolute top-2 right-2 w-7 h-7 bg-[#F5823A] rounded-full flex items-center justify-center shadow"
+              onClick={(e) => e.stopPropagation()}
             >
-              <CloseIcon />
+              <svg className="w-3.5 h-3.5 text-white fill-current" viewBox="0 0 24 24">
+                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
             </button>
           </div>
+
           {/* Info */}
-          <div className="p-3 flex flex-col gap-1">
-            <div className="flex items-start gap-1">
-              <p className="text-xs font-bold text-gray-900 leading-tight line-clamp-2 flex-1">
-                {activeListing.basicInformation?.activityTitle || activeListing.title || "Listing"}
+          <div className="p-3 flex flex-col gap-2">
+            {/* Title + category tag */}
+            <div className="flex items-start justify-between gap-1.5">
+              <p className="text-[13px] font-bold text-[#3DAA8A] leading-tight line-clamp-1 flex-1">
+                {getTitle(activeListing)}
               </p>
-            </div>
-            <div className="flex items-center gap-1">
-              <StarIcon />
-              <span className="text-[10px] font-bold text-gray-700">{activeListing.rating ?? 4.5}</span>
-              <span className="text-[10px] text-gray-400">({activeListing.reviewCount ?? 0})</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <LocationPinIcon />
-              <span className="text-[10px] text-gray-500 line-clamp-1">
-                {activeListing.placeLocation?.city || activeListing.location || "—"}
+              <span className="shrink-0 text-[10px] font-medium text-[#F5823A] border border-[#F5823A] rounded-full px-2 py-0.5 whitespace-nowrap">
+                {getCategoryLabel(activeListing)}
               </span>
             </div>
-            <button
-              onClick={() => router.push(`/user-dashboard/listing/${activeListing._id || activeListing.id}`)}
-              className="mt-1.5 w-full py-1.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold text-[11px] rounded-lg transition-colors"
-            >
-              View Details
-            </button>
+
+            {/* Rating */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-bold text-gray-800">{getRating(activeListing)}</span>
+              <svg className="w-3.5 h-3.5 text-[#F5C842] fill-current" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <span className="text-[11px] text-gray-400">({getReviews(activeListing)} Reviews)</span>
+            </div>
+
+            {/* Price pill — full width */}
+            {(() => {
+              const { label, value } = extractPriceLabel(activeListing);
+              return (
+                <div className="flex items-center rounded-full border border-[#F5C842] overflow-hidden text-xs font-medium w-full">
+                  <span className="px-3 py-1.5 text-gray-400 bg-[#FFF9EC] whitespace-nowrap">{label}</span>
+                  <span className="flex-1 text-right px-3 py-1.5 text-[#F5823A] font-bold bg-[#FFF9EC]">${value}</span>
+                </div>
+              );
+            })()}
+
+            {/* Location — orange filled pin */}
+            <div className="flex items-center gap-1.5">
+              <svg className="w-4 h-4 shrink-0 text-[#F5823A] fill-current" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+              </svg>
+              <span className="text-xs text-gray-500 line-clamp-1">{getLocation(activeListing)}</span>
+            </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
-      {/* ── Map attribution ── */}
-      <div className="absolute bottom-2 right-3 text-[9px] text-gray-400 bg-white/80 backdrop-blur-sm rounded px-1.5 py-0.5 border border-gray-100">
+      {/* Attribution */}
+      <div className="absolute bottom-2 right-3 text-[9px] text-gray-400 bg-white/80 rounded px-1.5 py-0.5">
         Map data © OpenStreetMap
       </div>
     </div>
