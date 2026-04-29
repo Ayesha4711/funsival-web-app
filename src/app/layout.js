@@ -1,7 +1,42 @@
-import { Geist_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
+import { Inter, Geist_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 import StoreProvider from '@/store/StoreProvider';
 import './globals.css';
+
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+  display: 'swap',
+});
+
+const sofiaPro = localFont({
+  src: [
+    {
+      path: '../../public/fonts/Sofia Pro Regular Az.otf',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Sofia Pro Medium Az.otf',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Sofia Pro Medium Az.otf',
+      weight: '600',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Sofia Pro Medium Az.otf',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-sofia-pro',
+  display: 'swap',
+  adjustFontFallback: false,
+});
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
@@ -20,7 +55,7 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${sofiaPro.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <StoreProvider>

@@ -36,7 +36,7 @@ function NextBtn({ disabled, onClick }) {
 /* ─── Step ─────────────────────────────────────────────────────────────────── */
 export default function StepCategory({ selected, onSelect, onNext }) {
   return (
-    <div className="flex flex-col items-center pt-6 pb-10">
+    <div className="flex flex-col items-center">
       <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] mb-2 text-center">
         Select One Of The Following
         <span className="inline-flex ml-2 text-[#E95764] align-middle">
@@ -56,36 +56,32 @@ export default function StepCategory({ selected, onSelect, onNext }) {
           </svg>
         </span>
       </h2>
-      {/* <p className="text-sm text-[#465668]  text-center max-w-lg mb-10 leading-relaxed">
-        In this step, we'll ask you which type of property you have and if
-        guests Will book the entire place or just a room. Then let us know the
-        location and how many guests can stay
-      </p> */}
-
-      {/* <p className="text-[#475467] text-sm leading-[24px] text-center max-w-lg mb-10 font-normal font-sofia">
-        In this step, we'll ask you which type of property you have and if
-        guests will book the entire place or just a room. Then let us know the
-        location and how many guests can stay.
-      </p> */}
 
       <p className="text-[#475467] text-[13px] sm:text-[14px] leading-[20px] sm:leading-[22px] text-center max-w-[260px] sm:max-w-md mb-8 font-normal font-sofia">
-        In this step, we'll ask you which type of property you have and if guests will book the entire place or just a room. Then let us know the location and how many guests can stay.
+        In this step, we&apos;ll ask you which type of property you have and if guests will book the entire place or just a room. Then let us know the location and how many guests can stay.
       </p>
 
       {/* Cards grid — 3 col on desktop/tablet, 1 col on mobile (stacked, reduced width) */}
-      <div className="flex flex-col sm:grid sm:grid-cols-3 items-center gap-3 sm:gap-4 w-full sm:max-w-2xl mb-12">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 items-center gap-3 sm:gap-4 w-full sm:max-w-2xl mb-16 sm:mb-20">
         {CATEGORIES.map(({ id, label, img }) =>
           <button
             key={id}
             onClick={() => onSelect(id)}
             className={[
-              "flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-200 cursor-pointer",
+              "relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-200 cursor-pointer",
               "w-[200px] min-[320px]:w-[220px] h-[110px] sm:w-full sm:h-[180px]",
               selected === id
-                ? "border-[var(--color-primary)] bg-[var(--color-primary-light)]"
-                : "border-gray-200 bg-white hover:border-[var(--color-primary-light)]"
+                ? "border-[#1d8c82] bg-[var(--color-primary-light)]"
+                : "border-gray-200 bg-white"
             ].join(" ")}
           >
+            {selected === id && (
+              <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[var(--color-secondary)] flex items-center justify-center">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+            )}
             <Image
               src={img}
               alt={label}

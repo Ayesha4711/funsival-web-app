@@ -34,23 +34,28 @@ const ExportIcon = () => (
 );
 
 /* ─── Component ──────────────────────────────────────────────────────────────── */
-export default function ReservationFilters({ activeTab, onTabChange }) {
+export default function ReservationFilters({
+  activeTab,
+  onTabChange,
+  search,
+  onSearchChange,
+  dateValue,
+  onDateChange,
+  onExportCSV,
+}) {
   const tabs = [
     { id: "all",       label: "All" },
-    { id: "upcoming",  label: "Upcoming (2)" },
+    { id: "upcoming",  label: "Upcoming" },
     { id: "completed", label: "Completed" },
-    { id: "cancelled", label: "Cancelled (2)" },
+    { id: "cancelled", label: "Cancelled" },
   ];
 
-  const [searchOpen, setSearchOpen]   = useState(false);
-  const [search, setSearch]           = useState("");
-  const [calOpen, setCalOpen]         = useState(false);
-  const [dateValue, setDateValue]     = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [calOpen, setCalOpen]       = useState(false);
 
   const calRef    = useRef(null);
   const searchRef = useRef(null);
 
-  /* close calendar on outside click */
   useEffect(() => {
     function handle(e) {
       if (calRef.current && !calRef.current.contains(e.target)) setCalOpen(false);
@@ -59,39 +64,63 @@ export default function ReservationFilters({ activeTab, onTabChange }) {
     return () => document.removeEventListener("mousedown", handle);
   }, []);
 
-  /* focus search input when expanded */
   useEffect(() => {
     if (searchOpen && searchRef.current) searchRef.current.focus();
   }, [searchOpen]);
 
   const clearDate = (e) => {
     e.stopPropagation();
-    setDateValue("");
+    onDateChange("");
     setCalOpen(false);
   };
 
   return (
-    <div className="flex flex-col gap-4 mb-6">
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[var(--color-text)]">Reservations</h1>
-        <button className="flex items-center gap-2 px-4 py-2 border border-[var(--color-secondary)] text-[var(--color-secondary)] rounded-full text-sm font-semibold hover:bg-[var(--color-secondary-light)] transition-colors">
-          <ExportIcon />
-          <span>Export CSV</span>
-        </button>
+    <div className="flex flex-col gap-0">
+      {/* ── Row 1: Title + Export CSV ── */}
+      <div className="flex items-center justify-between pb-4">
+        <h1
+          style={{
+            fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif",
+            fontWeight: 600,
+            fontSize: 20,
+            lineHeight: "100%",
+            letterSpacing: 0,
+            color: "var(--color-text)",
+          }}
+        >
+          Reservations
+        </h1>
+       
+
+        <button
+  onClick={onExportCSV}
+  style={{
+    fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif",
+    fontWeight: 600,
+    backgroundColor: "rgba(255, 114, 1, 0.1)" // light bg
+  }}
+  className="flex items-center gap-2 px-5 py-2 border border-[#FF7201] text-[#FF7201] rounded-full text-sm hover:bg-[#FF7201]/20 transition-colors"
+>
+  <ExportIcon />
+  <span>Export CSV</span>
+</button>
       </div>
 
-      {/* Tabs + filters row */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* ── Divider ── */}
+      <div className="h-px bg-border mb-4" />
+
+      {/* ── Row 2: Tabs + Search + Calendar ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Tabs */}
-        <div className="flex items-center p-1 bg-gray-100 rounded-full w-fit overflow-x-auto no-scrollbar">
+        <div className="flex items-center p-1 bg-[#EDF6F6] rounded-full overflow-x-auto no-scrollbar w-full sm:w-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+              style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+              className={`px-3 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex-1 sm:flex-none ${
                 activeTab === tab.id
-                  ? "bg-white text-[var(--color-primary)] font-extrabold"
+                  ? "bg-white text-[var(--color-primary)] shadow-sm"
                   : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
               }`}
             >
@@ -101,23 +130,23 @@ export default function ReservationFilters({ activeTab, onTabChange }) {
         </div>
 
         {/* Search + Calendar */}
-        <div className="flex items-center gap-3">
-
+        <div className="flex items-center gap-2 shrink-0">
           {/* Search — expands on click */}
           <div className="relative flex items-center">
             {searchOpen ? (
-              <div className="flex items-center gap-2 pl-3 pr-1 h-10 bg-[#F3F4F6] rounded-full border border-[var(--color-primary)] transition-all">
+              <div className="flex items-center gap-2 pl-3 pr-1 h-10 bg-[#EDF6F6] rounded-full border border-[var(--color-primary)] transition-all">
                 <SearchIcon />
                 <input
                   ref={searchRef}
                   type="text"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => onSearchChange(e.target.value)}
                   placeholder="Search..."
-                  className="w-36 bg-transparent text-xs font-medium text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
+                  style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+                  className="w-28 sm:w-36 bg-transparent text-xs font-medium text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
                 />
                 <button
-                  onClick={() => { setSearchOpen(false); setSearch(""); }}
+                  onClick={() => { setSearchOpen(false); onSearchChange(""); }}
                   className="p-1.5 text-gray-400 hover:text-gray-600"
                 >
                   <CloseIcon />
@@ -126,7 +155,7 @@ export default function ReservationFilters({ activeTab, onTabChange }) {
             ) : (
               <button
                 onClick={() => setSearchOpen(true)}
-                className="w-10 h-10 bg-[#F3F4F6] rounded-full flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] transition-colors"
+                className="w-10 h-10 bg-[#EDF6F6] rounded-full flex items-center justify-center text-[#1d8c82] hover:opacity-80 transition-opacity"
               >
                 <SearchIcon />
               </button>
@@ -135,13 +164,13 @@ export default function ReservationFilters({ activeTab, onTabChange }) {
 
           {/* Calendar picker */}
           <div className="relative" ref={calRef}>
-            {/* Trigger input */}
             <button
               onClick={() => setCalOpen((v) => !v)}
-              className={`flex items-center gap-2 h-10 px-4 bg-[#F3F4F6] rounded-full text-xs font-medium transition-colors min-w-[130px] ${
+              style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+              className={`flex items-center gap-2 h-10 px-3 sm:px-4 bg-[#EDF6F6] rounded-full text-xs font-medium transition-colors min-w-[110px] sm:min-w-[130px] ${
                 calOpen
                   ? "border border-[var(--color-primary)] text-[var(--color-primary)]"
-                  : "text-gray-400 hover:text-gray-600"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
               <span className={`flex-1 text-left ${dateValue ? "text-gray-800 font-semibold" : ""}`}>
@@ -156,31 +185,21 @@ export default function ReservationFilters({ activeTab, onTabChange }) {
               )}
             </button>
 
-            {/* Calendar dropdown — smart position */}
             {calOpen && (
-              <div className="
-                absolute z-50 mt-2
-                right-0
-                sm:right-0
-              ">
-                {/* On very small screens, center it relative to viewport */}
-                <div className="
-                  max-sm:fixed max-sm:left-1/2 max-sm:-translate-x-1/2
-                  max-sm:top-auto max-sm:bottom-4
-                  sm:relative sm:left-auto sm:translate-x-0 sm:top-auto sm:bottom-auto
-                ">
-                  <CustomCalendar
-                    value={dateValue}
-                    onChange={(v) => { setDateValue(v); setCalOpen(false); }}
-                    onClose={() => setCalOpen(false)}
-                  />
-                </div>
+              <div className="absolute z-50 mt-2 right-0">
+                <CustomCalendar
+                  value={dateValue}
+                  onChange={(v) => { onDateChange(v); setCalOpen(false); }}
+                  onClose={() => setCalOpen(false)}
+                />
               </div>
             )}
           </div>
-
         </div>
       </div>
+
+      {/* ── Divider below filters row ── */}
+      <div className="h-px bg-border mt-4" />
     </div>
   );
 }

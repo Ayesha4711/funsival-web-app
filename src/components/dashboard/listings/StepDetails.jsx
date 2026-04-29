@@ -176,12 +176,12 @@ function PhotoUpload({ photos, onPhotosChange }) {
             </div>
           </div>
         ))}
-        <label className="flex flex-col items-center justify-center w-32 h-24 sm:w-40 sm:h-28 rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors shrink-0">
+        <label className="flex flex-col items-center justify-center w-32 h-24 sm:w-40 sm:h-28 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors shrink-0">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           <input id="photo-add-input" type="file" accept="image/jpeg,image/png" className="sr-only" onChange={(e) => handleFiles(e.target.files)} multiple />
         </label>
       </div>
-      <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors" onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }} onDragOver={(e) => e.preventDefault()}>
+      <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors" onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }} onDragOver={(e) => e.preventDefault()}>
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <p className="text-sm font-bold text-gray-700 mt-2">Upload & Drag Images Here</p>
         <p className="text-xs text-gray-400 mt-0.5">JPEG or PNG files only</p>
