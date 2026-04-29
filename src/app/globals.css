@@ -1,21 +1,5 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: 'Sofia Pro';
-  src: url('/fonts/SofiaPro-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Sofia Pro';
-  src: url('/fonts/SofiaPro-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 /* ─── Design Tokens ─────────────────────────────────────────────────────────── */
 :root {
   /* Brand colours */
@@ -36,7 +20,7 @@
   --color-text-subtle: #94a3b8;
 
   /* Typography – Sofia Pro */
-  --font-sans: 'Sofia Pro', sans-serif;
+  --font-sans: var(--font-sofia-pro);
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -109,5 +93,12 @@ button:disabled,
   }
   .ring-brand {
     --tw-ring-color: var(--color-primary);
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

@@ -30,7 +30,7 @@ function Toggle({ checked, onChange }) {
 
 function CurrencyInput({ value, onChange, suffix, placeholder = "0.00" }) {
   return (
-    <div className="flex items-center bg-[#F5F5F5] rounded-xl overflow-hidden border border-transparent focus-within:border-[var(--color-primary)] transition-colors min-h-[48px]">
+    <div className="flex items-center bg-[#F5F5F5] rounded-xl overflow-hidden border border-transparent focus-within:border-[var(--color-primary)] transition-colors min-h-14">
       <span className="pl-4 pr-2 text-gray-400 font-bold text-base select-none">$</span>
       <input
         type="number"
@@ -39,7 +39,7 @@ function CurrencyInput({ value, onChange, suffix, placeholder = "0.00" }) {
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-w-0 flex-1 py-3 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent"
+        className="min-w-0 flex-1 py-4 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent"
       />
       {suffix && <span className="pr-4 text-sm font-semibold text-gray-400">{suffix}</span>}
     </div>
@@ -95,7 +95,19 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
 
   return (
     <div className="flex flex-col items-center pt-6 sm:pt-10 pb-10 px-4">
-      <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] mb-2 text-center">Set Price</h2>
+      <h2
+        className="mb-2 text-center capitalize"
+        style={{
+          fontFamily: "Sofia Pro, sans-serif",
+          fontWeight: 600,
+          fontSize: "36px",
+          lineHeight: "140%",
+          letterSpacing: "0%",
+          color: "var(--color-text)",
+        }}
+      >
+        Set Price
+      </h2>
       <p className="text-sm text-gray-400 text-center mb-8 sm:mb-10">Tell us how you charge for this service</p>
 
       {/* ── Activities: Per Person ── */}
@@ -124,7 +136,7 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
 
       {/* ── Equipment: Hourly + Daily + Delivery ── */}
       {mode === "equipment" && (
-        <div className="w-full max-w-[560px] space-y-5">
+        <div className="w-[384px] flex flex-col gap-7.5">
           {/* Hourly Rate */}
           <div className="space-y-2">
             <p className="text-sm font-bold text-gray-700 flex items-center gap-2">
@@ -152,9 +164,9 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
           </div>
 
           {/* Delivery & Pickup */}
-          <div className="rounded-2xl bg-[#EAF4F4] border border-[#C7E4E2] p-4 sm:p-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0">
+          <div className="rounded-2xl bg-[#EAF4F4] border border-[#C7E4E2] p-5 sm:p-6 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0">
                 <TruckIcon />
               </div>
               <div className="flex-1 min-w-0">
@@ -217,17 +229,17 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
         </div>
       )}
 
-      <div className="flex items-center gap-4 mt-10 w-full max-w-md">
+      <div className="flex items-center justify-center gap-6 mt-10 w-full max-w-140">
         <button
           onClick={onBack}
-          className="flex-1 py-3.5 rounded-full font-bold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors"
+          className="w-45 py-4 rounded-full font-semibold text-base border-2 border-black text-gray-800 hover:border-gray-400 transition-colors"
         >
           Go Back
         </button>
         <button
           onClick={handleNext}
           disabled={!canProceed}
-          className="flex-1 py-3.5 rounded-full font-bold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="w-45 py-4 rounded-full font-semibold text-base bg-secondary text-black hover:opacity-90 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
         >
           Next
         </button>

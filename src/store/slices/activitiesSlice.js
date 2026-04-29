@@ -132,7 +132,7 @@ const activitiesSlice = createSlice({
       })
       .addCase(fetchBrowseListing.fulfilled, (state, action) => {
         state.selectedActivityStatus = "succeeded";
-        state.selectedActivity = action.payload?.data ?? action.payload;
+        state.selectedActivity = action.payload?.data?.listing ?? action.payload?.data ?? action.payload;
       })
       .addCase(fetchBrowseListing.rejected, (state, action) => {
         state.selectedActivityStatus = "failed";

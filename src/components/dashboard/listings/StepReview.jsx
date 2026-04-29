@@ -12,7 +12,36 @@ function cap(str) {
 
 function FieldLabel({ children }) {
   return (
-    <p className="text-xs font-semibold text-gray-500 mb-1">
+    <p
+      className="mb-1"
+      style={{
+        fontFamily: "Sofia Pro, sans-serif",
+        fontWeight: 500,
+        fontSize: "14px",
+        lineHeight: "100%",
+        letterSpacing: "0%",
+        color: "#212121",
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function FieldValue({ children, className = "", ...props }) {
+  return (
+    <p
+      className={className}
+      style={{
+        fontFamily: "Sofia Pro, sans-serif",
+        fontWeight: 400,
+        fontSize: "13px",
+        lineHeight: "100%",
+        letterSpacing: "0%",
+        color: "#4A4A4A",
+      }}
+      {...props}
+    >
       {children}
     </p>
   );
@@ -179,32 +208,25 @@ export default function StepReview({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
           <div>
             <FieldLabel>Activity Title</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800">{title}</p>
+            <FieldValue>{title}</FieldValue>
           </div>
           <div>
             <FieldLabel>Location</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800 flex items-start gap-1">
+            <FieldValue className="flex items-start gap-1">
               <PinIcon />
               {location}
-            </p>
+            </FieldValue>
           </div>
           <div>
             <FieldLabel>{priceMode === "activities" ? "Price per Person" : priceMode === "equipment" ? "Equipment Price" : "Place Price"}</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800 flex items-start gap-1">
+            <FieldValue className="flex items-start gap-1">
               <DollarIcon />
               {displayPrice}
-            </p>
-            {priceLines.length > 1 && (
-              <div className="mt-1 flex flex-col gap-1">
-                {priceLines.map((line) => (
-                  <span key={line} className="text-[11px] text-gray-400">{line}</span>
-                ))}
-              </div>
-            )}
+            </FieldValue>
           </div>
           <div>
             <FieldLabel>Service Category</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800">{serviceCategory}</p>
+            <FieldValue>{serviceCategory}</FieldValue>
           </div>
         </div>
 
@@ -213,7 +235,7 @@ export default function StepReview({
         {/* Description */}
         <div>
           <FieldLabel>Description</FieldLabel>
-          <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
+          <FieldValue>{description}</FieldValue>
         </div>
 
         <Divider />
@@ -222,25 +244,25 @@ export default function StepReview({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
           <div>
             <FieldLabel>Difficulty level</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800">{cap(difficulty)}</p>
+            <FieldValue>{cap(difficulty)}</FieldValue>
           </div>
           <div>
             <FieldLabel>Duration</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+            <FieldValue className="flex items-center gap-1.5">
               <ClockIcon />
               {cap(duration)}
-            </p>
+            </FieldValue>
           </div>
           <div>
             <FieldLabel>Max Participants</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+            <FieldValue className="flex items-center gap-1.5">
               <PeopleIcon />
               {maxParticipants}
-            </p>
+            </FieldValue>
           </div>
           <div>
             <FieldLabel>Instructor Guide name</FieldLabel>
-            <p className="text-sm font-semibold text-gray-800">{instructorName}</p>
+            <FieldValue>{instructorName}</FieldValue>
           </div>
         </div>
 
@@ -265,11 +287,11 @@ export default function StepReview({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
             <FieldLabel>Requirements</FieldLabel>
-            <p className="text-sm text-gray-500 leading-relaxed">{requirements}</p>
+            <FieldValue>{requirements}</FieldValue>
           </div>
           <div>
             <FieldLabel>Cancellation Policy</FieldLabel>
-            <p className="text-sm text-gray-500 leading-relaxed">{cap(cancellationPolicy)}</p>
+            <FieldValue>{cap(cancellationPolicy)}</FieldValue>
           </div>
         </div>
 
@@ -296,19 +318,19 @@ export default function StepReview({
             <React.Fragment key={i}>
               <div>
                 <FieldLabel>Select Date</FieldLabel>
-                <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                <FieldValue className="flex items-center gap-1.5">
                   <CalendarIcon />
                   {slot.day || "—"}
-                </p>
+                </FieldValue>
               </div>
               <div>
                 <FieldLabel>Select Time</FieldLabel>
-                <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                <FieldValue className="flex items-center gap-1.5">
                   <ClockIcon />
                   {slot.startTime && slot.endTime
                     ? `${slot.startTime} – ${slot.endTime}`
                     : slot.startTime || slot.endTime || "—"}
-                </p>
+                </FieldValue>
               </div>
             </React.Fragment>
           ))}

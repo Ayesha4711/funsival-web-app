@@ -26,7 +26,7 @@ const STEPS = [
 ];
 
 /* ─── Stepper ──────────────────────────────────────────────────────────────── */
-function Stepper({ current }) {
+function Stepper({ current, onStepClick }) {
   return (
     /* mobile/tablet: justify-between fills full width
        laptop (lg+): justify-center so steps don't stretch */
@@ -37,7 +37,11 @@ function Stepper({ current }) {
         return (
           <React.Fragment key={step.id}>
             {/* Step node */}
-            <div className="flex flex-col items-center shrink-0">
+            <button
+              type="button"
+              onClick={() => onStepClick(step.id)}
+              className="flex flex-col items-center shrink-0"
+            >
               <div
                 className={[
                   "w-7 h-7 min-[375px]:w-8 min-[375px]:h-8 lg:w-10 lg:h-10 rounded-full border-2 flex items-center justify-center text-[10px] min-[375px]:text-xs lg:text-sm font-bold transition-colors",
@@ -73,7 +77,7 @@ function Stepper({ current }) {
               >
                 {step.label}
               </span>
-            </div>
+            </button>
 
             {/* Connector line */}
             {idx < STEPS.length - 1 &&
@@ -267,6 +271,7 @@ export default function AddListingWizard() {
   const mode = searchParams.get("mode") ?? "resume";
   const isFreshCreate = mode === "new";
   const [step, setStep] = useState(1);
+  const [maxStepReached, setMaxStepReached] = useState(1);
   const [data, setData] = useState({
     category: "",
     type: "",
@@ -324,6 +329,7 @@ export default function AddListingWizard() {
         setData(loaded);
         if (draft.currentStep && draft.currentStep > 1) {
           setStep(draft.currentStep);
+          setMaxStepReached(draft.currentStep);
         }
       }
       setDraftLoading(false);
@@ -361,6 +367,7 @@ export default function AddListingWizard() {
   const next = useCallback((latestData) => {
     setStep(s => {
       const nextStep = Math.min(s + 1, 6);
+      setMaxStepReached(prev => Math.max(prev, nextStep));
       saveDraftSilently(nextStep, latestData ?? data);
       return nextStep;
     });
@@ -368,6 +375,15 @@ export default function AddListingWizard() {
   }, [data, saveDraftSilently]);
 
   const back = () => { setStep(s => Math.max(s - 1, 1)); scrollToTop(); };
+  const jumpToStep = useCallback((targetStep) => {
+    // Allow jumping to any step that has been reached or completed
+    if (targetStep <= maxStepReached) {
+      setStep(targetStep);
+      scrollToTop();
+    } else {
+      toast.error("Please complete the current step before moving forward.");
+    }
+  }, [maxStepReached]);
 
   // Refs mirror the latest values so saveDraft never captures stale state
   const pendingRef = React.useRef({ ...data });
@@ -493,109 +509,109 @@ export default function AddListingWizard() {
   }
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col  bg-white ">
       {/* Full wizard navbar — desktop only */}
       <WizardNavbar step={step} onBack={back} router={router} />
 
-      {/* Sub-header: back arrow + title + draft/discard — always pinned */}
-      <div className="shrink-0 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-3 sticky top-0 lg:top-16 z-30">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => step === 1 ? router.push("/dashboard/listings") : back()}
-            className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-[var(--color-primary)] transition-colors shrink-0"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-          </button>
-          <div className="flex-1">
-            <h1 className="text-base sm:text-lg font-bold text-[var(--color-text)] leading-tight">
-              Add New Listings
-            </h1>
-            <p className="text-[10px] sm:text-xs text-gray-400 hidden lg:block">
-              Manage your account preferences and settings
-            </p>
-          </div>
-          {/* Draft status indicator + discard */}
-          {step < 6 && (
-            <div className="flex items-center gap-3 shrink-0">
-              {draftSaving ? (
-                <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                  <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/></svg>
-                  Saving draft...
-                </span>
-              ) : (
-                <span className="text-[10px] text-gray-400 hidden sm:inline">Draft auto-saved</span>
-              )}
-              <button
-                onClick={handleDiscard}
-                className="text-[11px] font-semibold text-red-400 hover:text-red-500 border border-red-200 hover:border-red-300 rounded-full px-3 py-1 transition-colors"
-              >
-                Discard
-              </button>
+      <div className="w-full flex flex-col">
+        {/* Header Section — Full Width */}
+        <div className="px-4 sm:px-6 lg:px-8 py-5 border-b border-gray-100">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push("/dashboard/listings")}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-50 text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 transition-all shrink-0"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+            </button>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-[var(--color-text)] leading-tight">
+                Add New Listings
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-400">
+                Manage your account preferences and settings
+              </p>
             </div>
-          )}
+            {/* Draft status indicator + discard */}
+            {step < 6 && (
+              <div className="flex items-center gap-3 shrink-0">
+                {draftSaving ? (
+                  <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                    <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/></svg>
+                    Saving...
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-gray-400 hidden sm:inline">Draft saved</span>
+                )}
+                <button
+                  onClick={handleDiscard}
+                  className="text-[11px] font-semibold text-red-400 hover:text-red-500 border border-red-100 hover:border-red-200 rounded-full px-3 py-1 transition-colors"
+                >
+                  Discard
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Stepper — pinned below sub-header */}
-      <div className="shrink-0 px-2 sm:px-6 lg:px-10 pt-4 pb-2 bg-white border-b border-gray-50 sticky top-[56px] lg:top-[120px] z-20">
-        <Stepper current={step} />
-      </div>
-
-      {/* Step content */}
-      <div className="flex-1">
-      <div className="px-4 sm:px-6 lg:px-10 py-4 relative z-0">
-        <div className="w-full">
-          {step === 1 &&
-            <StepCategory
-              selected={data.category}
-              onSelect={v => update("category", v)}
-              onNext={handleCategoryNext}
-            />}
-          {step === 2 &&
-            <StepType
-              category={data.category}
-              selected={data.type}
-              onSelect={v => update("type", v)}
-              onNext={handleTypeNext}
-              onBack={back}
-            />}
-          {step === 3 &&
-            <StepDetails
-              details={data.details}
-              onChange={handleDetailsChange}
-              onNext={handleDetailsNext}
-              onBack={back}
-              fieldErrors={fieldErrors}
-            />}
-          {step === 4 &&
-            <StepPrice
-              category={data.category}
-              price={data.price}
-              onChange={handlePriceChange}
-              onNext={handlePriceNext}
-              onBack={back}
-            />}
-          {step === 5 && (
-            <StepReview
-              data={data}
-              onNext={handleSubmitListing}
-              onBack={back}
-              onBackToDetails={() => setStep(3)}
-              submitting={submitting}
-              submitError={submitError}
-              fieldErrors={fieldErrors}
-            />
-          )}
-          {step === 6 &&
-            <StepSuccess
-              onDone={() => router.push("/dashboard/listings?tab=active")}
-              onAddMore={resetWizard}
-            />}
+        {/* Stepper Section — Full Width */}
+        <div className="px-4 sm:px-6 lg:px-8 py-6 bg-gray-50/30 border-b border-gray-50">
+          <Stepper current={step} onStepClick={jumpToStep} />
         </div>
-      </div>
+
+        {/* Step content Section — Full Width */}
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+          <div className="w-full">
+            {step === 1 &&
+              <StepCategory
+                selected={data.category}
+                onSelect={v => update("category", v)}
+                onNext={handleCategoryNext}
+              />}
+            {step === 2 &&
+              <StepType
+                category={data.category}
+                selected={data.type}
+                onSelect={v => update("type", v)}
+                onNext={handleTypeNext}
+                onBack={back}
+              />}
+            {step === 3 &&
+              <StepDetails
+                details={data.details}
+                onChange={handleDetailsChange}
+                onNext={handleDetailsNext}
+                onBack={back}
+                fieldErrors={fieldErrors}
+              />}
+            {step === 4 &&
+              <StepPrice
+                category={data.category}
+                price={data.price}
+                onChange={handlePriceChange}
+                onNext={handlePriceNext}
+                onBack={back}
+              />}
+            {step === 5 && (
+              <StepReview
+                data={data}
+                onNext={handleSubmitListing}
+                onBack={back}
+                onBackToDetails={() => setStep(3)}
+                submitting={submitting}
+                submitError={submitError}
+                fieldErrors={fieldErrors}
+              />
+            )}
+            {step === 6 &&
+              <StepSuccess
+                onDone={() => router.push("/dashboard/listings?tab=active")}
+                onAddMore={resetWizard}
+              />}
+          </div>
+        </div>
       </div>
     </div>
   );
