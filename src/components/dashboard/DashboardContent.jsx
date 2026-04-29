@@ -10,12 +10,35 @@ import {
 } from "recharts";
 
 /* ─── Stat Card ─────────────────────────────────────────────────────────────── */
-function StatCard({ label, value, sub, subColor = "text-green-500" }) {
+function StatCard({
+  label,
+  value,
+  sub,
+  subClassName = "text-green-500",
+  valueClassName = "text-[#212121]",
+}) {
   return (
-    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)] flex flex-col gap-1">
-      <p className="text-xs text-[var(--color-text-muted)] font-medium">{label}</p>
-      <p className="text-2xl lg:text-3xl font-extrabold text-[var(--color-text)]">{value}</p>
-      {sub && <p className={`text-xs font-medium ${subColor}`}>{sub}</p>}
+    <div className="bg-white rounded-2xl sm:rounded-[24px] border border-[#D3E8EE] px-4 xs:px-5 sm:px-6 py-4 sm:py-5 flex flex-col gap-2">
+      <p
+        className="text-[13px] xs:text-[14px] leading-none font-regular text-[#9A9A9A]"
+        style={{ fontFamily: "var(--font-sofia-pro)" }}
+      >
+        {label}
+      </p>
+      <p
+        className={`text-[24px] xs:text-[26px] sm:text-[28px] leading-none font-medium ${valueClassName}`}
+        style={{ fontFamily: "var(--font-sofia-pro)" }}
+      >
+        {value}
+      </p>
+      {sub && (
+        <p
+          className={`text-[13px] xs:text-[14px] leading-[16px] font-regular ${subClassName}`}
+          style={{ fontFamily: "var(--font-sofia-pro)" }}
+        >
+          {sub}
+        </p>
+      )}
     </div>
   );
 }
@@ -23,9 +46,9 @@ function StatCard({ label, value, sub, subColor = "text-green-500" }) {
 /* ─── Status Badge ───────────────────────────────────────────────────────────── */
 function StatusBadge({ status }) {
   const map = {
-    Completed: "bg-green-500 text-white",
-    Pending: "bg-yellow-400 text-white",
-    Cancelled: "bg-red-400 text-white",
+    Completed: "bg-[#29A329] text-white",
+    Pending: "bg-[#FEB538] text-white",
+    Cancelled: "bg-[#E25C5C] text-white",
   };
   return (
     <span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${map[status] ?? "bg-gray-400 text-white"}`}>
@@ -44,12 +67,63 @@ const reservations = [
 ];
 
 function RecentReservations() {
+  const [mobileIndex, setMobileIndex] = useState(0);
+
+  const handlePrev = () => {
+    setMobileIndex((current) => (current - 1 + reservations.length) % reservations.length);
+  };
+
+  const handleNext = () => {
+    setMobileIndex((current) => (current + 1) % reservations.length);
+  };
+
   return (
-    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)] h-full flex flex-col">
-      <h2 className="text-base font-bold text-[var(--color-text)] mb-4">Recent Reservations</h2>
-      <div className="flex flex-col gap-4 flex-1">
+    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[var(--color-border)] h-full flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-[17px] sm:text-[18px] font-bold text-[var(--color-text)]">Recent Reservations</h2>
+        <div className="flex md:hidden gap-2">
+          <button
+            type="button"
+            onClick={handlePrev}
+            aria-label="Previous reservation"
+            className="w-8 h-8 rounded-lg border border-[var(--color-border)] flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            aria-label="Next reservation"
+            className="w-8 h-8 rounded-lg border border-[var(--color-border)] flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div className="flex flex-col gap-3 sm:gap-4 flex-1">
+        {/* Mobile: Show only 1 reservation */}
+        {[reservations[mobileIndex]].map((r) => (
+          <div key={r.id} className="flex md:hidden items-center gap-3">
+            <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 relative">
+              <Image src={heroImg} alt={r.name} fill className="object-cover" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-semibold text-[var(--color-text)] truncate">{r.name}</p>
+              <p className="text-[13px] text-[var(--color-text-muted)] mt-0.5">{r.date}</p>
+            </div>
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <StatusBadge status={r.status} />
+              <span className="text-[11px] text-[var(--color-text-subtle)]">{r.type}</span>
+            </div>
+          </div>
+        ))}
+        {/* iPad/Desktop: Show all reservations */}
         {reservations.map((r) => (
-          <div key={r.id} className="flex items-center gap-3">
+          <div key={r.id} className="hidden md:flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 relative">
               <Image src={heroImg} alt={r.name} fill className="object-cover" />
             </div>
@@ -112,20 +186,21 @@ function renderPerfLabel({ cx, cy, midAngle, outerRadius, name, value }) {
 function DonutChart() {
   return (
     <div className="bg-white rounded-2xl border border-[var(--color-border)] flex flex-col h-full">
-      <h2 className="text-base font-bold text-[var(--color-text)] px-5 pt-5 pb-0">Listing Performance</h2>
+      <h2 className="text-[17px] sm:text-[18px] font-bold text-[var(--color-text)] px-4 sm:px-5 pt-4 sm:pt-5 pb-0">Listing Performance</h2>
       <div className="flex-1 flex flex-col items-center justify-center px-2 py-3">
-        <ResponsiveContainer width="100%" height={320}>
-          <PieChart margin={{ top: 28, right: 28, bottom: 18, left: 28 }}>
+        <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
+          <PieChart margin={{ top: 28, right: 28, bottom: 0, left: 28 }}>
             <Pie
               data={performanceData}
               cx="50%"
-              cy="54%"
-              innerRadius={64}
-              outerRadius={98}
+              cy="50%"
+              innerRadius={58}
+              outerRadius={90}
               paddingAngle={4}
               dataKey="value"
               labelLine={false}
               label={renderPerfLabel}
+              className="sm:!innerRadius-[64] sm:!outerRadius-[98]"
             >
               {performanceData.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
@@ -138,11 +213,11 @@ function DonutChart() {
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex items-center justify-center gap-6 px-5 pb-5">
+      <div className="flex items-center justify-center gap-4 sm:gap-6 px-4 sm:px-5 pb-4 sm:pb-5 flex-wrap">
         {performanceData.map((s) => (
           <div key={s.name} className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-            <span className="text-sm font-semibold text-[var(--color-text-muted)]">{s.name}</span>
+            <span className="text-[13px] sm:text-sm font-semibold text-[var(--color-text-muted)]">{s.name}</span>
           </div>
         ))}
       </div>
@@ -150,18 +225,52 @@ function DonutChart() {
   );
 }
 
-/* ─── Utilization Bars (vertical) ───────────────────────────────────────────── */
+/* ─── Utilization Bars ───────────────────────────────────────────────────────── */
 const utilizationData = [
-  { name: "Booked",  value: 70, fill: "#1d8c82" },
-  { name: "Pending", value: 40, fill: "#FEB538" },
+  { name: "Idle",  value: 70, fill: "#1d8c82" },
+  { name: "Booked", value: 40, fill: "#FEB538" },
 ];
 
-function UtilizationBar({ name, value, fill }) {
+// Horizontal bar for mobile/tablet
+function UtilizationBarHorizontal({ name, value, fill }) {
   return (
-    <div className="flex flex-col items-center gap-2 shrink-0" style={{ width: 68 }}>
+    <div className="flex items-center gap-3">
+      <div className="flex-1 relative overflow-hidden bg-[#E5E7EB] rounded-xl h-[60px]">
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: `${value}%`,
+            background: fill,
+            borderRadius: 12,
+          }}
+        />
+        <span
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-white"
+          style={{ fontFamily: "var(--font-sofia-pro)" }}
+        >
+          {name}
+        </span>
+      </div>
+      <span
+        className="text-[17px] font-bold text-[#1A1A1A] min-w-[48px] text-right"
+        style={{ fontFamily: "var(--font-sofia-pro)" }}
+      >
+        {value}%
+      </span>
+    </div>
+  );
+}
+
+// Vertical bar for mobile and desktop
+function UtilizationBarVertical({ name, value, fill }) {
+  return (
+    <div className="flex flex-col items-center gap-2 shrink-0 w-[60px] xl:w-20">
       <div
-        className="w-full relative overflow-hidden"
-        style={{ background: "#e5e7eb", borderRadius: 8, height: 292 }}
+        className="w-full relative overflow-hidden h-[280px] xl:h-[380px]"
+        style={{ background: "#e5e7eb", borderRadius: 12 }}
       >
         <div
           style={{
@@ -171,34 +280,18 @@ function UtilizationBar({ name, value, fill }) {
             right: 0,
             height: `${value}%`,
             background: fill,
-            borderRadius: 8,
+            borderRadius: 12,
           }}
         />
         <span
-          style={{
-            position: "absolute",
-            top: 16,
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            fontSize: 12,
-            fontWeight: 700,
-            color: "#374151",
-          }}
+          className="absolute top-3 xl:top-4 left-0 right-0 text-center text-[11px] xl:text-xs font-bold text-[#374151]"
+          style={{ fontFamily: "var(--font-sofia-pro)" }}
         >
           {value}%
         </span>
         <span
-          style={{
-            position: "absolute",
-            bottom: 16,
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            fontSize: 12,
-            fontWeight: 600,
-            color: "#ffffff",
-          }}
+          className="absolute bottom-3 xl:bottom-4 left-0 right-0 text-center text-[11px] xl:text-xs font-semibold text-white"
+          style={{ fontFamily: "var(--font-sofia-pro)" }}
         >
           {name}
         </span>
@@ -210,10 +303,19 @@ function UtilizationBar({ name, value, fill }) {
 function UtilizationCard() {
   return (
     <div className="bg-white rounded-2xl border border-[var(--color-border)] flex flex-col h-full min-w-0">
-      <h2 className="text-base font-bold text-[var(--color-text)] px-4 pt-5 pb-4">Utilization</h2>
-      <div className="flex-1 flex items-end justify-center px-4 pb-5 gap-5">
+      <h2 className="text-base font-bold text-[var(--color-text)] px-5 pt-5 pb-4">Utilization</h2>
+
+      {/* Horizontal bars for mobile */}
+      <div className="flex md:hidden flex-1 flex-col gap-4 px-5 pb-5">
         {utilizationData.map((d) => (
-          <UtilizationBar key={d.name} name={d.name} value={d.value} fill={d.fill} />
+          <UtilizationBarHorizontal key={d.name} name={d.name} value={d.value} fill={d.fill} />
+        ))}
+      </div>
+
+      {/* Vertical bars for iPad and desktop */}
+      <div className="hidden md:flex flex-1 items-end justify-center px-4 pb-5 gap-5">
+        {utilizationData.map((d) => (
+          <UtilizationBarVertical key={d.name} name={d.name} value={d.value} fill={d.fill} />
         ))}
       </div>
     </div>
@@ -236,6 +338,25 @@ const earningsData = [
   { month: "Dec", revenue: 88, expenses: 66 },
 ];
 
+const earningsTicks = earningsData.map((d) => d.month);
+
+function EarningsXAxisTick({ x, y, payload }) {
+  return (
+    <g transform={`translate(${x},${y + 18})`}>
+      <text
+        textAnchor="middle"
+        fill="#667085"
+        fontFamily="var(--font-inter), Inter, sans-serif"
+        fontSize="12"
+        fontWeight="400"
+        lineHeight="18"
+      >
+        {payload.value}
+      </text>
+    </g>
+  );
+}
+
 function EarningsTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
@@ -255,32 +376,41 @@ function EarningsChart() {
   const periods = ["12 months", "30 days", "7 days", "24 hours"];
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)]">
+    <div className="bg-white rounded-2xl sm:rounded-[24px] p-4 sm:p-6 lg:p-8 border border-[#E5E7EB] shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
       {/* Row 1: Earnings title + View report button */}
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-base font-bold text-[var(--color-text)]">Earnings</h2>
-        <button className="text-xs font-semibold text-[var(--color-text)] border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+      <div className="flex items-start justify-between gap-4">
+        <h2
+          className="text-[17px] sm:text-[18px] leading-[28px] font-semibold text-[#101828]"
+          style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
+        >
+          Earnings
+        </h2>
+        <button
+          className="rounded-xl border border-[#CBD5E1] bg-white px-3 sm:px-5 py-2 sm:py-3 text-[13px] sm:text-[14px] leading-[20px] font-semibold text-[#344054] shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-colors hover:bg-[#F8FAFC]"
+          style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
+        >
           View report
         </button>
       </div>
       {/* Row 2: Period tabs — sits below the heading row */}
-      <div className="flex items-center gap-1 mb-4 border-b border-gray-100">
+      <div className="mt-4 sm:mt-7 flex items-center gap-4 sm:gap-8 border-b border-[#E5E7EB] overflow-x-auto scrollbar-hide">
         {periods.map((p) => (
           <button
             key={p}
             onClick={() => setActivePeriod(p)}
-            className={`text-xs font-medium px-3 py-2 transition-colors ${
+            className={`pb-3 sm:pb-4 text-[13px] sm:text-[14px] leading-[20px] font-semibold transition-colors whitespace-nowrap ${
               activePeriod === p
-                ? "text-[var(--color-primary)] border-b-2 border-[var(--color-primary)]"
-                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                ? "text-[#228E8A] border-b-2 border-[#228E8A]"
+                : "text-[#667085] hover:text-[#344054]"
             }`}
+            style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
           >
             {p}
           </button>
         ))}
       </div>
-      <ResponsiveContainer width="100%" height={150}>
-        <AreaChart data={earningsData} margin={{ top: 5, right: 5, left: -32, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={240} className="sm:!h-[300px]">
+        <AreaChart data={earningsData} margin={{ top: 24, right: 0, left: -28, bottom: 8 }} className="sm:!mt-[34px] sm:!mr-[4px] sm:!ml-0">
           <defs>
             <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%"  stopColor="#1d8c82" stopOpacity={0.18} />
@@ -291,12 +421,18 @@ function EarningsChart() {
               <stop offset="95%" stopColor="#FEB538" stopOpacity={0}    />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+          <CartesianGrid strokeDasharray="0" stroke="#EAECF0" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 500 }}
+            type="category"
+            ticks={earningsTicks}
+            interval={0}
+            height={42}
+            tickMargin={14}
+            tick={<EarningsXAxisTick />}
             axisLine={false}
             tickLine={false}
+            padding={{ left: 12, right: 12 }}
           />
           <YAxis hide />
           <Tooltip content={<EarningsTooltip />} cursor={{ stroke: "#e2e8f0", strokeWidth: 1 }} />
@@ -311,17 +447,37 @@ function EarningsChart() {
 /* ─── Main Dashboard Content ─────────────────────────────────────────────────── */
 export default function DashboardContent() {
   return (
-    <div className="flex flex-col gap-5 p-4 sm:p-6 flex-1">
+    <div className="flex flex-col gap-4 sm:gap-5 p-3 xs:p-4 sm:p-6 flex-1">
       {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Earning" value="$284K" sub="+15% this quarter" subColor="text-green-500" />
-        <StatCard label="Active Listings" value="12" sub="+2 this month" subColor="text-green-500" />
-        <StatCard label="Reservations" value="22" sub="3 pending" subColor="text-yellow-500" />
-        <StatCard label="Completed" value="52" sub="96% success rate" subColor="text-green-500" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          label="Total Earning"
+          value="$284K"
+          sub="+15% this quarter"
+          subClassName="text-[#FF7201]"
+        />
+        <StatCard
+          label="Active Listings"
+          value="12"
+          sub="+2 this month"
+          subClassName="text-[#FF7201]"
+        />
+        <StatCard
+          label="Reservations"
+          value="22"
+          sub="2 pending"
+          subClassName="text-[#228E8A]"
+        />
+        <StatCard
+          label="Completed"
+          value="52"
+          sub="98% success rate"
+          subClassName="text-[#16A34A]"
+        />
       </div>
 
       {/* Middle section: Reservations | Listing Performance | Utilization */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(0,0.72fr)] gap-4 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(0,0.72fr)] gap-3 sm:gap-4 items-stretch">
         <RecentReservations />
         <DonutChart />
         <UtilizationCard />

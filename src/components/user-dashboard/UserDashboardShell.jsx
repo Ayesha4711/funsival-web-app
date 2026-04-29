@@ -94,7 +94,7 @@ function UserNavbar() {
   };
 
   return (
-    <header className="h-16 bg-[#228E8A] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0">
+    <header className="h-16 bg-[#228E8A] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0 sticky top-0 z-50">
       <Link href="/user-dashboard/explore" className="flex items-center shrink-0">
         <Image
           src={logo}

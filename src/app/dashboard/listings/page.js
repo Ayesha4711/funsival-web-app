@@ -174,17 +174,11 @@ export default function ListingsPage() {
   const handleDeleteConfirm = async () => {
     if (!deletingListing) return;
     setDeleteLoading(true);
-    const isDraft = deletingListing.status?.toLowerCase() === "draft";
-    const result = isDraft
-      ? await dispatch(deleteDraft())
-      : await dispatch(deleteListing(deletingListing.id));
+
+    const result = await dispatch(deleteListing(deletingListing.id));
     setDeleteLoading(false);
 
-    const succeeded = isDraft
-      ? deleteDraft.fulfilled.match(result)
-      : deleteListing.fulfilled.match(result);
-
-    if (succeeded) {
+    if (deleteListing.fulfilled.match(result)) {
       toast.success("Listing deleted.");
       setListings((prev) => prev.filter((item) => item.id !== deletingListing.id));
     } else {

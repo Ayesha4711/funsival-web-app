@@ -128,8 +128,8 @@ export default function ReservationCards({ data, onViewDetails, onCancel }) {
             </div>
           </div>
 
-          {/* Status and Invoice Badges */}
-          <div className="flex items-center gap-2 mb-4">
+          {/* Status, Invoice Badges + Cancel */}
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
             <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${getStatusStyle(item.status)}`}>
               {item.status}
             </span>
@@ -137,6 +137,14 @@ export default function ReservationCards({ data, onViewDetails, onCancel }) {
               {getInvoiceIcon(item.invoice)}
               {item.invoice}
             </span>
+            {item.status === "Upcoming" && (
+              <button
+                onClick={() => onCancel(item)}
+                className="text-[10px] font-bold px-3 py-1 rounded-full border border-red-300 text-red-500 hover:bg-red-50 transition-colors ml-auto"
+              >
+                Cancel
+              </button>
+            )}
           </div>
 
           {/* Details Grid */}

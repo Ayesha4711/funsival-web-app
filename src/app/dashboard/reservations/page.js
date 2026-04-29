@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchHostBookings,
@@ -9,27 +9,52 @@ import {
   selectHostBookingsPagination,
   selectHostBookingsStatus,
   selectHostBookingsError,
-  selectBookingsCancelStatus,
 } from "@/store/slices/bookingsSlice";
 import ReservationStats from "@/components/dashboard/ReservationStats";
 import ReservationFilters from "@/components/dashboard/ReservationFilters";
 import ReservationTable from "@/components/dashboard/ReservationTable";
 import ReservationCards from "@/components/dashboard/ReservationCards";
-import ReservationDetailView from "@/components/dashboard/ReservationDetailView";
+import ReservationDetailsPanel from "@/components/dashboard/ReservationDetailsPanel";
+import CancelReasonModal from "@/components/dashboard/CancelReasonModal";
 import Pagination from "@/components/shared/Pagination";
 
-/* ─── Map API booking → shape expected by table/detail components ─────────── */
+/* ─── Empty state ─────────────────────────────────────────────────────────── */
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center flex-1 gap-5 py-16">
+      <div className="relative flex items-center justify-center w-52 h-52">
+        <div className="w-52 h-52 rounded-full bg-gray-50 absolute top-0 left-0" />
+        <div className="w-36 h-36 rounded-full bg-gray-100 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        <div className="relative w-24 h-24 rounded-full bg-[#e8f4f0] flex items-center justify-center z-10">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
+            <rect x="4" y="2" width="12" height="18" rx="2" fill="#2a9d8f" opacity="0.15" />
+            <rect x="4" y="2" width="12" height="18" rx="2" stroke="#2a9d8f" strokeWidth="1.5" />
+            <path d="M8 7h5M8 11h5M8 15h3" stroke="#2a9d8f" strokeWidth="1.5" strokeLinecap="round" />
+            <rect x="12" y="13" width="8" height="8" rx="2" fill="#2a9d8f" />
+            <path d="M16 15.5v3M14.5 17h3" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </div>
+      </div>
+      <p
+        className="text-lg font-bold text-gray-800 relative z-10"
+        style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+      >
+        No Data Found
+      </p>
+    </div>
+  );
+}
+
+/* ─── Map API booking → row shape ─────────────────────────────────────────── */
 function mapBookingToRow(b) {
   const info = b.listing?.basicInformation ?? {};
-  const loc = b.listing?.placeLocation ?? {};
+  const loc  = b.listing?.placeLocation ?? {};
 
   const name =
-    info.activityTitle ||
-    info.equipmentName ||
-    info.placeName ||
-    "Booking";
+    info.activityTitle || info.equipmentName || info.placeName || "Booking";
 
-  const location = [loc.city, loc.state, loc.country].filter(Boolean).join(", ") ||
+  const location =
+    [loc.city, loc.state, loc.country].filter(Boolean).join(", ") ||
     info.location ||
     "—";
 
@@ -37,31 +62,31 @@ function mapBookingToRow(b) {
     ? b.listing.category.charAt(0).toUpperCase() + b.listing.category.slice(1)
     : "—";
 
-  const paymentStatus = b.paymentStatus === "paid"
-    ? "Paid"
-    : b.paymentStatus === "pending"
-      ? "Overdue"
+  const paymentStatus =
+    b.paymentStatus === "paid"
+      ? "Paid"
       : b.status === "cancelled"
         ? "Refunded"
         : "Overdue";
 
-  const statusMap = {
-    confirmed: "Upcoming",
-    completed: "Completed",
-    cancelled: "Cancelled",
-  };
+  const statusMap = { confirmed: "Upcoming", completed: "Completed", cancelled: "Cancelled" };
   const status = statusMap[b.status] ?? "Upcoming";
 
   const startDate = b.startDate
     ? new Date(b.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : "—";
+  const endDate = b.endDate
+    ? new Date(b.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
 
   const timeRange = b.startTime && b.endTime ? `${b.startTime} to ${b.endTime}` : "—";
+  const dateRange = endDate ? `${startDate} to ${endDate}` : startDate;
 
-  const bookedBy = b.bookedBy;
-  const reservedBy = typeof bookedBy === "string"
-    ? bookedBy
-    : bookedBy?.email || bookedBy?.name || bookedBy?.id || "Guest";
+  const bookedBy   = b.bookedBy;
+  const reservedBy =
+    typeof bookedBy === "string"
+      ? bookedBy
+      : bookedBy?.email || bookedBy?.name || bookedBy?.id || "Guest";
 
   return {
     id: b.id,
@@ -71,27 +96,52 @@ function mapBookingToRow(b) {
     invoice: paymentStatus,
     reservedBy,
     date: startDate,
+    dateRange,
     time: timeRange,
     status,
     totalAmount: b.totalAmount,
     currency: b.currency,
+    cancelledAt: b.cancelledAt,
+    cancelledBy: b.cancelledBy,
     _raw: b,
   };
 }
 
-/* ─── Page ───────────────────────────────────────────────────────────────────── */
+/* ─── CSV export ──────────────────────────────────────────────────────────── */
+function exportToCSV(rows) {
+  const headers = ["Name", "Location", "Category", "Invoice", "Reserved By", "Date", "Time", "Status", "Total Amount", "Currency"];
+  const esc = (v) => { const s = String(v ?? "").replace(/"/g, '""'); return /[",\n]/.test(s) ? `"${s}"` : s; };
+  const lines = [headers.join(","), ...rows.map((r) =>
+    [r.name, r.location, r.category, r.invoice, r.reservedBy, r.date, r.time, r.status, r.totalAmount, r.currency].map(esc).join(",")
+  )];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `reservations_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ─── Page ────────────────────────────────────────────────────────────────── */
 export default function ReservationsPage() {
   const dispatch = useDispatch();
 
   const hostBookings = useSelector(selectHostBookings);
-  const pagination = useSelector(selectHostBookingsPagination);
-  const status = useSelector(selectHostBookingsStatus);
-  const error = useSelector(selectHostBookingsError);
-  const cancelStatus = useSelector(selectBookingsCancelStatus);
+  const pagination   = useSelector(selectHostBookingsPagination);
+  const status       = useSelector(selectHostBookingsStatus);
+  const error        = useSelector(selectHostBookingsError);
 
-  const [activeTab, setActiveTab] = useState("all");
-  const [selectedReservation, setSelectedReservation] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab,    setActiveTab]    = useState("all");
+  const [currentPage,  setCurrentPage]  = useState(1);
+  const [search,       setSearch]       = useState("");
+  const [dateFilter,   setDateFilter]   = useState("");
+
+  /* detail panel */
+  const [panelItem,    setPanelItem]    = useState(null);
+
+  /* cancel modal */
+  const [cancelTarget, setCancelTarget] = useState(null);
 
   useEffect(() => {
     dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
@@ -99,27 +149,46 @@ export default function ReservationsPage() {
 
   const rows = hostBookings.map(mapBookingToRow);
 
-  const filteredRows = activeTab === "all"
-    ? rows
-    : rows.filter((r) => r.status.toLowerCase() === activeTab.toLowerCase());
+  const filteredRows = rows.filter((r) => {
+    if (activeTab !== "all" && r.status.toLowerCase() !== activeTab.toLowerCase()) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      if (![r.name, r.reservedBy, r.category, r.location].some((v) => v.toLowerCase().includes(q))) return false;
+    }
+    if (dateFilter) {
+      const fd  = new Date(dateFilter);
+      const rd  = r._raw?.startDate ? new Date(r._raw.startDate) : null;
+      if (!rd) return false;
+      if (rd.getFullYear() !== fd.getFullYear() || rd.getMonth() !== fd.getMonth() || rd.getDate() !== fd.getDate()) return false;
+    }
+    return true;
+  });
 
-  const handleViewDetails = (item) => setSelectedReservation(item);
+  const handleTabChange    = useCallback((t) => { setActiveTab(t);  setCurrentPage(1); }, []);
+  const handleSearchChange = useCallback((v) => { setSearch(v);     setCurrentPage(1); }, []);
+  const handleDateChange   = useCallback((v) => { setDateFilter(v); setCurrentPage(1); }, []);
 
-  const handleCancel = async (item) => {
-    if (!item?.id) return;
-    await dispatch(cancelBooking(item.id));
-    dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
+  const handleViewDetails = (item) => setPanelItem(item);
+  const handleClosePanel  = ()     => setPanelItem(null);
+
+  /* Opens cancel modal (from table action or from panel) */
+  const handleRequestCancel = (item) => {
+    setCancelTarget(item);
   };
 
-  if (selectedReservation) {
-    return (
-      <ReservationDetailView
-        reservation={selectedReservation}
-        onBack={() => setSelectedReservation(null)}
-        onCancel={(item) => handleCancel(item)}
-      />
+  /* Called after reason is selected in modal */
+  const handleConfirmCancel = async (reason) => {
+    if (!cancelTarget?.id) return;
+    await dispatch(cancelBooking(cancelTarget.id));
+    dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
+    /* update panel item to show cancelled state */
+    setPanelItem((prev) =>
+      prev?.id === cancelTarget.id
+        ? { ...prev, status: "Cancelled", invoice: "Refunded", _cancelReason: reason, _cancelledBy: prev.reservedBy }
+        : prev
     );
-  }
+    setCancelTarget(null);
+  };
 
   const totalPages = pagination?.totalPages ?? 1;
 
@@ -127,54 +196,80 @@ export default function ReservationsPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-400 mx-auto flex-1 flex flex-col gap-4">
       <ReservationStats />
 
-      {/* White card — matches image: width ~1080, border-radius 16, border 1px */}
-      <div className="bg-white border border-gray-200 flex flex-col gap-4" style={{ borderRadius: 16, padding: 20 }}>
-        <ReservationFilters activeTab={activeTab} onTabChange={setActiveTab} />
+      <div
+        className="bg-white border border-gray-200 flex flex-col w-full"
+        style={{ borderRadius: 16, padding: 20, gap: 0, height: 596 }}
+      >
+        <ReservationFilters
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          search={search}
+          onSearchChange={handleSearchChange}
+          dateValue={dateFilter}
+          onDateChange={handleDateChange}
+          onExportCSV={() => exportToCSV(filteredRows)}
+        />
 
         {status === "loading" && (
-          <div className="flex items-center justify-center py-16">
+          <div className="flex items-center justify-center flex-1">
             <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
         {status === "failed" && (
-          <div className="text-center py-12 text-red-500 text-sm">
+          <div className="flex items-center justify-center flex-1 text-red-500 text-sm">
             {error || "Failed to load reservations."}
           </div>
         )}
 
-        {status === "succeeded" && filteredRows.length === 0 && (
-          <div className="text-center py-12 text-gray-400 text-sm">
-            No reservations found.
-          </div>
-        )}
+        {status === "succeeded" && filteredRows.length === 0 && <EmptyState />}
 
         {status === "succeeded" && filteredRows.length > 0 && (
-          <>
-            <div className="block md:hidden xl:block">
+          <div className="mt-4 flex-1 min-h-0 overflow-hidden">
+            {/* Table: iPad (md) and up */}
+            <div className="hidden md:block h-full">
               <ReservationTable
                 data={filteredRows}
                 onViewDetails={handleViewDetails}
-                onCancel={handleCancel}
+                onCancel={handleRequestCancel}
               />
             </div>
-            <div className="hidden md:block xl:hidden">
+            {/* Cards: mobile only */}
+            <div className="block md:hidden">
               <ReservationCards
                 data={filteredRows}
                 onViewDetails={handleViewDetails}
-                onCancel={handleCancel}
+                onCancel={handleRequestCancel}
               />
             </div>
-          </>
+          </div>
+        )}
+
+        {status === "succeeded" && totalPages >= 1 && (
+          <div className="border-t border-gray-100 mt-4 pt-4 shrink-0">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(p) => setCurrentPage(p)}
+            />
+          </div>
         )}
       </div>
 
-      {/* Pagination — centered below card, matching image */}
-      {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={(p) => setCurrentPage(p)}
+      {/* ── Right-side details panel ── */}
+      {panelItem && (
+        <ReservationDetailsPanel
+          reservation={panelItem}
+          onClose={handleClosePanel}
+          onCancel={handleRequestCancel}
+        />
+      )}
+
+      {/* ── Cancel reason modal ── */}
+      {cancelTarget && (
+        <CancelReasonModal
+          onClose={() => setCancelTarget(null)}
+          onConfirm={handleConfirmCancel}
         />
       )}
     </div>

@@ -57,10 +57,10 @@ function TypeTile({ item, selected, onClick }) {
       onClick={() => onClick(item.id)}
       className={[
         "relative flex flex-col items-center justify-center gap-2 p-3 w-full aspect-[4/3]",
-        "rounded-[12px] border border-gray-200 transition-all duration-150 cursor-pointer text-center",
+        "rounded-[12px] border-2 transition-all duration-150 cursor-pointer text-center",
         selected
-          ? "border-[var(--color-primary)] bg-[var(--color-primary-light)]"
-          : "bg-white hover:border-[var(--color-primary-light)]",
+          ? "border-[#1d8c82] bg-[var(--color-primary-light)]"
+          : "border-gray-200 bg-white",
       ].join(" ")}
     >
       {selected && (
@@ -71,7 +71,7 @@ function TypeTile({ item, selected, onClick }) {
         </span>
       )}
       <span className="text-3xl leading-none">{item.emoji}</span>
-      <span className="text-xs font-semibold text-gray-600 leading-tight">{item.label}</span>
+      <span className="text-[14px] font-semibold text-gray-600 leading-tight">{item.label}</span>
     </button>
   );
 }
@@ -87,10 +87,30 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
   );
 
   return (
-    <div className="flex flex-col items-center pt-4 sm:pt-6 pb-10">
-      <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[var(--color-text)] mb-6 sm:mb-8 text-center px-2">
+    <div className="flex flex-col items-center">
+      <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[var(--color-text)] mb-2 text-center flex items-center gap-2">
         Which Of These Best Describes Your Service?
+        <span className="inline-flex text-[#E95764] align-middle">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </span>
       </h2>
+
+      <p className="text-[#475467] text-[13px] sm:text-[14px] leading-[20px] sm:leading-[22px] text-center max-w-[260px] sm:max-w-md mb-8 font-normal font-sofia">
+        In this step, we&apos;ll ask you which type of property you have and if guests will book the entire place or just a room. Then let us know the location and how many guests can stay.
+      </p>
 
       {/* Search */}
       <div className="relative w-full max-w-2xl mb-6 px-0">
@@ -109,7 +129,7 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
       </div>
 
       {/* Cards — 3 cols on mobile, 4 cols on tablet/desktop */}
-      <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 w-full max-w-3xl mb-8 sm:mb-10">
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 w-full max-w-3xl mb-12 sm:mb-16">
         {filtered.map((item) => (
           <TypeTile
             key={item.id}
