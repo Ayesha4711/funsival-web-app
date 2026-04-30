@@ -208,7 +208,7 @@ export default function ListingsPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto flex flex-col gap-4 flex-1">
       <ListingsStats />
 
-      <div className="bg-white flex flex-col" style={{ width: "100%", maxWidth: 1120, gap: 16, borderRadius: 24, border: "1px solid var(--color-border)", padding: 20 }}>
+      <div className="bg-white flex flex-col" style={{ width: "100%", gap: 16, borderRadius: 24, border: "1px solid var(--color-border)", padding: 20 }}>
         <ListingsFilters
           activeTab={activeTab}
           onTabChange={handleTabChange}
@@ -262,11 +262,13 @@ export default function ListingsPage() {
           onMouseDown={(e) => { if (e.target === e.currentTarget) setDeletingListing(null); }}
         >
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 sm:p-8">
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-              </svg>
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </div>
             </div>
             <h2 className="text-base font-extrabold text-[var(--color-text)] mb-1">Delete listing?</h2>
             <p className="text-sm text-gray-400 font-medium mb-6">

@@ -21,7 +21,7 @@
 
 // export default function ListingsStats() {
 //   return (
-//     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+//     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 //       <StatCard
 //         label="Total Listings"
 //         value="12"
@@ -82,7 +82,7 @@ function StatCard({ label, value, sub, subType = "neutral" }) {
 
 export default function ListingsStats() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
         label="Total Listings"
         value="12"

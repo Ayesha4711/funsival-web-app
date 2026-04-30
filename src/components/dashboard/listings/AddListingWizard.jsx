@@ -358,11 +358,11 @@ export default function AddListingWizard() {
     setDraftSaving(false);
   }, [dispatch]);
 
-  const scrollToTop = () => {
+  useEffect(() => {
     const main = document.querySelector("main");
-    if (main) main.scrollTo({ top: 0, behavior: "smooth" });
-    else window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+    if (main) main.scrollTo({ top: 0, behavior: "instant" });
+    else window.scrollTo({ top: 0, behavior: "instant" });
+  }, [step]);
 
   const next = useCallback((latestData) => {
     setStep(s => {
@@ -371,15 +371,13 @@ export default function AddListingWizard() {
       saveDraftSilently(nextStep, latestData ?? data);
       return nextStep;
     });
-    scrollToTop();
   }, [data, saveDraftSilently]);
 
-  const back = () => { setStep(s => Math.max(s - 1, 1)); scrollToTop(); };
+  const back = () => { setStep(s => Math.max(s - 1, 1)); };
   const jumpToStep = useCallback((targetStep) => {
     // Allow jumping to any step that has been reached or completed
     if (targetStep <= maxStepReached) {
       setStep(targetStep);
-      scrollToTop();
     } else {
       toast.error("Please complete the current step before moving forward.");
     }
@@ -447,7 +445,6 @@ export default function AddListingWizard() {
         toast.success("Listing created successfully!");
         setSubmitting(false);
         setStep(6);
-        scrollToTop();
         return;
       } else {
         const resData = result.payload;
@@ -472,7 +469,6 @@ export default function AddListingWizard() {
         const hasStep3Error = backendErrors && Object.keys(backendErrors).some(k => STEP3_FIELDS.has(k));
         if (hasStep3Error) {
           setStep(3);
-          scrollToTop();
         }
       }
     } catch (err) {
@@ -519,9 +515,9 @@ export default function AddListingWizard() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push("/dashboard/listings")}
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-50 text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 transition-all shrink-0"
+              className="text-[#212121] hover:opacity-70 transition-opacity shrink-0"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="19" y1="12" x2="5" y2="12" />
                 <polyline points="12 19 5 12 12 5" />
               </svg>
