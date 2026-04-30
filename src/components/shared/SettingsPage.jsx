@@ -1,9 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
 import NewsletterSection from "@/components/landing/NewsletterSection";
 import LandingFooter from "@/components/landing/LandingFooter";
+import { changePassword, enable2FA, disable2FA } from "@/store/slices/authSlice";
+import { selectUser, fetchProfile, setProfile, updateProviderProfile } from "@/store/slices/profileSlice";
 
 // ─── SVG Icons ──────────────────────────────────────────────────────────────────
 
@@ -367,15 +371,47 @@ function AddPaymentModal({ onClose, onAdd }) {
 // ─── Change Password Modal ────────────────────────────────────────────────────────
 
 function ChangePasswordModal({ onClose }) {
+  const dispatch = useDispatch();
   const [form, setForm] = useState({ current: "", newPwd: "", confirm: "" });
   const [show, setShow] = useState({ current: false, newPwd: false, confirm: false });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const toggleShow = (k) => setShow((s) => ({ ...s, [k]: !s[k] }));
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setError(""); };
+
+  const handleSubmit = async () => {
+    if (!form.current || !form.newPwd || !form.confirm) {
+      setError("All fields are required.");
+      return;
+    }
+    if (form.newPwd !== form.confirm) {
+      setError("New passwords do not match.");
+      return;
+    }
+    if (form.newPwd.length < 8) {
+      setError("New password must be at least 8 characters.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    const result = await dispatch(changePassword({
+      currentPassword: form.current,
+      newPassword: form.newPwd,
+      confirmNewPassword: form.confirm,
+    }));
+    setLoading(false);
+    if (changePassword.fulfilled.match(result)) {
+      toast.success("Password updated successfully.");
+      onClose();
+    } else {
+      setError(result.payload || "Failed to update password.");
+    }
+  };
 
   const fields = [
-    { key: "current", label: "Current Password",  placeholder: "Enter current password" },
-    { key: "newPwd",  label: "New Password",       placeholder: "Enter new password" },
+    { key: "current", label: "Current Password",    placeholder: "Enter current password" },
+    { key: "newPwd",  label: "New Password",         placeholder: "Enter new password" },
     { key: "confirm", label: "Confirm New Password", placeholder: "Confirm new password" },
   ];
 
@@ -408,11 +444,15 @@ function ChangePasswordModal({ onClose }) {
                   onClick={() => toggleShow(key)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {show[key] ? <EyeOffIcon /> : <EyeIcon />}
+                  {show[key] ? <EyeIcon /> : <EyeOffIcon />}
                 </button>
               </div>
             </div>
           ))}
+
+          {error && (
+            <p className="text-xs text-red-500 font-medium">{error}</p>
+          )}
 
           {/* Password requirements */}
           <div className="bg-gray-50 rounded-xl px-4 py-3">
@@ -437,14 +477,22 @@ function ChangePasswordModal({ onClose }) {
         <div className="flex flex-col sm:flex-row gap-3 px-6 pb-6">
           <button
             onClick={onClose}
-            className="flex-1 border border-gray-200 text-sm font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors text-[var(--color-text)]"
+            disabled={loading}
+            className="flex-1 border border-gray-200 text-sm font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors text-[var(--color-text)] disabled:opacity-50"
           >
             Cancel
           </button>
           <button
-            className="flex-1 bg-[var(--color-primary)] text-white text-sm font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex-1 bg-[var(--color-primary)] text-white text-sm font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            Update Password
+            {loading && (
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
+              </svg>
+            )}
+            {loading ? "Updating..." : "Update Password"}
           </button>
         </div>
       </div>
@@ -548,14 +596,49 @@ function PreferencesTab() {
 // ─── Security ────────────────────────────────────────────────────────────────────
 
 function SecurityTab() {
-  const [twoFactor, setTwoFactor] = useState(false);
+  const dispatch = useDispatch();
+  const profile = useSelector(selectUser);
+
+  // Read actual 2FA status from profile — covers both possible field names the API may return
+  const twoFactor = !!(
+    profile?.twoFactorEnabled ??
+    profile?.isTwoFactorEnabled ??
+    profile?.twoFactor ??
+    false
+  );
+
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
   const [verifyMethod, setVerifyMethod] = useState("email");
+
+  // Fetch profile on mount if not yet loaded so we get the real 2FA state
+  useEffect(() => {
+    if (!profile) dispatch(fetchProfile());
+  }, [dispatch, profile]);
+
+  const handle2FAToggle = async (enabled) => {
+    setTwoFactorLoading(true);
+    const action = enabled ? enable2FA : disable2FA;
+    const result = await dispatch(action());
+    setTwoFactorLoading(false);
+    if (action.fulfilled.match(result)) {
+      // Optimistically update the profile in Redux so the toggle reflects correctly
+      // without needing a full re-fetch
+      const field =
+        profile?.twoFactorEnabled  !== undefined ? "twoFactorEnabled"  :
+        profile?.isTwoFactorEnabled !== undefined ? "isTwoFactorEnabled" :
+        "twoFactorEnabled";
+      dispatch(setProfile({ ...profile, [field]: enabled }));
+      toast.success(enabled ? "Two-factor authentication enabled." : "Two-factor authentication disabled.");
+    } else {
+      toast.error(result.payload || `Failed to ${enabled ? "enable" : "disable"} 2FA.`);
+    }
+  };
 
   const methods = [
     {
       value: "email",
       label: "Email verification",
-      desc: "john.doe@example.com",
+      desc: profile?.email || "—",
       Icon: MailIcon,
       bg: "bg-[var(--color-primary)]",
       iconColor: "text-white",
@@ -563,7 +646,7 @@ function SecurityTab() {
     {
       value: "sms",
       label: "SMS verification",
-      desc: "+1 (555) 123-4567",
+      desc: profile?.phone || profile?.phoneNumber || "+1 (555) 123-4567",
       Icon: PhoneIcon,
       bg: "bg-gray-100",
       iconColor: "text-gray-500",
@@ -584,7 +667,13 @@ function SecurityTab() {
             <p className="text-sm font-semibold text-[var(--color-text)]">Two-factor authentication</p>
             <p className="text-xs text-gray-400 mt-0.5">Add an extra layer of security</p>
           </div>
-          <Toggle checked={twoFactor} onChange={setTwoFactor} />
+          {twoFactorLoading ? (
+            <svg className="animate-spin shrink-0 mt-0.5" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
+            </svg>
+          ) : (
+            <Toggle checked={twoFactor} onChange={handle2FAToggle} />
+          )}
         </div>
 
         <p className="text-sm text-gray-500 mb-3">Choose verification method:</p>
@@ -655,6 +744,146 @@ function LegalTab() {
 // ─── Profile ─────────────────────────────────────────────────────────────────────
 
 function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
+  const dispatch = useDispatch();
+  const profile = useSelector(selectUser);
+
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    dateOfBirth: "",
+    bio: "",
+    profileImage: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "",
+    businessName: "",
+    businessType: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [initialized, setInitialized] = useState(false);
+  const fileInputRef = React.useRef(null);
+
+  const REQUIRED_FIELDS = ["firstName", "lastName", "email", "phoneNumber", "bio", "profileImage"];
+
+  useEffect(() => {
+    if (!profile) {
+      dispatch(fetchProfile());
+    }
+  }, [dispatch, profile]);
+
+  useEffect(() => {
+    if (profile && !initialized) {
+      setForm({
+        firstName:    profile.firstName    ?? "",
+        lastName:     profile.lastName     ?? "",
+        email:        profile.email        ?? "",
+        phoneNumber:  profile.phoneNumber  ?? profile.phone ?? "",
+        dateOfBirth:  profile.dateOfBirth  ?? "",
+        bio:          profile.bio          ?? "",
+        profileImage: profile.profileImage ?? "",
+        addressLine1: profile.addressLine1 ?? "",
+        addressLine2: profile.addressLine2 ?? "",
+        city:         profile.city         ?? "",
+        state:        profile.state        ?? "",
+        postalCode:   profile.postalCode   ?? "",
+        country:      profile.country      ?? "",
+        businessName: profile.businessName ?? "",
+        businessType: profile.businessType ?? "",
+      });
+      setInitialized(true);
+    }
+  }, [profile, initialized]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setForm((f) => ({ ...f, profileImage: ev.target.result }));
+      if (fieldErrors.profileImage) setFieldErrors((fe) => ({ ...fe, profileImage: undefined }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const set = (k) => (e) => {
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+    if (fieldErrors[k]) setFieldErrors((fe) => ({ ...fe, [k]: undefined }));
+  };
+
+  const FIELD_LABELS = {
+    firstName: "First Name", lastName: "Last Name", email: "Email Address",
+    phoneNumber: "Phone Number", bio: "Bio", profileImage: "Profile Picture",
+  };
+
+  const handleSave = async () => {
+    const localErrors = {};
+    for (const key of REQUIRED_FIELDS) {
+      if (!form[key]?.trim()) {
+        localErrors[key] = `${FIELD_LABELS[key]} is required.`;
+      }
+    }
+    if (Object.keys(localErrors).length > 0) {
+      setFieldErrors(localErrors);
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    setSaving(true);
+    const result = await dispatch(updateProviderProfile(form));
+    setSaving(false);
+
+    if (updateProviderProfile.fulfilled.match(result)) {
+      toast.success("Profile updated successfully.");
+      setFieldErrors({});
+    } else {
+      const payload = result.payload;
+      if (payload?.errors && typeof payload.errors === "object") {
+        setFieldErrors(payload.errors);
+        const firstMsg = Object.values(payload.errors)[0];
+        toast.error(firstMsg || payload.message || "Validation failed.");
+      } else {
+        toast.error(payload?.message ?? (typeof payload === "string" ? payload : "Failed to update profile."));
+      }
+    }
+  };
+
+  const fullName = [form.firstName, form.lastName].filter(Boolean).join(" ") || "—";
+  const initials = (form.firstName?.[0] ?? "") + (form.lastName?.[0] ?? "") || (role === "provider" ? "P" : "?");
+
+  const field = (label, key, placeholder, icon, colSpan) => {
+    const hasError = !!fieldErrors[key];
+    const isRequired = REQUIRED_FIELDS.includes(key);
+    return (
+      <div className={colSpan ? "sm:col-span-2" : ""} key={key}>
+        <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mb-1.5">
+          {icon && <span className="text-gray-400">{icon}</span>}
+          {label}
+          {isRequired && <span className="text-red-500 ml-0.5">*</span>}
+        </label>
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={form[key]}
+          onChange={set(key)}
+          className={`w-full border rounded-xl px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors ${
+            hasError
+              ? "border-red-400 focus:ring-red-200 focus:border-red-400"
+              : "border-gray-200 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
+          }`}
+        />
+        {hasError && (
+          <p className="mt-1 text-xs text-red-500 font-medium">{fieldErrors[key]}</p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Main profile card */}
@@ -664,17 +893,43 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
         {/* Avatar row */}
         <div className="flex items-center gap-4 mb-6">
           <div className="relative shrink-0">
-            <div className="w-16 h-16 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-              {role === "provider" ? "P" : "J"}
+            <div
+              className={`w-16 h-16 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white text-2xl font-bold overflow-hidden ring-2 ${fieldErrors.profileImage ? "ring-red-400" : "ring-transparent"}`}
+            >
+              {form.profileImage ? (
+                <img src={form.profileImage} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                initials.toUpperCase()
+              )}
             </div>
-            <button className="absolute bottom-0 right-0 w-6 h-6 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-white border-2 border-white">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-0 right-0 w-6 h-6 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-white border-2 border-white hover:opacity-80 transition-opacity"
+            >
               <CameraIcon />
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageChange}
+            />
           </div>
           <div>
-            <p className="text-sm font-bold text-[var(--color-text)]">John Doe</p>
-            <p className="text-xs text-gray-400">john.doe@example.com</p>
-            <button className="text-xs text-[var(--color-primary)] font-semibold mt-1 hover:underline">Change profile picture</button>
+            <p className="text-sm font-bold text-[var(--color-text)]">{fullName}</p>
+            <p className="text-xs text-gray-400">{form.email || "—"}</p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs text-[var(--color-primary)] font-semibold mt-1 hover:underline"
+            >
+              Change profile picture
+            </button>
+            {fieldErrors.profileImage && (
+              <p className="mt-1 text-xs text-red-500 font-medium">{fieldErrors.profileImage}</p>
+            )}
           </div>
         </div>
 
@@ -685,20 +940,29 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
             <p className="text-sm font-bold text-[var(--color-text)]">Personal Information</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <InputField label="First Name"     placeholder="John"                  defaultValue="John" />
-            <InputField label="Last Name"      placeholder="Doe"                   defaultValue="Doe" />
-            <InputField label="Email Address"  placeholder="john.doe@example.com"  defaultValue="john.doe@example.com" icon={<MailIcon />} />
-            <InputField label="Phone Number"   placeholder="+1 (555) 123-4567"     defaultValue="+1 (555) 123-4567"    icon={<PhoneIcon />} />
+            {field("First Name",    "firstName",   "John",                 null)}
+            {field("Last Name",     "lastName",    "Doe",                  null)}
+            {field("Email Address", "email",       "john.doe@example.com", <MailIcon />)}
+            {field("Phone Number",  "phoneNumber", "+1 (555) 123-4567",    <PhoneIcon />)}
+            {field("Date of Birth", "dateOfBirth", "YYYY-MM-DD",           null, true)}
             <div className="sm:col-span-2">
-              <InputField label="Date of Birth" placeholder="MM/DD/YYYY" icon={null} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Bio</label>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                Bio <span className="text-red-500">*</span>
+              </label>
               <textarea
                 rows={3}
                 placeholder="Tell us about yourself..."
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-colors resize-none"
+                value={form.bio}
+                onChange={set("bio")}
+                className={`w-full border rounded-xl px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors resize-none ${
+                  fieldErrors.bio
+                    ? "border-red-400 focus:ring-red-200 focus:border-red-400"
+                    : "border-gray-200 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
+                }`}
               />
+              {fieldErrors.bio && (
+                <p className="mt-1 text-xs text-red-500 font-medium">{fieldErrors.bio}</p>
+              )}
             </div>
           </div>
         </div>
@@ -710,13 +974,12 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
             <p className="text-sm font-bold text-[var(--color-text)]">Location Information</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <InputField label="Address" placeholder="123 Main Street" defaultValue="123 Main Street" />
-            </div>
-            <InputField label="City"           placeholder="San Francisco" defaultValue="San Francisco" />
-            <InputField label="State/Province" placeholder="California"   defaultValue="California" />
-            <InputField label="Zip/Postal Code" placeholder="94102"       defaultValue="94102" />
-            <InputField label="Country"        placeholder="United States" defaultValue="United States" />
+            {field("Address Line 1", "addressLine1", "123 Main Street", null, true)}
+            {field("Address Line 2", "addressLine2", "Suite 4B",        null, true)}
+            {field("City",           "city",         "San Francisco",   null)}
+            {field("State/Province", "state",        "California",      null)}
+            {field("Zip/Postal Code","postalCode",   "94102",           null)}
+            {field("Country",        "country",      "United States",   null)}
           </div>
         </div>
 
@@ -728,15 +991,24 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
               <p className="text-sm font-bold text-[var(--color-text)]">Provider Information</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InputField label="Business Name" placeholder="Adventure Hub" defaultValue="Adventure Hub" />
-              <InputField label="Business Type" placeholder="e.g. Event Management" />
+              {field("Business Name", "businessName", "Adventure Hub",          null)}
+              {field("Business Type", "businessType", "e.g. Event Management",  null)}
             </div>
           </div>
         )}
 
         <div className="flex justify-end">
-          <button className="bg-[var(--color-primary)] hover:opacity-90 text-white font-semibold text-sm px-8 py-2.5 rounded-xl transition-opacity">
-            Save Changes
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-[var(--color-primary)] hover:opacity-90 text-white font-semibold text-sm px-8 py-2.5 rounded-xl transition-opacity disabled:opacity-60 flex items-center gap-2"
+          >
+            {saving && (
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
+              </svg>
+            )}
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
@@ -921,6 +1193,24 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
 
   return (
     <>
+      {/* ── Full-width header bar ─────────────────────────────────────────────── */}
+      <div className="hidden md:block bg-white border-b border-gray-100">
+        <div className="px-6 lg:px-8 py-4 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-[var(--color-text)] inline">Settings</h1>
+            <span className="text-sm text-gray-400 ml-2">Manage your account preferences and settings</span>
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 bg-[#F4F6F8] min-h-screen p-4 sm:p-6 lg:p-8">
 
         {/* ── Mobile: list view (shown when mobileView is null) ─────────────── */}
@@ -983,25 +1273,9 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
 
         {/* ── Desktop (md+) layout ──────────────────────────────────────────── */}
         <div className="hidden md:block">
-          {/* Page header */}
-          <div className="flex items-center gap-3 mb-7">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-              </svg>
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-[var(--color-text)] inline">Settings</h1>
-              <span className="text-sm text-gray-400 ml-2">Manage your account preferences and settings</span>
-            </div>
-          </div>
-
           <div className="flex gap-6 items-start">
             {/* Sidebar */}
-            <aside className="w-56 lg:w-64 shrink-0 bg-white border border-gray-100 rounded-2xl overflow-hidden">
+            <aside className="w-56 lg:w-64 shrink-0 bg-white border border-gray-100 rounded-2xl overflow-hidden self-start">
               <div className="p-3 space-y-1">
                 {TABS.map((tab) => {
                   const isActive = activeTab === tab.key;

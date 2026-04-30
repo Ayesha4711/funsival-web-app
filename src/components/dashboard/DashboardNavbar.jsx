@@ -191,7 +191,7 @@ export default function DashboardNavbar({ onMenuToggle }) {
 
       {/* Search bar — sm and up only */}
       <div className="hidden sm:flex flex-1 justify-center px-4">
-        <div className="relative w-full max-w-xs sm:max-w-sm lg:max-w-md">
+        <div className="relative w-full max-w-65">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">
             <SearchIcon />
           </span>
@@ -255,6 +255,9 @@ export default function DashboardNavbar({ onMenuToggle }) {
               </button>
             </div>}
         </div>
+
+        {/* Vertical divider */}
+        <span className="hidden sm:block w-px h-5 bg-white/40 shrink-0" />
 
         {/* Notification — sm and up only */}
         <div className="relative hidden sm:block" ref={notifRef}>
