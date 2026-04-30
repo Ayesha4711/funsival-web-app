@@ -5,8 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { createBooking, selectBookingsStatus } from "@/store/slices/bookingsSlice";
-import NewsletterSection from "@/components/landing/NewsletterSection";
-import LandingFooter from "@/components/landing/LandingFooter";
+import AppFooter from "@/components/shared/AppFooter";
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const BackIcon = () => (
@@ -493,8 +492,8 @@ export default function ConfirmAndPayPage() {
         </div>
       </main>
 
-      <NewsletterSection />
-      <LandingFooter />
+
+      <AppFooter />
 
     </div>
   );

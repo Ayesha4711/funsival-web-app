@@ -29,7 +29,8 @@ const MESSAGES_MAP = {
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const BackIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="15 18 9 12 15 6" />
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
   </svg>
 );
 
@@ -325,10 +326,10 @@ export default function MessagesPage() {
   return (
     <div className="flex flex-col" style={{ height: "calc(100dvh - 64px)" }}>
       {/* Page header */}
-      <div className={`px-4 sm:px-6 lg:px-8 py-4 shrink-0 ${mobileView ? "hidden lg:flex" : "flex"} items-center gap-3`}>
+      <div className={`px-4 sm:px-6 lg:px-8 py-5 shrink-0 bg-white border-b border-gray-100 ${mobileView ? "hidden lg:flex" : "flex"} items-center gap-3`}>
         <button
           onClick={() => router.back()}
-          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+          className="text-[var(--color-text)] hover:text-[var(--color-text-muted)] transition-colors"
         >
           <BackIcon />
         </button>
@@ -336,7 +337,7 @@ export default function MessagesPage() {
       </div>
 
       {/* Content area */}
-      <div className="flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6">
+      <div className="flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-5 pb-4 sm:pb-6">
         <div className="h-full bg-white rounded-3xl border border-[var(--color-border)] overflow-hidden flex">
 
           {/* Contact list panel */}

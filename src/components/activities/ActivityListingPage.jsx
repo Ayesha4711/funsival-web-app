@@ -14,8 +14,7 @@ import ActivityHero from './ActivityHero';
 import ActivityFilters from './ActivityFilters';
 import ActivityCard from './ActivityCard';
 import FAQSection from '../landing/FAQSection';
-import NewsletterSection from '../landing/NewsletterSection';
-import LandingFooter from '../landing/LandingFooter';
+import AppFooter from '@/components/shared/AppFooter';
 import Pagination from '@/components/shared/Pagination';
 
 export default function ActivityListingPage({
@@ -114,9 +113,9 @@ export default function ActivityListingPage({
         </section>
 
         <FAQSection />
-        <NewsletterSection />
+
       </main>
-      <LandingFooter />
+      <AppFooter />
     </div>
   );
 }

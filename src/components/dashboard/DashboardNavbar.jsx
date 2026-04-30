@@ -129,7 +129,7 @@ const MenuIcon = () =>
     <line x1="3" y1="18" x2="21" y2="18" />
   </svg>;
 
-export default function DashboardNavbar({ onMenuToggle }) {
+export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -178,8 +178,8 @@ export default function DashboardNavbar({ onMenuToggle }) {
 
   return (
     <header className="h-14 sm:h-16 bg-[#228E8A] flex items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4 shrink-0 z-50 sticky top-0">
-      {/* Left: Logo only (mobile) | Desktop: nothing (sidebar has logo) */}
-      <Link href="/dashboard" className="lg:hidden flex items-center shrink-0">
+      {/* Left: Logo — hidden on desktop only when sidebar is pinned there */}
+      <Link href="/dashboard" className={`${noSidebar ? "flex" : "lg:hidden flex"} items-center shrink-0`}>
         <Image
           src={logo}
           alt="Funsival"
@@ -190,7 +190,7 @@ export default function DashboardNavbar({ onMenuToggle }) {
       </Link>
 
       {/* Search bar — sm and up only */}
-      <div className="hidden sm:flex flex-1 justify-center px-4">
+      <div className="hidden sm:flex flex-1 justify-center px-4 lg:px-0">
         <div className="relative w-full max-w-65">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">
             <SearchIcon />

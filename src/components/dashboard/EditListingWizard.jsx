@@ -10,7 +10,7 @@ import StepPrice from "./listings/StepPrice";
 import StepReview from "./listings/StepReview";
 import { useDispatch } from "react-redux";
 import { fetchListing, updateListing } from "@/store/slices/listingsSlice";
-import DashboardFooter from "@/components/dashboard/DashboardFooter";
+import AppFooter from "@/components/shared/AppFooter";
 import { buildListingPricePayload, createEmptyPrice, formatListingPrice, normalizeListingPrice } from "./listings/listingPrice";
 
 /* ─── Step config ──────────────────────────────────────────────────────────── */
@@ -431,7 +431,7 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
         </div>
       </div>
 
-      <DashboardFooter />
+      <AppFooter />
     </div>
   );
 }

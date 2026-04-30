@@ -10,8 +10,7 @@ import {
   selectActivitiesPagination,
   selectActivitiesStatus,
 } from '@/store/slices/activitiesSlice';
-import NewsletterSection from '@/components/landing/NewsletterSection';
-import LandingFooter from '@/components/landing/LandingFooter';
+import AppFooter from '@/components/shared/AppFooter';
 import NotificationPopover from '@/components/shared/NotificationPopover';
 import MapView from '@/components/user-dashboard/MapView';
 import Pagination from '@/components/shared/Pagination';
@@ -615,8 +614,8 @@ export default function UserExplorePage() {
         </div>
       </main>
 
-      <NewsletterSection />
-      <LandingFooter />
+
+      <AppFooter />
 
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }

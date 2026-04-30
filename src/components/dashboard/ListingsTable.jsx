@@ -237,16 +237,16 @@ const STATUS_OPTIONS = ["Draft", "Active", "Inactive"];
 
 const STATUS_STYLES = {
   Active: {
-    pill: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    dot: "bg-emerald-400",
+    pill: "bg-[#EAFAF1] text-[#27AE60] border-[#B7EBD0]",
+    dot: "bg-[#27AE60]",
   },
   Inactive: {
-    pill: "bg-[rgba(255, 0, 0, 0.12)] text-red-400 border-red-100",
-    dot: "bg-red-400",
+    pill: "bg-[#FDECEA] text-[#E53935] border-[#F9C9C9]",
+    dot: "bg-[#E53935]",
   },
   Draft: {
-    pill: "bg-amber-50 text-amber-500 border-amber-100",
-    dot: "bg-amber-400",
+    pill: "bg-[#FEF9EC] text-[#C9982A] border-[#F5DFA0]",
+    dot: "bg-[#C9982A]",
   },
 };
 

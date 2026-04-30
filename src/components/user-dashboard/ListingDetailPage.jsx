@@ -8,8 +8,7 @@ import {
   selectSelectedActivity,
   selectSelectedActivityStatus,
 } from "@/store/slices/activitiesSlice";
-import NewsletterSection from "@/components/landing/NewsletterSection";
-import LandingFooter from "@/components/landing/LandingFooter";
+import AppFooter from "@/components/shared/AppFooter";
 import CustomCalendar from "@/components/shared/CustomCalendar";
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
@@ -965,8 +964,8 @@ export default function ListingDetailPage({ params: paramsPromise }) {
         )}
 
       </main>
-      <NewsletterSection />
-      <LandingFooter />
+
+      <AppFooter />
     </div>
   );
 }

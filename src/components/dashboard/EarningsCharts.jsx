@@ -53,14 +53,15 @@ function TrendTooltip({ active, payload, label }) {
 
 export function EarningsTrend() {
   return (
-    <div className="bg-white rounded-2xl sm:rounded-[32px] p-3 sm:p-5 lg:p-6 border border-[var(--color-border)]">
+    <div className="bg-white rounded-2xl sm:rounded-[32px] p-3 sm:p-5 lg:p-6 border border-[var(--color-border)] flex-1 flex flex-col">
       <h2
         className="text-[var(--color-text)] mb-4 sm:mb-6"
         style={{ fontFamily: "var(--font-sofia-pro),'Sofia Pro',sans-serif", fontWeight: 700, fontSize: 20, lineHeight: "14px", letterSpacing: 0 }}
       >
         Earnings Trend
       </h2>
-      <ResponsiveContainer width="100%" height={200} className="sm:!h-[260px]">
+      <div className="flex-1 min-h-[200px] sm:min-h-[260px]">
+      <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="earningsGrad" x1="0" y1="0" x2="0" y2="1">
@@ -99,6 +100,7 @@ export function EarningsTrend() {
           />
         </AreaChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }
@@ -114,17 +116,15 @@ function CalloutLabel({ cx, cy, midAngle, outerRadius, value, name }) {
   const RADIAN = Math.PI / 180;
   const angle = -midAngle * RADIAN;
 
-  // Fixed offset from slice edge — always 36px regardless of slice size
-  const lineLen = 28;
+  // Increase line length for Services to make it more readable
+  const lineLen = name === "Services" ? 50 : 36;
   const lineStartX = cx + (outerRadius + 4) * Math.cos(angle);
   const lineStartY = cy + (outerRadius + 4) * Math.sin(angle);
   const lineEndX   = cx + (outerRadius + 4 + lineLen) * Math.cos(angle);
   const lineEndY   = cy + (outerRadius + 4 + lineLen) * Math.sin(angle);
 
-  // Box anchored right at the line end
-  const boxW = 62;
-  const boxH = 34;
-  // Offset box so its nearest edge touches the line end
+  const boxW = 70;
+  const boxH = 36;
   const bx = lineEndX - boxW / 2;
   const by = lineEndY - boxH / 2;
 
@@ -178,12 +178,12 @@ export function RevenueByCategory() {
         Revenue by Category
       </h2>
       <div className="flex-1 flex flex-col items-center justify-center gap-2">
-        <ResponsiveContainer width="100%" height={220} className="sm:!h-[260px]">
-          <PieChart margin={{ top: 44, right: 50, bottom: 44, left: 50 }}>
+        <ResponsiveContainer width="100%" height={260} className="sm:!h-[300px]">
+          <PieChart margin={{ top: 92, right: 60, bottom: 44, left: 60 }}>
             <Pie
               data={categoryData}
               cx="50%"
-              cy="50%"
+              cy="55%"
               innerRadius={62}
               outerRadius={88}
               paddingAngle={2}

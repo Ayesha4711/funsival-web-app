@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchProfile, selectProfileStatus } from "@/store/slices/profileSlice";
 import DashboardNavbar from "@/components/dashboard/DashboardNavbar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-import DashboardFooter from "@/components/dashboard/DashboardFooter";
+import AppFooter from "@/components/shared/AppFooter";
 import FullPageLoader from "@/components/common/FullPageLoader";
 
 const SIDEBAR_HIDDEN_PATHS = [
@@ -44,12 +44,11 @@ export default function DashboardShell({ children }) {
       />
       <div className="flex flex-col flex-1 min-w-0  overflow-hidden">
         <div className={`shrink-0 ${isWizard ? "lg:hidden" : ""}`}>
-          <DashboardNavbar onMenuToggle={() => setSidebarOpen(o => !o)} />
+          <DashboardNavbar onMenuToggle={() => setSidebarOpen(o => !o)} noSidebar={hideSidebarDesktop} />
         </div>
         <main className="flex-1 overflow-y-auto min-h-0">
           {children}
-          <div className="h-16 bg-[#F3F4F6]" />
-          <DashboardFooter />
+          <AppFooter />
         </main>
       </div>
     </div>

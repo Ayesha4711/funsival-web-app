@@ -2,8 +2,6 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import logo from "@/assets/images/logo.svg";
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const BackIcon = () => (
@@ -113,28 +111,28 @@ function AddPaymentModal({ onClose, onAdd }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col max-h-[92vh] overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-3 pb-3 sm:p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col max-h-[80vh] sm:max-h-[92vh] overflow-hidden shadow-2xl">
 
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex items-start justify-between shrink-0">
+        <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4 flex items-start justify-between shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Add Payment Method</h2>
-            <p className="text-xs text-gray-400 mt-1 leading-relaxed">Add a new payment method for withdrawals. All information is<br />encrypted and secure.</p>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900">Add Payment Method</h2>
+            <p className="text-xs text-gray-400 mt-1 leading-relaxed">Add a new payment method for withdrawals. All information is encrypted and secure.</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0 ml-3 mt-0.5">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0 ml-2 mt-0.5">
             <CloseIcon />
           </button>
         </div>
 
         {/* Tab pills */}
-        <div className="px-6 pb-4 shrink-0">
+        <div className="px-4 sm:px-6 pb-3 sm:pb-4 shrink-0">
           <div className="flex p-1 bg-[#EDF6F6] rounded-full">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex-1 px-3 py-2 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                className={`flex-1 px-2 sm:px-3 py-2 rounded-full text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap ${
                   tab === t.id ? "bg-white text-[var(--color-primary)] shadow-sm" : "text-gray-400"
                 }`}
               >
@@ -145,18 +143,18 @@ function AddPaymentModal({ onClose, onAdd }) {
         </div>
 
         {/* Info banner */}
-        <div className="px-6 pb-4 shrink-0">
-          <div className="flex gap-2.5 p-3.5 bg-gray-50 rounded-xl border border-gray-100">
+        <div className="px-4 sm:px-6 pb-3 sm:pb-4 shrink-0">
+          <div className="flex gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
             <span className="text-gray-400 shrink-0 mt-0.5"><ShieldIcon /></span>
             <p className="text-xs text-gray-500 leading-relaxed">{infoText[tab]}</p>
           </div>
         </div>
 
         {/* Scrollable body */}
-        <div className="px-6 pb-2 flex-1 overflow-y-auto">
+        <div className="px-4 sm:px-6 pb-2 flex-1 overflow-y-auto">
           {tab === "bank" && (
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="flex flex-col gap-3">
                 <div>
                   <label className={labelCls}>Bank Name *</label>
                   <input className={inputCls} placeholder="e.g., Chase, Bank of America" value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} />
@@ -185,7 +183,7 @@ function AddPaymentModal({ onClose, onAdd }) {
                 <input className={inputCls} placeholder="Full name as it appears on account" value={form.holderName} onChange={(e) => setForm({ ...form, holderName: e.target.value })} />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-3">
                 <div>
                   <label className={labelCls}>Routing Number *</label>
                   <input className={inputCls} placeholder="9-digit routing number" value={form.routing} onChange={(e) => setForm({ ...form, routing: e.target.value })} />
@@ -225,7 +223,7 @@ function AddPaymentModal({ onClose, onAdd }) {
           )}
 
           {tab === "paypal" && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:gap-4">
               <div>
                 <label className={labelCls}>PayPal Email *</label>
                 <input className={inputCls} placeholder="your@email.com" />
@@ -238,7 +236,7 @@ function AddPaymentModal({ onClose, onAdd }) {
           )}
 
           {tab === "debit" && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:gap-4">
               <div>
                 <label className={labelCls}>Card Number *</label>
                 <input className={inputCls} placeholder="•••• •••• •••• ••••" />
@@ -262,13 +260,13 @@ function AddPaymentModal({ onClose, onAdd }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 flex items-center justify-end gap-3 shrink-0">
-          <button onClick={onClose} className="px-6 py-2.5 rounded-full border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-end gap-2 sm:gap-3 shrink-0 border-t border-gray-100">
+          <button onClick={onClose} className="px-4 sm:px-6 py-2.5 rounded-full border border-gray-200 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
             Cancel
           </button>
           <button
             onClick={() => { onAdd({ name: form.nickname || "New Account", last4: "5678", isDefault: form.isDefault }); onClose(); }}
-            className="px-6 py-2.5 rounded-full bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white text-sm font-bold transition-colors"
+            className="px-4 sm:px-6 py-2.5 rounded-full bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white text-xs sm:text-sm font-bold transition-colors"
           >
             Add Payment Method
           </button>
@@ -292,27 +290,27 @@ function WithdrawModal({ availableBalance, paymentMethod, onClose, onConfirm }) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col max-h-[92vh] overflow-y-auto shadow-2xl">
-        <div className="px-6 pt-6 pb-4 flex items-start justify-between shrink-0">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-3 pb-3 sm:p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col max-h-[80vh] sm:max-h-[92vh] overflow-y-auto shadow-2xl">
+        <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4 flex items-start justify-between shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-[var(--color-secondary)]"><DollarIcon /></span>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Withdraw Funds</h2>
+              <h2 className="text-base sm:text-lg font-bold text-gray-900">Withdraw Funds</h2>
               <p className="text-xs text-gray-400 mt-0.5">Transfer your available funds to your preferred payment method</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0 ml-3">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0 ml-2">
             <CloseIcon />
           </button>
         </div>
 
-        <div className="px-6 pb-6 flex flex-col gap-4">
+        <div className="px-4 sm:px-6 pb-5 sm:pb-6 flex flex-col gap-3 sm:gap-4">
           <div>
             <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Add Amount:</label>
             <div className="flex items-center border-2 border-[var(--color-primary)] rounded-xl px-3 py-2.5 gap-2 bg-white">
               <span className="text-sm font-bold text-gray-500">$</span>
-              <input className="flex-1 text-sm font-bold text-gray-900 focus:outline-none" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <input className="flex-1 text-sm font-bold text-gray-900 focus:outline-none min-w-0" value={amount} onChange={(e) => setAmount(e.target.value)} />
             </div>
           </div>
 
@@ -324,22 +322,22 @@ function WithdrawModal({ availableBalance, paymentMethod, onClose, onConfirm }) 
             ))}
           </div>
 
-          <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <span className="text-gray-400 shrink-0"><InfoIcon /></span>
+          <div className="flex items-start gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
+            <span className="text-gray-400 shrink-0 mt-0.5"><InfoIcon /></span>
             <p className="text-xs text-gray-500">Minimum withdrawal: $10 • Maximum: ${availableBalance.toLocaleString()}</p>
           </div>
 
-          <div className="border border-gray-100 rounded-xl p-4 flex flex-col gap-3">
-            <div className="flex justify-between text-sm"><span className="text-gray-500">Withdrawal Amount:</span><span className="font-bold text-gray-900">${rawAmount.toLocaleString()}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-gray-500">Processing Fee:</span><span className="font-bold text-gray-500">-${processingFee}</span></div>
-            <div className="flex justify-between text-sm pt-2 border-t border-gray-100"><span className="font-bold text-gray-900">You'll receive:</span><span className="font-bold text-[var(--color-primary)]">${parseFloat(youReceive).toLocaleString()}</span></div>
+          <div className="border border-gray-100 rounded-xl p-3 sm:p-4 flex flex-col gap-3">
+            <div className="flex justify-between items-center text-xs sm:text-sm gap-2"><span className="text-gray-500 shrink-0">Withdrawal Amount:</span><span className="font-bold text-gray-900">${rawAmount.toLocaleString()}</span></div>
+            <div className="flex justify-between items-center text-xs sm:text-sm gap-2"><span className="text-gray-500 shrink-0">Processing Fee:</span><span className="font-bold text-gray-500">-${processingFee}</span></div>
+            <div className="flex justify-between items-center text-xs sm:text-sm gap-2 pt-2 border-t border-gray-100"><span className="font-bold text-gray-900 shrink-0">You'll receive:</span><span className="font-bold text-[var(--color-primary)]">${parseFloat(youReceive).toLocaleString()}</span></div>
           </div>
 
-          <div className="border border-gray-100 rounded-xl p-4 flex flex-col gap-2">
+          <div className="border border-gray-100 rounded-xl p-3 sm:p-4 flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="text-gray-500"><BankIcon /></span>
-              <div>
-                <p className="text-sm font-bold text-gray-900">{paymentMethod.name}</p>
+              <span className="text-gray-500 shrink-0"><BankIcon /></span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-gray-900 truncate">{paymentMethod.name}</p>
                 <p className="text-xs text-gray-400">****-{paymentMethod.last4}</p>
               </div>
             </div>
@@ -356,7 +354,7 @@ function WithdrawModal({ availableBalance, paymentMethod, onClose, onConfirm }) 
 
           <button
             onClick={() => onConfirm({ amount: rawAmount, fee: processingFee, net: youReceive, method: paymentMethod })}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white font-bold rounded-full transition-colors text-sm"
+            className="w-full flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white font-bold rounded-full transition-colors text-sm"
           >
             Confirm Withdrawal <ArrowRightIcon />
           </button>
@@ -370,30 +368,30 @@ function WithdrawModal({ availableBalance, paymentMethod, onClose, onConfirm }) 
 function SuccessModal({ withdrawalData, onClose }) {
   const txId = "WD-" + Math.floor(Math.random() * 9000000000 + 1000000000);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-3 pb-3 sm:p-4">
       <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col shadow-2xl">
-        <div className="px-6 pt-6 pb-4 flex items-start justify-between shrink-0">
+        <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4 flex items-start justify-between shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-[var(--color-secondary)]"><DollarIcon /></span>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Withdraw Funds</h2>
+              <h2 className="text-base sm:text-lg font-bold text-gray-900">Withdraw Funds</h2>
               <p className="text-xs text-gray-400 mt-0.5">Transfer your available funds to your preferred payment method</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0 ml-3"><CloseIcon /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0 ml-2"><CloseIcon /></button>
         </div>
-        <div className="px-6 pb-6 flex flex-col items-center gap-5">
-          <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center text-green-500"><CheckCircleIcon /></div>
+        <div className="px-4 sm:px-6 pb-5 sm:pb-6 flex flex-col items-center gap-4 sm:gap-5">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-50 flex items-center justify-center text-green-500"><CheckCircleIcon /></div>
           <div className="text-center">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Withdrawal Initiated!</h3>
-            <p className="text-sm text-gray-500">Your withdrawal of ${parseFloat(withdrawalData.net).toLocaleString()} has been processed and will arrive in 3-5 business days.</p>
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">Withdrawal Initiated!</h3>
+            <p className="text-xs sm:text-sm text-gray-500">Your withdrawal of ${parseFloat(withdrawalData.net).toLocaleString()} has been processed and will arrive in 3-5 business days.</p>
           </div>
-          <div className="w-full border border-gray-100 rounded-xl p-4 flex flex-col gap-3">
-            <div className="flex justify-between text-sm"><span className="text-gray-500">Transaction ID:</span><span className="font-bold text-gray-900 text-xs">{txId}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-gray-500">Method:</span><span className="font-bold text-gray-900">{withdrawalData.method.name}</span></div>
-            <div className="flex justify-between text-sm items-center"><span className="text-gray-500">Status:</span><span className="px-3 py-1 bg-orange-50 text-orange-500 border border-orange-100 rounded-full text-xs font-bold">Processing</span></div>
+          <div className="w-full border border-gray-100 rounded-xl p-3 sm:p-4 flex flex-col gap-3">
+            <div className="flex justify-between items-center gap-2 text-xs sm:text-sm"><span className="text-gray-500 shrink-0">Transaction ID:</span><span className="font-bold text-gray-900 text-[10px] sm:text-xs truncate">{txId}</span></div>
+            <div className="flex justify-between items-center gap-2 text-xs sm:text-sm"><span className="text-gray-500 shrink-0">Method:</span><span className="font-bold text-gray-900 truncate">{withdrawalData.method.name}</span></div>
+            <div className="flex justify-between items-center gap-2 text-xs sm:text-sm"><span className="text-gray-500 shrink-0">Status:</span><span className="px-3 py-1 bg-orange-50 text-orange-500 border border-orange-100 rounded-full text-xs font-bold">Processing</span></div>
           </div>
-          <button onClick={onClose} className="px-10 py-3 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white font-bold rounded-full transition-colors text-sm">Done</button>
+          <button onClick={onClose} className="px-8 sm:px-10 py-3 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white font-bold rounded-full transition-colors text-sm">Done</button>
         </div>
       </div>
     </div>
@@ -403,29 +401,29 @@ function SuccessModal({ withdrawalData, onClose }) {
 /* ─── Payment Method Row ─────────────────────────────────────────────────────── */
 function PaymentMethodRow({ method, onDelete }) {
   return (
-    <div className="flex items-center p-4 border-2 border-gray-200 rounded-xl">
+    <div className="flex items-center p-3 sm:p-4 border-2 border-gray-200 rounded-xl gap-2">
       {/* Bank icon */}
-      <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
+      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
         <BankIcon />
       </div>
 
       {/* Name + last4 */}
-      <div className="ml-3 flex-1 min-w-0">
-        <p className="text-sm font-bold text-gray-900 truncate">{method.name}</p>
-        <p className="text-xs text-gray-400">****-{method.last4}</p>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{method.name}</p>
+        <p className="text-[10px] sm:text-xs text-gray-400">****-{method.last4}</p>
       </div>
 
-      {/* Default / Edit / Delete stacked */}
-      <div className="flex flex-col items-end gap-1.5 ml-4 shrink-0">
+      {/* Default / Edit / Delete */}
+      <div className="flex flex-col items-end gap-1 sm:gap-1.5 shrink-0">
         {method.isDefault && (
-          <span className="px-3 py-0.5 bg-gray-100 text-gray-500 rounded-full text-[10px] font-bold">Default</span>
+          <span className="px-2 sm:px-3 py-0.5 bg-gray-100 text-gray-500 rounded-full text-[9px] sm:text-[10px] font-bold">Default</span>
         )}
-        <button className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-[var(--color-primary)] transition-colors">
+        <button className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-gray-600 hover:text-[var(--color-primary)] transition-colors">
           Edit <EditIcon />
         </button>
         <button
           onClick={() => onDelete(method.id)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-600 transition-colors"
+          className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-red-400 hover:text-red-600 transition-colors"
         >
           Delete <TrashIcon />
         </button>
@@ -465,24 +463,23 @@ export default function WithdrawPage() {
   return (
     <div className="flex-1 flex flex-col bg-[#F3F4F6]">
 
-      <div className="bg-white border-b border-gray-100 px-4 sm:px-8 lg:px-10 py-6 flex items-center gap-3">
-        <Image src={logo} alt="Funsival" width={120} height={36} className="h-9 w-auto object-contain" />
+      <div className="bg-white border-b border-gray-100 px-4 sm:px-8 lg:px-10 py-4 sm:py-6 flex items-center gap-3">
         <button
           onClick={() => router.back()}
           className="text-gray-900 hover:text-gray-600 transition-colors shrink-0"
         >
           <BackIcon />
         </button>
-        <h1 className="text-xl font-bold text-gray-900">Get Paid</h1>
+        <h1 className="text-base sm:text-xl font-bold text-gray-900">Get Paid</h1>
         <span className="text-sm text-gray-400 font-normal hidden sm:inline">Manage your Finance. Your Account Review</span>
       </div>
 
-      <div className="flex-1 px-4 sm:px-8 lg:px-10 py-6 flex flex-col gap-5">
+      <div className="flex-1 px-3 sm:px-8 lg:px-10 py-4 sm:py-6 flex flex-col gap-4 sm:gap-5">
 
         {/* Combined Card */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 sm:p-8">
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 lg:p-8">
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-xs mb-6">
+          <div className="flex items-center gap-2 text-xs mb-4 sm:mb-6">
             <button onClick={() => router.push("/dashboard/earnings")} className="text-[#228E8A] hover:opacity-80 transition-opacity">
               <HomeIcon />
             </button>
@@ -491,16 +488,16 @@ export default function WithdrawPage() {
           </div>
 
           {/* Available Balance Section */}
-          <div className="mb-6 p-5 border-2 border-gray-200 rounded-xl">
-            <p className="text-sm font-semibold text-gray-500 mb-3">Available Balance</p>
-            <p className="text-4xl font-extrabold text-green-500 mb-1">
+          <div className="mb-4 sm:mb-6 p-4 sm:p-7 border-2 border-gray-200 rounded-xl">
+            <p className="text-sm font-semibold text-gray-500 mb-2 sm:mb-3">Available Balance</p>
+            <p className="text-3xl sm:text-4xl font-extrabold text-green-500 mb-1">
               ${availableBalance.toLocaleString()}
             </p>
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 mt-4 sm:mt-8">
               <p className="text-sm text-gray-400">Ready for withdrawal</p>
               <button
                 onClick={() => setModal("withdraw")}
-                className="flex items-center gap-2 px-7 py-3 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white text-sm font-bold rounded-full transition-colors"
+                className="flex items-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white text-sm font-bold rounded-full transition-colors w-full xs:w-auto justify-center"
               >
                 Get Paid <ArrowRightIcon />
               </button>
@@ -508,12 +505,12 @@ export default function WithdrawPage() {
           </div>
 
           {/* Payment Method Section */}
-          <div className="p-5 border-2 border-gray-200 rounded-xl">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-bold text-gray-900">Select Payment Method</h2>
+          <div className="mb-4 sm:mb-6 p-4 sm:p-5 border-2 border-gray-200 rounded-xl">
+            <div className="flex items-center justify-between gap-2 mb-4 sm:mb-5">
+              <h2 className="text-sm sm:text-base font-bold text-gray-900">Select Payment Method</h2>
               <button
                 onClick={() => setModal("addMethod")}
-                className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors shrink-0"
               >
                 <PlusIcon /> Add Method
               </button>
@@ -532,36 +529,37 @@ export default function WithdrawPage() {
                 )}
               </div>
             </div>
-          </div>
 
-        {lastWithdrawal && showLastWithdrawal && (
-          <div className="bg-[#EDF6F6] rounded-2xl border border-[#C8E6E5] p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-3 mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[#228E8A]"><ShieldIcon /></span>
-                <p className="text-sm font-bold text-gray-800">Last Withdrawal</p>
+          {/* Last Withdrawal — inside the main card */}
+          {lastWithdrawal && showLastWithdrawal && (
+            <div className="bg-[#EDF6F6] rounded-2xl border border-[#C8E6E5] p-4 sm:p-6">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#228E8A] shrink-0"><ShieldIcon /></span>
+                  <p className="text-sm font-bold text-gray-800">Last Withdrawal</p>
+                </div>
+                <button
+                  onClick={() => setShowLastWithdrawal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+                >
+                  <CloseIcon />
+                </button>
               </div>
-              <button
-                onClick={() => setShowLastWithdrawal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
-              >
-                <CloseIcon />
-              </button>
+              <p className="text-xs text-gray-500 mb-3">
+                {"Your last withdrawal was $" + lastWithdrawal.amount.toLocaleString() + " on date " + lastWithdrawal.date + "."}
+              </p>
+              <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100">
+                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
+                  <BankIcon />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{lastWithdrawal.methodName}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-400">****-{lastWithdrawal.last4}</p>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 mb-4">
-              {"Your last withdrawal was $" + lastWithdrawal.amount.toLocaleString() + " on date " + lastWithdrawal.date + "."}
-            </p>
-            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
-                <BankIcon />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">{lastWithdrawal.methodName}</p>
-                <p className="text-xs text-gray-400">****-{lastWithdrawal.last4}</p>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {modal === "addMethod" && (
