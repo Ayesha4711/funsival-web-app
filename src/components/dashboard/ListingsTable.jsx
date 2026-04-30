@@ -2,102 +2,252 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Pagination from "@/components/shared/Pagination";
-import { describeListingPrice, formatListingPrice } from "./listings/listingPrice";
+import {
+  describeListingPrice,
+  formatListingPrice,
+} from "./listings/listingPrice";
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const LocationIcon = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 shrink-0">
-    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-    <circle cx="12" cy="9" r="2.5"/>
+  <svg
+    width="10"
+    height="10"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="text-gray-400 shrink-0"
+  >
+    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+    <circle cx="12" cy="9" r="2.5" />
   </svg>
 );
 
 const MoreIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" />
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="12" cy="5" r="1" />
+    <circle cx="12" cy="19" r="1" />
   </svg>
 );
 
 const ChevronDown = () => (
-  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="9"
+    height="9"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
 
 const CalendarIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  <svg
+    width="11"
+    height="11"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
   </svg>
 );
 
 /* Offering icons — one per amenity type */
 const IconParking = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#6B7280"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M9 17V7h4a3 3 0 0 1 0 6H9" />
   </svg>
 );
 const IconWasher = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="2" width="20" height="20" rx="2"/><circle cx="12" cy="13" r="4"/><circle cx="8" cy="6" r="1" fill="#6B7280"/>
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#6B7280"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="2" y="2" width="20" height="20" rx="2" />
+    <circle cx="12" cy="13" r="4" />
+    <circle cx="8" cy="6" r="1" fill="#6B7280" />
   </svg>
 );
 const IconDrink = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8 2h8l-1 7H9L8 2z"/><path d="M9 9c0 5 6 5 6 10"/><path d="M9 19h6"/><line x1="6" y1="22" x2="18" y2="22"/>
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#6B7280"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M8 2h8l-1 7H9L8 2z" />
+    <path d="M9 9c0 5 6 5 6 10" />
+    <path d="M9 19h6" />
+    <line x1="6" y1="22" x2="18" y2="22" />
   </svg>
 );
 const IconFridge = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="9" y1="6" x2="9" y2="8"/><line x1="9" y1="14" x2="9" y2="18"/>
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#6B7280"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="5" y="2" width="14" height="20" rx="2" />
+    <line x1="5" y1="10" x2="19" y2="10" />
+    <line x1="9" y1="6" x2="9" y2="8" />
+    <line x1="9" y1="14" x2="9" y2="18" />
   </svg>
 );
 const IconWifi = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#6B7280"/>
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#6B7280"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+    <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+    <circle cx="12" cy="20" r="1" fill="#6B7280" />
   </svg>
 );
 const IconFood = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#6B7280"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+    <line x1="6" y1="1" x2="6" y2="4" />
+    <line x1="10" y1="1" x2="10" y2="4" />
+    <line x1="14" y1="1" x2="14" y2="4" />
   </svg>
 );
 const IconIron = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 20h16"/><path d="M6 20V10a6 6 0 0 1 12 0v2H6"/><line x1="12" y1="4" x2="12" y2="7"/>
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#6B7280"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 20h16" />
+    <path d="M6 20V10a6 6 0 0 1 12 0v2H6" />
+    <line x1="12" y1="4" x2="12" y2="7" />
   </svg>
 );
 const IconFirstAid = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#6B7280"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <line x1="12" y1="8" x2="12" y2="16" />
+    <line x1="8" y1="12" x2="16" y2="12" />
   </svg>
 );
 
 const OFFERING_ICONS = {
   "Free parking on premises": <IconParking />,
-  "Washer": <IconWasher />,
+  Washer: <IconWasher />,
   "Non-Alcoholic Drink Service": <IconDrink />,
-  "Refrigerator": <IconFridge />,
-  "Wifi": <IconWifi />,
-  "WiFi": <IconWifi />,
+  Refrigerator: <IconFridge />,
+  Wifi: <IconWifi />,
+  WiFi: <IconWifi />,
   "Food Service": <IconFood />,
-  "Iron": <IconIron />,
+  Iron: <IconIron />,
   "First aid kit": <IconFirstAid />,
 };
 
 const DEFAULT_OFFERINGS = [
-  "Free parking on premises", "Washer",
-  "Non-Alcoholic Drink Service", "Refrigerator",
-  "Wifi", "Food Service",
-  "Iron", "First aid kit",
+  "Free parking on premises",
+  "Washer",
+  "Non-Alcoholic Drink Service",
+  "Refrigerator",
+  "Wifi",
+  "Food Service",
+  "Iron",
+  "First aid kit",
 ];
 
 /* ─── Status config ──────────────────────────────────────────────────────────── */
 const STATUS_OPTIONS = ["Draft", "Active", "Inactive"];
 
 const STATUS_STYLES = {
-  Active:   { pill: "bg-emerald-50 text-emerald-600 border-emerald-100", dot: "bg-emerald-400" },
-  Inactive: { pill: "bg-red-50 text-red-400 border-red-100",             dot: "bg-red-400" },
-  Draft:    { pill: "bg-amber-50 text-amber-500 border-amber-100",        dot: "bg-amber-400" },
+  Active: {
+    pill: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    dot: "bg-emerald-400",
+  },
+  Inactive: {
+    pill: "bg-[rgba(255, 0, 0, 0.12)] text-red-400 border-red-100",
+    dot: "bg-red-400",
+  },
+  Draft: {
+    pill: "bg-amber-50 text-amber-500 border-amber-100",
+    dot: "bg-amber-400",
+  },
 };
 
 /* ─── Helpers ────────────────────────────────────────────────────────────────── */
@@ -110,11 +260,21 @@ function formatSlotDay(raw) {
   if (!raw) return "—";
   if (raw.includes("T") || raw.match(/^\d{4}-\d{2}-\d{2}/)) {
     const d = new Date(raw);
-    if (!isNaN(d)) return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    if (!isNaN(d))
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
   }
   if (raw.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
     const d = new Date(raw);
-    if (!isNaN(d)) return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    if (!isNaN(d))
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
   }
   return cap(raw);
 }
@@ -132,15 +292,20 @@ function formatTime(t) {
 const TYPE_COLORS = {
   adventure: "bg-blue-50 text-blue-600 border-blue-100",
   equipment: "bg-purple-50 text-purple-600 border-purple-100",
-  places:    "bg-teal-50 text-teal-600 border-teal-100",
-  events:    "bg-pink-50 text-pink-600 border-pink-100",
+  places: "bg-teal-50 text-teal-600 border-teal-100",
+  events: "bg-pink-50 text-pink-600 border-pink-100",
 };
 
 function TypeBadge({ type }) {
-  if (!type || type === "—") return <span className="text-gray-300 text-xs">—</span>;
-  const color = TYPE_COLORS[type.toLowerCase()] ?? "bg-gray-100 text-gray-500 border-gray-200";
+  if (!type || type === "—")
+    return <span className="text-gray-300 text-xs">—</span>;
+  const color =
+    TYPE_COLORS[type.toLowerCase()] ??
+    "bg-gray-100 text-gray-500 border-gray-200";
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[10px] font-bold ${color}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[10px] font-bold ${color}`}
+    >
       {cap(type)}
     </span>
   );
@@ -148,7 +313,8 @@ function TypeBadge({ type }) {
 
 /* ─── Category badge ─────────────────────────────────────────────────────────── */
 function CategoryBadge({ category }) {
-  if (!category || category === "—") return <span className="text-gray-300 text-xs">—</span>;
+  if (!category || category === "—")
+    return <span className="text-gray-300 text-xs">—</span>;
   return (
     <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#F3F4F6] border border-gray-200 text-[10px] font-bold text-gray-500">
       {cap(category)}
@@ -172,17 +338,20 @@ function AvailabilityCell({ slots = [] }) {
   if (!slots.length) return <span className="text-gray-300 text-xs">—</span>;
 
   const renderSlotRow = (s, i) => {
-    const day  = formatSlotDay(s.day ?? s.date);
-    const time = s.startTime && s.endTime
-      ? `${formatTime(s.startTime)} – ${formatTime(s.endTime)}`
-      : s.time ?? "";
+    const day = formatSlotDay(s.day ?? s.date);
+    const time =
+      s.startTime && s.endTime
+        ? `${formatTime(s.startTime)} – ${formatTime(s.endTime)}`
+        : (s.time ?? "");
     return (
       <div key={i} className="flex items-start gap-2.5 px-4 py-2.5">
         <div className="mt-0.5 w-5 h-5 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center shrink-0 text-[var(--color-primary)]">
           <CalendarIcon />
         </div>
         <div>
-          <p className="text-xs font-bold text-[var(--color-text)] leading-tight">{day}</p>
+          <p className="text-xs font-bold text-[var(--color-text)] leading-tight">
+            {day}
+          </p>
           <p className="text-[10px] text-gray-400 font-medium mt-0.5">{time}</p>
         </div>
       </div>
@@ -190,16 +359,21 @@ function AvailabilityCell({ slots = [] }) {
   };
 
   if (slots.length === 1) {
-    const s    = slots[0];
-    const day  = formatSlotDay(s.day ?? s.date);
-    const time = s.startTime && s.endTime
-      ? `${formatTime(s.startTime)} – ${formatTime(s.endTime)}`
-      : s.time ?? "";
+    const s = slots[0];
+    const day = formatSlotDay(s.day ?? s.date);
+    const time =
+      s.startTime && s.endTime
+        ? `${formatTime(s.startTime)} – ${formatTime(s.endTime)}`
+        : (s.time ?? "");
     return (
       <div className="flex items-start gap-2">
-        <span className="mt-0.5 shrink-0 text-[var(--color-primary)]"><CalendarIcon /></span>
+        <span className="mt-0.5 shrink-0 text-[var(--color-primary)]">
+          <CalendarIcon />
+        </span>
         <div>
-          <p className="text-xs font-bold text-[var(--color-text)] leading-tight">{day}</p>
+          <p className="text-xs font-bold text-[var(--color-text)] leading-tight">
+            {day}
+          </p>
           <p className="text-[10px] text-gray-400 font-medium mt-0.5">{time}</p>
         </div>
       </div>
@@ -237,7 +411,9 @@ function ListingPreviewModal({ item, onClose, onEdit }) {
   const [showSlots, setShowSlots] = useState(false);
   const [readMore, setReadMore] = useState(false);
 
-  const priceLines = item.priceDetails?.length ? item.priceDetails : describeListingPrice(item.category, item.price);
+  const priceLines = item.priceDetails?.length
+    ? item.priceDetails
+    : describeListingPrice(item.category, item.price);
   const offerings = item.included?.length ? item.included : DEFAULT_OFFERINGS;
   const slots = item.slots || [];
   const description = item.description || "No description added yet.";
@@ -267,8 +443,18 @@ function ListingPreviewModal({ item, onClose, onEdit }) {
             onClick={onClose}
             className="absolute left-4 w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition-colors"
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
           <p className="text-sm font-bold text-[#1A1A2E]">{item.name}</p>
@@ -278,13 +464,31 @@ function ListingPreviewModal({ item, onClose, onEdit }) {
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
           {/* Hero image */}
           <div className="h-48 rounded-xl overflow-hidden bg-gray-100">
-            {item.image && (item.image.startsWith("http") || item.image.startsWith("blob:") || item.image.startsWith("data:")) ? (
+            {item.image &&
+            (item.image.startsWith("http") ||
+              item.image.startsWith("blob:") ||
+              item.image.startsWith("data:")) ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-300">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
                 </svg>
               </div>
             )}
@@ -292,9 +496,13 @@ function ListingPreviewModal({ item, onClose, onEdit }) {
 
           {/* About Service */}
           <div>
-            <p className="text-sm font-bold text-[#1A1A2E] mb-1.5">About Service</p>
+            <p className="text-sm font-bold text-[#1A1A2E] mb-1.5">
+              About Service
+            </p>
             <p className="text-xs leading-5 text-gray-400">
-              {isLong && !readMore ? description.slice(0, DESC_LIMIT) + "… " : description + " "}
+              {isLong && !readMore
+                ? description.slice(0, DESC_LIMIT) + "… "
+                : description + " "}
               {isLong && (
                 <button
                   onClick={() => setReadMore((v) => !v)}
@@ -310,13 +518,21 @@ function ListingPreviewModal({ item, onClose, onEdit }) {
           <div className="divide-y divide-gray-100">
             {[
               { label: "Amenities", value: cap(item.category) },
-              { label: "Location",  value: item.location },
-              { label: "Category",  value: cap(item.category) },
-              { label: "Price",     value: formatListingPrice(item.category, item.price) },
+              { label: "Location", value: item.location },
+              { label: "Category", value: cap(item.category) },
+              {
+                label: "Price",
+                value: formatListingPrice(item.category, item.price),
+              },
             ].map(({ label, value }) => (
-              <div key={label} className="flex items-center justify-between py-2.5 text-xs">
+              <div
+                key={label}
+                className="flex items-center justify-between py-2.5 text-xs"
+              >
                 <span className="text-gray-400">{label}</span>
-                <span className="text-gray-700 font-medium text-right max-w-[60%]">{value || "—"}</span>
+                <span className="text-gray-700 font-medium text-right max-w-[60%]">
+                  {value || "—"}
+                </span>
               </div>
             ))}
 
@@ -328,14 +544,27 @@ function ListingPreviewModal({ item, onClose, onEdit }) {
                   onClick={() => setShowSlots((v) => !v)}
                   className="text-[#F59E0B] font-semibold hover:underline flex items-center gap-1"
                 >
-                  {slots.length > 0 ? (showSlots ? "Hide Slots" : "View Slots") : "No Slots"}
+                  {slots.length > 0
+                    ? showSlots
+                      ? "Hide Slots"
+                      : "View Slots"
+                    : "No Slots"}
                   {slots.length > 0 && (
                     <svg
-                      width="10" height="10" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-                      style={{ transform: showSlots ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        transform: showSlots ? "rotate(180deg)" : "none",
+                        transition: "transform 0.2s",
+                      }}
                     >
-                      <polyline points="6 9 12 15 18 9"/>
+                      <polyline points="6 9 12 15 18 9" />
                     </svg>
                   )}
                 </button>
@@ -344,14 +573,22 @@ function ListingPreviewModal({ item, onClose, onEdit }) {
               {showSlots && slots.length > 0 && (
                 <div className="mt-2 rounded-xl border border-gray-100 overflow-hidden">
                   {slots.map((s, i) => {
-                    const day  = formatSlotDay(s.day ?? s.date);
-                    const time = s.startTime && s.endTime
-                      ? `${formatTime(s.startTime)} – ${formatTime(s.endTime)}`
-                      : s.time ?? "—";
+                    const day = formatSlotDay(s.day ?? s.date);
+                    const time =
+                      s.startTime && s.endTime
+                        ? `${formatTime(s.startTime)} – ${formatTime(s.endTime)}`
+                        : (s.time ?? "—");
                     return (
-                      <div key={i} className={`flex items-center gap-3 px-4 py-2.5 text-xs ${i !== slots.length - 1 ? "border-b border-gray-50" : ""}`}>
-                        <span className="text-[var(--color-primary)] shrink-0"><CalendarIcon /></span>
-                        <span className="font-semibold text-gray-700">{day}</span>
+                      <div
+                        key={i}
+                        className={`flex items-center gap-3 px-4 py-2.5 text-xs ${i !== slots.length - 1 ? "border-b border-gray-50" : ""}`}
+                      >
+                        <span className="text-[var(--color-primary)] shrink-0">
+                          <CalendarIcon />
+                        </span>
+                        <span className="font-semibold text-gray-700">
+                          {day}
+                        </span>
                         <span className="text-gray-400 ml-auto">{time}</span>
                       </div>
                     );
@@ -366,20 +603,27 @@ function ListingPreviewModal({ item, onClose, onEdit }) {
             <p className="text-sm font-bold text-[#1A1A2E] mb-3">Offering</p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-3">
               {offerings.map((name) => (
-                <div key={name} className="flex items-center gap-2 text-xs text-gray-600">
-                  <span className="shrink-0">{OFFERING_ICONS[name] ?? <IconFirstAid />}</span>
+                <div
+                  key={name}
+                  className="flex items-center gap-2 text-xs text-gray-600"
+                >
+                  <span className="shrink-0">
+                    {OFFERING_ICONS[name] ?? <IconFirstAid />}
+                  </span>
                   {name}
                 </div>
               ))}
             </div>
           </div>
-
         </div>
 
         {/* Footer — Edit button pinned bottom-right */}
         <div className="shrink-0 flex justify-end px-6 py-4 border-t border-gray-100">
           <button
-            onClick={() => { onClose(); onEdit(item); }}
+            onClick={() => {
+              onClose();
+              onEdit(item);
+            }}
             className="px-8 py-2.5 rounded-full bg-[var(--color-primary)] text-white text-sm font-bold hover:opacity-90 transition-opacity"
           >
             Edit
@@ -403,7 +647,10 @@ function StatusDropdown({ status, onStatusChange }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const styles = STATUS_STYLES[status] ?? { pill: "bg-gray-100 text-gray-400 border-gray-200", dot: "bg-gray-400" };
+  const styles = STATUS_STYLES[status] ?? {
+    pill: "bg-gray-100 text-gray-400 border-gray-200",
+    dot: "bg-gray-400",
+  };
 
   return (
     <div className="relative" ref={ref}>
@@ -423,11 +670,20 @@ function StatusDropdown({ status, onStatusChange }) {
             return (
               <button
                 key={opt}
-                onClick={() => { onStatusChange(opt); setOpen(false); }}
+                onClick={() => {
+                  onStatusChange(opt);
+                  setOpen(false);
+                }}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors hover:bg-gray-50 ${opt === status ? "opacity-100" : "opacity-60"}`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                <span className={s.pill.split(" ").find(c => c.startsWith("text-"))}>{opt}</span>
+                <span
+                  className={s.pill
+                    .split(" ")
+                    .find((c) => c.startsWith("text-"))}
+                >
+                  {opt}
+                </span>
               </button>
             );
           })}
@@ -443,7 +699,9 @@ function ActionMenu({ item, onEdit, onDelete, isLast }) {
   const ref = useRef(null);
 
   useEffect(() => {
-    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
@@ -457,24 +715,53 @@ function ActionMenu({ item, onEdit, onDelete, isLast }) {
         <MoreIcon />
       </button>
       {open && (
-        <div className={`absolute right-0 z-30 bg-white border border-gray-100 rounded-2xl py-1.5 min-w-32 ${isLast ? "bottom-full mb-1" : "top-9"}`}>
+        <div
+          className={`absolute right-0 z-30 bg-white border border-gray-100 rounded-2xl py-1.5 min-w-32 ${isLast ? "bottom-full mb-1" : "top-9"}`}
+        >
           <button
-            onClick={() => { setOpen(false); onEdit(item); }}
+            onClick={() => {
+              setOpen(false);
+              onEdit(item);
+            }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
             Edit
           </button>
           <button
-            onClick={() => { setOpen(false); onDelete(item); }}
+            onClick={() => {
+              setOpen(false);
+              onDelete(item);
+            }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
             </svg>
             Delete
           </button>
@@ -502,7 +789,10 @@ export default function ListingsTable({
         <ListingPreviewModal
           item={previewItem}
           onClose={() => setPreviewItem(null)}
-          onEdit={(item) => { setPreviewItem(null); onEdit(item); }}
+          onEdit={(item) => {
+            setPreviewItem(null);
+            onEdit(item);
+          }}
         />
       )}
 
@@ -510,10 +800,29 @@ export default function ListingsTable({
         <table className="w-full text-left border-collapse min-w-[700px]">
           <thead>
             <tr className="border-b-2 border-gray-100 bg-[#F8F9FA]">
-              {["Activity", "Category", "Type", "Price", "Availability", "Status", "Actions"].map((h) => (
+              {[
+                "Activity",
+                "Category",
+                "Type",
+                "Price",
+                "Availability",
+                "Status",
+                "Actions",
+              ].map((h) => (
                 <th
                   key={h}
-                  className="px-5 py-3.5 text-[10px] uppercase font-extrabold tracking-wider text-gray-400 whitespace-nowrap"
+                  // className="px-5 py-3.5 text-[12px] uppercase font-bold tracking-wider text-gray-400 whitespace-nowrap"
+                  //  style={{ fontFamily: "var(--font-sofia-pro)" }}
+
+                  className="px-5 py-3.5 uppercase whitespace-nowrap font-bold"
+                  style={{
+                    fontFamily: "var(--font-sofia-pro)",
+                    fontWeight: "600",
+                    fontSize: "12px",
+                    lineHeight: "21px",
+                    letterSpacing: "0px",
+                    color: "#212121",
+                  }}
                 >
                   {h}
                 </th>
@@ -524,7 +833,10 @@ export default function ListingsTable({
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-16 text-center text-sm text-gray-400 font-medium">
+                <td
+                  colSpan={7}
+                  className="px-6 py-16 text-center text-sm text-gray-400 font-medium"
+                >
                   No listings found.
                 </td>
               </tr>
@@ -541,12 +853,32 @@ export default function ListingsTable({
                       className="flex items-center gap-3 text-left w-full"
                     >
                       <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 bg-gray-100 border border-gray-100">
-                        {item.image && (item.image.startsWith("http") || item.image.startsWith("blob:") || item.image.startsWith("data:")) ? (
+                        {item.image &&
+                        (item.image.startsWith("http") ||
+                          item.image.startsWith("blob:") ||
+                          item.image.startsWith("data:")) ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <rect x="3" y="3" width="18" height="18" rx="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
+                            </svg>
                           </div>
                         )}
                       </div>
@@ -574,25 +906,37 @@ export default function ListingsTable({
 
                   {/* Price */}
                   <td className="px-5 py-3.5 whitespace-nowrap">
-                    <span className="text-xs font-extrabold text-[var(--color-text)]">{item.priceLabel ?? formatListingPrice(item.category, item.price)}</span>
+                    <span className="text-xs font-extrabold text-[var(--color-text)]">
+                      {item.priceLabel ??
+                        formatListingPrice(item.category, item.price)}
+                    </span>
                   </td>
 
                   {/* Availability */}
                   <td className="px-5 py-3.5 min-w-[150px]">
-                    <AvailabilityCell slots={item.slots || item.availability || []} />
+                    <AvailabilityCell
+                      slots={item.slots || item.availability || []}
+                    />
                   </td>
 
                   {/* Status */}
                   <td className="px-5 py-3.5 whitespace-nowrap">
                     <StatusDropdown
                       status={item.status}
-                      onStatusChange={(newStatus) => onStatusChange(item, newStatus)}
+                      onStatusChange={(newStatus) =>
+                        onStatusChange(item, newStatus)
+                      }
                     />
                   </td>
 
                   {/* Actions */}
                   <td className="px-5 py-3.5">
-                    <ActionMenu item={item} onEdit={onEdit} onDelete={onDelete} isLast={idx === data.length - 1} />
+                    <ActionMenu
+                      item={item}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      isLast={idx === data.length - 1}
+                    />
                   </td>
                 </tr>
               ))

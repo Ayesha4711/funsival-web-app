@@ -147,6 +147,76 @@ export const resendVerificationCode = createAsyncThunk(
   }
 );
 
+export const changePassword = createAsyncThunk(
+  "auth/changePassword",
+  async ({ currentPassword, newPassword, confirmNewPassword }, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/auth/change-password", {
+        currentPassword,
+        newPassword,
+        confirmNewPassword,
+      });
+      return data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message ?? err.response?.data?.error ?? err.message
+      );
+    }
+  }
+);
+
+export const enable2FA = createAsyncThunk(
+  "auth/enable2FA",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/auth/2fa/enable");
+      return data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message ?? err.response?.data?.error ?? err.message
+      );
+    }
+  }
+);
+
+export const disable2FA = createAsyncThunk(
+  "auth/disable2FA",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/auth/2fa/disable");
+      return data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message ?? err.response?.data?.error ?? err.message
+      );
+    }
+  }
+);
+
+export const verify2FALogin = createAsyncThunk(
+  "auth/verify2FALogin",
+  async ({ email, code }, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/auth/2fa/verify-login", { email, code });
+      const token =
+        data?.token ??
+        data?.accessToken ??
+        data?.access_token ??
+        data?.data?.token ??
+        data?.data?.accessToken;
+      if (token) {
+        document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+        localStorage.setItem("auth-token", token);
+      }
+      return { token, data };
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message ?? err.response?.data?.error ?? err.message
+      );
+    }
+  }
+);
+
 export const logoutUser = createAsyncThunk(
   "auth/logoutUser",
   async (_, { rejectWithValue }) => {
@@ -230,7 +300,26 @@ const authSlice = createSlice({
         state.token = null;
         state.status = "idle";
         state.error = null;
-      });
+      })
+
+      .addCase(changePassword.pending, setLoading)
+      .addCase(changePassword.fulfilled, (state) => { state.status = "succeeded"; })
+      .addCase(changePassword.rejected, setFailed)
+
+      .addCase(enable2FA.pending, setLoading)
+      .addCase(enable2FA.fulfilled, (state) => { state.status = "succeeded"; })
+      .addCase(enable2FA.rejected, setFailed)
+
+      .addCase(disable2FA.pending, setLoading)
+      .addCase(disable2FA.fulfilled, (state) => { state.status = "succeeded"; })
+      .addCase(disable2FA.rejected, setFailed)
+
+      .addCase(verify2FALogin.pending, setLoading)
+      .addCase(verify2FALogin.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.token = action.payload?.token ?? null;
+      })
+      .addCase(verify2FALogin.rejected, setFailed);
   }
 });
 
