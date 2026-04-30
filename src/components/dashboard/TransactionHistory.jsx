@@ -23,44 +23,26 @@ const ExportIcon = () => (
   </svg>
 );
 
-/* ─── Status badge icons ─────────────────────────────────────────────────────── */
-const CheckIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12" />
+/* ─── Circle status icons (used in both Activity Name and Status columns) ──────── */
+const CircleCheckIcon = ({ size = 16, color = "#22c55e" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="11" stroke={color} strokeWidth="2" />
+    <polyline points="7 12 10.5 15.5 17 9" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
-const ClockIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+const CircleClockIcon = ({ size = 16, color = "#f97316" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="11" stroke={color} strokeWidth="2" />
+    <polyline points="12 7 12 12 15.5 14" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
-const XIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
-/* ─── Activity type icons (Places / Equipment / Services) ────────────────────── */
-const PlaceIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
-    <circle cx="12" cy="10" r="3" />
-  </svg>
-);
-
-const EquipmentIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="3" width="20" height="14" rx="2" />
-    <line x1="8" y1="21" x2="16" y2="21" />
-    <line x1="12" y1="17" x2="12" y2="21" />
-  </svg>
-);
-
-const ServiceIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+const CircleAlertIcon = ({ size = 16, color = "#ef4444" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="11" stroke={color} strokeWidth="2" />
+    <line x1="12" y1="8" x2="12" y2="13" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+    <circle cx="12" cy="16.5" r="1.1" fill={color} />
   </svg>
 );
 
@@ -74,42 +56,48 @@ const transactions = [
   { id: 6, date: "Sep 5, 2023",  activity: "Conference Room Booking",  type: "service",   orderId: "F-bb3OkvPhKwZs4tp",   customer: "Lisa Anderson", status: "Refunded",  gross: 200,  fee: 6.0,  net: -200   },
 ];
 
-/* ─── Activity icon + colour by type ────────────────────────────────────────── */
-const typeConfig = {
-  place:     { icon: <PlaceIcon />,     bg: "#EDF6F6", color: "#1d8c82" },
-  equipment: { icon: <EquipmentIcon />, bg: "#FEF9EC", color: "#D4940A" },
-  service:   { icon: <ServiceIcon />,   bg: "#FFF3EC", color: "#f97316" },
+/* ─── Activity icon by type — circle icon matching status of row ─────────────── */
+const activityIconConfig = {
+  place:     { Icon: CircleCheckIcon, color: "#22c55e" },
+  equipment: { Icon: CircleClockIcon, color: "#f97316" },
+  service:   { Icon: CircleAlertIcon, color: "#ef4444" },
 };
 
 function ActivityCell({ activity, type }) {
-  const cfg = typeConfig[type] ?? typeConfig.service;
+  const cfg = activityIconConfig[type] ?? activityIconConfig.service;
   return (
-    <div className="flex items-center gap-2.5">
-      <span
-        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-        style={{ backgroundColor: cfg.bg, color: cfg.color }}
-      >
-        {cfg.icon}
-      </span>
-      <span className="whitespace-nowrap font-semibold text-[#111827]">{activity}</span>
+    <div className="flex items-center gap-2">
+      <span className="shrink-0"><cfg.Icon size={16} color={cfg.color} /></span>
+      <span className="whitespace-nowrap text-[13px] font-medium text-[#111827]">{activity}</span>
     </div>
   );
 }
 
-/* ─── Status badge ───────────────────────────────────────────────────────────── */
-function StatusBadge({ status }) {
+/* ─── Status — icon + coloured text, no pill ─────────────────────────────────── */
+function StatusCell({ status }) {
   const cfg = {
-    Completed: { cls: "bg-green-50  text-green-600  border-green-100",  icon: <CheckIcon /> },
-    Pending:   { cls: "bg-orange-50 text-orange-500 border-orange-100", icon: <ClockIcon /> },
-    Refunded:  { cls: "bg-red-50    text-red-500    border-red-100",    icon: <XIcon />     },
+    Completed: { Icon: CircleCheckIcon, color: "#22c55e" },
+    Pending:   { Icon: CircleClockIcon, color: "#f97316" },
+    Refunded:  { Icon: CircleAlertIcon, color: "#ef4444" },
   };
-  const { cls, icon } = cfg[status] ?? cfg.Pending;
+  const { Icon, color } = cfg[status] ?? cfg.Pending;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold ${cls}`}>
-      {icon}{status}
-    </span>
+    <div className="flex items-center gap-1.5">
+      <Icon size={16} color={color} />
+      <span className="text-[13px] font-semibold whitespace-nowrap" style={{ color }}>{status}</span>
+    </div>
   );
 }
+
+/* ─── Table header style ─────────────────────────────────────────────────────── */
+const thStyle = {
+  fontFamily: "var(--font-sofia-pro), 'Sofia Pro', sans-serif",
+  fontWeight: 700,
+  fontSize: "12.25px",
+  lineHeight: "17.5px",
+  letterSpacing: "0px",
+  color: "#212121",
+};
 
 /* ─── Section heading style (shared) ─────────────────────────────────────────── */
 const headingStyle = {
@@ -130,9 +118,22 @@ export default function TransactionHistory() {
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
         <h2 style={headingStyle} className="text-[var(--color-text)] !text-base sm:!text-xl">Transaction History</h2>
-        <button className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 border border-[var(--color-secondary)] text-[var(--color-secondary)] rounded-full text-xs sm:text-sm font-semibold hover:bg-[var(--color-secondary-light)] transition-colors shrink-0">
+        {/* <button className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 border border-[var(--color-secondary)] text-[var(--color-secondary)] rounded-full text-xs sm:text-sm font-semibold hover:bg-[var(--color-secondary-light)] transition-colors shrink-0">
           <ExportIcon /><span className="hidden xs:inline sm:inline">Export CSV</span>
-        </button>
+        </button> */}
+
+              <button
+
+  style={{
+    fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif",
+    fontWeight: 600,
+    backgroundColor: "rgba(255, 114, 1, 0.1)" // light bg
+  }}
+  className="flex items-center gap-2 px-5 py-2 border border-[#FF7201] text-[#FF7201] rounded-full text-sm hover:bg-[#FF7201]/20 transition-colors"
+>
+  <ExportIcon />
+  <span>Export CSV</span>
+</button>
       </div>
 
       {/* Divider below heading */}
@@ -142,18 +143,26 @@ export default function TransactionHistory() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
         {/* Tabs — scroll on very small screens */}
         <div className="flex p-1 bg-[#EDF6F6] rounded-full overflow-x-auto scrollbar-hide w-full sm:w-fit">
-          <button
-            onClick={() => setActiveTab("transaction")}
-            className={`px-3 sm:px-6 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap shrink-0 ${activeTab === "transaction" ? "bg-white text-[#228E8A] shadow-sm" : "text-gray-400"}`}
-          >
-            Transaction History
-          </button>
-          <button
-            onClick={() => setActiveTab("withdrawal")}
-            className={`px-3 sm:px-6 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap shrink-0 ${activeTab === "withdrawal" ? "bg-white text-[#228E8A] shadow-sm" : "text-gray-400"}`}
-          >
-            Withdrawals History
-          </button>
+          {[
+            { key: "transaction", label: "Transaction History" },
+            { key: "withdrawal",  label: "Withdrawals History" },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              style={{
+                fontFamily: "var(--font-sofia-pro), 'Sofia Pro', sans-serif",
+                fontWeight: 600,
+                fontSize: "16px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                textAlign: "center",
+              }}
+              className={`px-5 sm:px-7 py-2 sm:py-2.5 rounded-full transition-all whitespace-nowrap shrink-0 ${activeTab === key ? "bg-white text-[#228E8A] shadow-sm" : "text-[#666666]"}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -186,8 +195,8 @@ export default function TransactionHistory() {
               {["Date", "Activity Name", "Order ID", "Customer", "Status", "Gross Amount", "Platform Fee", "Net Amount"].map((col, i) => (
                 <th
                   key={col}
-                  className="px-5 py-3 text-[10px] uppercase font-extrabold text-[#6B7280] whitespace-nowrap"
-                  style={{ borderBottom: "0.88px solid #E5E7EB", borderRadius: i === 0 ? "12px 0 0 0" : i === 7 ? "0 12px 0 0" : 0 }}
+                  className="px-5 py-3 whitespace-nowrap"
+                  style={{ ...thStyle, borderBottom: "0.88px solid #E5E7EB", borderRadius: i === 0 ? "12px 0 0 0" : i === 7 ? "0 12px 0 0" : 0 }}
                 >
                   {col}
                 </th>
@@ -208,7 +217,7 @@ export default function TransactionHistory() {
                 <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">{t.orderId}</td>
                 <td className="px-5 py-3.5 text-[11px] font-semibold text-[#111827] whitespace-nowrap">{t.customer}</td>
                 <td className="px-5 py-3.5 whitespace-nowrap">
-                  <StatusBadge status={t.status} />
+                  <StatusCell status={t.status} />
                 </td>
                 <td className="px-5 py-3.5 text-[11px] font-semibold text-[#111827] whitespace-nowrap">${t.gross}</td>
                 <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">${t.fee}</td>
@@ -229,19 +238,11 @@ export default function TransactionHistory() {
             <div className="flex items-start justify-between gap-2 p-3">
               <div className="min-w-0 flex-1">
                 {/* Activity icon + name */}
-                <div className="flex items-center gap-2 min-w-0">
-                  {(() => {
-                    const cfg = typeConfig[t.type] ?? typeConfig.service;
-                    return (
-                      <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
-                        {cfg.icon}
-                      </span>
-                    );
-                  })()}
-                  <span className="text-[11px] sm:text-xs font-semibold text-[#111827] truncate">{t.activity}</span>
+                <div className="min-w-0">
+                  <ActivityCell activity={t.activity} type={t.type} />
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1 ml-8">{t.date}</p>
-                <div className="mt-1.5 ml-8"><StatusBadge status={t.status} /></div>
+                <p className="text-[10px] text-gray-400 mt-1">{t.date}</p>
+                <div className="mt-1.5"><StatusCell status={t.status} /></div>
               </div>
               <div className="text-right shrink-0 ml-2">
                 <p className={`text-sm font-extrabold ${t.net < 0 ? "text-red-500" : "text-green-600"}`}>
