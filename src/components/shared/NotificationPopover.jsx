@@ -18,42 +18,49 @@ const notifications = [
  */
 export default function NotificationPopover({ onClose, viewAllHref = "/dashboard/notifications" }) {
   return (
-    <div className="absolute right-0 top-full mt-3 w-[320px] bg-white rounded-2xl border border-gray-100 overflow-hidden z-[60]">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-50">
-        <h3 className="text-base font-extrabold text-[var(--color-text,#1a1a1a)]">Notifications</h3>
-        <button className="text-[11px] font-bold text-[var(--color-secondary,#F5C842)] hover:underline">
-          Mark all as read
-        </button>
-      </div>
+    <div
+      className="absolute bg-white rounded-2xl border border-gray-100 overflow-hidden z-[60] shadow-xl"
+      style={{ width: 517, top: "calc(100% + 12px)", right: 0 }}
+    >
+      <div className="flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <h3 className="text-base font-extrabold text-[var(--color-text,#1a1a1a)]">Notifications</h3>
+          <button className="text-sm font-bold text-[var(--color-secondary,#F5C842)] hover:underline">
+            Mark all as read
+          </button>
+        </div>
 
-      {/* List */}
-      <div className="max-h-[300px] overflow-y-auto">
-        {notifications.map((n) => (
-          <div key={n.id} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors">
-            <div className="flex gap-3">
-              {n.isNew && (
-                <span className="w-2 h-2 bg-[var(--color-secondary,#F5C842)] rounded-full mt-1.5 shrink-0" />
-              )}
-              <div className={!n.isNew ? "pl-5" : ""}>
-                <p className="text-xs font-bold text-[var(--color-text,#1a1a1a)] leading-relaxed mb-1">
-                  {n.text}
-                </p>
-                <p className="text-[10px] text-gray-400 font-medium">{n.time}</p>
+        {/* List */}
+        <div>
+          {notifications.map((n, i) => (
+            <div key={n.id} className={`px-6 py-5 hover:bg-gray-50 transition-colors ${i < notifications.length - 1 ? "border-b border-gray-100" : ""}`}>
+              <div className="flex items-start gap-3">
+                {n.isNew ? (
+                  <span className="w-2.5 h-2.5 bg-[var(--color-secondary,#F5C842)] rounded-full mt-1 shrink-0" />
+                ) : (
+                  <span className="w-2.5 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[var(--color-text,#1a1a1a)] leading-relaxed">
+                    {n.text}
+                  </p>
+                  <p className="text-xs text-gray-400 font-medium mt-1">{n.time}</p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* Footer */}
-      <Link
-        href={viewAllHref}
-        onClick={onClose}
-        className="block p-4 text-center text-xs font-bold text-[var(--color-secondary,#F5C842)] hover:bg-gray-50 border-t border-gray-50 transition-colors"
-      >
-        View All
-      </Link>
+        {/* Footer */}
+        <Link
+          href={viewAllHref}
+          onClick={onClose}
+          className="block py-4 text-center text-sm font-bold text-[var(--color-secondary,#F5C842)] hover:bg-gray-50 border-t border-gray-100 transition-colors"
+        >
+          View All
+        </Link>
+      </div>
     </div>
   );
 }

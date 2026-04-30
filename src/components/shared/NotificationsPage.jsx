@@ -37,12 +37,17 @@ const STEP = 3;
 
 function NotificationItem({ isNew, title, text, time }) {
   return (
-    <div className={`relative flex items-center gap-4 px-5 py-4 rounded-2xl border transition-all ${
-      isNew ? "bg-[#FFF8EE] border-[#FFEDD5]" : "bg-white border-gray-100"
-    }`}>
-      {/* Unread dot — left edge */}
-      {isNew && (
-        <span className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-[#F97316] rounded-full shrink-0" />
+    <div
+      className={`flex items-center gap-4 px-5 py-4 border transition-all ${
+        isNew ? "bg-[#FFF8EE] border-[#F5E6C8]" : "bg-white border-gray-100"
+      }`}
+      style={{ borderRadius: "104px", borderWidth: "1.04px" }}
+    >
+      {/* Unread dot — inside, before bell */}
+      {isNew ? (
+        <span className="w-2.5 h-2.5 bg-[#F97316] rounded-full shrink-0" />
+      ) : (
+        <span className="w-2.5 shrink-0" />
       )}
 
       {/* Bell avatar */}
@@ -54,8 +59,8 @@ function NotificationItem({ isNew, title, text, time }) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-extrabold text-[#111827] leading-snug">
           {title}
-          <span className="font-normal text-gray-500 ml-2 text-xs">{text}</span>
         </p>
+        <p className="text-xs font-normal text-gray-500 mt-0.5">{text}</p>
       </div>
 
       {/* Time */}
@@ -87,10 +92,10 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-4 flex items-center gap-3">
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-5 flex items-center gap-3">
         <button
           onClick={() => router.back()}
-          className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+          className="text-[#111827] hover:text-gray-500 transition-colors shrink-0"
         >
           <BackIcon />
         </button>

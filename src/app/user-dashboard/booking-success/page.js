@@ -1,8 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import NewsletterSection from "@/components/landing/NewsletterSection";
-import LandingFooter from "@/components/landing/LandingFooter";
+import AppFooter from "@/components/shared/AppFooter";
 
 export default function BookingSuccessPage() {
   const router = useRouter();
@@ -66,8 +65,8 @@ export default function BookingSuccessPage() {
         </button>
       </main>
 
-      <NewsletterSection />
-      <LandingFooter />
+
+      <AppFooter />
     </div>
   );
 }
