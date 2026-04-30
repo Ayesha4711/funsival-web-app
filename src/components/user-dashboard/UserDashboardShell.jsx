@@ -152,8 +152,8 @@ function UserNavbar() {
                   {profile.city && <p className="text-[10px] text-gray-400 mt-0.5">{profile.city}</p>}
                 </div>
               )}
-              <button onClick={() => { setProfileOpen(false); router.push("/user-dashboard/profile"); }} className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer">
-                <span className="text-gray-500"><UserIcon /></span> View Profile
+              <button onClick={() => { setProfileOpen(false); router.push("/user-dashboard/settings?tab=profile"); }} className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer">
+                <span className="text-gray-500"><UserIcon /></span> My Profile
               </button>
               <button onClick={() => { setProfileOpen(false); router.push("/user-dashboard/bookings"); }} className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer">
                 <span className="text-gray-500"><BookingIcon /></span> My Reservations

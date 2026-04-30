@@ -104,8 +104,6 @@ function adaptApiListing(api, urlType) {
     || (priceKeys.includes("perPerson") ? "per_person"
       : priceKeys.includes("hourly") ? "per_hour"
       : priceKeys.includes("daily") ? "per_day"
-      : category === "activities" ? "per_person"
-      : category === "equipment" ? "per_day"
       : "per_hour");
 
   const host = api.host ?? {};
@@ -228,9 +226,9 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-2 text-sm font-medium text-left focus:outline-none"
+        className="w-full flex items-center justify-between gap-1.5 text-sm font-medium text-left focus:outline-none"
       >
-        <span className={selected ? "text-gray-900" : "text-gray-400"}>
+        <span className={selected ? "text-gray-900 font-semibold" : "text-gray-400"}>
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown />
@@ -264,7 +262,7 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
 }
 
 /* ─── Custom Calendar Dropdown ───────────────────────────────────────────────── */
-function CalendarDropdown({ value, onChange, placeholder = "Select date" }) {
+function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -276,10 +274,6 @@ function CalendarDropdown({ value, onChange, placeholder = "Select date" }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const displayValue = value
-    ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : placeholder;
-
   return (
     <div ref={ref} className="relative w-full">
       <button
@@ -287,12 +281,11 @@ function CalendarDropdown({ value, onChange, placeholder = "Select date" }) {
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between gap-2 text-sm font-medium text-left focus:outline-none"
       >
-        <span className={value ? "text-gray-900" : "text-gray-400"}>{displayValue}</span>
-        <ChevronDown />
+        <span className={value ? "text-gray-900" : "text-gray-400"}>{value || placeholder}</span>
       </button>
 
       {open && (
-        <div className="absolute z-50 left-0 top-full mt-2 w-72 shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
+        <div className="absolute z-[100] left-1/2 -translate-x-1/2 top-full mt-3">
           <CustomCalendar
             value={value}
             onChange={(v) => { onChange(v); setOpen(false); }}
@@ -304,14 +297,35 @@ function CalendarDropdown({ value, onChange, placeholder = "Select date" }) {
   );
 }
 
-/* ─── Booking field ──────────────────────────────────────────────────────────── */
-function BookingField({ icon, label, children }) {
+/* ─── Booking field (no label) ───────────────────────────────────────────────── */
+function BookingField({ icon, children }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      {label && <p className="text-xs font-semibold text-gray-500 px-1">{label}</p>}
-      <div className="flex items-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-500 focus-within:border-[#4AA7A7] transition-colors">
-        {icon}
-        <div className="flex-1 min-w-0">{children}</div>
+    <div className="flex items-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-500 focus-within:border-[#4AA7A7] transition-colors">
+      {icon}
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
+  );
+}
+
+/* ─── Split time field (Start time | End time in one row) ────────────────────── */
+function TimeRangeField({ startTime, setStartTime, endTime, setEndTime }) {
+  return (
+    <div className="flex items-center gap-0 rounded-full border border-gray-200 bg-white overflow-visible">
+      {/* Start time */}
+      <div className="flex items-center gap-2 flex-1 px-4 py-3.5 min-w-0">
+        <ClockIcon />
+        <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">Start time</span>
+        <div className="flex-1 min-w-0">
+          <TimeDropdown value={startTime} onChange={setStartTime} placeholder="09:41 AM" />
+        </div>
+      </div>
+      <div className="w-px h-8 bg-gray-200 shrink-0" />
+      {/* End time */}
+      <div className="flex items-center gap-2 flex-1 px-4 py-3.5 min-w-0">
+        <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">End time</span>
+        <div className="flex-1 min-w-0">
+          <TimeDropdown value={endTime} onChange={setEndTime} placeholder="09:41 AM" />
+        </div>
       </div>
     </div>
   );
@@ -346,23 +360,19 @@ function ModePill({ active, label, icon, onClick }) {
   );
 }
 
-/* ─── Booking Shell (title + price + rating header) ─────────────────────────── */
-function BookingShell({ children, reserveButton, title, price, priceUnit, rating, reviews }) {
+/* ─── Booking Shell ──────────────────────────────────────────────────────────── */
+function BookingShell({ children, topSlot, reserveButton, title, price, priceUnit, rating, reviews }) {
   const ratingNum = Number(rating);
   const ratingText = Number.isFinite(ratingNum) ? ratingNum.toFixed(1) : "4.4";
   return (
     <div
       className="w-full bg-white flex flex-col h-full"
-      style={{
-        borderRadius: 20,
-        border: "1px solid #E5E7EB",
-        paddingTop: 30,
-        paddingRight: 32,
-        paddingBottom: 30,
-        paddingLeft: 32,
-      }}
+      style={{ borderRadius: 20, border: "1px solid #E5E7EB", paddingTop: 30, paddingRight: 32, paddingBottom: 30, paddingLeft: 32 }}
     >
-      {/* Title + price — fixed at top */}
+      {/* Pill / mode selector — above everything */}
+      {topSlot && <div className="shrink-0 mb-5">{topSlot}</div>}
+
+      {/* Title + price */}
       <div className="flex items-start justify-between gap-4 shrink-0 mb-5">
         <div>
           <h2 className="text-xl font-bold text-gray-900">{title}</h2>
@@ -417,64 +427,75 @@ function ActivityBookingCard({ listing, listingId }) {
   const [persons, setPersons] = useState("");
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
+  const isPerPerson = listing.bookingType === "per_person";
+
   const hours = startTime && endTime
-    ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
+    ? Math.max(0.5, parseFloat(((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000).toFixed(1)))
     : 3;
-  const subtotal = listing.price * hours;
+  const units = isPerPerson ? (Number(persons) || 1) : hours;
+  const subtotal = listing.price * units;
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
 
+  const pillLabel = isPerPerson ? "Per Person" : "Per Hour";
+  const priceUnit = isPerPerson ? "/Person" : "/Hr";
+  const summaryLabel = isPerPerson
+    ? `$${listing.price}/person × ${units} person${units > 1 ? "s" : ""}`
+    : `$${listing.price}/hr × ${hours} hour${hours > 1 ? "s" : ""}`;
+
+  const handleReserve = () => {
+    const fields = isPerPerson
+      ? { startDate: date, endDate: date, startTime, endTime, numberOfGuests: persons || 1, units, dateFrom: date, dateTo: date, guests: `${persons || 1} guest` }
+      : { startDate: date, endDate: date, startTime, endTime, units: hours, dateFrom: date, dateTo: date };
+    navigateToConfirm(fields);
+  };
+
   return (
     <BookingShell
-      title="Book Your Activity" price={listing.price} priceUnit="/Hr" rating={listing.rating} reviews={listing.reviews}
+      title="Book Your Activity" price={listing.price} priceUnit={priceUnit} rating={listing.rating} reviews={listing.reviews}
+      topSlot={
+        <div className="rounded-[18px] border border-[#4AA7A7] bg-[#D7ECEB] px-4 py-5 text-center relative">
+          <CheckBadge />
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[#4AA7A7]"><UserOutlineIcon /></span>
+            <p className="text-sm font-semibold text-gray-700">{pillLabel}</p>
+          </div>
+        </div>
+      }
       reserveButton={
         <button
-          onClick={() => navigateToConfirm({ startDate: date, endDate: date, startTime, endTime, numberOfGuests: persons || 1, units: hours, dateFrom: date, dateTo: date, guests: `${persons || 1} guest` })}
+          onClick={handleReserve}
           className="w-full rounded-full bg-[#F5C842] hover:bg-[#e0b430] py-4 text-sm font-bold text-gray-900 transition-colors"
         >
           Reserve
         </button>
       }
     >
-      {/* Per person pill */}
-      <div className="rounded-[18px] border border-[#4AA7A7] bg-[#D7ECEB] px-4 py-5 text-center relative">
-        <CheckBadge />
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-[#4AA7A7]"><UserOutlineIcon /></span>
-          <p className="text-sm font-semibold text-gray-700">Per Person</p>
-        </div>
-      </div>
-
       {/* Date field */}
-      <BookingField icon={<CalendarIcon />} label="Date">
-        <CalendarDropdown value={date} onChange={setDate} placeholder="Select date" />
+      <BookingField icon={<CalendarIcon />}>
+        <CalendarDropdown value={date} onChange={setDate} placeholder="mm/dd/yyyy" />
       </BookingField>
 
       {/* Start / End time */}
-      <div className="grid grid-cols-2 gap-3">
-        <BookingField icon={<ClockIcon />} label="Start time">
-          <TimeDropdown value={startTime} onChange={setStartTime} placeholder="09:00 AM" />
-        </BookingField>
-        <BookingField icon={<ClockIcon />} label="End time">
-          <TimeDropdown value={endTime} onChange={setEndTime} placeholder="12:00 PM" />
-        </BookingField>
-      </div>
+      <TimeRangeField startTime={startTime} setStartTime={setStartTime} endTime={endTime} setEndTime={setEndTime} />
 
-      {/* Guests */}
-      <BookingField icon={<UserOutlineIcon />} label="Guests">
-        <input
-          type="number"
-          min="1"
-          value={persons}
-          placeholder="Select guest number"
-          onChange={e => setPersons(e.target.value)}
-          className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400"
-        />
-      </BookingField>
+      {/* Guests — only show for per_person */}
+      {isPerPerson && (
+        <BookingField icon={<UserOutlineIcon />}>
+          <input
+            type="number"
+            min="1"
+            value={persons}
+            placeholder="Select guest number"
+            onChange={e => setPersons(e.target.value)}
+            className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400"
+          />
+        </BookingField>
+      )}
 
       {/* Summary */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
-        <SummaryLine label={`$${listing.price}/hr × ${hours} hour${hours > 1 ? "s" : ""}`} value={`$${subtotal}`} />
+        <SummaryLine label={summaryLabel} value={`$${subtotal}`} />
         <SummaryLine label="Service fee" value={`$${fee}`} />
         <SummaryLine label="Total" value={`$${total}`} bold />
       </div>
@@ -500,6 +521,15 @@ function PlacesBookingCard({ listing, listingId }) {
   return (
     <BookingShell
       title="Book Your Place" price={listing.price} priceUnit="/Hr" rating={listing.rating} reviews={listing.reviews}
+      topSlot={
+        <div className="rounded-[18px] border border-[#4AA7A7] bg-[#D7ECEB] px-4 py-5 text-center relative">
+          <CheckBadge />
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[#4AA7A7]"><ClockIcon /></span>
+            <p className="text-sm font-semibold text-gray-700">Per Hour</p>
+          </div>
+        </div>
+      }
       reserveButton={
         <button
           onClick={() => navigateToConfirm({ startDate: date, endDate: date, startTime, endTime, numberOfGuests: guests || 1, units: hours, dateFrom: date, dateTo: date, guests: `${guests || 1} guest` })}
@@ -509,32 +539,16 @@ function PlacesBookingCard({ listing, listingId }) {
         </button>
       }
     >
-      {/* Per hour pill */}
-      <div className="rounded-[18px] border border-[#4AA7A7] bg-[#D7ECEB] px-4 py-5 text-center relative">
-        <CheckBadge />
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-[#4AA7A7]"><ClockIcon /></span>
-          <p className="text-sm font-semibold text-gray-700">Per Hour</p>
-        </div>
-      </div>
-
-      {/* Date field */}
-      <BookingField icon={<CalendarIcon />} label="Date">
-        <CalendarDropdown value={date} onChange={setDate} placeholder="Select date" />
+      {/* Date field — no label */}
+      <BookingField icon={<CalendarIcon />}>
+        <CalendarDropdown value={date} onChange={setDate} placeholder="mm/dd/yyyy" />
       </BookingField>
 
-      {/* Start / End time */}
-      <div className="grid grid-cols-2 gap-3">
-        <BookingField icon={<ClockIcon />} label="Start time">
-          <TimeDropdown value={startTime} onChange={setStartTime} placeholder="09:00 AM" />
-        </BookingField>
-        <BookingField icon={<ClockIcon />} label="End time">
-          <TimeDropdown value={endTime} onChange={setEndTime} placeholder="12:00 PM" />
-        </BookingField>
-      </div>
+      {/* Start / End time — single split field */}
+      <TimeRangeField startTime={startTime} setStartTime={setStartTime} endTime={endTime} setEndTime={setEndTime} />
 
       {/* Guests */}
-      <BookingField icon={<UserOutlineIcon />} label="Guests">
+      <BookingField icon={<UserOutlineIcon />}>
         <input
           type="number"
           min="1"
@@ -578,6 +592,12 @@ function EquipmentBookingCard({ listing, listingId }) {
   return (
     <BookingShell
       title="Book Your Equipment" price={listing.price} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
+      topSlot={
+        <div className="grid grid-cols-2 gap-3">
+          <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
+          <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
+        </div>
+      }
       reserveButton={
         <button
           onClick={() => navigateToConfirm({ startDate, endDate: endDate || startDate, startTime, endTime, units: span, dateFrom: startDate, dateTo: endDate || startDate })}
@@ -587,32 +607,19 @@ function EquipmentBookingCard({ listing, listingId }) {
         </button>
       }
     >
-      {/* Hourly / Daily toggle */}
-      <div className="grid grid-cols-2 gap-3">
-        <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
-        <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
-      </div>
-
-      {/* Start date */}
-      <BookingField icon={<CalendarIcon />} label="Start date">
-        <CalendarDropdown value={startDate} onChange={setStartDate} placeholder="Select date" />
+      {/* Date field — no label */}
+      <BookingField icon={<CalendarIcon />}>
+        <CalendarDropdown value={startDate} onChange={setStartDate} placeholder="mm/dd/yyyy" />
       </BookingField>
 
       {mode === "daily" ? (
         /* End date for daily mode */
-        <BookingField icon={<CalendarIcon />} label="End date">
-          <CalendarDropdown value={endDate} onChange={setEndDate} placeholder="Select date" />
+        <BookingField icon={<CalendarIcon />}>
+          <CalendarDropdown value={endDate} onChange={setEndDate} placeholder="mm/dd/yyyy" />
         </BookingField>
       ) : (
-        /* Start / End time for hourly mode */
-        <div className="grid grid-cols-2 gap-3">
-          <BookingField icon={<ClockIcon />} label="Start time">
-            <TimeDropdown value={startTime} onChange={setStartTime} placeholder="09:00 AM" />
-          </BookingField>
-          <BookingField icon={<ClockIcon />} label="End time">
-            <TimeDropdown value={endTime} onChange={setEndTime} placeholder="12:00 PM" />
-          </BookingField>
-        </div>
+        /* Start / End time for hourly mode — single split field */
+        <TimeRangeField startTime={startTime} setStartTime={setStartTime} endTime={endTime} setEndTime={setEndTime} />
       )}
 
       {/* Summary */}
@@ -713,67 +720,94 @@ function ListingLocationMap({ listing }) {
   );
 }
 
+/* ─── Details typography ─────────────────────────────────────────────────────── */
+const DETAIL_LABEL_STYLE = {
+  fontFamily: "var(--font-sofia-pro), 'Sofia Pro', sans-serif",
+  fontWeight: 500,
+  fontSize: "14px",
+  lineHeight: "100%",
+  letterSpacing: "0%",
+  color: "#212121",
+};
+const DETAIL_VALUE_STYLE = {
+  fontFamily: "var(--font-sofia-pro), 'Sofia Pro', sans-serif",
+  fontWeight: 400,
+  fontSize: "13px",
+  lineHeight: "100%",
+  letterSpacing: "0%",
+  color: "#4A4A4A",
+};
+
 /* ─── Details section ────────────────────────────────────────────────────────── */
 function DetailsSection({ listing }) {
   const d = listing.details;
   const rows = [
-    { label: "Activity Title", value: d.activityTitle },
+    { label: "Place Name", value: d.activityTitle },
     { label: "Location", value: d.location, pin: true },
-    { label: "Service Category", value: d.serviceCategory },
+    { label: "Place Type", value: d.serviceCategory },
   ].filter(r => r.value);
 
   const meta = [
-    { label: "Difficulty level", value: d.difficultyLevel },
-    { label: "Duration", value: d.duration, icon: "clock" },
-    { label: "Max Participants", value: d.maxParticipants, icon: "users" },
-    { label: "Instructor Guide name", value: d.instructorGuideName },
+    { label: "Capacity Per Person", value: d.maxParticipants, icon: "users" },
+    { label: "Parking Space", value: d.difficultyLevel },
+    { label: "Minimum Rental Time", value: d.duration, icon: "clock" },
+    { label: "Maximum Rental Time", value: d.instructorGuideName },
   ].filter(r => r.value);
 
   return (
     <div className="rounded-[22px] border border-gray-200 bg-white p-6">
       <h2 className="mb-5 text-xl font-bold text-gray-900">Details</h2>
+
+      {/* Top row: Name / Location / Type */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">
         {rows.map(r => (
           <div key={r.label}>
-            <p className="text-xs font-semibold text-gray-400 mb-1">{r.label}</p>
+            <p style={DETAIL_LABEL_STYLE} className="mb-1.5">{r.label}</p>
             {r.pin ? (
               <div className="flex items-center gap-1">
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <p className="text-sm text-gray-700">{r.value}</p>
+                <p style={DETAIL_VALUE_STYLE}>{r.value}</p>
               </div>
             ) : (
-              <p className="text-sm text-gray-700">{r.value}</p>
+              <p style={DETAIL_VALUE_STYLE}>{r.value}</p>
             )}
           </div>
         ))}
       </div>
+
+      {/* Description */}
       {d.description && (
         <div className="mb-5">
-          <p className="text-xs font-semibold text-gray-400 mb-1">Description</p>
-          <p className="text-sm text-gray-600 leading-relaxed">{d.description}</p>
+          <p style={DETAIL_LABEL_STYLE} className="mb-1.5">Description</p>
+          <p style={{ ...DETAIL_VALUE_STYLE, lineHeight: "1.6" }}>{d.description}</p>
         </div>
       )}
-      <div className="border-t border-gray-100 pt-5" />
+
+      <div className="border-t border-gray-100 my-5" />
+
+      {/* Meta row */}
       {meta.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mt-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
           {meta.map(m => (
             <div key={m.label}>
-              <p className="text-xs font-semibold text-gray-400 mb-1">{m.label}</p>
+              <p style={DETAIL_LABEL_STYLE} className="mb-1.5">{m.label}</p>
               <div className="flex items-center gap-1">
-                {m.icon === "clock" && <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 2m5-2a8 8 0 11-16 0 8 8 0 0116 0z" /></svg>}
-                {m.icon === "users" && <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-3a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
-                <p className="text-sm text-gray-700">{m.value}</p>
+                {m.icon === "clock" && <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 2m5-2a8 8 0 11-16 0 8 8 0 0116 0z" /></svg>}
+                {m.icon === "users" && <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-3a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+                <p style={DETAIL_VALUE_STYLE}>{m.value}</p>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* What's Included */}
       {listing.amenities.length > 0 && (
         <div className="mt-5">
-          <p className="text-xs font-semibold text-gray-400 mb-2">What's Included</p>
+          <p style={DETAIL_LABEL_STYLE} className="mb-2">What&apos;s Included</p>
           <div className="flex flex-wrap gap-2">
             {listing.amenities.map(item => (
               <span key={item} className="rounded-full bg-[#F5C842]/20 px-3 py-1.5 text-xs font-semibold text-yellow-700">{item}</span>
@@ -781,18 +815,20 @@ function DetailsSection({ listing }) {
           </div>
         </div>
       )}
+
+      {/* Requirements + Cancellation Policy */}
       {(listing.requirements || listing.cancellationPolicy) && (
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
           {listing.requirements && (
             <div>
-              <p className="text-xs font-semibold text-gray-400 mb-1">Requirements</p>
-              <p className="text-sm text-gray-600 leading-relaxed">{listing.requirements}</p>
+              <p style={DETAIL_LABEL_STYLE} className="mb-1.5">Requirements</p>
+              <p style={{ ...DETAIL_VALUE_STYLE, lineHeight: "1.6" }}>{listing.requirements}</p>
             </div>
           )}
           {listing.cancellationPolicy && (
             <div>
-              <p className="text-xs font-semibold text-gray-400 mb-1">Cancellation Policy</p>
-              <p className="text-sm text-gray-600 leading-relaxed">{listing.cancellationPolicy}</p>
+              <p style={DETAIL_LABEL_STYLE} className="mb-1.5">Cancellation Policy</p>
+              <p style={{ ...DETAIL_VALUE_STYLE, lineHeight: "1.6" }}>{listing.cancellationPolicy}</p>
             </div>
           )}
         </div>

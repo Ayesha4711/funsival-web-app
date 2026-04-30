@@ -303,14 +303,14 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
               <button
                 onClick={() => {
                   setProfileOpen(false);
-                  router.push("/dashboard/profile");
+                  router.push("/dashboard/settings?tab=profile");
                 }}
                 className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50 transition-colors"
               >
                 <span className="text-gray-500">
                   <UserIcon />
                 </span>
-                View Profile
+                My Profile
               </button>
               <button
                 onClick={() => {
