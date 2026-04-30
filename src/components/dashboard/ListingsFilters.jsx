@@ -171,7 +171,17 @@ export default function ListingsFilters({
 
           <button
             onClick={() => router.push("/dashboard/listings/add?mode=new")}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white rounded-full text-xs sm:text-sm font-bold transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] rounded-full transition-colors"
+            style={{
+              fontFamily: "var(--font-sofia-pro)",
+        
+              fontSize: "14px",
+              lineHeight: "100%",
+              letterSpacing: "0%",
+              textAlign: "center",
+              verticalAlign: "middle",
+              color: "#4A4A4A"
+            }}
           >
             <PlusIcon />
             <span>Add New Listing</span>
@@ -196,9 +206,18 @@ export default function ListingsFilters({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`px-3 sm:px-5 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab.id
-                ? "bg-white text-[var(--color-primary)] font-extrabold"
+              className={`px-3 sm:px-5 py-2 rounded-full transition-all whitespace-nowrap font-bold ${activeTab === tab.id
+                ? "bg-white text-[var(--color-primary)]"
                 : "text-gray-400 hover:text-[var(--color-text-muted)]"}`}
+              style={{
+                fontFamily: "var(--font-sofia-pro)",
+                fontWeight: "600",
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                textAlign: "center",
+                color: activeTab === tab.id ? "var(--color-primary)" : "#666666"
+              }}
             >
               {tab.label}
             </button>
@@ -242,7 +261,16 @@ export default function ListingsFilters({
           <div className="relative" ref={categoryRef}>
             <button
               onClick={() => setCategoryOpen(o => !o)}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-9 sm:h-10 bg-[#EDF6F6] rounded-full text-xs font-bold text-gray-500 min-w-max hover:text-[var(--color-primary)] transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-9 sm:h-10 bg-[#EDF6F6] rounded-full min-w-max hover:text-[var(--color-primary)] transition-colors"
+              style={{
+                fontFamily: "var(--font-sofia-pro)",
+                fontWeight: "500",
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0px",
+                textAlign: "center",
+                color: "#4A4A4A"
+              }}
             >
               <FilterIcon />
               <span className="hidden sm:inline">{category}</span>

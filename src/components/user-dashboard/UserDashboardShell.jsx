@@ -106,7 +106,7 @@ function UserNavbar() {
       </Link>
 
       <div className="hidden sm:flex flex-1 justify-center px-4">
-        <div className="relative w-full max-w-xs sm:max-w-sm lg:max-w-md">
+        <div className="relative w-full max-w-65">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><SearchIcon /></span>
           <input type="text" placeholder="Search here" className="w-full h-9 pl-10 pr-4 rounded-full bg-white text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
         </div>
@@ -124,6 +124,9 @@ function UserNavbar() {
             </div>
           )}
         </div>
+
+        {/* Vertical divider */}
+        <span className="hidden sm:block w-px h-5 bg-white/40 shrink-0" />
 
         <div className="relative" ref={notifRef}>
           <button onClick={handleBellClick} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer">
