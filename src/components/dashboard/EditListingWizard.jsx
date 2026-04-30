@@ -23,7 +23,7 @@ const STEPS = [
 ];
 
 /* ─── Stepper ──────────────────────────────────────────────────────────────── */
-function Stepper({ current }) {
+function Stepper({ current, onStepClick }) {
   return (
     <div className="flex items-center justify-between lg:justify-center w-full py-2 px-1">
       {STEPS.map((step, idx) => {
@@ -31,7 +31,11 @@ function Stepper({ current }) {
         const active = step.id === current;
         return (
           <React.Fragment key={step.id}>
-            <div className="flex flex-col items-center shrink-0">
+            <button
+              type="button"
+              onClick={() => onStepClick(step.id)}
+              className="flex flex-col items-center shrink-0"
+            >
               <div
                 className={[
                   "w-7 h-7 min-[375px]:w-8 min-[375px]:h-8 lg:w-10 lg:h-10 rounded-full border-2 flex items-center justify-center text-[10px] min-[375px]:text-xs lg:text-sm font-bold transition-colors",
@@ -56,7 +60,7 @@ function Stepper({ current }) {
               >
                 {step.label}
               </span>
-            </div>
+            </button>
             {idx < STEPS.length - 1 &&
               <div
                 className={[
@@ -281,13 +285,14 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
     setData(d => ({ ...d, [key]: val }));
   }, []);
 
-  const scrollToTop = () => {
-    const el = document.querySelector(".fixed.inset-0.z-50");
-    if (el) el.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  useEffect(() => {
+    const el = document.querySelector(".edit-wizard-scroll");
+    if (el) el.scrollTo({ top: 0, behavior: "instant" });
+  }, [step]);
 
-  const next = useCallback(() => { setStep(s => Math.min(s + 1, 5)); scrollToTop(); }, []);
-  const back = useCallback(() => { setStep(s => Math.max(s - 1, 1)); scrollToTop(); }, []);
+  const next = useCallback(() => { setStep(s => Math.min(s + 1, 5)); }, []);
+  const back = useCallback(() => { setStep(s => Math.max(s - 1, 1)); }, []);
+  const jumpToStep = useCallback((targetStep) => { setStep(targetStep); }, []);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -345,46 +350,38 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-white overflow-y-auto"
+      className="edit-wizard-scroll fixed inset-0 z-50 flex flex-col bg-white overflow-y-auto"
     >
       {/* Header */}
-      <div className="shrink-0 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-3 sticky top-0 z-30">
-        <div className="flex items-center gap-3">
+      <div className="shrink-0 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-5 sticky top-0 z-30">
+        <div className="flex items-center gap-4">
           <button
-            onClick={() => step === 1 ? onClose() : back()}
-            className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-[var(--color-primary)] transition-colors shrink-0"
+            onClick={onClose}
+            className="text-[#212121] hover:opacity-70 transition-opacity shrink-0"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="19" y1="12" x2="5" y2="12" />
               <polyline points="12 19 5 12 12 5" />
             </svg>
           </button>
           <div className="flex-1">
-            <h1 className="text-base sm:text-lg font-bold text-[var(--color-text)] leading-tight">
+            <h1 className="text-xl font-bold text-[var(--color-text)] leading-tight">
               Edit Listing
             </h1>
-            <p className="text-[10px] sm:text-xs text-gray-400 hidden lg:block truncate max-w-xs">
+            <p className="text-xs sm:text-sm text-gray-400">
               {listing.name}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors shrink-0"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
         </div>
       </div>
 
       {/* Stepper */}
-      <div className="shrink-0 px-2 sm:px-6 lg:px-10 pt-4 pb-2 bg-white border-b border-gray-50 sticky top-[57px] z-20">
-        <Stepper current={step} />
+      <div className="shrink-0 px-4 sm:px-6 lg:px-8 py-6 bg-gray-50/30 border-b border-gray-50 sticky top-[81px] z-20">
+        <Stepper current={step} onStepClick={jumpToStep} />
       </div>
 
       {/* Step content */}
-      <div className="flex-1 px-4 sm:px-6 lg:px-10 py-4">
+      <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         <div className="w-full">
           {step === 1 &&
             <StepCategory
