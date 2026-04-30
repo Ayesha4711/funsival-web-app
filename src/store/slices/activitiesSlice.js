@@ -7,7 +7,7 @@ export const fetchBrowseListings = createAsyncThunk(
   "activities/fetchBrowseListings",
   async ({ page = 1, limit = 10, category, type } = {}, { rejectWithValue }) => {
     try {
-      const params = new URLSearchParams({ page, limit });
+      const params = new URLSearchParams({ page: page ?? 1, limit: limit ?? 10 });
       if (category) params.set("category", category);
       if (type) params.set("type", type);
       const { data } = await axiosInstance.get(`/listings/browse?${params}`);
@@ -34,7 +34,8 @@ export const fetchActivities = createAsyncThunk(
   "activities/fetchActivities",
   async ({ page = 1, limit = 10, filters = {} } = {}, { rejectWithValue }) => {
     try {
-      const params = new URLSearchParams({ page, limit, ...filters }).toString();
+      const cleanFilters = Object.fromEntries(Object.entries(filters).filter(([, v]) => v != null));
+      const params = new URLSearchParams({ page: page ?? 1, limit: limit ?? 10, ...cleanFilters }).toString();
       const { data } = await axiosInstance.get(`/listings/browse?${params}`);
       return data;
     } catch (err) {

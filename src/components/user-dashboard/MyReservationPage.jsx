@@ -2,7 +2,9 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
+import reservationImg from "@/assets/images/reservationImg.svg";
 import {
   fetchBookings,
   cancelBooking,
@@ -12,8 +14,7 @@ import {
   selectBookingsCancelStatus,
   selectBookingsError,
 } from "@/store/slices/bookingsSlice";
-import NewsletterSection from "@/components/landing/NewsletterSection";
-import LandingFooter from "@/components/landing/LandingFooter";
+import AppFooter from "@/components/shared/AppFooter";
 
 /* ─── Data helpers ───────────────────────────────────────────────────────────── */
 function getTitle(b) {
@@ -46,13 +47,14 @@ function canReview(b) { return b.status === "completed"; }
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const ArrowRightIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
   </svg>
 );
 const BackIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+    <line x1="19" y1="12" x2="5" y2="12" strokeLinecap="round" />
+    <polyline points="12 5 5 12 12 19" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 const HeartIcon = () => (
@@ -519,39 +521,30 @@ function BookingDetailView({ booking, onBack, onLeaveReview, onCancel }) {
 function EmptyState({ onStartBooking }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 gap-6">
-      {/* Suitcase illustration — matches screenshot */}
-      <div className="w-44 h-44 relative">
-        <svg viewBox="0 0 200 200" className="w-full h-full" fill="none">
-          {/* suitcase body */}
-          <rect x="30" y="70" width="140" height="110" rx="12" fill="#F5C842" />
-          {/* handle */}
-          <rect x="70" y="45" width="60" height="30" rx="8" fill="#F5C842" stroke="#d4a800" strokeWidth="3" />
-          <rect x="80" y="55" width="40" height="10" rx="4" fill="#d4a800" />
-          {/* center divider */}
-          <line x1="100" y1="70" x2="100" y2="180" stroke="#d4a800" strokeWidth="3" />
-          <line x1="30" y1="125" x2="170" y2="125" stroke="#d4a800" strokeWidth="3" />
-          {/* wheels */}
-          <circle cx="60" cy="186" r="8" fill="#9CA3AF" />
-          <circle cx="140" cy="186" r="8" fill="#9CA3AF" />
-          {/* plant decoration */}
-          <rect x="148" y="140" width="20" height="26" rx="3" fill="#6B7280" />
-          <ellipse cx="158" cy="125" rx="18" ry="22" fill="#F9A8D4" />
-          <ellipse cx="148" cy="120" rx="12" ry="16" fill="#F9A8D4" />
-          <ellipse cx="168" cy="118" rx="10" ry="14" fill="#F9A8D4" />
-        </svg>
+      {/* reservationImg in a beige oval — matches img */}
+      <div className="relative flex items-end justify-center w-56 h-52">
+        <div className="absolute inset-0 rounded-[50%]" />
+        <Image
+          src={reservationImg}
+          alt="No reservations"
+          width={180}
+          height={190}
+          className="relative z-10 object-contain"
+        />
       </div>
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900">No Reservation Booked...Yet!</h2>
-        <p className="text-sm text-gray-400 mt-2 max-w-xs leading-relaxed">
+        <p className="text-sm text-gray-400 mt-2 max-w-sm leading-relaxed">
           &ldquo;Get ready to pack your curiosity and let&apos;s plot the course for your next great adventure!&rdquo;
         </p>
       </div>
       <button
         onClick={onStartBooking}
-        className="flex items-center gap-3 px-8 py-3.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors"
+        className="flex items-center bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors pl-7 pr-1.5 py-1.5 gap-4"
+        style={{ minWidth: 210 }}
       >
-        Start Booking
-        <span className="w-7 h-7 rounded-full bg-white/40 flex items-center justify-center">
+        <span className="flex-1 text-center">Start Booking</span>
+        <span className="w-9 h-9 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800">
           <ArrowRightIcon />
         </span>
       </button>
@@ -598,7 +591,6 @@ export default function MyReservationPage() {
   const cancelStatus = useSelector(selectBookingsCancelStatus);
   const error = useSelector(selectBookingsError);
 
-  const [activeTab, setActiveTab] = useState("all");
   const [detailView, setDetailView] = useState(null);
   const [modal, setModal] = useState(null); // 'review' | 'cancel' | 'report-listing'
   const [activeBooking, setActiveBooking] = useState(null);
@@ -608,15 +600,7 @@ export default function MyReservationPage() {
     dispatch(fetchBookings({ page: currentPage, limit: 10 }));
   }, [dispatch, currentPage]);
 
-  const TABS = [
-    { key: "all",         label: "All" },
-    { key: "in-progress", label: "In progress" },
-    { key: "completed",   label: "Completed" },
-  ];
-
-  const filtered = activeTab === "all"
-    ? bookings
-    : bookings.filter((b) => getStatusKey(b) === activeTab);
+  const filtered = bookings;
 
   const openModal = (type, booking = null) => { setActiveBooking(booking); setModal(type); };
   const closeModal = () => { setModal(null); setActiveBooking(null); };
@@ -631,29 +615,20 @@ export default function MyReservationPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <main className="flex-1 max-w-[1200px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-
-        {/* Page header */}
-        <div className="flex items-center gap-3 mb-6">
+      {/* Page header — full width white bar */}
+      <div className="bg-white border-b border-gray-100 w-full">
+        <div className="px-4 sm:px-6 lg:px-10 py-5 flex items-center gap-3">
           <button
             onClick={detailView ? () => setDetailView(null) : () => router.back()}
-            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
+            className="text-gray-900 hover:text-gray-600 transition-colors shrink-0"
+          >
             <BackIcon />
           </button>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Reservation</h1>
+          <h1 className="text-xl font-bold text-gray-900">My Reservation</h1>
         </div>
+      </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
-          {TABS.map((tab) => (
-            <button key={tab.key} onClick={() => { setActiveTab(tab.key); setDetailView(null); }}
-              className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                activeTab === tab.key ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"
-              }`}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 py-8">
 
         {/* Loading */}
         {status === "loading" && (
@@ -697,8 +672,8 @@ export default function MyReservationPage() {
         )}
       </main>
 
-      <NewsletterSection />
-      <LandingFooter />
+
+      <AppFooter />
 
       {/* Modals */}
       {modal === "review" && activeBooking && (

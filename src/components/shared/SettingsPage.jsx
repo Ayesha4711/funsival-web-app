@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
-import NewsletterSection from "@/components/landing/NewsletterSection";
-import LandingFooter from "@/components/landing/LandingFooter";
+import AppFooter from "@/components/shared/AppFooter";
 import { changePassword, enable2FA, disable2FA } from "@/store/slices/authSlice";
 import { selectUser, fetchProfile, setProfile, updateProviderProfile } from "@/store/slices/profileSlice";
 
@@ -1308,8 +1307,8 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
       {/* Footer — visible on laptop (lg+) only, and only when the shell doesn't already include one */}
       {showFooter && (
         <div className="hidden lg:block">
-          <NewsletterSection />
-          <LandingFooter />
+
+          <AppFooter />
         </div>
       )}
 
