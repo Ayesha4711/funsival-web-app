@@ -17,6 +17,15 @@ import agencyIconSrc from "@/assets/icons/agencyIcon.svg";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
+const getErrorMessages = (payload) => {
+  if (!payload) return ["Please try again."];
+  if (typeof payload === "string") return [payload];
+  if (payload.errors && typeof payload.errors === "object") {
+    return Object.values(payload.errors).flat().filter(Boolean).map(String);
+  }
+  return [payload.message || payload.error || "Please try again."];
+};
+
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const AgencyIcon = () => <Image src={agencyIconSrc} alt="" width={20} height={20} />;
 
@@ -105,8 +114,7 @@ function HostSignupForm() {
 
   const validate = () => {
     const errs = {};
-    if (!form.agencyName.trim()) errs.agencyName = "Agency name is required";
-    else if (!/^[a-zA-Z\s]+$/.test(form.agencyName)) errs.agencyName = "Only alphabets are allowed";
+    if (form.agencyName.trim() && !/^[a-zA-Z\s]+$/.test(form.agencyName)) errs.agencyName = "Only alphabets are allowed";
     const emailError = validateEmail(form.email);
     if (emailError) errs.email = emailError;
     if (!form.city.trim()) errs.city = "City is required";
@@ -136,10 +144,17 @@ function HostSignupForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length > 0) { setClientErrors(errs); return; }
+    if (Object.keys(errs).length > 0) {
+      const messages = Object.values(errs).filter(Boolean);
+      setClientErrors(errs);
+      toast.error(messages[0] || "Please review the form.", {
+        description: messages.slice(1).join("\n") || undefined,
+      });
+      return;
+    }
 
     const result = await dispatch(signupHost({
-      businessName: form.agencyName,
+      businessName: form.agencyName.trim(),
       email: form.email,
       city: form.city,
       password: form.password,
@@ -147,7 +162,21 @@ function HostSignupForm() {
     }));
 
     if (signupHost.rejected.match(result)) {
-      toast.error("Signup failed", { description: result.payload || "Please try again." });
+      const messages = getErrorMessages(result.payload);
+      const description = messages.slice(messages[0] === "Validation failed" ? 1 : 0).join("\n");
+      if (result.payload?.errors && typeof result.payload.errors === "object") {
+        setClientErrors(
+          Object.fromEntries(
+            Object.entries(result.payload.errors).map(([key, value]) => [
+              key,
+              Array.isArray(value) ? value.join(", ") : String(value),
+            ])
+          )
+        );
+      }
+      toast.error(messages[0] === "Validation failed" ? "Signup failed" : messages[0], {
+        description: description || undefined,
+      });
       return;
     }
 

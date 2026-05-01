@@ -353,8 +353,8 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
       ref={scrollRef}
       className="fixed inset-0 z-50 bg-white overflow-y-auto"
     >
-      {/* Sticky header + stepper */}
-      <div className="sticky top-0 z-30 bg-white">
+      {/* Header + stepper */}
+      <div className="bg-white">
         <div className="border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex items-center gap-4">
             <button

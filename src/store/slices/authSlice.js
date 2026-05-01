@@ -97,7 +97,7 @@ export const signupHost = createAsyncThunk(
       return { token, data };
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.message ?? err.response?.data?.error ?? err.message
+        err.response?.data ?? err.message
       );
     }
   }
