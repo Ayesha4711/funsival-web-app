@@ -66,7 +66,7 @@ export default function CustomCalendar({ value, onChange, onClose }) {
   return (
     <div
       className="bg-white rounded-2xl border border-gray-200 shadow-xl select-none"
-      style={{ width: 320, padding: "20px 20px 16px" }}
+      style={{ width: 268, padding: "14px 14px 12px" }}
     >
       {/* ── Month navigation ── */}
       <div className="flex items-center justify-between mb-4">
@@ -80,7 +80,7 @@ export default function CustomCalendar({ value, onChange, onClose }) {
         </button>
 
         <span
-          style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15 }}
+          style={{ fontFamily: FONT, fontWeight: 700, fontSize: 13 }}
           className="text-gray-900"
         >
           {MONTHS[viewMonth]} {viewYear}
@@ -101,8 +101,8 @@ export default function CustomCalendar({ value, onChange, onClose }) {
         {DAYS.map((d) => (
           <div
             key={d}
-            style={{ fontFamily: FONT, fontWeight: 600, fontSize: 12 }}
-            className="text-center text-gray-400 py-1"
+            style={{ fontFamily: FONT, fontWeight: 600, fontSize: 11 }}
+            className="text-center text-gray-400 py-0.5"
           >
             {d}
           </div>
@@ -122,7 +122,7 @@ export default function CustomCalendar({ value, onChange, onClose }) {
               type="button"
               disabled={!isCurrent}
               onClick={() => isCurrent && handleSelect(cell.day)}
-              style={{ fontFamily: FONT, fontWeight: sel ? 700 : 500, fontSize: 13 }}
+              style={{ fontFamily: FONT, fontWeight: sel ? 700 : 500, fontSize: 11 }}
               className={[
                 "w-full aspect-square flex items-center justify-center rounded-full transition-all",
                 !isCurrent

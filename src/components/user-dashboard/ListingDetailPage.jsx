@@ -10,6 +10,7 @@ import {
 } from "@/store/slices/activitiesSlice";
 import AppFooter from "@/components/shared/AppFooter";
 import CustomCalendar from "@/components/shared/CustomCalendar";
+import { toast } from "sonner";
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const StarIcon = ({ filled }) => (
@@ -159,18 +160,18 @@ function adaptApiListing(api, urlType) {
 function ImageGallery({ images, title }) {
   const [active, setActive] = useState(0);
   return (
-    <div className="flex flex-col gap-6 h-full">
+    <div className="flex flex-col gap-3 sm:gap-6 h-full">
       {/* Main image */}
-      <div className="relative w-full overflow-hidden rounded-[22px] bg-gray-100" style={{ height: 560 }}>
+      <div className="relative w-full overflow-hidden rounded-2xl sm:rounded-[22px] bg-gray-100" style={{ height: 'clamp(220px, 40vw, 560px)' }}>
         <img src={images[active]} alt={title} className="w-full h-full object-cover" />
       </div>
       {/* Thumbnails */}
-      <div className="flex gap-3 overflow-x-auto pb-1 shrink-0">
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-1 shrink-0">
         {images.map((img, i) => (
           <button
             key={i}
             onClick={() => setActive(i)}
-            className={`shrink-0 w-28 h-20 rounded-2xl overflow-hidden border-2 transition-all ${i === active ? "border-[#F5C842]" : "border-transparent"}`}
+            className={`shrink-0 w-16 h-12 sm:w-28 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden border-2 transition-all ${i === active ? "border-[#F5C842]" : "border-transparent"}`}
           >
             <img src={img} alt="" className="w-full h-full object-cover" />
           </button>
@@ -226,12 +227,12 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-1.5 text-sm font-medium text-left focus:outline-none"
+        className="w-full flex items-center justify-between gap-1 text-xs sm:text-sm font-medium text-left focus:outline-none"
       >
-        <span className={selected ? "text-gray-900 font-semibold" : "text-gray-400"}>
+        <span className={`truncate ${selected ? "text-gray-900 font-semibold" : "text-gray-400"}`}>
           {selected ? selected.label : placeholder}
         </span>
-        <ChevronDown />
+        <span className="shrink-0"><ChevronDown /></span>
       </button>
 
       {open && (
@@ -261,7 +262,7 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
   );
 }
 
-/* ─── Custom Calendar Dropdown ───────────────────────────────────────────────── */
+/* ─── Calendar Dropdown — inline trigger inside BookingField ────────────────── */
 function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -279,9 +280,11 @@ function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy" }) {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-2 text-sm font-medium text-left focus:outline-none"
+        className="w-full text-left text-xs sm:text-sm font-medium focus:outline-none"
       >
-        <span className={value ? "text-gray-900" : "text-gray-400"}>{value || placeholder}</span>
+        <span className={value ? "text-gray-900 font-semibold" : "text-gray-400"}>
+          {value || placeholder}
+        </span>
       </button>
 
       {open && (
@@ -298,35 +301,46 @@ function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy" }) {
 }
 
 /* ─── Booking field (no label) ───────────────────────────────────────────────── */
-function BookingField({ icon, children }) {
+function BookingField({ icon, children, error, errorMessage, onClick }) {
   return (
-    <div className="flex items-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-500 focus-within:border-[#4AA7A7] transition-colors">
-      {icon}
-      <div className="flex-1 min-w-0">{children}</div>
+    <div onClick={onClick} className={onClick ? "cursor-pointer" : ""}>
+      <div className={`flex items-center gap-2 sm:gap-3 rounded-full border bg-white px-3 sm:px-4 py-3 sm:py-3.5 text-sm text-gray-500 focus-within:border-[#4AA7A7] transition-colors ${error ? "border-red-400" : "border-gray-200"}`}>
+        {icon}
+        <div className="flex-1 min-w-0">{children}</div>
+      </div>
+      {error && <p className="text-[10px] text-red-500 mt-1 pl-3">{errorMessage || "Required"}</p>}
     </div>
   );
 }
 
 /* ─── Split time field (Start time | End time in one row) ────────────────────── */
-function TimeRangeField({ startTime, setStartTime, endTime, setEndTime }) {
+function TimeRangeField({ startTime, setStartTime, endTime, setEndTime, startError, endError }) {
   return (
-    <div className="flex items-center gap-0 rounded-full border border-gray-200 bg-white overflow-visible">
-      {/* Start time */}
-      <div className="flex items-center gap-2 flex-1 px-4 py-3.5 min-w-0">
-        <ClockIcon />
-        <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">Start time</span>
-        <div className="flex-1 min-w-0">
-          <TimeDropdown value={startTime} onChange={setStartTime} placeholder="09:41 AM" />
+    <div>
+      <div className={`flex items-center gap-0 rounded-full border bg-white overflow-visible ${(startError || endError) ? "border-red-400" : "border-gray-200"}`}>
+        {/* Start time */}
+        <div className="flex items-center gap-1 sm:gap-2 flex-1 px-2 sm:px-4 py-2.5 sm:py-3.5 min-w-0">
+          <span className="hidden sm:block shrink-0"><ClockIcon /></span>
+          <span className="text-[9px] sm:text-xs text-gray-400 shrink-0 whitespace-nowrap">Start</span>
+          <div className="flex-1 min-w-0">
+            <TimeDropdown value={startTime} onChange={setStartTime} placeholder="09:41 AM" />
+          </div>
+        </div>
+        <div className="w-px h-8 bg-gray-200 shrink-0" />
+        {/* End time */}
+        <div className="flex items-center gap-1 sm:gap-2 flex-1 px-2 sm:px-4 py-2.5 sm:py-3.5 min-w-0">
+          <span className="text-[9px] sm:text-xs text-gray-400 shrink-0 whitespace-nowrap">End</span>
+          <div className="flex-1 min-w-0">
+            <TimeDropdown value={endTime} onChange={setEndTime} placeholder="09:41 AM" />
+          </div>
         </div>
       </div>
-      <div className="w-px h-8 bg-gray-200 shrink-0" />
-      {/* End time */}
-      <div className="flex items-center gap-2 flex-1 px-4 py-3.5 min-w-0">
-        <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">End time</span>
-        <div className="flex-1 min-w-0">
-          <TimeDropdown value={endTime} onChange={setEndTime} placeholder="09:41 AM" />
+      {(startError || endError) && (
+        <div className="flex mt-1 pl-3 gap-4">
+          {startError && <p className="text-[10px] text-red-500 flex-1">Start time required</p>}
+          {endError && <p className="text-[10px] text-red-500 flex-1">End time required</p>}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -365,26 +379,24 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
   const ratingNum = Number(rating);
   const ratingText = Number.isFinite(ratingNum) ? ratingNum.toFixed(1) : "4.4";
   return (
-    <div
-      className="w-full bg-white flex flex-col h-full"
-      style={{ borderRadius: 20, border: "1px solid #E5E7EB", paddingTop: 30, paddingRight: 32, paddingBottom: 30, paddingLeft: 32 }}
-    >
+    <div className="w-full bg-white flex flex-col h-full rounded-[20px] border border-gray-200 p-4 sm:p-7">
+
       {/* Pill / mode selector — above everything */}
       {topSlot && <div className="shrink-0 mb-5">{topSlot}</div>}
 
       {/* Title + price */}
-      <div className="flex items-start justify-between gap-4 shrink-0 mb-5">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-          <div className="mt-1.5 flex items-center gap-1 text-sm text-gray-600">
+      <div className="flex items-start justify-between gap-2 shrink-0 mb-5 min-w-0">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base sm:text-xl font-bold text-gray-900 leading-tight">{title}</h2>
+          <div className="mt-1.5 flex items-center flex-wrap gap-x-1 gap-y-0.5 text-sm text-gray-600">
             <StarRating rating={ratingNum} />
-            <span className="ml-1 font-semibold">{ratingText}</span>
-            <span className="text-gray-400">({reviews} Reviews)</span>
+            <span className="font-semibold">{ratingText}</span>
+            <span className="text-gray-400 text-xs whitespace-nowrap">({reviews} Reviews)</span>
           </div>
         </div>
         <div className="text-right shrink-0">
-          <span className="text-2xl font-bold text-gray-900">${price}</span>
-          <span className="text-sm text-gray-400">{priceUnit}</span>
+          <span className="text-xl sm:text-2xl font-bold text-gray-900">${price}</span>
+          <span className="text-xs sm:text-sm text-gray-400">{priceUnit}</span>
         </div>
       </div>
 
@@ -421,11 +433,18 @@ function useNavigateToConfirm(listing, listingId) {
 
 /* ─── Activity Booking Card ──────────────────────────────────────────────────── */
 function ActivityBookingCard({ listing, listingId }) {
-  const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [persons, setPersons] = useState("");
+  const SKEY = `booking_activity_${listingId}`;
+  const saved = typeof window !== "undefined" ? JSON.parse(sessionStorage.getItem(SKEY) || "{}") : {};
+  const [date, setDate] = useState(saved.date || "");
+  const [startTime, setStartTime] = useState(saved.startTime || "");
+  const [endTime, setEndTime] = useState(saved.endTime || "");
+  const [persons, setPersons] = useState(saved.persons || "");
+  const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
+
+  useEffect(() => {
+    sessionStorage.setItem(SKEY, JSON.stringify({ date, startTime, endTime, persons }));
+  }, [date, startTime, endTime, persons, SKEY]);
 
   const isPerPerson = listing.bookingType === "per_person";
 
@@ -444,6 +463,12 @@ function ActivityBookingCard({ listing, listingId }) {
     : `$${listing.price}/hr × ${hours} hour${hours > 1 ? "s" : ""}`;
 
   const handleReserve = () => {
+    const newErrors = {};
+    if (!date) { toast.error("Date is required."); newErrors.date = true; }
+    if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
+    if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
+    if (isPerPerson && !persons) { toast.error("Number of guests is required."); newErrors.persons = true; }
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     const fields = isPerPerson
       ? { startDate: date, endDate: date, startTime, endTime, numberOfGuests: persons || 1, units, dateFrom: date, dateTo: date, guests: `${persons || 1} guest` }
       : { startDate: date, endDate: date, startTime, endTime, units: hours, dateFrom: date, dateTo: date };
@@ -465,30 +490,34 @@ function ActivityBookingCard({ listing, listingId }) {
       reserveButton={
         <button
           onClick={handleReserve}
-          className="w-full rounded-full bg-[#F5C842] hover:bg-[#e0b430] py-4 text-sm font-bold text-gray-900 transition-colors"
+          className="w-full rounded-full bg-[#FEB538] hover:bg-[#e0b430] py-4 text-sm font-bold text-gray-900 transition-colors"
         >
           Reserve
         </button>
       }
     >
       {/* Date field */}
-      <BookingField icon={<CalendarIcon />}>
-        <CalendarDropdown value={date} onChange={setDate} placeholder="mm/dd/yyyy" />
+      <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
+        <CalendarDropdown value={date} onChange={v => { setDate(v); setErrors(e => ({ ...e, date: false })); }} placeholder="mm/dd/yyyy" />
       </BookingField>
 
       {/* Start / End time */}
-      <TimeRangeField startTime={startTime} setStartTime={setStartTime} endTime={endTime} setEndTime={setEndTime} />
+      <TimeRangeField
+        startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
+        endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
+        startError={errors.startTime} endError={errors.endTime}
+      />
 
       {/* Guests — only show for per_person */}
       {isPerPerson && (
-        <BookingField icon={<UserOutlineIcon />}>
+        <BookingField icon={<UserOutlineIcon />} error={errors.persons} errorMessage="Number of guests is required">
           <input
             type="number"
             min="1"
             value={persons}
             placeholder="Select guest number"
-            onChange={e => setPersons(e.target.value)}
-            className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400"
+            onChange={e => { setPersons(e.target.value); setErrors(err => ({ ...err, persons: false })); }}
+            className="w-full bg-transparent text-xs sm:text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400 min-w-0"
           />
         </BookingField>
       )}
@@ -505,11 +534,18 @@ function ActivityBookingCard({ listing, listingId }) {
 
 /* ─── Places Booking Card ────────────────────────────────────────────────────── */
 function PlacesBookingCard({ listing, listingId }) {
-  const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [guests, setGuests] = useState("");
+  const SKEY = `booking_places_${listingId}`;
+  const saved = typeof window !== "undefined" ? JSON.parse(sessionStorage.getItem(SKEY) || "{}") : {};
+  const [date, setDate] = useState(saved.date || "");
+  const [startTime, setStartTime] = useState(saved.startTime || "");
+  const [endTime, setEndTime] = useState(saved.endTime || "");
+  const [guests, setGuests] = useState(saved.guests || "");
+  const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
+
+  useEffect(() => {
+    sessionStorage.setItem(SKEY, JSON.stringify({ date, startTime, endTime, guests }));
+  }, [date, startTime, endTime, guests, SKEY]);
 
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
@@ -517,6 +553,15 @@ function PlacesBookingCard({ listing, listingId }) {
   const subtotal = listing.price * hours;
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
+
+  const handleReserve = () => {
+    const newErrors = {};
+    if (!date) { toast.error("Date is required."); newErrors.date = true; }
+    if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
+    if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+    navigateToConfirm({ startDate: date, endDate: date, startTime, endTime, numberOfGuests: guests || 1, units: hours, dateFrom: date, dateTo: date, guests: `${guests || 1} guest` });
+  };
 
   return (
     <BookingShell
@@ -532,29 +577,33 @@ function PlacesBookingCard({ listing, listingId }) {
       }
       reserveButton={
         <button
-          onClick={() => navigateToConfirm({ startDate: date, endDate: date, startTime, endTime, numberOfGuests: guests || 1, units: hours, dateFrom: date, dateTo: date, guests: `${guests || 1} guest` })}
-          className="w-full rounded-full bg-[#F5C842] hover:bg-[#e0b430] py-4 text-sm font-bold text-gray-900 transition-colors"
+          onClick={handleReserve}
+          className="w-full rounded-full bg-[#FEB538] hover:bg-[#e0b430] py-4 text-sm font-bold text-gray-900 transition-colors"
         >
           Reserve
         </button>
       }
     >
       {/* Date field — no label */}
-      <BookingField icon={<CalendarIcon />}>
-        <CalendarDropdown value={date} onChange={setDate} placeholder="mm/dd/yyyy" />
+      <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
+        <CalendarDropdown value={date} onChange={v => { setDate(v); setErrors(e => ({ ...e, date: false })); }} placeholder="mm/dd/yyyy" />
       </BookingField>
 
       {/* Start / End time — single split field */}
-      <TimeRangeField startTime={startTime} setStartTime={setStartTime} endTime={endTime} setEndTime={setEndTime} />
+      <TimeRangeField
+        startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
+        endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
+        startError={errors.startTime} endError={errors.endTime}
+      />
 
       {/* Guests */}
-      <BookingField icon={<UserOutlineIcon />}>
+      <BookingField icon={<UserOutlineIcon />} error={errors.guests} errorMessage="Number of guests is required">
         <input
           type="number"
           min="1"
           value={guests}
           placeholder="Select guest number"
-          onChange={e => setGuests(e.target.value)}
+          onChange={e => { setGuests(e.target.value); setErrors(err => ({ ...err, guests: false })); }}
           className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400"
         />
       </BookingField>
@@ -571,12 +620,19 @@ function PlacesBookingCard({ listing, listingId }) {
 
 /* ─── Equipment Booking Card ─────────────────────────────────────────────────── */
 function EquipmentBookingCard({ listing, listingId }) {
-  const [mode, setMode] = useState("hourly");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const SKEY = `booking_equipment_${listingId}`;
+  const saved = typeof window !== "undefined" ? JSON.parse(sessionStorage.getItem(SKEY) || "{}") : {};
+  const [mode, setMode] = useState(saved.mode || "hourly");
+  const [startDate, setStartDate] = useState(saved.startDate || "");
+  const [endDate, setEndDate] = useState(saved.endDate || "");
+  const [startTime, setStartTime] = useState(saved.startTime || "");
+  const [endTime, setEndTime] = useState(saved.endTime || "");
+  const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
+
+  useEffect(() => {
+    sessionStorage.setItem(SKEY, JSON.stringify({ mode, startDate, endDate, startTime, endTime }));
+  }, [mode, startDate, endDate, startTime, endTime, SKEY]);
 
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
@@ -589,6 +645,16 @@ function EquipmentBookingCard({ listing, listingId }) {
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
 
+  const handleReserve = () => {
+    const newErrors = {};
+    if (!startDate) { toast.error("Start date is required."); newErrors.startDate = true; }
+    if (mode === "daily" && !endDate) { toast.error("End date is required."); newErrors.endDate = true; }
+    if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
+    if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+    navigateToConfirm({ startDate, endDate: endDate || startDate, startTime, endTime, units: span, dateFrom: startDate, dateTo: endDate || startDate });
+  };
+
   return (
     <BookingShell
       title="Book Your Equipment" price={listing.price} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
@@ -600,26 +666,38 @@ function EquipmentBookingCard({ listing, listingId }) {
       }
       reserveButton={
         <button
-          onClick={() => navigateToConfirm({ startDate, endDate: endDate || startDate, startTime, endTime, units: span, dateFrom: startDate, dateTo: endDate || startDate })}
-          className="w-full rounded-full bg-[#F5C842] hover:bg-[#e0b430] py-4 text-sm font-bold text-gray-900 transition-colors"
+          onClick={handleReserve}
+          className="w-full rounded-full bg-[#FEB538] hover:bg-[#e0b430] py-4 text-sm font-bold text-gray-900 transition-colors"
         >
           Reserve
         </button>
       }
     >
-      {/* Date field — no label */}
-      <BookingField icon={<CalendarIcon />}>
-        <CalendarDropdown value={startDate} onChange={setStartDate} placeholder="mm/dd/yyyy" />
+      {/* Start date */}
+      <BookingField icon={<CalendarIcon />} error={errors.startDate} errorMessage="Start date is required">
+        <CalendarDropdown value={startDate} onChange={v => { setStartDate(v); setErrors(e => ({ ...e, startDate: false })); }} placeholder="Start date (mm/dd/yyyy)" />
       </BookingField>
 
       {mode === "daily" ? (
-        /* End date for daily mode */
-        <BookingField icon={<CalendarIcon />}>
-          <CalendarDropdown value={endDate} onChange={setEndDate} placeholder="mm/dd/yyyy" />
-        </BookingField>
+        <>
+          {/* End date for daily mode */}
+          <BookingField icon={<CalendarIcon />} error={errors.endDate} errorMessage="End date is required">
+            <CalendarDropdown value={endDate} onChange={v => { setEndDate(v); setErrors(e => ({ ...e, endDate: false })); }} placeholder="End date (mm/dd/yyyy)" />
+          </BookingField>
+          {/* Time range always shown */}
+          <TimeRangeField
+            startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
+            endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
+            startError={errors.startTime} endError={errors.endTime}
+          />
+        </>
       ) : (
-        /* Start / End time for hourly mode — single split field */
-        <TimeRangeField startTime={startTime} setStartTime={setStartTime} endTime={endTime} setEndTime={setEndTime} />
+        /* Start / End time for hourly mode */
+        <TimeRangeField
+          startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
+          endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
+          startError={errors.startTime} endError={errors.endTime}
+        />
       )}
 
       {/* Summary */}
@@ -887,7 +965,7 @@ export default function ListingDetailPage({ params: paramsPromise }) {
 
       {/* ── Full-width title bar: flush below navbar, white, tall ── */}
       <div className="w-full bg-white border-b border-gray-100">
-        <div className="flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 h-16">
+        <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 lg:px-8 h-14 sm:h-16">
           <div className="flex items-center gap-4 min-w-0">
             <button
               onClick={() => router.back()}
@@ -911,16 +989,16 @@ export default function ListingDetailPage({ params: paramsPromise }) {
         </div>
       </div>
 
-      <main className="flex-1 max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+      <main className="flex-1 max-w-[1400px] mx-auto w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-6 lg:py-10">
 
         {/* ── Two-column: image 748px + booking 548px ── */}
-        <div className="flex flex-col lg:flex-row gap-6 items-stretch">
-          {/* Left – image section: w-748, h-716, gap-24 */}
-          <div className="w-full lg:w-[748px] shrink-0" style={{ gap: 24 }}>
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-stretch">
+          {/* Left – image section */}
+          <div className="w-full lg:w-[748px] shrink-0">
             <ImageGallery images={listing.images} title={listing.title} />
           </div>
 
-          {/* Right – booking section: same height as left, no scroll on card */}
+          {/* Right – booking section */}
           <div className="w-full lg:w-[548px] shrink-0 lg:self-stretch">
             {listing.type === "places"     && <PlacesBookingCard    listing={listing} listingId={rawId} />}
             {listing.type === "equipment"  && <EquipmentBookingCard listing={listing} listingId={rawId} />}
@@ -929,10 +1007,10 @@ export default function ListingDetailPage({ params: paramsPromise }) {
         </div>
 
         {/* Hosted By */}
-        <div className="mt-6 rounded-[22px] border border-gray-200 bg-white p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <img src={listing.host.avatar} alt={listing.host.name} className="h-14 w-14 rounded-full object-cover shrink-0" />
+        <div className="mt-4 sm:mt-6 rounded-2xl sm:rounded-[22px] border border-gray-200 bg-white p-4 sm:p-6">
+          <div className="flex items-center justify-between gap-3 sm:gap-4 flex-wrap">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <img src={listing.host.avatar} alt={listing.host.name} className="h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover shrink-0" />
               <div>
                 <p className="text-xs font-medium text-[#F5C842]">Hosted By</p>
                 <p className="text-base font-bold text-gray-900">{listing.host.name}</p>

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
-import reservationImg from "@/assets/images/reservationImg.svg";
+import reservationImg from "@/assets/images/reservationImg.png";
 import {
   fetchBookings,
   cancelBooking,
@@ -83,9 +83,16 @@ const LocationPinIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
   </svg>
 );
+// const ArrowRightIcon = () => (
+//   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+//     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+//   </svg>
+// );
+
 const ArrowRightIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
   </svg>
 );
 
@@ -616,8 +623,8 @@ function BookingDetailView({ booking, onLeaveReview, onCancel }) {
 function EmptyState({ onStartBooking }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 gap-6">
-      <div className="relative flex items-end justify-center w-56 h-52">
-        <Image src={reservationImg} alt="No reservations" width={180} height={190} className="relative z-10 object-contain" />
+      <div className="relative flex items-end justify-center w-72 h-64">
+        <Image src={reservationImg} alt="No reservations" width={280} height={256} className="relative z-10 object-contain" />
       </div>
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900">No Reservation Booked...Yet!</h2>
@@ -627,11 +634,10 @@ function EmptyState({ onStartBooking }) {
       </div>
       <button
         onClick={onStartBooking}
-        className="flex items-center bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors pl-7 pr-1.5 py-1.5 gap-4"
-        style={{ minWidth: 210 }}
+        className="flex items-center justify-between bg-[#FEB538] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors pl-8 pr-2 py-2 w-56"
       >
         <span className="flex-1 text-center">Start Booking</span>
-        <span className="w-9 h-9 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800">
+        <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800">
           <ArrowRightIcon />
         </span>
       </button>

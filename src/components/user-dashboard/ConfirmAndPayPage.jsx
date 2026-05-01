@@ -476,10 +476,8 @@ export default function ConfirmAndPayPage() {
                   )}
                 </div>
               </div>
-              <span className="text-xs text-gray-600 leading-relaxed">
-                I agree to the <span className="font-semibold text-gray-800">Cancellation Policy</span>,{" "}
-                <span className="font-semibold text-gray-800">Ground Rules</span>, and{" "}
-                <span className="font-semibold text-gray-800">Terms of Service</span>
+              <span className="text-[12px] text-[#4A4A4A] leading-relaxed">
+                I agree to the I agree to the Cancellation Policy, Ground Rules, and Terms of Service
               </span>
             </label>
 
@@ -487,9 +485,14 @@ export default function ConfirmAndPayPage() {
             <button
               onClick={handleConfirmAndPay}
               disabled={!canPay}
-              className={`w-full py-4 rounded-full text-sm font-bold transition-all ${canPay ? "bg-[#F5C842] hover:bg-[#e0b430] text-gray-900" : "bg-[#F5C842]/50 text-gray-500 cursor-not-allowed"}`}
+              className={`flex items-center justify-between w-full pl-8 pr-2 py-2 rounded-full text-sm font-bold transition-all ${canPay ? "bg-[#F5C842] hover:bg-[#e0b430] text-gray-900" : "bg-[#F5C842]/40 text-gray-400 cursor-not-allowed"}`}
             >
-              {isSubmitting ? "Processing..." : "Confirm & Pay"}
+              <span className="flex-1 text-center">{isSubmitting ? "Processing..." : "Confirm & Pay"}</span>
+              <span className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${canPay ? "bg-white text-gray-800" : "bg-white/60 text-gray-400"}`}>
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
             </button>
           </div>
         </div>

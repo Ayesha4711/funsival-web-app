@@ -256,34 +256,52 @@ const TABS = [
 ];
 
 /* ─── Sub Filters per tab ────────────────────────────────────────────────────── */
+const PLACES_FILTERS = [
+  { id: 'beach', label: 'Beach', emoji: '🏖️' },
+  { id: 'mountain', label: 'Mountain', emoji: '⛰️' },
+  { id: 'forest', label: 'Forest', emoji: '🌲' },
+  { id: 'desert', label: 'Desert', emoji: '🏜️' },
+  { id: 'lake', label: 'Lake', emoji: '🏞️' },
+  { id: 'waterfall', label: 'Waterfall', emoji: '💧' },
+  { id: 'cave', label: 'Cave', emoji: '🕳️' },
+  { id: 'island', label: 'Island', emoji: '🏝️' },
+];
+
+const EQUIPMENT_FILTERS = [
+  { id: 'bikes', label: 'Bikes', emoji: '🚴' },
+  { id: 'kayak', label: 'Kayak', emoji: '🚣' },
+  { id: 'camping_gear', label: 'Camping Gear', emoji: '⛺' },
+  { id: 'diving_gear', label: 'Diving Gear', emoji: '🤿' },
+  { id: 'surfboard', label: 'Surfboard', emoji: '🏄' },
+  { id: 'skis', label: 'Skis', emoji: '⛷️' },
+  { id: 'telescope', label: 'Telescope', emoji: '🔭' },
+  { id: 'drone', label: 'Drone', emoji: '🚁' },
+];
+
+const ACTIVITIES_FILTERS = [
+  { id: 'skydiving', label: 'Skydiving', emoji: '🪂' },
+  { id: 'horse_riding', label: 'Horse riding', emoji: '🐴' },
+  { id: 'scuba_diving', label: 'Scuba diving', emoji: '🤿' },
+  { id: 'paragliding', label: 'Paragliding', emoji: '🪁' },
+  { id: 'zipline', label: 'Zipline', emoji: '🚠' },
+  { id: 'jeep_rally', label: 'Jeep Rally', emoji: '🗺️' },
+  { id: 'hang_glider', label: 'Hang glider', emoji: '🤿' },
+  { id: 'bungee', label: 'Bungee', emoji: '🎪' },
+  { id: 'bowling', label: 'Bowling', emoji: '🎳' },
+  { id: 'trampoline', label: 'Trampoline', emoji: '🎭' },
+  { id: 'golf', label: 'Golf', emoji: '⛳' },
+  { id: 'boating', label: 'Boating', emoji: '⛵' },
+  { id: 'snowboarding', label: 'Snowboarding', emoji: '🏂' },
+  { id: 'surfing', label: 'Surfing', emoji: '🏄' },
+  { id: 'adventure_atvs', label: "Adventure ATV's", emoji: '🏍️' },
+  { id: 'jetski', label: 'Jetski', emoji: '🚤' },
+];
+
 const SUB_FILTERS = {
-  all: [],
-  places: [
-    { id: 'all', label: 'Pool' },
-    { id: 'tennis', label: 'Tennis Court' },
-    { id: 'basketball', label: 'Basketball Court' },
-    { id: 'gym', label: 'Gym' },
-    { id: 'golf', label: 'Golf Course' },
-    { id: 'football', label: 'Football Court' },
-    { id: 'padel', label: 'Padel Courts' },
-  ],
-  equipment: [
-    { id: 'all', label: 'Scuba gear' },
-    { id: 'bikes', label: 'Bikes' },
-    { id: 'snowmobiles', label: 'Snowmobiles' },
-    { id: 'boulder', label: 'Boulder / Mountain Bikes' },
-    { id: 'kayak', label: 'Kayak' },
-    { id: 'sup', label: 'Paddle Boards / SUP' },
-  ],
-  activities: [
-    { id: 'all', label: 'Scuba Diving' },
-    { id: 'swimming', label: 'Swimming' },
-    { id: 'skydiving', label: 'Skydiving' },
-    { id: 'rockclimbing', label: 'Rock Climbing' },
-    { id: 'parasailing', label: 'Parasailing' },
-    { id: 'snowshoeing', label: 'Snowshoeing' },
-    { id: 'skydivecamps', label: 'Skydive Camps' },
-  ],
+  all: [...PLACES_FILTERS, ...EQUIPMENT_FILTERS, ...ACTIVITIES_FILTERS],
+  places: PLACES_FILTERS,
+  equipment: EQUIPMENT_FILTERS,
+  activities: ACTIVITIES_FILTERS,
 };
 
 /* ─── Star Rating ────────────────────────────────────────────────────────────── */
@@ -446,6 +464,13 @@ export default function UserExplorePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
   const ITEMS_PER_PAGE = 10;
+  const pillsScrollRef = useRef(null);
+
+  const scrollPills = (dir) => {
+    if (pillsScrollRef.current) {
+      pillsScrollRef.current.scrollBy({ left: dir * 240, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const category = activeTab === 'all' ? undefined : activeTab;
@@ -485,10 +510,10 @@ export default function UserExplorePage() {
     <div className="flex flex-col min-h-screen bg-[#F5F5F5]">
 
       {/* ── Main content: single white rounded card ── */}
-      <main className="flex-1 max-w-350 mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         <div className="bg-white rounded-3xl shadow-sm p-4 sm:p-6 lg:p-8">
 
-          {/* ── Tabs row + Map View + Filter — inside the card ── */}
+          {/* ── Tabs row + View Toggles + Filter — inside the card ── */}
           <div className="flex items-center justify-between gap-2 mb-6">
             {/* Tabs */}
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide bg-[#F0FAFA] rounded-full p-1">
@@ -509,33 +534,18 @@ export default function UserExplorePage() {
 
             {/* Right Controls */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Map / Grid View toggle */}
+              {/* Single view toggle: shows "Map View" in grid mode, "Grid View" in map mode */}
               <button
                 onClick={() => setViewMode(v => v === 'grid' ? 'map' : 'grid')}
-                className={`hidden sm:flex items-center gap-2 px-4 py-2 border rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                  viewMode === 'map'
-                    ? 'border-[#4AA7A7] bg-[#4AA7A7] text-white'
-                    : 'border-[#4AA7A7] text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white'
-                }`}
+                className="hidden sm:flex items-center gap-2 px-4 py-2 border border-[#4AA7A7] text-[#4AA7A7] rounded-full text-sm font-medium hover:bg-[#4AA7A7] hover:text-white transition-colors whitespace-nowrap"
               >
-                {viewMode === 'map' ? (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                    Grid View
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    Map View
-                  </>
-                )}
+                {viewMode === 'grid' ? 'Map View' : 'Grid View'}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
               </button>
 
-              {/* Filter icon button */}
+              {/* Filter icon button — always visible */}
               <button className="flex items-center justify-center w-9 h-9 border border-[#4AA7A7] rounded-full text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white transition-colors">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -544,30 +554,39 @@ export default function UserExplorePage() {
             </div>
           </div>
 
-          {/* ── Sub Filters ── */}
-          {subFilters.length > 0 && (
-            <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide">
-              <button className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-[#4AA7A7] hover:text-[#4AA7A7] transition-colors">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          {/* ── Sub Filters — hidden on "All" tab ── */}
+          {activeTab !== 'all' && (
+            <div className="flex items-center gap-2 mb-6">
+              <button
+                onClick={() => scrollPills(-1)}
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-[#228E8A] text-white hover:bg-[#1d7a77] transition-colors shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              {subFilters.map((filter) => (
-                <button
-                  key={filter.id}
-                  onClick={() => handleSubFilterChange(filter.id)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 border ${
-                    activeSubFilter === filter.id
-                      ? 'bg-[#4AA7A7] text-white border-[#4AA7A7]'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-[#4AA7A7] hover:text-[#4AA7A7]'
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-              <button className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-[#4AA7A7] hover:text-[#4AA7A7] transition-colors">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <div ref={pillsScrollRef} className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1">
+                {subFilters.map((filter) => (
+                  <button
+                    key={filter.id}
+                    onClick={() => handleSubFilterChange(filter.id)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 border ${
+                      activeSubFilter === filter.id
+                        ? 'bg-[#228E8A] text-white border-[#228E8A]'
+                        : 'bg-white text-gray-500 border-gray-200 hover:border-[#228E8A] hover:text-[#228E8A]'
+                    }`}
+                  >
+                    <span className="text-base leading-none">{filter.emoji}</span>
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => scrollPills(1)}
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-[#228E8A] text-white hover:bg-[#1d7a77] transition-colors shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
