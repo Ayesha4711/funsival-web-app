@@ -149,6 +149,15 @@ export default function ReservationsPage() {
 
   const rows = hostBookings.map(mapBookingToRow);
 
+  const tabCounts = rows.reduce(
+    (acc, row) => {
+      const key = row.status.toLowerCase();
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    },
+    { upcoming: 0, completed: 0, cancelled: 0 }
+  );
+
   const filteredRows = rows.filter((r) => {
     if (activeTab !== "all" && r.status.toLowerCase() !== activeTab.toLowerCase()) return false;
     if (search.trim()) {
@@ -208,6 +217,7 @@ export default function ReservationsPage() {
           dateValue={dateFilter}
           onDateChange={handleDateChange}
           onExportCSV={() => exportToCSV(filteredRows)}
+          counts={tabCounts}
         />
 
         {status === "loading" && (
