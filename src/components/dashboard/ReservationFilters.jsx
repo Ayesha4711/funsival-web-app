@@ -42,6 +42,7 @@ export default function ReservationFilters({
   dateValue,
   onDateChange,
   onExportCSV,
+  counts = {},
 }) {
   const tabs = [
     { id: "all",       label: "All" },
@@ -124,7 +125,7 @@ export default function ReservationFilters({
                   : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
               }`}
             >
-              {tab.label}
+              {tab.id === "all" || !counts[tab.id] ? tab.label : `${tab.label} (${counts[tab.id]})`}
             </button>
           ))}
         </div>
