@@ -123,7 +123,7 @@ function HostSignupForm() {
       idToken: credentialResponse.credential,
       role: "host",
       city: form.city,
-      agencyName: form.agencyName,
+      businessName: form.agencyName,
     }));
     if (loginWithGoogle.rejected.match(result)) {
       toast.error("Google login failed", { description: result.payload || "Failed to authenticate with Google." });
@@ -139,7 +139,7 @@ function HostSignupForm() {
     if (Object.keys(errs).length > 0) { setClientErrors(errs); return; }
 
     const result = await dispatch(signupHost({
-      agencyName: form.agencyName,
+      businessName: form.agencyName,
       email: form.email,
       city: form.city,
       password: form.password,
@@ -170,7 +170,7 @@ function HostSignupForm() {
       </p>
 
       <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-        <Input id="agencyName" name="agencyName" type="text" placeholder="Agency Name" icon={<AgencyIcon />} value={form.agencyName} onChange={handleChange} error={clientErrors.agencyName} />
+        <Input id="agencyName" name="agencyName" type="text" placeholder="Business Name" icon={<AgencyIcon />} value={form.agencyName} onChange={handleChange} error={clientErrors.agencyName} />
         <Input id="email" name="email" type="email" placeholder="Email" icon={<MailIcon />} value={form.email} onChange={handleChange} error={clientErrors.email} />
         <Input id="city" name="city" type="text" placeholder="City" icon={<CityIcon />} value={form.city} onChange={handleChange} error={clientErrors.city} />
         <Input
@@ -218,9 +218,9 @@ function HostSignupForm() {
             <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => toast.error("Google login failed", { description: "Could not initialize Google login." })} />
           </div>
           <SocialButton type="google" label="Continue with Google" onClick={() => googleButtonRef.current?.querySelector("div[role=button]")?.click()} />
-          <SocialButton type="facebook" label="Continue with Facebook" />
+          {/* <SocialButton type="facebook" label="Continue with Facebook" /> */}
           <SocialButton type="apple" label="Continue with Apple" />
-          <SocialButton type="email" label="Continue with Email" />
+          {/* <SocialButton type="email" label="Continue with Email" /> */}
         </div>
       </form>
     </>

@@ -9,8 +9,9 @@ import AppFooter from "@/components/shared/AppFooter";
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const BackIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
   </svg>
 );
 
@@ -309,42 +310,46 @@ export default function ConfirmAndPayPage() {
     const payload = buildBookingPayload(params);
     try {
       if (payload.listingId) {
-        await dispatch(createBooking(payload)).unwrap();
+        const result = await dispatch(createBooking(payload)).unwrap();
+        if (result?.success === false) {
+          toast.error(result.message || "Booking failed. Please try again.");
+          return;
+        }
+        toast.success(result?.message || "Booking created successfully.");
       }
-    } catch (_) {
-      // proceed to success regardless — no Stripe yet
+      router.push("/user-dashboard/booking-success");
+    } catch (err) {
+      // unwrap() throws the rejectWithValue string on HTTP errors
+      const message = typeof err === "string" ? err : (err?.message || "Booking failed. Please try again.");
+      toast.error(message);
     }
-    router.push("/user-dashboard/booking-success");
   };
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
-      <main className="flex-1 max-w-360 mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-8">
 
-        {/* Page header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
-              <BackIcon />
-            </button>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Confirm And Pay</h1>
-          </div>
-          <div className="flex items-center gap-2 text-gray-400">
-            <button className="w-8 h-8 flex items-center justify-center hover:text-gray-600 transition-colors"><HeartIcon /></button>
-            <button className="w-8 h-8 flex items-center justify-center hover:text-gray-600 transition-colors"><ShareIcon /></button>
-          </div>
+      {/* White header bar */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-360 mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-4 flex items-center gap-3">
+          <button onClick={() => router.back()} className="text-[#212121] hover:opacity-70 transition-opacity shrink-0">
+            <BackIcon />
+          </button>
+          <h1 className="text-xl font-bold text-gray-900">Confirm And Pay</h1>
         </div>
+      </div>
+
+      <main className="flex-1 max-w-360 mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-8">
 
         {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8 items-start">
 
           {/* LEFT column */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
 
-            {/* Trip Details */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-bold text-gray-900">Trip Details</h2>
+            {/* Card 1 — Trip Details */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Trip Details</h2>
                 <button
                   onClick={() => router.back()}
                   className="flex items-center gap-1.5 text-sm font-medium text-[#4AA7A7] hover:text-[#3d9090] transition-colors"
@@ -353,75 +358,73 @@ export default function ConfirmAndPayPage() {
                   Edit Details
                 </button>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-4">
                 <div>
-                  <p className="text-sm font-semibold text-gray-700">Dates</p>
+                  <p className="text-sm font-bold text-gray-900 mb-1">Dates</p>
                   <p className="text-sm text-gray-500">{dateFrom} – {dateTo}</p>
                 </div>
-                {(startTime || endTime) && (
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700">Time</p>
-                    <p className="text-sm text-gray-500">{startTime} – {endTime}</p>
-                  </div>
-                )}
                 {guests && (
                   <div>
-                    <p className="text-sm font-semibold text-gray-700">Guests</p>
+                    <p className="text-sm font-bold text-gray-900 mb-1">Guests</p>
                     <p className="text-sm text-gray-500">{guests}</p>
-                  </div>
-                )}
-                {bookingType && (
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700">Booking Type</p>
-                    <p className="text-sm text-gray-500 capitalize">{bookingType.replace(/_/g, " ")}</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Payment Method */}
-            <div>
-              <h2 className="text-base font-bold text-gray-900 mb-3">
-                {paymentState === "new_card" ? "Select New Payment Method" : "Select Your Payment Method"}
-              </h2>
-              {paymentState === "initial" && (
-                <PaymentInitial
-                  onSelectNewCard={() => setPaymentState("new_card")}
-                  onOpenSavedCards={() => setPaymentState("saved_open")}
-                />
-              )}
-              {paymentState === "saved_open" && (
-                <PaymentSavedCards
-                  onSelectCard={handleSelectSavedCard}
-                  selectedCardId={selectedCard?.id}
-                  onClose={() => setPaymentState("initial")}
-                />
-              )}
-              {paymentState === "new_card" && <PaymentNewCardForm />}
-              {paymentState === "credit_debit_selected" && (
-                <PaymentCreditDebitSelected onClose={() => setPaymentState("saved_open")} />
-              )}
-            </div>
+            {/* Card 2 — Payment Method + Cancellation Policy + Ground Rules */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col gap-6">
 
-            {/* Cancellation Policy */}
-            <div>
-              <h2 className="text-base font-bold text-gray-900 mb-2">Cancellation Policy</h2>
-              <p className="text-sm text-gray-500 leading-relaxed">Free cancellation up to 24 hours before the booking start time. After that, the booking is non-refundable.</p>
-            </div>
+              {/* Payment Method */}
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  {paymentState === "new_card" ? "Select New Payment Method" : "Select Your Payment Method"}
+                </h2>
+                {paymentState === "initial" && (
+                  <PaymentInitial
+                    onSelectNewCard={() => setPaymentState("new_card")}
+                    onOpenSavedCards={() => setPaymentState("saved_open")}
+                  />
+                )}
+                {paymentState === "saved_open" && (
+                  <PaymentSavedCards
+                    onSelectCard={handleSelectSavedCard}
+                    selectedCardId={selectedCard?.id}
+                    onClose={() => setPaymentState("initial")}
+                  />
+                )}
+                {paymentState === "new_card" && <PaymentNewCardForm />}
+                {paymentState === "credit_debit_selected" && (
+                  <PaymentCreditDebitSelected onClose={() => setPaymentState("saved_open")} />
+                )}
+              </div>
 
-            {/* Ground Rules */}
-            <div>
-              <h2 className="text-base font-bold text-gray-900 mb-2">Ground Rules</h2>
-              <p className="text-sm text-gray-500 leading-relaxed">Please treat all equipment and venues with respect. Follow all safety guidelines provided by the host.</p>
+              <div className="h-px bg-gray-100" />
+
+              {/* Cancellation Policy */}
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Cancellation Policy</h2>
+                <p className="text-sm text-gray-500 leading-relaxed">Lorem ipsum dolor sit amet consectetur. Eget imperdiet eu enim lobortis sed.</p>
+              </div>
+
+              <div className="h-px bg-gray-100" />
+
+              {/* Ground Rules */}
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Ground Rules</h2>
+                <p className="text-sm text-gray-500 leading-relaxed">Lorem ipsum dolor sit amet consectetur. Eget imperdiet eu enim lobortis sed.</p>
+              </div>
             </div>
           </div>
 
           {/* RIGHT column */}
           <div className="flex flex-col gap-4">
+
+            {/* Summary card */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col gap-5">
 
               {/* Listing summary */}
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4 pb-4 border-b border-gray-100">
                 <div className="w-20 h-16 sm:w-24 sm:h-20 rounded-xl overflow-hidden shrink-0">
                   <img src={image} alt={title} className="w-full h-full object-cover" />
                 </div>
@@ -433,7 +436,7 @@ export default function ConfirmAndPayPage() {
 
               {/* Price Details */}
               <div>
-                <p className="text-sm font-bold text-gray-900 mb-3">Price Details</p>
+                <p className="text-base font-bold text-gray-900 mb-3">Price Details</p>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">{priceLabel}</span>
                   <span className="font-semibold text-gray-900">${priceAmount.toLocaleString()}.00</span>
@@ -442,7 +445,7 @@ export default function ConfirmAndPayPage() {
 
               {/* Taxes & Fees */}
               <div>
-                <p className="text-sm font-bold text-gray-900 mb-3">Taxes &amp; Fees</p>
+                <p className="text-base font-bold text-gray-900 mb-3">Taxes &amp; Fees</p>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">Funsival Fee</span>
                   <span className="font-semibold text-gray-900">${funsivalFee}.00</span>
@@ -454,40 +457,43 @@ export default function ConfirmAndPayPage() {
                 <span className="text-base font-bold text-gray-900">Total</span>
                 <span className="text-xl font-bold text-[#F5C842]">$ {total.toLocaleString()}.00</span>
               </div>
-
-              {/* Agreement checkbox */}
-              <label className="flex items-start gap-3 cursor-pointer p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <div className="relative mt-0.5 shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={agreed}
-                    onChange={(e) => setAgreed(e.target.checked)}
-                    className="sr-only"
-                  />
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${agreed ? "bg-[#4AA7A7] border-[#4AA7A7]" : "bg-white border-gray-300"}`}>
-                    {agreed && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-                <span className="text-xs text-gray-600 leading-relaxed">
-                  I agree to the <span className="font-semibold text-gray-800">Cancellation Policy</span>,{" "}
-                  <span className="font-semibold text-gray-800">Ground Rules</span>, and{" "}
-                  <span className="font-semibold text-gray-800">Terms of Service</span>
-                </span>
-              </label>
-
-              {/* Confirm & Pay button */}
-              <button
-                onClick={handleConfirmAndPay}
-                disabled={!canPay}
-                className={`w-full py-4 rounded-full text-sm font-bold transition-all ${canPay ? "bg-[#F5C842] hover:bg-[#e0b430] text-gray-900" : "bg-[#F5C842]/50 text-gray-500 cursor-not-allowed"}`}
-              >
-                {isSubmitting ? "Processing..." : "Confirm & Pay"}
-              </button>
             </div>
+
+            {/* Agreement checkbox — outside card */}
+            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-xl bg-[#FFF8E7] border border-[#F5C842]/30">
+              <div className="relative mt-0.5 shrink-0">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="sr-only"
+                />
+                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${agreed ? "bg-[#4AA7A7] border-[#4AA7A7]" : "bg-white border-gray-300"}`}>
+                  {agreed && (
+                    <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <span className="text-[12px] text-[#4A4A4A] leading-relaxed">
+                I agree to the I agree to the Cancellation Policy, Ground Rules, and Terms of Service
+              </span>
+            </label>
+
+            {/* Confirm & Pay button — outside card */}
+            <button
+              onClick={handleConfirmAndPay}
+              disabled={!canPay}
+              className={`flex items-center justify-between w-full pl-8 pr-2 py-2 rounded-full text-sm font-bold transition-all ${canPay ? "bg-[#F5C842] hover:bg-[#e0b430] text-gray-900" : "bg-[#F5C842]/40 text-gray-400 cursor-not-allowed"}`}
+            >
+              <span className="flex-1 text-center">{isSubmitting ? "Processing..." : "Confirm & Pay"}</span>
+              <span className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${canPay ? "bg-white text-gray-800" : "bg-white/60 text-gray-400"}`}>
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            </button>
           </div>
         </div>
       </main>

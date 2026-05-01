@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import AppFooter from "@/components/shared/AppFooter";
@@ -1155,9 +1155,11 @@ const TABS = [
 
 export default function SettingsPage({ role = "provider", showFooter = true }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("notifications");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") ?? "notifications";
+  const [activeTab, setActiveTab] = useState(initialTab);
   // On mobile: null = showing sidebar list, string = showing content for that tab
-  const [mobileView, setMobileView] = useState(null);
+  const [mobileView, setMobileView] = useState(searchParams.get("tab") ?? null);
 
   // Modals
   const [showChangePassword, setShowChangePassword] = useState(false);
