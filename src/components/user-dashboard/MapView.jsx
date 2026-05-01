@@ -83,7 +83,7 @@ export default function MapView({ listings }) {
   return (
     <div
       className="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-100"
-      style={{ height: '842px' }}
+      style={{ height: 'calc(100vh - 260px)', minHeight: 500 }}
       onClick={() => setActivePin(null)}
     >
       {/* Map iframe */}

@@ -174,7 +174,7 @@ function LoginForm() {
             />
           </div>
           <SocialButton type="google" label="Continue with Google" onClick={() => googleButtonRef.current?.querySelector("div[role=button]")?.click()} />
-          <SocialButton type="facebook" label="Continue with Facebook" />
+          {/* <SocialButton type="facebook" label="Continue with Facebook" /> */}
           <SocialButton type="apple" label="Continue with Apple" />
         </div>
       </form>

@@ -249,6 +249,7 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
   const [fieldErrors, setFieldErrors] = useState(null);
 
   const pendingRef = useRef(null);
+  const scrollRef = useRef(null);
 
   // Fetch the full listing and seed wizard data
   useEffect(() => {
@@ -286,8 +287,7 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
   }, []);
 
   useEffect(() => {
-    const el = document.querySelector(".edit-wizard-scroll");
-    if (el) el.scrollTo({ top: 0, behavior: "instant" });
+    if (scrollRef.current) scrollRef.current.scrollTo({ top: 0, behavior: "instant" });
   }, [step]);
 
   const next = useCallback(() => { setStep(s => Math.min(s + 1, 5)); }, []);
@@ -350,38 +350,39 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
 
   return (
     <div
-      className="edit-wizard-scroll fixed inset-0 z-50 flex flex-col bg-white overflow-y-auto"
+      ref={scrollRef}
+      className="fixed inset-0 z-50 bg-white overflow-y-auto"
     >
-      {/* Header */}
-      <div className="shrink-0 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-5 sticky top-0 z-30">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onClose}
-            className="text-[#212121] hover:opacity-70 transition-opacity shrink-0"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-          </button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-[var(--color-text)] leading-tight">
-              Edit Listing
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-400">
-              {listing.name}
-            </p>
+      {/* Sticky header + stepper */}
+      <div className="sticky top-0 z-30 bg-white">
+        <div className="border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-5">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onClose}
+              className="text-[#212121] hover:opacity-70 transition-opacity shrink-0"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+            </button>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-[var(--color-text)] leading-tight">
+                Edit Listing
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-400">
+                {listing.name}
+              </p>
+            </div>
           </div>
+        </div>
+        <div className="px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-100">
+          <Stepper current={step} onStepClick={jumpToStep} />
         </div>
       </div>
 
-      {/* Stepper */}
-      <div className="shrink-0 px-4 sm:px-6 lg:px-8 py-6 bg-gray-50/30 border-b border-gray-50 sticky top-[81px] z-20">
-        <Stepper current={step} onStepClick={jumpToStep} />
-      </div>
-
       {/* Step content */}
-      <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         <div className="w-full">
           {step === 1 &&
             <StepCategory
