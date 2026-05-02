@@ -36,7 +36,7 @@ export default function DashboardShell({ children }) {
     isWizard || SIDEBAR_HIDDEN_PATHS.includes(pathname);
 
   return (
-    <div className="flex  bg-[#F3F4F6]">
+    <div className="flex min-h-screen bg-[#F3F4F6]">
       <DashboardSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
