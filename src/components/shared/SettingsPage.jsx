@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import AppFooter from "@/components/shared/AppFooter";
-import { changePassword, enable2FA, disable2FA } from "@/store/slices/authSlice";
-import { selectUser, fetchProfile, setProfile, updateProviderProfile } from "@/store/slices/profileSlice";
+import { changePassword, enable2FA, disable2FA, deleteAccount, clearAuth } from "@/store/slices/authSlice";
+import { selectUser, fetchProfile, setProfile, updateProviderProfile, clearProfile } from "@/store/slices/profileSlice";
 
 // ─── SVG Icons ──────────────────────────────────────────────────────────────────
 
@@ -129,13 +129,23 @@ const EyeIcon = () => (
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
   </svg>
 );
+const CalendarIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+);
+const ChevronUpIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="18 15 12 9 6 15"/>
+  </svg>
+);
 
 // ─── Shared ──────────────────────────────────────────────────────────────────────
 
 function AutoSaveNotice() {
   return (
     <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-5 py-4 text-sm text-gray-600">
-      <span className="shrink-0 text-[var(--color-primary)]"><InfoIcon /></span>
+      <span className="shrink-0 text-primary"><InfoIcon /></span>
       <span>Your settings are automatically saved. Changes will take effect immediately.</span>
     </div>
   );
@@ -144,7 +154,7 @@ function AutoSaveNotice() {
 function SectionHeader({ emoji, title, subtitle }) {
   return (
     <div className="mb-6">
-      <h2 className="text-2xl font-bold text-[var(--color-text)] flex items-center gap-2">
+      <h2 className="text-2xl font-bold text-text flex items-center gap-2">
         <span>{emoji}</span>{title}
       </h2>
       {subtitle && <p className="text-sm text-gray-400 mt-1">{subtitle}</p>}
@@ -158,7 +168,7 @@ function Toggle({ checked, onChange }) {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors shrink-0 ${checked ? "bg-[var(--color-primary)]" : "bg-gray-200"}`}
+      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors shrink-0 ${checked ? "bg-primary" : "bg-gray-200"}`}
     >
       <span className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`} />
     </button>
@@ -175,7 +185,7 @@ function SelectField({ label, value, onChange, options }) {
       <div className="relative">
         <button
           onClick={() => setOpen((o) => !o)}
-          className="flex items-center justify-between w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-[var(--color-text)] bg-white hover:border-gray-300 transition-colors"
+          className="flex items-center justify-between w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-text bg-white hover:border-gray-300 transition-colors"
         >
           <span>{selected.label}</span>
           <ChevronDownIcon />
@@ -190,8 +200,8 @@ function SelectField({ label, value, onChange, options }) {
                   onClick={() => { onChange(opt.value); setOpen(false); }}
                   className={`flex items-center justify-between w-full text-left px-4 py-2.5 text-sm transition-colors ${
                     isSelected
-                      ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-semibold"
-                      : "hover:bg-gray-50 text-[var(--color-text)]"
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "hover:bg-gray-50 text-text"
                   }`}
                 >
                   <span>{opt.label}</span>
@@ -221,7 +231,7 @@ function InputField({ label, placeholder, defaultValue = "", type = "text", icon
         type={type}
         placeholder={placeholder}
         defaultValue={defaultValue}
-        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-colors"
+        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
       />
     </div>
   );
@@ -265,8 +275,8 @@ function AddPaymentModal({ onClose, onAdd }) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <span className="text-[var(--color-primary)]"><CreditCardIcon size={20} /></span>
-            <h3 className="text-base font-bold text-[var(--color-text)]">Add Payment Method</h3>
+            <span className="text-primary"><CreditCardIcon size={20} /></span>
+            <h3 className="text-base font-bold text-text">Add Payment Method</h3>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors"><XIcon /></button>
         </div>
@@ -279,7 +289,7 @@ function AddPaymentModal({ onClose, onAdd }) {
               placeholder="Enter account holder name"
               value={form.holderName}
               onChange={set("holderName")}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-colors placeholder-gray-400"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors placeholder-gray-400"
             />
           </div>
 
@@ -290,7 +300,7 @@ function AddPaymentModal({ onClose, onAdd }) {
               placeholder="e.g. Chase Bank"
               value={form.bankName}
               onChange={set("bankName")}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-colors placeholder-gray-400"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors placeholder-gray-400"
             />
           </div>
 
@@ -301,7 +311,7 @@ function AddPaymentModal({ onClose, onAdd }) {
               placeholder="Enter account number"
               value={form.accountNumber}
               onChange={set("accountNumber")}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-colors placeholder-gray-400"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors placeholder-gray-400"
             />
           </div>
 
@@ -312,7 +322,7 @@ function AddPaymentModal({ onClose, onAdd }) {
               placeholder="Enter routing number"
               value={form.routingNumber}
               onChange={set("routingNumber")}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-colors placeholder-gray-400"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors placeholder-gray-400"
             />
           </div>
 
@@ -323,7 +333,7 @@ function AddPaymentModal({ onClose, onAdd }) {
               placeholder="e.g. Checking, Savings"
               value={form.accountType}
               onChange={set("accountType")}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-colors placeholder-gray-400"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors placeholder-gray-400"
             />
           </div>
 
@@ -335,13 +345,13 @@ function AddPaymentModal({ onClose, onAdd }) {
               onChange={(e) => setForm((f) => ({ ...f, setDefault: e.target.checked }))}
               className="w-4 h-4 rounded border-gray-300 accent-[var(--color-primary)]"
             />
-            <span className="text-sm text-[var(--color-text)] font-medium">Set as default payment method</span>
+            <span className="text-sm text-text font-medium">Set as default payment method</span>
           </label>
 
           {/* Security notice */}
-          <div className="flex items-start gap-3 bg-[var(--color-primary)]/8 border border-[var(--color-primary)]/20 rounded-xl px-4 py-3">
-            <span className="text-[var(--color-primary)] shrink-0 mt-0.5"><ShieldLockIcon /></span>
-            <p className="text-xs text-[var(--color-primary)] leading-relaxed">
+          <div className="flex items-start gap-3 bg-primary/8 border border-primary/20 rounded-xl px-4 py-3">
+            <span className="text-primary shrink-0 mt-0.5"><ShieldLockIcon /></span>
+            <p className="text-xs text-primary leading-relaxed">
               Your banking information is encrypted and securely stored. We never share your financial details with third parties.
             </p>
           </div>
@@ -351,13 +361,13 @@ function AddPaymentModal({ onClose, onAdd }) {
         <div className="flex flex-col sm:flex-row gap-3 px-6 pb-6">
           <button
             onClick={onClose}
-            className="flex-1 border border-gray-200 text-sm font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors text-[var(--color-text)]"
+            className="flex-1 border border-gray-200 text-sm font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors text-text"
           >
             Cancel
           </button>
           <button
             onClick={handleAdd}
-            className="flex-1 bg-[var(--color-primary)] text-white text-sm font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            className="flex-1 bg-primary text-white text-sm font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
           >
             <PlusIcon /> Add Payment Method
           </button>
@@ -420,8 +430,8 @@ function ChangePasswordModal({ onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <span className="text-[var(--color-primary)]"><LockIcon size={20} /></span>
-            <h3 className="text-base font-bold text-[var(--color-text)]">Change Password</h3>
+            <span className="text-primary"><LockIcon size={20} /></span>
+            <h3 className="text-base font-bold text-text">Change Password</h3>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors"><XIcon /></button>
         </div>
@@ -436,7 +446,7 @@ function ChangePasswordModal({ onClose }) {
                   placeholder={placeholder}
                   value={form[key]}
                   onChange={set(key)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-colors placeholder-gray-400"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors placeholder-gray-400"
                 />
                 <button
                   type="button"
@@ -477,14 +487,14 @@ function ChangePasswordModal({ onClose }) {
           <button
             onClick={onClose}
             disabled={loading}
-            className="flex-1 border border-gray-200 text-sm font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors text-[var(--color-text)] disabled:opacity-50"
+            className="flex-1 border border-gray-200 text-sm font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors text-text disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="flex-1 bg-[var(--color-primary)] text-white text-sm font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+            className="flex-1 bg-primary text-white text-sm font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading && (
               <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -502,6 +512,36 @@ function ChangePasswordModal({ onClose }) {
 // ─── Delete Account Modal ─────────────────────────────────────────────────────────
 
 function DeleteAccountModal({ onClose }) {
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleDelete = async () => {
+    if (!password) {
+      setError("Please enter your password to confirm.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    const result = await dispatch(deleteAccount({ password }));
+    setLoading(false);
+    if (deleteAccount.fulfilled.match(result)) {
+      dispatch(clearAuth());
+      dispatch(clearProfile());
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth-token");
+        document.cookie = "auth-token=; Max-Age=0; path=/";
+      }
+      toast.success("Your account has been deleted.");
+      router.push("/");
+    } else {
+      setError(result.payload || "Failed to delete account. Please check your password.");
+    }
+  };
+
   return (
     <ModalOverlay onClose={onClose}>
       <div className="bg-white rounded-3xl w-full max-w-sm px-6 py-8 text-center">
@@ -510,22 +550,54 @@ function DeleteAccountModal({ onClose }) {
           <TrashIcon />
         </div>
 
-        <h3 className="text-xl font-bold text-[var(--color-text)] mb-2">Are You Sure?</h3>
-        <p className="text-sm text-gray-400 leading-relaxed mb-8">
+        <h3 className="text-xl font-bold text-text mb-2">Are You Sure?</h3>
+        <p className="text-sm text-gray-400 leading-relaxed mb-6">
           This action is permanent and cannot be undone. All your data, bookings, listings, and account information will be permanently deleted.
         </p>
+
+        {/* Password confirmation */}
+        <div className="mb-5 text-left">
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5">Enter your password to confirm</label>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Your current password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setError(""); }}
+              className={`w-full border rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 transition-colors placeholder-gray-400 ${
+                error ? "border-red-400 focus:ring-red-200 focus:border-red-400" : "border-gray-200 focus:ring-red-200 focus:border-red-400"
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              {showPassword ? <EyeIcon /> : <EyeOffIcon />}
+            </button>
+          </div>
+          {error && <p className="mt-1.5 text-xs text-red-500 font-medium">{error}</p>}
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={onClose}
-            className="flex-1 border-2 border-[var(--color-primary)] text-[var(--color-primary)] font-semibold text-sm py-3 rounded-full hover:bg-[var(--color-primary)]/5 transition-colors"
+            disabled={loading}
+            className="flex-1 border-2 border-primary text-primary font-semibold text-sm py-3 rounded-full hover:bg-primary/5 transition-colors disabled:opacity-50"
           >
             Return
           </button>
           <button
-            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold text-sm py-3 rounded-full transition-colors"
+            onClick={handleDelete}
+            disabled={loading}
+            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold text-sm py-3 rounded-full transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            Delete Account
+            {loading && (
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
+              </svg>
+            )}
+            {loading ? "Deleting..." : "Delete Account"}
           </button>
         </div>
       </div>
@@ -551,7 +623,7 @@ function NotificationsTab() {
         <div className="divide-y divide-gray-100">
           {notifItems.map((item) => (
             <div key={item.key} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
-              <span className="text-sm text-[var(--color-text)]">{item.label}</span>
+              <span className="text-sm text-text">{item.label}</span>
               <Toggle checked={state[item.key]} onChange={(v) => setState((s) => ({ ...s, [item.key]: v }))} />
             </div>
           ))}
@@ -639,7 +711,7 @@ function SecurityTab() {
       label: "Email verification",
       desc: profile?.email || "—",
       Icon: MailIcon,
-      bg: "bg-[var(--color-primary)]",
+      bg: "bg-primary",
       iconColor: "text-white",
     },
     {
@@ -659,11 +731,11 @@ function SecurityTab() {
 
         {/* 2FA toggle row */}
         <div className="flex items-start gap-4 bg-gray-50 rounded-2xl px-5 py-4 mb-5">
-          <div className="w-10 h-10 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0 text-[var(--color-primary)]">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
             <ShieldIcon size={20} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-[var(--color-text)]">Two-factor authentication</p>
+            <p className="text-sm font-semibold text-text">Two-factor authentication</p>
             <p className="text-xs text-gray-400 mt-0.5">Add an extra layer of security</p>
           </div>
           {twoFactorLoading ? (
@@ -683,17 +755,17 @@ function SecurityTab() {
               <button
                 key={m.value}
                 onClick={() => setVerifyMethod(m.value)}
-                className={`w-full flex items-center gap-4 rounded-2xl border px-5 py-4 transition-colors text-left ${active ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5" : "border-gray-200 bg-white hover:bg-gray-50"}`}
+                className={`w-full flex items-center gap-4 rounded-2xl border px-5 py-4 transition-colors text-left ${active ? "border-primary bg-primary/5" : "border-gray-200 bg-white hover:bg-gray-50"}`}
               >
                 <div className={`w-10 h-10 rounded-full ${m.bg} flex items-center justify-center shrink-0 ${m.iconColor}`}>
                   <m.Icon />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold ${active ? "text-[var(--color-primary)]" : "text-[var(--color-text)]"}`}>{m.label}</p>
+                  <p className={`text-sm font-semibold ${active ? "text-primary" : "text-text"}`}>{m.label}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{m.desc}</p>
                 </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${active ? "border-[var(--color-primary)]" : "border-gray-300"}`}>
-                  {active && <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-primary)]" />}
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${active ? "border-primary" : "border-gray-300"}`}>
+                  {active && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                 </div>
               </button>
             );
@@ -727,7 +799,7 @@ function LegalTab() {
                 <item.Icon size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[var(--color-text)]">{item.label}</p>
+                <p className="text-sm font-semibold text-text">{item.label}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
               </div>
               <span className="text-gray-400 shrink-0"><ChevronRightIcon /></span>
@@ -736,6 +808,233 @@ function LegalTab() {
         </div>
       </div>
       <AutoSaveNotice />
+    </div>
+  );
+}
+
+// ─── Date Picker ─────────────────────────────────────────────────────────────────
+
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function DatePickerField({ value, onChange, hasError, errorMsg }) {
+  const [open, setOpen] = useState(false);
+  // view: "day" | "month" | "year"
+  const [view, setView] = useState("day");
+  const ref = useRef(null);
+
+  const today = new Date();
+  const parsed = value ? new Date(value + "T00:00:00") : null;
+  const [cursor, setCursor] = useState({
+    year:  parsed?.getFullYear()  ?? today.getFullYear() - 20,
+    month: parsed?.getMonth()     ?? today.getMonth(),
+  });
+
+  // Year grid: show a window of 12 years, page-able
+  const [yearStart, setYearStart] = useState(
+    Math.floor((parsed?.getFullYear() ?? today.getFullYear() - 20) / 12) * 12
+  );
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selectDate = (day) => {
+    const mm = String(cursor.month + 1).padStart(2, "0");
+    const dd = String(day).padStart(2, "0");
+    onChange(`${cursor.year}-${mm}-${dd}`);
+    setOpen(false);
+    setView("day");
+  };
+
+  const selectMonth = (monthIdx) => {
+    setCursor((c) => ({ ...c, month: monthIdx }));
+    setView("day");
+  };
+
+  const selectYear = (yr) => {
+    setCursor((c) => ({ ...c, year: yr }));
+    setView("month");
+  };
+
+  // Build day grid
+  const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate();
+  const firstDay    = new Date(cursor.year, cursor.month, 1).getDay();
+  const dayGrid     = [];
+  for (let i = 0; i < firstDay; i++) dayGrid.push(null);
+  for (let d = 1; d <= daysInMonth; d++) dayGrid.push(d);
+
+  const displayValue = parsed
+    ? `${parsed.getDate()} ${MONTHS[parsed.getMonth()]} ${parsed.getFullYear()}`
+    : "";
+
+  return (
+    <div className="sm:col-span-2" ref={ref}>
+      <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mb-1.5">
+        <span className="text-gray-400"><CalendarIcon /></span>
+        Date of Birth
+      </label>
+
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => { setOpen((o) => !o); setView("day"); }}
+        className={`w-full flex items-center justify-between border rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 ${
+          hasError
+            ? "border-red-400 focus:ring-red-200 focus:border-red-400"
+            : "border-gray-200 focus:ring-primary/20 focus:border-primary"
+        }`}
+      >
+        <span className={displayValue ? "text-text" : "text-gray-400"}>
+          {displayValue || "Select date of birth"}
+        </span>
+        <span className="text-gray-400"><CalendarIcon /></span>
+      </button>
+      {hasError && <p className="mt-1 text-xs text-red-500 font-medium">{errorMsg}</p>}
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute z-30 mt-1 bg-white border border-gray-200 rounded-2xl shadow-lg p-4 w-72">
+
+          {/* ── Day view ── */}
+          {view === "day" && (
+            <>
+              {/* Header: prev / Month+Year (clickable) / next */}
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  type="button"
+                  onClick={() => setCursor((c) => {
+                    const m = c.month === 0 ? 11 : c.month - 1;
+                    const y = c.month === 0 ? c.year - 1 : c.year;
+                    return { year: y, month: m };
+                  })}
+                  className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"
+                >
+                  <ChevronLeftIcon />
+                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setView("month")}
+                    className="text-sm font-bold text-text hover:text-primary px-1"
+                  >
+                    {MONTHS[cursor.month]}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setYearStart(Math.floor(cursor.year / 12) * 12); setView("year"); }}
+                    className="text-sm font-bold text-text hover:text-primary px-1"
+                  >
+                    {cursor.year}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCursor((c) => {
+                    const m = c.month === 11 ? 0 : c.month + 1;
+                    const y = c.month === 11 ? c.year + 1 : c.year;
+                    return { year: y, month: m };
+                  })}
+                  className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"
+                >
+                  <ChevronRightIcon />
+                </button>
+              </div>
+
+              {/* Day-of-week labels */}
+              <div className="grid grid-cols-7 mb-1">
+                {["Su","Mo","Tu","We","Th","Fr","Sa"].map((d) => (
+                  <div key={d} className="text-center text-[10px] font-semibold text-gray-400 py-1">{d}</div>
+                ))}
+              </div>
+
+              {/* Day cells */}
+              <div className="grid grid-cols-7 gap-y-0.5">
+                {dayGrid.map((day, idx) => {
+                  if (!day) return <div key={`e-${idx}`} />;
+                  const sel = parsed && parsed.getDate() === day && parsed.getMonth() === cursor.month && parsed.getFullYear() === cursor.year;
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => selectDate(day)}
+                      className={`text-xs py-1.5 rounded-lg font-medium transition-colors ${
+                        sel
+                          ? "bg-primary text-white"
+                          : "hover:bg-primary/10 text-text"
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* ── Month view ── */}
+          {view === "month" && (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <button type="button" onClick={() => setCursor((c) => ({ ...c, year: c.year - 1 }))} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"><ChevronLeftIcon /></button>
+                <button
+                  type="button"
+                  onClick={() => { setYearStart(Math.floor(cursor.year / 12) * 12); setView("year"); }}
+                  className="text-sm font-bold text-text hover:text-primary"
+                >
+                  {cursor.year}
+                </button>
+                <button type="button" onClick={() => setCursor((c) => ({ ...c, year: c.year + 1 }))} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"><ChevronRightIcon /></button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {MONTHS.map((m, idx) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => selectMonth(idx)}
+                    className={`text-xs py-2 rounded-xl font-medium transition-colors ${
+                      idx === cursor.month
+                        ? "bg-primary text-white"
+                        : "hover:bg-primary/10 text-text"
+                    }`}
+                  >
+                    {m.slice(0, 3)}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── Year view ── */}
+          {view === "year" && (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <button type="button" onClick={() => setYearStart((y) => y - 12)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"><ChevronLeftIcon /></button>
+                <span className="text-sm font-bold text-text">{yearStart} – {yearStart + 11}</span>
+                <button type="button" onClick={() => setYearStart((y) => y + 12)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"><ChevronRightIcon /></button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {Array.from({ length: 12 }, (_, i) => yearStart + i).map((yr) => (
+                  <button
+                    key={yr}
+                    type="button"
+                    onClick={() => selectYear(yr)}
+                    className={`text-xs py-2 rounded-xl font-medium transition-colors ${
+                      yr === cursor.year
+                        ? "bg-primary text-white"
+                        : "hover:bg-primary/10 text-text"
+                    }`}
+                  >
+                    {yr}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -778,22 +1077,25 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
 
   useEffect(() => {
     if (profile && !initialized) {
+      const pp  = profile.providerProfile ?? {};
+      const loc = pp.location ?? {};
+      const dob = pp.dateOfBirth ?? profile.dateOfBirth ?? "";
       setForm({
-        firstName:    profile.firstName    ?? "",
-        lastName:     profile.lastName     ?? "",
-        email:        profile.email        ?? "",
-        phoneNumber:  profile.phoneNumber  ?? profile.phone ?? "",
-        dateOfBirth:  profile.dateOfBirth  ?? "",
-        bio:          profile.bio          ?? "",
-        profileImage: profile.profileImage ?? "",
-        addressLine1: profile.addressLine1 ?? "",
-        addressLine2: profile.addressLine2 ?? "",
-        city:         profile.city         ?? "",
-        state:        profile.state        ?? "",
-        postalCode:   profile.postalCode   ?? "",
-        country:      profile.country      ?? "",
-        businessName: profile.businessName ?? "",
-        businessType: profile.businessType ?? "",
+        firstName:    pp.firstName    ?? profile.firstName    ?? "",
+        lastName:     pp.lastName     ?? profile.lastName     ?? "",
+        email:        profile.email   ?? "",
+        phoneNumber:  pp.phoneNumber  ?? profile.phoneNumber  ?? profile.phone ?? "",
+        dateOfBirth:  dob ? dob.split("T")[0] : "",
+        bio:          pp.bio          ?? profile.bio          ?? "",
+        profileImage: pp.profileImage ?? profile.profileImage ?? "",
+        addressLine1: loc.addressLine1 ?? profile.addressLine1 ?? "",
+        addressLine2: loc.addressLine2 ?? profile.addressLine2 ?? "",
+        city:         loc.city         ?? pp.city   ?? profile.city   ?? "",
+        state:        loc.state        ?? pp.state  ?? profile.state  ?? "",
+        postalCode:   loc.postalCode   ?? pp.postalCode ?? profile.postalCode ?? "",
+        country:      loc.country      ?? pp.country    ?? profile.country    ?? "",
+        businessName: pp.businessName  ?? profile.businessName ?? profile.agencyName ?? "",
+        businessType: pp.businessType  ?? profile.businessType ?? "",
       });
       setInitialized(true);
     }
@@ -870,10 +1172,10 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
           placeholder={placeholder}
           value={form[key]}
           onChange={set(key)}
-          className={`w-full border rounded-xl px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors ${
+          className={`w-full border rounded-xl px-4 py-2.5 text-sm text-text placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors ${
             hasError
               ? "border-red-400 focus:ring-red-200 focus:border-red-400"
-              : "border-gray-200 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
+              : "border-gray-200 focus:ring-primary/20 focus:border-primary"
           }`}
         />
         {hasError && (
@@ -893,7 +1195,7 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
         <div className="flex items-center gap-4 mb-6">
           <div className="relative shrink-0">
             <div
-              className={`w-16 h-16 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white text-2xl font-bold overflow-hidden ring-2 ${fieldErrors.profileImage ? "ring-red-400" : "ring-transparent"}`}
+              className={`w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-white text-2xl font-bold overflow-hidden ring-2 ${fieldErrors.profileImage ? "ring-red-400" : "ring-transparent"}`}
             >
               {form.profileImage ? (
                 <img src={form.profileImage} alt="avatar" className="w-full h-full object-cover" />
@@ -904,7 +1206,7 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 w-6 h-6 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-white border-2 border-white hover:opacity-80 transition-opacity"
+              className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white border-2 border-white hover:opacity-80 transition-opacity"
             >
               <CameraIcon />
             </button>
@@ -917,12 +1219,12 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
             />
           </div>
           <div>
-            <p className="text-sm font-bold text-[var(--color-text)]">{fullName}</p>
+            <p className="text-sm font-bold text-text">{fullName}</p>
             <p className="text-xs text-gray-400">{form.email || "—"}</p>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="text-xs text-[var(--color-primary)] font-semibold mt-1 hover:underline"
+              className="text-xs text-primary font-semibold mt-1 hover:underline"
             >
               Change profile picture
             </button>
@@ -935,15 +1237,20 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
         {/* Personal Information */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-[var(--color-primary)]"><UserIcon size={16} /></span>
-            <p className="text-sm font-bold text-[var(--color-text)]">Personal Information</p>
+            <span className="text-primary"><UserIcon size={16} /></span>
+            <p className="text-sm font-bold text-text">Personal Information</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
             {field("First Name",    "firstName",   "John",                 null)}
             {field("Last Name",     "lastName",    "Doe",                  null)}
             {field("Email Address", "email",       "john.doe@example.com", <MailIcon />)}
             {field("Phone Number",  "phoneNumber", "+1 (555) 123-4567",    <PhoneIcon />)}
-            {field("Date of Birth", "dateOfBirth", "YYYY-MM-DD",           null, true)}
+            <DatePickerField
+              value={form.dateOfBirth}
+              onChange={(v) => { setForm((f) => ({ ...f, dateOfBirth: v })); if (fieldErrors.dateOfBirth) setFieldErrors((fe) => ({ ...fe, dateOfBirth: undefined })); }}
+              hasError={!!fieldErrors.dateOfBirth}
+              errorMsg={fieldErrors.dateOfBirth}
+            />
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">
                 Bio <span className="text-red-500">*</span>
@@ -953,10 +1260,10 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
                 placeholder="Tell us about yourself..."
                 value={form.bio}
                 onChange={set("bio")}
-                className={`w-full border rounded-xl px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors resize-none ${
+                className={`w-full border rounded-xl px-4 py-2.5 text-sm text-text placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors resize-none ${
                   fieldErrors.bio
                     ? "border-red-400 focus:ring-red-200 focus:border-red-400"
-                    : "border-gray-200 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
+                    : "border-gray-200 focus:ring-primary/20 focus:border-primary"
                 }`}
               />
               {fieldErrors.bio && (
@@ -969,8 +1276,8 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
         {/* Location Information */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-[var(--color-primary)]"><MapPinIcon size={16} /></span>
-            <p className="text-sm font-bold text-[var(--color-text)]">Location Information</p>
+            <span className="text-primary"><MapPinIcon size={16} /></span>
+            <p className="text-sm font-bold text-text">Location Information</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {field("Address Line 1", "addressLine1", "123 Main Street", null, true)}
@@ -986,8 +1293,8 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
         {role === "provider" && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-[var(--color-primary)]"><BuildingIcon size={16} /></span>
-              <p className="text-sm font-bold text-[var(--color-text)]">Provider Information</p>
+              <span className="text-primary"><BuildingIcon size={16} /></span>
+              <p className="text-sm font-bold text-text">Provider Information</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {field("Business Name", "businessName", "Adventure Hub",          null)}
@@ -1000,7 +1307,7 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-[var(--color-primary)] hover:opacity-90 text-white font-semibold text-sm px-8 py-2.5 rounded-xl transition-opacity disabled:opacity-60 flex items-center gap-2"
+            className="bg-primary hover:opacity-90 text-white font-semibold text-sm px-8 py-2.5 rounded-xl transition-opacity disabled:opacity-60 flex items-center gap-2"
           >
             {saving && (
               <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1014,7 +1321,7 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
 
       {/* Account Settings card */}
       <div className="bg-white rounded-2xl border border-gray-100 px-6 py-5">
-        <p className="text-sm font-bold text-[var(--color-text)] mb-4">Account Settings</p>
+        <p className="text-sm font-bold text-text mb-4">Account Settings</p>
         <div className="space-y-2">
           <button
             onClick={onChangePassword}
@@ -1024,7 +1331,7 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
               <span className="text-xl">🔑</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[var(--color-text)]">Change password</p>
+              <p className="text-sm font-semibold text-text">Change password</p>
               <p className="text-xs text-gray-400">Update your account password</p>
             </div>
             <span className="text-gray-400 shrink-0"><ChevronRightIcon /></span>
@@ -1076,14 +1383,14 @@ function PaymentMethodTab() {
         {/* Header row with Add Method button */}
         <div className="flex items-start justify-between mb-1">
           <div>
-            <h2 className="text-xl font-bold text-[var(--color-text)] flex items-center gap-2">
+            <h2 className="text-xl font-bold text-text flex items-center gap-2">
               <CreditCardIcon size={22} /> Payment Methods
             </h2>
             <p className="text-sm text-gray-400 mt-1">Manage your bank accounts for payouts</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 bg-[var(--color-secondary)] hover:opacity-90 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-opacity shrink-0 mt-1"
+            className="flex items-center gap-1.5 bg-secondary hover:opacity-90 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-opacity shrink-0 mt-1"
           >
             <PlusIcon /> Add Method
           </button>
@@ -1093,25 +1400,25 @@ function PaymentMethodTab() {
           {accounts.map((acc) => (
             <div
               key={acc.id}
-              className={`flex items-center gap-3 sm:gap-4 rounded-2xl border px-4 sm:px-5 py-4 ${acc.isDefault ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5" : "border-gray-200 bg-white"}`}
+              className={`flex items-center gap-3 sm:gap-4 rounded-2xl border px-4 sm:px-5 py-4 ${acc.isDefault ? "border-primary bg-primary/5" : "border-gray-200 bg-white"}`}
             >
-              <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0 text-[var(--color-primary)]">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-primary">
                 <CreditCardIcon size={18} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-semibold text-[var(--color-text)]">{acc.name}</p>
+                  <p className="text-sm font-semibold text-text">{acc.name}</p>
                   {acc.isDefault && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-[var(--color-primary)] text-white rounded-full">Default</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-primary text-white rounded-full">Default</span>
                   )}
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">Account ending in {acc.number}</p>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                <button className="p-1.5 text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 rounded-lg transition-colors"><EditIcon /></button>
+                <button className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"><EditIcon /></button>
                 <button onClick={() => deleteAccount(acc.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><TrashIcon /></button>
                 {!acc.isDefault && (
-                  <button onClick={() => setDefault(acc.id)} className="text-xs text-[var(--color-primary)] border border-[var(--color-primary)] rounded-lg px-2 sm:px-3 py-1 hover:bg-[var(--color-primary)]/5 transition-colors font-semibold whitespace-nowrap">
+                  <button onClick={() => setDefault(acc.id)} className="text-xs text-primary border border-primary rounded-lg px-2 sm:px-3 py-1 hover:bg-primary/5 transition-colors font-semibold whitespace-nowrap">
                     Set Default
                   </button>
                 )}
@@ -1206,7 +1513,7 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
             </svg>
           </button>
           <div>
-            <h1 className="text-xl font-bold text-[var(--color-text)] inline">Settings</h1>
+            <h1 className="text-xl font-bold text-text inline">Settings</h1>
             <span className="text-sm text-gray-400 ml-2">Manage your account preferences and settings</span>
           </div>
         </div>
@@ -1229,7 +1536,7 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
                   </svg>
                 </button>
                 <div>
-                  <h1 className="text-lg font-bold text-[var(--color-text)]">Settings</h1>
+                  <h1 className="text-lg font-bold text-text">Settings</h1>
                   <p className="text-xs text-gray-400">Manage your account</p>
                 </div>
               </div>
@@ -1241,11 +1548,11 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
                     onClick={() => handleTabClick(tab.key)}
                     className={`flex items-center gap-4 w-full px-5 py-4 text-left transition-colors hover:bg-gray-50 ${i > 0 ? "border-t border-gray-100" : ""}`}
                   >
-                    <div className="w-9 h-9 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0 text-[var(--color-primary)]">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
                       <tab.Icon size={17} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[var(--color-text)]">{tab.label}</p>
+                      <p className="text-sm font-semibold text-text">{tab.label}</p>
                     </div>
                     <span className="text-gray-300 shrink-0"><ChevronRightIcon /></span>
                   </button>
@@ -1263,8 +1570,8 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
                   <ChevronLeftIcon />
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className="text-[var(--color-primary)]"><mobileActive.Icon size={18} /></span>
-                  <h1 className="text-lg font-bold text-[var(--color-text)]">{mobileActive.label}</h1>
+                  <span className="text-primary"><mobileActive.Icon size={18} /></span>
+                  <h1 className="text-lg font-bold text-text">{mobileActive.label}</h1>
                 </div>
               </div>
               {renderPanel(mobileActive)}
@@ -1286,8 +1593,8 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
                       onClick={() => setActiveTab(tab.key)}
                       className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors text-left ${
                         isActive
-                          ? "bg-[var(--color-primary)] text-white"
-                          : "text-gray-500 hover:bg-gray-50 hover:text-[var(--color-text)]"
+                          ? "bg-primary text-white"
+                          : "text-gray-500 hover:bg-gray-50 hover:text-text"
                       }`}
                     >
                       <tab.Icon size={18} />

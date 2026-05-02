@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { useDispatch, useSelector } from "react-redux";
 import heroImg from "@/assets/images/HeroImg.jpg";
+import { fetchHostBookings, selectHostBookings, selectHostBookingsStatus } from "@/store/slices/bookingsSlice";
 import {
   PieChart, Pie, Cell, Tooltip as PieTooltip,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -58,86 +60,117 @@ function StatusBadge({ status }) {
 }
 
 /* ─── Recent Reservations ────────────────────────────────────────────────────── */
-const reservations = [
-  { id: 1, name: "Atv Quad Bike", date: "Sep 9th 2023", type: "Equipment", status: "Completed" },
-  { id: 2, name: "Atv Quad Bike", date: "Sep 9th 2023", type: "Equipment", status: "Pending" },
-  { id: 3, name: "Atv Quad Bike", date: "Sep 9th 2023", type: "Places", status: "Cancelled" },
-  { id: 4, name: "Atv Quad Bike", date: "Sep 9th 2023", type: "Services", status: "Completed" },
-  { id: 5, name: "Atv Quad Bike", date: "Sep 9th 2023", type: "Services", status: "Cancelled" },
-];
+function normalizeStatus(status = "") {
+  const s = status.toLowerCase();
+  if (s === "completed") return "Completed";
+  if (s === "pending" || s === "confirmed") return "Pending";
+  if (s === "cancelled" || s === "canceled") return "Cancelled";
+  return status;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function ReservationRow({ r, className = "" }) {
+  const name = r.listing?.title ?? r.title ?? "Reservation";
+  const date = formatDate(r.createdAt ?? r.startDate);
+  const type = r.listing?.category ?? r.category ?? "";
+  const normalStatus = normalizeStatus(r.status);
+  const img = r.listing?.images?.[0] ?? null;
+
+  return (
+    <div className={`flex items-center gap-3 ${className}`}>
+      <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 relative bg-gray-100">
+        {img ? (
+          <Image src={img} alt={name} fill className="object-cover" />
+        ) : (
+          <Image src={heroImg} alt={name} fill className="object-cover" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-[var(--color-text)] truncate">{name}</p>
+        <p className="text-xs text-[var(--color-text-muted)]">{date}</p>
+      </div>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <StatusBadge status={normalStatus} />
+        {type && <span className="text-[11px] text-[var(--color-text-subtle)]">{type}</span>}
+      </div>
+    </div>
+  );
+}
 
 function RecentReservations() {
+  const dispatch = useDispatch();
+  const hostBookings = useSelector(selectHostBookings);
+  const status = useSelector(selectHostBookingsStatus);
   const [mobileIndex, setMobileIndex] = useState(0);
 
-  const handlePrev = () => {
-    setMobileIndex((current) => (current - 1 + reservations.length) % reservations.length);
-  };
+  useEffect(() => {
+    dispatch(fetchHostBookings({ page: 1, limit: 10 }));
+  }, [dispatch]);
 
-  const handleNext = () => {
-    setMobileIndex((current) => (current + 1) % reservations.length);
-  };
+  const reservations = [...hostBookings]
+    .sort((a, b) => new Date(b.createdAt ?? b.startDate ?? 0) - new Date(a.createdAt ?? a.startDate ?? 0))
+    .slice(0, 5);
+
+  const handlePrev = () => setMobileIndex((i) => (i - 1 + Math.max(reservations.length, 1)) % Math.max(reservations.length, 1));
+  const handleNext = () => setMobileIndex((i) => (i + 1) % Math.max(reservations.length, 1));
+
+  if (status === "loading") {
+    return (
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[var(--color-border)] h-full flex flex-col">
+        <h2 className="text-[17px] sm:text-[18px] font-bold text-[var(--color-text)] mb-4">Recent Reservations</h2>
+        <div className="flex-1 flex items-center justify-center text-[var(--color-text-muted)] text-sm">Loading…</div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[var(--color-border)] h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-[17px] sm:text-[18px] font-bold text-[var(--color-text)]">Recent Reservations</h2>
-        <div className="flex md:hidden gap-2">
-          <button
-            type="button"
-            onClick={handlePrev}
-            aria-label="Previous reservation"
-            className="w-8 h-8 rounded-lg border border-[var(--color-border)] flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={handleNext}
-            aria-label="Next reservation"
-            className="w-8 h-8 rounded-lg border border-[var(--color-border)] flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </button>
+        {reservations.length > 0 && (
+          <div className="flex md:hidden gap-2">
+            <button
+              type="button"
+              onClick={handlePrev}
+              aria-label="Previous reservation"
+              className="w-8 h-8 rounded-lg border border-[var(--color-border)] flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              aria-label="Next reservation"
+              className="w-8 h-8 rounded-lg border border-[var(--color-border)] flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {reservations.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center text-[var(--color-text-muted)] text-sm">No reservations yet.</div>
+      ) : (
+        <div className="flex flex-col gap-3 sm:gap-4 flex-1">
+          {/* Mobile: show one at a time */}
+          <ReservationRow r={reservations[mobileIndex] ?? reservations[0]} className="flex md:hidden" />
+          {/* Desktop/iPad: show all */}
+          {reservations.map((r) => (
+            <ReservationRow key={r._id ?? r.id} r={r} className="hidden md:flex" />
+          ))}
         </div>
-      </div>
-      <div className="flex flex-col gap-3 sm:gap-4 flex-1">
-        {/* Mobile: Show only 1 reservation */}
-        {[reservations[mobileIndex]].map((r) => (
-          <div key={r.id} className="flex md:hidden items-center gap-3">
-            <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 relative">
-              <Image src={heroImg} alt={r.name} fill className="object-cover" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-semibold text-[var(--color-text)] truncate">{r.name}</p>
-              <p className="text-[13px] text-[var(--color-text-muted)] mt-0.5">{r.date}</p>
-            </div>
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <StatusBadge status={r.status} />
-              <span className="text-[11px] text-[var(--color-text-subtle)]">{r.type}</span>
-            </div>
-          </div>
-        ))}
-        {/* iPad/Desktop: Show all reservations */}
-        {reservations.map((r) => (
-          <div key={r.id} className="hidden md:flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 relative">
-              <Image src={heroImg} alt={r.name} fill className="object-cover" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[var(--color-text)] truncate">{r.name}</p>
-              <p className="text-xs text-[var(--color-text-muted)]">{r.date}</p>
-            </div>
-            <div className="flex flex-col items-end gap-1 shrink-0">
-              <StatusBadge status={r.status} />
-              <span className="text-[11px] text-[var(--color-text-subtle)]">{r.type}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      )}
     </div>
   );
 }
@@ -349,7 +382,6 @@ function EarningsXAxisTick({ x, y, payload }) {
         fontFamily="var(--font-inter), Inter, sans-serif"
         fontSize="12"
         fontWeight="400"
-        lineHeight="18"
       >
         {payload.value}
       </text>
