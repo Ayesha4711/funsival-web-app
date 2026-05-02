@@ -65,7 +65,7 @@ export default function DashboardSidebar({ isOpen, onClose, hideOnDesktop = fals
       {/* Sidebar — on hideOnDesktop pages it stays mobile-only (never pins at lg+) */}
       <aside
         className={`
-          fixed top-0 left-0 h-full w-56 bg-[var(--color-primary)] z-40 flex flex-col
+          fixed top-0 left-0 h-full w-56 bg-[#2FAE9E] z-40 flex flex-col
           transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           ${hideOnDesktop ? "" : "lg:relative lg:translate-x-0 lg:z-auto lg:shrink-0"}

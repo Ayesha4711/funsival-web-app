@@ -99,9 +99,9 @@ function ActionMenu({ item, onViewDetails, onCancel, isNearBottom, totalRows }) 
 export default function ReservationTable({ data, onViewDetails, onCancel }) {
   const getStatusStyle = (status) => {
     switch (status) {
-      case "Upcoming":  return "bg-[#EAF4FF] text-[#4DA6E8] border border-[#C7E3F9]";
-      case "Completed": return "bg-[#EAFAF1] text-[#27AE60] border border-[#B7EBD0]";
-      case "Cancelled": return "bg-[#FDECEA] text-[#FF0000] border border-[#F9C9C9]";
+      case "Upcoming":  return "bg-[#CFEDEC] text-[#168F8D]";
+      case "Completed": return "bg-[#DDFBE7] text-[#12A84A]";
+      case "Cancelled": return "bg-[#FFE0DE] text-[#FF1F1F]";
       default:          return "bg-gray-100 text-gray-500";
     }
   };
@@ -127,16 +127,15 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
   const totalRows = data.length;
 
   return (
-    /* Outer: fills parent height, scrolls horizontally if needed */
-    <div className="h-full overflow-x-auto">
+    <div className="h-full overflow-hidden rounded-2xl border border-[#E0E0E0] bg-white">
       <div
-        className="overflow-y-auto h-full"
+        className="h-full overflow-auto"
         style={{ scrollbarWidth: "thin", scrollbarColor: "#d1d5db transparent" }}
       >
-        <table className="w-full text-left border-collapse min-w-[780px]">
-          {/* ── Thead: sticky top, teal background ── */}
+        <table className="w-full min-w-[980px] border-collapse text-left">
+          {/* ── Thead ── */}
           <thead className="sticky top-0 z-10">
-            <tr style={{ backgroundColor: "#EDF6F6" }}>
+            <tr className="border-b border-[#E0E0E0] bg-[#FBFCFD]">
               {["Reservation", "Category", "Invoice", "Reserved By", "Date & Time", "Status", "Actions"].map((h) => (
                 <th
                   key={h}
@@ -147,7 +146,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                     lineHeight: "21px",
                     letterSpacing: 0,
                   }}
-                  className="px-5 py-3.5 text-[var(--color-text)] whitespace-nowrap first:rounded-tl-xl last:rounded-tr-xl"
+                  className="px-5 py-3 text-[var(--color-text)] whitespace-nowrap"
                 >
                   {h}
                 </th>
@@ -156,16 +155,16 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
           </thead>
 
           {/* ── Tbody ── */}
-          <tbody className="divide-y divide-[#F0F0F0]">
+          <tbody className="divide-y divide-[#E8E8E8]">
             {data.map((item, index) => {
               const isNearBottom = index >= totalRows - 2;
               return (
                 <tr key={item.id} className="hover:bg-gray-50/60 transition-colors">
                   {/* Reservation */}
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 relative">
-                        <Image src={heroImg} alt={item.name} fill sizes="44px" className="object-cover" />
+                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+                        <Image src={heroImg} alt={item.name} fill className="object-cover" />
                       </div>
                       <div className="min-w-0">
                         <p
@@ -183,7 +182,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                   </td>
 
                   {/* Category */}
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-3">
                     <span
                       style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif", fontWeight: 600 }}
                       className="text-[12px] text-[var(--color-text)] bg-[#F3F4F6] px-3 py-1 rounded-full whitespace-nowrap"
@@ -193,7 +192,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                   </td>
 
                   {/* Invoice */}
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-3">
                     <div className={`flex items-center gap-1.5 text-[12px] font-semibold ${getInvoiceStyle(item.invoice)}`}
                       style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
                     >
@@ -204,14 +203,14 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
 
                   {/* Reserved By */}
                   <td
-                    className="px-5 py-4 text-[12px] text-[var(--color-text)] whitespace-nowrap"
+                    className="px-5 py-3 text-[12px] text-[var(--color-text)] whitespace-nowrap"
                     style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif", fontWeight: 500 }}
                   >
                     {item.reservedBy}
                   </td>
 
                   {/* Date & Time */}
-                  <td className="px-5 py-4 whitespace-nowrap">
+                  <td className="px-5 py-3 whitespace-nowrap">
                     <div
                       className="text-[12px] text-[var(--color-text)]"
                       style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif", fontWeight: 600 }}
@@ -227,27 +226,18 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                   </td>
 
                   {/* Status */}
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-3">
                     <span
                       style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif", fontWeight: 600 }}
-                      className={`text-[11px] px-3 py-1 rounded-full whitespace-nowrap ${getStatusStyle(item.status)}`}
+                      className={`text-[11px] px-3.5 py-1.5 rounded-full whitespace-nowrap ${getStatusStyle(item.status)}`}
                     >
                       {item.status}
                     </span>
                   </td>
 
                   {/* Actions */}
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
-                      {item.status === "Upcoming" && (
-                        <button
-                          onClick={() => onCancel(item)}
-                          style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif", fontWeight: 600 }}
-                          className="text-[11px] px-3 py-1.5 rounded-full border border-red-300 text-red-500 hover:bg-red-50 transition-colors whitespace-nowrap"
-                        >
-                          Cancel
-                        </button>
-                      )}
+                  <td className="px-5 py-3">
+                    <div className="flex items-center">
                       <ActionMenu
                         item={item}
                         onViewDetails={onViewDetails}

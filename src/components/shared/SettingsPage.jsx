@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import AppFooter from "@/components/shared/AppFooter";
+import { CalendarField } from "@/components/shared/FieldControls";
 import { changePassword, enable2FA, disable2FA, deleteAccount, clearAuth } from "@/store/slices/authSlice";
 import { selectUser, fetchProfile, setProfile, updateProviderProfile, clearProfile } from "@/store/slices/profileSlice";
+import { PHONE_COUNTRY_CODES, parsePhoneNumber, formatPhoneNumber, stripPhoneNumber, validatePhoneNumber } from "@/lib/phone";
 
 
 
@@ -55,6 +57,7 @@ const ChevronLeftIcon = () => (
     <polyline points="15 18 9 12 15 6"/>
   </svg>
 );
+
 const CameraIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
@@ -1065,9 +1068,10 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [initialized, setInitialized] = useState(false);
+  const [phoneCountryCode, setPhoneCountryCode] = useState("+92");
   const fileInputRef = React.useRef(null);
 
-  const REQUIRED_FIELDS = ["firstName", "lastName", "email", "phoneNumber", "bio", "profileImage"];
+  const REQUIRED_FIELDS = ["firstName", "lastName", "email", "phoneNumber", "bio", "profileImage", "addressLine1", "addressLine2", "dateOfBirth", "state", "country", "postalCode", "businessName", "businessType"];
 
   useEffect(() => {
     if (!profile) {
@@ -1117,9 +1121,26 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
     if (fieldErrors[k]) setFieldErrors((fe) => ({ ...fe, [k]: undefined }));
   };
 
+  const setPhoneNumber = (e) => {
+    const raw = e.target.value;
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length > 15) return;
+    const value = raw.replace(/[^\d\s()-]/g, "");
+    setForm((f) => ({ ...f, phoneNumber: value }));
+    if (fieldErrors.phoneNumber) setFieldErrors((fe) => ({ ...fe, phoneNumber: undefined }));
+  };
+
+  const setPhoneCode = (e) => {
+    setPhoneCountryCode(e.target.value);
+    if (fieldErrors.phoneNumber) setFieldErrors((fe) => ({ ...fe, phoneNumber: undefined }));
+  };
+
   const FIELD_LABELS = {
     firstName: "First Name", lastName: "Last Name", email: "Email Address",
     phoneNumber: "Phone Number", bio: "Bio", profileImage: "Profile Picture",
+    addressLine1: "Address Line 1", addressLine2: "Address Line 2",
+    dateOfBirth: "Date of Birth", state: "State", country: "Country", postalCode: "Postal Code",
+    businessName: "Business Name", businessType: "Business Type",
   };
 
   const handleSave = async () => {
@@ -1135,11 +1156,50 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
       return;
     }
 
+    if (!validatePhoneNumber(form.phoneNumber)) {
+      const digits = String(form.phoneNumber ?? "").replace(/\D/g, "");
+      const message = digits.length > 15
+        ? "Phone number cannot exceed 15 digits."
+        : "Please enter a valid phone number.";
+      setFieldErrors((fe) => ({ ...fe, phoneNumber: message }));
+      toast.error(message);
+      return;
+    }
+
     setSaving(true);
-    const result = await dispatch(updateProviderProfile(form));
+    const payload = {
+      ...form,
+      phoneNumber: formatPhoneNumber(phoneCountryCode, form.phoneNumber),
+    };
+    if (payload.profileImage?.startsWith("data:")) {
+      delete payload.profileImage;
+    }
+    const result = await dispatch(updateProviderProfile(payload));
     setSaving(false);
 
     if (updateProviderProfile.fulfilled.match(result)) {
+      const updatedUser = result.payload;
+      const provider = updatedUser?.providerProfile ?? updatedUser;
+      const location = provider?.location ?? updatedUser?.location ?? {};
+      const savedPhone = parsePhoneNumber(provider?.phoneNumber ?? updatedUser?.phoneNumber ?? updatedUser?.phone ?? "");
+      setForm((prev) => ({
+        ...prev,
+        firstName:    provider?.firstName    ?? prev.firstName,
+        lastName:     provider?.lastName     ?? prev.lastName,
+        email:        updatedUser?.email     ?? prev.email,
+        phoneNumber:  savedPhone.number || prev.phoneNumber,
+        dateOfBirth:  provider?.dateOfBirth  ?? updatedUser?.dateOfBirth ?? prev.dateOfBirth,
+        bio:          provider?.bio          ?? prev.bio,
+        profileImage: provider?.profileImage ?? prev.profileImage,
+        addressLine1: location?.addressLine1 ?? prev.addressLine1,
+        addressLine2: location?.addressLine2 ?? prev.addressLine2,
+        city:         location?.city         ?? updatedUser?.city ?? prev.city,
+        state:        location?.state        ?? updatedUser?.state ?? prev.state,
+        postalCode:   location?.postalCode   ?? updatedUser?.postalCode ?? prev.postalCode,
+        country:      location?.country      ?? updatedUser?.country ?? prev.country,
+        businessName: provider?.businessName ?? prev.businessName,
+        businessType: provider?.businessType ?? prev.businessType,
+      }));
       toast.success("Profile updated successfully.");
       setFieldErrors({});
     } else {
@@ -1180,6 +1240,49 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
         />
         {hasError && (
           <p className="mt-1 text-xs text-red-500 font-medium">{fieldErrors[key]}</p>
+        )}
+      </div>
+    );
+  };
+
+  const phoneField = () => {
+    const hasError = !!fieldErrors.phoneNumber;
+    return (
+      <div>
+        <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mb-1.5">
+          <span className="text-gray-400"><PhoneIcon /></span>
+          Phone Number
+          <span className="text-red-500 ml-0.5">*</span>
+        </label>
+        <div
+          className={`flex overflow-hidden rounded-xl border bg-white transition-colors focus-within:ring-2 ${
+            hasError
+              ? "border-red-400 focus-within:ring-red-200"
+              : "border-gray-200 focus-within:ring-[var(--color-primary)]/20 focus-within:border-[var(--color-primary)]"
+          }`}
+        >
+          <select
+            value={phoneCountryCode}
+            onChange={setPhoneCode}
+            className="w-28 border-r border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-[var(--color-text)] focus:outline-none"
+          >
+            {PHONE_COUNTRY_CODES.map(({ label, code }) => (
+              <option key={`${label}-${code}`} value={code}>
+                {label} {code}
+              </option>
+            ))}
+          </select>
+          <input
+            type="tel"
+            placeholder="300 1234567"
+            maxLength={20}
+            value={form.phoneNumber}
+            onChange={setPhoneNumber}
+            className="min-w-0 flex-1 px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
+          />
+        </div>
+        {hasError && (
+          <p className="mt-1 text-xs text-red-500 font-medium">{fieldErrors.phoneNumber}</p>
         )}
       </div>
     );
