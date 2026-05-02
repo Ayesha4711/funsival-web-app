@@ -86,9 +86,9 @@ function ReservationRow({ r, className = "" }) {
     <div className={`flex items-center gap-3 ${className}`}>
       <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 relative bg-gray-100">
         {img ? (
-          <Image src={img} alt={name} fill className="object-cover" />
+          <Image src={img} alt={name} fill sizes="48px" className="object-cover" />
         ) : (
-          <Image src={heroImg} alt={name} fill className="object-cover" />
+          <Image src={heroImg} alt={name} fill sizes="48px" className="object-cover" />
         )}
       </div>
       <div className="flex-1 min-w-0">

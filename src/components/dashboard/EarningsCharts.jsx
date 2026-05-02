@@ -60,8 +60,8 @@ export function EarningsTrend() {
       >
         Earnings Trend
       </h2>
-      <div className="flex-1 min-h-[200px] sm:min-h-[260px]">
-      <ResponsiveContainer width="100%" height="100%">
+      <div className="flex-1 min-h-[200px] sm:min-h-[260px] min-w-0">
+      <ResponsiveContainer width="100%" height="100%" minHeight={200}>
         <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="earningsGrad" x1="0" y1="0" x2="0" y2="1">

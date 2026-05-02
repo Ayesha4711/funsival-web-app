@@ -74,7 +74,7 @@ export default function DashboardSidebar({ isOpen, onClose, hideOnDesktop = fals
         {/* Logo */}
         <div className="h-16 flex items-center px-6 shrink-0">
           <Link href="/dashboard" onClick={onClose}>
-            <Image src={logo} alt="Funsival" width={120} height={36} className="h-9 w-auto object-contain" />
+            <Image src={logo} alt="Funsival" width={120} height={36} className="h-9 w-auto object-contain" style={{ width: "auto" }} />
           </Link>
         </div>
 

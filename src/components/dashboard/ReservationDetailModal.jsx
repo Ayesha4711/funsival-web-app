@@ -122,7 +122,7 @@ export default function ReservationDetailModal({ reservation, onClose, onCancel 
       >
         {/* ── Hero image ─────────────────────────────────────── */}
         <div className="relative w-full h-48 sm:h-56 lg:h-64 rounded-t-3xl overflow-hidden shrink-0">
-          <Image src={heroImg} alt={reservation.name} fill className="object-cover" />
+          <Image src={heroImg} alt={reservation.name} fill sizes="(max-width: 768px) 100vw, 600px" className="object-cover" />
           {/* Gradient overlay for readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
