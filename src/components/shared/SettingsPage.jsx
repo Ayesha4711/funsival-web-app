@@ -879,6 +879,28 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
     setSaving(false);
 
     if (updateProviderProfile.fulfilled.match(result)) {
+      const updatedUser = result.payload;
+      const provider = updatedUser?.providerProfile ?? updatedUser;
+      const location = provider?.location ?? updatedUser?.location ?? {};
+      const savedPhone = parsePhoneNumber(provider?.phoneNumber ?? updatedUser?.phoneNumber ?? updatedUser?.phone ?? "");
+      setForm((prev) => ({
+        ...prev,
+        firstName:    provider?.firstName    ?? prev.firstName,
+        lastName:     provider?.lastName     ?? prev.lastName,
+        email:        updatedUser?.email     ?? prev.email,
+        phoneNumber:  savedPhone.number || prev.phoneNumber,
+        dateOfBirth:  provider?.dateOfBirth  ?? updatedUser?.dateOfBirth ?? prev.dateOfBirth,
+        bio:          provider?.bio          ?? prev.bio,
+        profileImage: provider?.profileImage ?? prev.profileImage,
+        addressLine1: location?.addressLine1 ?? prev.addressLine1,
+        addressLine2: location?.addressLine2 ?? prev.addressLine2,
+        city:         location?.city         ?? updatedUser?.city ?? prev.city,
+        state:        location?.state        ?? updatedUser?.state ?? prev.state,
+        postalCode:   location?.postalCode   ?? updatedUser?.postalCode ?? prev.postalCode,
+        country:      location?.country      ?? updatedUser?.country ?? prev.country,
+        businessName: provider?.businessName ?? prev.businessName,
+        businessType: provider?.businessType ?? prev.businessType,
+      }));
       toast.success("Profile updated successfully.");
       setFieldErrors({});
     } else {
