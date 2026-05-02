@@ -250,7 +250,7 @@ function ModalOverlay({ onClose, children }) {
   );
 }
 
-// ─── Add Payment Method Modal ─────────────────────────────────────────────────────
+
 
 function AddPaymentModal({ onClose, onAdd }) {
   const [form, setForm] = useState({
@@ -272,7 +272,7 @@ function AddPaymentModal({ onClose, onAdd }) {
   return (
     <ModalOverlay onClose={onClose}>
       <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        {/* Header */}
+
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <span className="text-primary"><CreditCardIcon size={20} /></span>
