@@ -35,7 +35,11 @@ export const updateProviderProfile = createAsyncThunk(
   "profile/updateProviderProfile",
   async (payload, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.patch("/users/provider-profile", payload);
+      const safePayload = { ...payload };
+      if (safePayload.profileImage?.startsWith?.("data:")) {
+        delete safePayload.profileImage;
+      }
+      const { data } = await axiosInstance.patch("/users/provider-profile", safePayload);
       return data?.data?.user ?? data?.data ?? null;
     } catch (err) {
       const res = err.response?.data;
