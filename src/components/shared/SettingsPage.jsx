@@ -717,14 +717,14 @@ function SecurityTab() {
       bg: "bg-primary",
       iconColor: "text-white",
     },
-    {
-      value: "sms",
-      label: "SMS verification",
-      desc: profile?.phone || profile?.phoneNumber || "+1 (555) 123-4567",
-      Icon: PhoneIcon,
-      bg: "bg-gray-100",
-      iconColor: "text-gray-500",
-    },
+    // {
+    //   value: "sms",
+    //   label: "SMS verification",
+    //   desc: profile?.phone || profile?.phoneNumber || "+1 (555) 123-4567",
+    //   Icon: PhoneIcon,
+    //   bg: "bg-gray-100",
+    //   iconColor: "text-gray-500",
+    // },
   ];
 
   return (
