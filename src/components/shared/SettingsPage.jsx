@@ -8,7 +8,7 @@ import AppFooter from "@/components/shared/AppFooter";
 import { changePassword, enable2FA, disable2FA, deleteAccount, clearAuth } from "@/store/slices/authSlice";
 import { selectUser, fetchProfile, setProfile, updateProviderProfile, clearProfile } from "@/store/slices/profileSlice";
 
-// ─── SVG Icons ──────────────────────────────────────────────────────────────────
+
 
 const BellIcon = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
