@@ -18,6 +18,13 @@ export default function CustomCalendar({ value, onChange, onClose }) {
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
   const [selected,  setSelected]  = useState(value || null);
 
+  const currentYear = today.getFullYear();
+  const yearStart = Math.min(currentYear - 100, initial.getFullYear());
+  const yearOptions = [];
+  for (let year = currentYear; year >= yearStart; year -= 1) {
+    yearOptions.push(year);
+  }
+
   const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const daysInPrev  = new Date(viewYear, viewMonth, 0).getDate();
@@ -33,7 +40,7 @@ export default function CustomCalendar({ value, onChange, onClose }) {
 
   const handleSelect = (day) => {
     const d = new Date(viewYear, viewMonth, day);
-    const formatted = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+    const formatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     setSelected(formatted);
     onChange?.(formatted);
     onClose?.();
@@ -73,22 +80,40 @@ export default function CustomCalendar({ value, onChange, onClose }) {
         <button
           onClick={prevMonth}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+          type="button"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
 
-        <span
-          style={{ fontFamily: FONT, fontWeight: 700, fontSize: 13 }}
-          className="text-gray-900"
-        >
-          {MONTHS[viewMonth]} {viewYear}
-        </span>
+        <div className="flex items-center gap-2">
+          <select
+            value={viewMonth}
+            onChange={(event) => setViewMonth(Number(event.target.value))}
+            style={{ fontFamily: FONT }}
+            className="rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
+          >
+            {MONTHS.map((month, index) => (
+              <option key={month} value={index}>{month}</option>
+            ))}
+          </select>
+          <select
+            value={viewYear}
+            onChange={(event) => setViewYear(Number(event.target.value))}
+            style={{ fontFamily: FONT }}
+            className="rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
+          >
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
 
         <button
           onClick={nextMonth}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+          type="button"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6" />

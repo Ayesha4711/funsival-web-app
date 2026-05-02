@@ -12,6 +12,21 @@ import AppFooter from "@/components/shared/AppFooter";
 import CustomCalendar from "@/components/shared/CustomCalendar";
 import { toast } from "sonner";
 
+const parseCalendarDate = (value = "") => {
+  const [month, day, year] = String(value).split("/").map(Number);
+  if (!month || !day || !year) return null;
+  const date = new Date(year, month - 1, day);
+  return Number.isFinite(date.getTime()) ? date : null;
+};
+
+const calculateDaysBetween = (start, end) => {
+  const startDate = parseCalendarDate(start);
+  const endDate = parseCalendarDate(end);
+  if (!startDate || !endDate) return NaN;
+  const diff = Math.round((endDate.getTime() - startDate.getTime()) / 86400000);
+  return diff >= 1 ? diff : 1;
+};
+
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const StarIcon = ({ filled }) => (
   <svg className={`w-4 h-4 ${filled ? "text-[#F5C842] fill-current" : "text-gray-300 fill-current"}`} viewBox="0 0 20 20">
@@ -638,7 +653,7 @@ function EquipmentBookingCard({ listing, listingId }) {
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
     : 3;
   const days = startDate && endDate
-    ? Math.max(1, Math.round((new Date(`${endDate}T00:00:00`) - new Date(`${startDate}T00:00:00`)) / 86400000))
+    ? calculateDaysBetween(startDate, endDate)
     : 1;
   const span = mode === "daily" ? days : hours;
   const subtotal = listing.price * span;

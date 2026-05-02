@@ -46,7 +46,7 @@ export default function BookingSuccessPage() {
 
         {/* Explore Now button */}
         <button
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/user-dashboard/explore")}
           className="flex items-center justify-between bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold text-sm rounded-full transition-colors pl-8 pr-2 py-2 w-56"
         >
           <span className="flex-1 text-center">Explore Now</span>
