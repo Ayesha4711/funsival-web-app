@@ -334,25 +334,23 @@ export function CalendarField({ value, placeholder = "Select date", onChange }) 
 
   return (
     <div ref={ref} className="relative w-full">
-      {/* Trigger — always shows icon + text on every breakpoint */}
-      <div
-        onClick={() => setOpen((c) => !c)}
-        className={[
-          "flex items-center w-full rounded-xl border bg-white cursor-pointer transition-colors select-none",
-          open
-            ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/15"
-            : "border-[#CEE6E5] hover:border-[var(--color-primary)]/60",
-        ].join(" ")}
-      >
-        <span className="pl-3 py-2.5 text-[var(--color-primary)] flex items-center shrink-0">
+      <div className="flex items-center gap-2 w-full">
+        <input
+          type="text"
+          value={value ?? ""}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+          onFocus={() => setOpen(true)}
+          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
+        />
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-[var(--color-primary)] hover:bg-gray-50"
+          aria-label="Open calendar"
+        >
           <CalendarIcon />
-        </span>
-        <span className={[
-          "flex-1 min-w-0 px-2 py-2.5 text-sm truncate",
-          value ? "font-semibold text-gray-800" : "text-gray-400",
-        ].join(" ")}>
-          {value || placeholder}
-        </span>
+        </button>
       </div>
 
       {open && (

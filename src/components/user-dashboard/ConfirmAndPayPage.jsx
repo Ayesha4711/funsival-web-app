@@ -276,9 +276,14 @@ export default function ConfirmAndPayPage() {
   const guests = params.get("guests") || (params.get("numberOfGuests") ? `${params.get("numberOfGuests")} guest(s)` : "");
   const startTime = params.get("startTime") || "";
   const endTime = params.get("endTime") || "";
-  const pricePerUnit = Number(params.get("pricePerUnit") || 0);
-  const units = Number(params.get("units") || params.get("hours") || 1);
-  const funsivalFee = Number(params.get("funsivalFee") || 8);
+  const toNumber = (value, fallback = 0) => {
+    const cleaned = String(value ?? "").replace(/[^\d.-]/g, "");
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const pricePerUnit = toNumber(params.get("pricePerUnit"), 0);
+  const units = toNumber(params.get("units") ?? params.get("hours"), 1);
+  const funsivalFee = toNumber(params.get("funsivalFee"), 8);
   const bookingType = params.get("bookingType") || "";
 
   const priceAmount = pricePerUnit * units;
