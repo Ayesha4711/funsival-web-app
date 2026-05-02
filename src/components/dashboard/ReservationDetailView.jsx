@@ -119,6 +119,7 @@ export default function ReservationDetailView({ reservation, onBack, onCancel })
             src={heroImg}
             alt={reservation.name}
             fill
+            sizes="(max-width: 1024px) 100vw, 800px"
             className="object-cover"
           />
           {/* Gradient */}

@@ -212,6 +212,8 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
           width={110}
           height={32}
           className="h-7 sm:h-8 w-auto object-contain"
+          loading="eager"
+          style={{ width: "auto" }}
         />
       </Link>
 
