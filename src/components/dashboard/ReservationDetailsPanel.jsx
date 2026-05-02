@@ -82,6 +82,7 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
                 src={hasRealPhoto ? rawPhoto : heroImg}
                 alt={reservation.name}
                 fill
+                sizes="(max-width: 640px) 100vw, 400px"
                 className="object-cover"
               />
             </div>

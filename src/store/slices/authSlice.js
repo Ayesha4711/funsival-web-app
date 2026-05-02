@@ -217,6 +217,22 @@ export const verify2FALogin = createAsyncThunk(
   }
 );
 
+export const deleteAccount = createAsyncThunk(
+  "auth/deleteAccount",
+  async ({ password }, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.delete("/auth/account", {
+        data: { password },
+      });
+      return data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message ?? err.response?.data?.error ?? err.message
+      );
+    }
+  }
+);
+
 export const logoutUser = createAsyncThunk(
   "auth/logoutUser",
   async (_, { rejectWithValue }) => {
@@ -319,7 +335,15 @@ const authSlice = createSlice({
         state.status = "succeeded";
         state.token = action.payload?.token ?? null;
       })
-      .addCase(verify2FALogin.rejected, setFailed);
+      .addCase(verify2FALogin.rejected, setFailed)
+
+      .addCase(deleteAccount.pending, setLoading)
+      .addCase(deleteAccount.fulfilled, (state) => {
+        state.token = null;
+        state.status = "idle";
+        state.error = null;
+      })
+      .addCase(deleteAccount.rejected, setFailed);
   }
 });
 
