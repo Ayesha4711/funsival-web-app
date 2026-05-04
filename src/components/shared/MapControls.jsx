@@ -73,11 +73,8 @@ export function LocationMap({ coords, searchValue, onSearchChange, onSelect, onU
         </div>
       </div>
 
-      {/* Map attribution overlay */}
-
-      <div className="absolute bottom-2 left-2 bg-white/70 backdrop-blur-sm px-1.5 py-0.5 rounded text-[8px] text-gray-400 pointer-events-none">
-        © OpenStreetMap contributors
-      </div>
+      {/* Hide OSM attribution bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-6 bg-white pointer-events-none z-10" />
     </div>
   );
 }
@@ -141,9 +138,8 @@ export function SimpleMap({ location, lat: latProp, lng: lngProp, height = 200 }
         src={mapSrc}
         className="grayscale-[15%] contrast-[1.05]"
       />
-      <div className="absolute bottom-2 right-2 bg-white/60 backdrop-blur-sm px-1.5 py-0.5 rounded text-[8px] text-gray-400 pointer-events-none">
-        © OpenStreetMap
-      </div>
+      {/* Hide OSM attribution bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-6 bg-white pointer-events-none z-10" />
     </div>
   );
 }
