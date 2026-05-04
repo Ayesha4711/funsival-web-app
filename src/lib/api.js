@@ -1,5 +1,16 @@
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+function getAuthToken() {
+  if (typeof window === "undefined") return null;
+
+  let token = localStorage.getItem("auth-token");
+  if (!token) {
+    const match = document.cookie.match(/(^|;)\s*auth-token\s*=\s*([^;]+)/);
+    token = match ? match[2] : null;
+  }
+  return token;
+}
+
 /**
  * Thin fetch wrapper that prepends the base URL and always
  * sends/expects JSON.
@@ -9,20 +20,14 @@ export const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
  * @returns {Promise<{ data: any, status: number }>}
  */
 export async function apiFetch(path, options = {}) {
-  let token = null;
-  if (typeof window !== "undefined") {
-    // Client-side: try localStorage or document.cookie
-    token = localStorage.getItem("auth-token");
-    if (!token) {
-      const match = document.cookie.match(/(^|;)\s*auth-token\s*=\s*([^;]+)/);
-      token = match ? match[2] : null;
-    }
-  }
+  const token = getAuthToken();
+  const body = options.body;
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers ?? {})
     }
