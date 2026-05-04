@@ -93,7 +93,7 @@ export default function DashboardSidebar({ isOpen, onClose, hideOnDesktop = fals
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-150
                   ${isActive
-                    ? "bg-[#F5C842] text-gray-900"
+                    ? "bg-[#FEB538] text-gray-900"
                     : "text-white/80 hover:bg-white/10 hover:text-white"
                   }
                 `}
