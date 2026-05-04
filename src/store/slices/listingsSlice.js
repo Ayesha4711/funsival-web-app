@@ -40,6 +40,32 @@ export const createListing = createAsyncThunk(
   }
 );
 
+export const uploadListingImages = createAsyncThunk(
+  "listings/uploadListingImages",
+  async (files, { rejectWithValue }) => {
+    try {
+      const fileList = Array.from(files ?? []).filter(Boolean);
+      if (fileList.length === 0) {
+        return rejectWithValue("At least one image is required.");
+      }
+
+      const formData = new FormData();
+      fileList.forEach((file) => {
+        formData.append("images", file);
+      });
+
+      const { data } = await axiosInstance.post("/listings/images", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data ?? err.message);
+    }
+  }
+);
+
 export const updateListing = createAsyncThunk(
   "listings/updateListing",
   async ({ listingId, payload }, { rejectWithValue }) => {

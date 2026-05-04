@@ -257,7 +257,14 @@ function buildPayload(data) {
       // longitude: 0,
       // googleMapsUrl: "",
     },
-    photos: details.photos || [],
+    photos: Array.isArray(details.photos)
+      ? details.photos.filter((photo) =>
+          typeof photo === "string" &&
+          photo &&
+          !photo.startsWith("blob:") &&
+          !photo.startsWith("data:")
+        )
+      : [],
     availability,
     price: buildListingPricePayload(category, price),
   };

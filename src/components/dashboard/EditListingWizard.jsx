@@ -110,7 +110,7 @@ function apiToWizardData(raw) {
 
   // Filter out blob URLs from photos (they won't work after refresh)
   const validPhotos = Array.isArray(raw.photos)
-    ? raw.photos.filter(p => p && !p.startsWith("blob:"))
+    ? raw.photos.filter(p => p && typeof p === "string" && !p.startsWith("blob:") && !p.startsWith("data:"))
     : [];
 
   // Convert country and state names to ISO codes for the dropdowns

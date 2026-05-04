@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { useDispatch } from "react-redux";
 import { Country, State, City } from "country-state-city";
 import informationIcon from "@/assets/icons/informationicon.svg";
 import {
@@ -12,6 +13,7 @@ import {
   TagInputField,
 } from "@/components/shared/FieldControls";
 import { LocationMap } from "@/components/shared/MapControls";
+import { uploadListingImages } from "@/store/slices/listingsSlice";
 
 /* Match a raw city name from Nominatim against the country-state-city library */
 function resolveCity(rawCity, countryCode, stateCode) {
@@ -103,8 +105,55 @@ function SectionTitle({ num, children }) {
   );
 }
 
+function extractUploadedPhotoUrls(response) {
+  const urls = [];
+  const seen = new Set();
+
+  const visit = (value) => {
+    if (!value) return;
+
+    if (typeof value === "string") {
+      const normalized = value.trim();
+      if (
+        normalized &&
+        !seen.has(normalized) &&
+        (normalized.startsWith("http://") ||
+          normalized.startsWith("https://") ||
+          normalized.startsWith("/"))
+      ) {
+        seen.add(normalized);
+        urls.push(normalized);
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+
+    if (typeof value === "object") {
+      [
+        "photos",
+        "images",
+        "urls",
+        "links",
+        "files",
+        "items",
+        "data",
+        "result",
+        "url",
+        "path",
+      ].forEach((key) => visit(value[key]));
+    }
+  };
+
+  visit(response?.data ?? response);
+  return urls;
+}
+
 /* ─── Photo upload ───────────────────────────────────────────────────────────── */
-function PhotoUpload({ photos, onPhotosChange }) {
+function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isUploading }) {
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const menuRef = useRef(null);
 
@@ -118,12 +167,35 @@ function PhotoUpload({ photos, onPhotosChange }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const handleFiles = (files) => {
-    const newPhotos = Array.from(files).map((f) => URL.createObjectURL(f));
-    onPhotosChange([...photos, ...newPhotos]);
+  const handleFiles = async (files) => {
+    const filesArray = Array.from(files ?? []).filter(Boolean);
+    if (filesArray.length === 0) return;
+
+    const previewUrls = filesArray.map((file) => URL.createObjectURL(file));
+    onPhotosChange((prev) => [...prev, ...previewUrls]);
+
+    try {
+      const response = await onUploadFiles(filesArray);
+      const uploadedUrls = extractUploadedPhotoUrls(response);
+
+      if (uploadedUrls.length === 0) {
+        throw new Error("Upload succeeded, but no image link was returned.");
+      }
+
+      onPhotosChange((prev) => {
+        const remaining = prev.filter((src) => !previewUrls.includes(src));
+        return [...remaining, ...uploadedUrls];
+      });
+    } catch (error) {
+      onPhotosChange((prev) => prev.filter((src) => !previewUrls.includes(src)));
+      toast.error(error?.message || "Failed to upload images. Please try again.");
+    } finally {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    }
   };
 
   const deletePhoto = (index) => {
+    if (isUploading) return;
     onPhotosChange(photos.filter((_, i) => i !== index));
     setOpenMenuIndex(null);
   };
@@ -161,6 +233,7 @@ function PhotoUpload({ photos, onPhotosChange }) {
                   <button
                     type="button"
                     onClick={() => deletePhoto(i)}
+                    disabled={isUploading}
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -178,16 +251,17 @@ function PhotoUpload({ photos, onPhotosChange }) {
         ))}
         <label className="flex flex-col items-center justify-center w-32 h-24 sm:w-40 sm:h-28 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors shrink-0">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <input id="photo-add-input" type="file" accept="image/jpeg,image/png" className="sr-only" onChange={(e) => handleFiles(e.target.files)} multiple />
+          <input id="photo-add-input" type="file" accept="image/jpeg,image/png" className="sr-only" onChange={(e) => handleFiles(e.target.files)} multiple disabled={isUploading} />
         </label>
       </div>
-      <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors" onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }} onDragOver={(e) => e.preventDefault()}>
+      <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors" onDrop={(e) => { e.preventDefault(); if (!isUploading) handleFiles(e.dataTransfer.files); }} onDragOver={(e) => e.preventDefault()}>
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <p className="text-sm font-bold text-gray-700 mt-2">Upload & Drag Images Here</p>
         <p className="text-xs text-gray-400 mt-0.5">JPEG or PNG files only</p>
         <p className="text-xs text-gray-400">Max size: 5MB</p>
-        <input type="file" accept="image/jpeg,image/png" multiple className="sr-only" onChange={(e) => handleFiles(e.target.files)} />
+        <input type="file" accept="image/jpeg,image/png" multiple className="sr-only" onChange={(e) => handleFiles(e.target.files)} disabled={isUploading} />
       </label>
+      {isUploading && <p className="text-xs font-medium text-[var(--color-primary)]">Uploading images...</p>}
     </div>
   );
 }
@@ -396,8 +470,10 @@ function LocationDropdowns({ country, state, city, onCountryChange, onStateChang
 
 /* ─── Step ─────────────────────────────────────────────────────────────────── */
 export default function StepDetails({ details, onChange, onNext, onBack, fieldErrors = null }) {
+  const dispatch = useDispatch();
   // Local copy of field errors — cleared per-field as the user edits
   const [activeErrors, setActiveErrors] = useState(fieldErrors || {});
+  const [photoUploadsPending, setPhotoUploadsPending] = useState(0);
 
   // Sync when new errors arrive from parent (after a failed submit) and scroll to first error
   useEffect(() => {
@@ -412,6 +488,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
   }, [fieldErrors]);
 
   const fe = activeErrors;
+  const isUploadingPhotos = photoUploadsPending > 0;
 
   // Wrap set() so typing in a field immediately clears its error
   const setWithClear = (key, val, errorKey) => {
@@ -455,7 +532,6 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
     if (d && Object.keys(d).length > 0) {
       setForm(prev => ({ ...prev, ...d }));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Map search state ────────────────────────────────────────────────────────
@@ -703,6 +779,30 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
   };
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
+
+  const handlePhotosChange = useCallback((nextPhotos) => {
+    setForm((prev) => ({
+      ...prev,
+      photos: typeof nextPhotos === "function" ? nextPhotos(prev.photos) : nextPhotos,
+    }));
+  }, []);
+
+  const handleUploadFiles = useCallback(async (filesArray) => {
+    setPhotoUploadsPending((count) => count + 1);
+    try {
+      const result = await dispatch(uploadListingImages(filesArray));
+      if (uploadListingImages.rejected.match(result)) {
+        throw new Error(
+          typeof result.payload === "string"
+            ? result.payload
+            : result.payload?.message || "Failed to upload images. Please try again."
+        );
+      }
+      return result.payload;
+    } finally {
+      setPhotoUploadsPending((count) => Math.max(0, count - 1));
+    }
+  }, [dispatch]);
 
   // Geocode a free-form query and pan the map there (fire-and-forget)
   const geocodeAndPan = useCallback(async (query) => {
@@ -1015,7 +1115,12 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
           <SectionTitle num="4">Add Some Photos Of Your Activity</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">Add at least 5 photos to increase your bookings. You can edit or add more later.</p>
-          <PhotoUpload photos={form.photos} onPhotosChange={(photos) => set("photos", photos)} />
+          <PhotoUpload
+            photos={form.photos}
+            onPhotosChange={handlePhotosChange}
+            onUploadFiles={handleUploadFiles}
+            isUploading={isUploadingPhotos}
+          />
         </section>
 
         {/* ── 5. Availability ─────────────────────────────────────────────── */}
@@ -1049,8 +1154,13 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
       <div className="flex items-center gap-3 mt-8 sm:mt-10 sm:justify-center">
         <button onClick={onBack} className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors">Go Back</button>
         <button
+          disabled={isUploadingPhotos}
           onClick={() => {
             const errs = {};
+            if (isUploadingPhotos) {
+              toast.error("Please wait for image uploads to finish.");
+              return;
+            }
             if (!form.title?.trim()) errs.activityTitle = "Activity title is required";
             if (!form.difficulty) errs.difficulty = "Difficulty level is required";
             if (!form.duration) errs.duration = "Duration is required";
@@ -1090,7 +1200,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             onChange({ ...form, mapLat: hasAddress ? mapCoords.lat : undefined, mapLng: hasAddress ? mapCoords.lon : undefined });
             onNext();
           }}
-          className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all"
+          className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
         >
           Next
         </button>
