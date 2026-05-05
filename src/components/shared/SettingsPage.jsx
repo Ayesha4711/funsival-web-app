@@ -7,8 +7,8 @@ import { toast } from "sonner";
 import AppFooter from "@/components/shared/AppFooter";
 import { CalendarField } from "@/components/shared/FieldControls";
 import { changePassword, enable2FA, disable2FA, deleteAccount, clearAuth } from "@/store/slices/authSlice";
-import { selectUser, fetchProfile, setProfile, updateProviderProfile, clearProfile } from "@/store/slices/profileSlice";
-import { PHONE_COUNTRY_CODES, parsePhoneNumber, formatPhoneNumber, stripPhoneNumber, validatePhoneNumber } from "@/lib/phone";
+import { selectUser, fetchProfile, setProfile, updateProviderProfile, uploadProfilePicture, clearProfile } from "@/store/slices/profileSlice";
+import { PHONE_COUNTRY_CODES, parsePhoneNumber, formatPhoneNumber, stripPhoneNumber, validatePhoneNumber, countryToFlag } from "@/lib/phone";
 
 
 
@@ -165,6 +165,8 @@ function SectionHeader({ emoji, title, subtitle }) {
   );
 }
 
+const PROFILE_PICTURE_MAX_MB = 5;
+
 function Toggle({ checked, onChange }) {
   return (
     <button
@@ -176,6 +178,26 @@ function Toggle({ checked, onChange }) {
       <span className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`} />
     </button>
   );
+}
+
+function useOutsideClose(onClose) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const onPointerDown = (event) => {
+      if (!ref.current || ref.current.contains(event.target)) return;
+      onClose();
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+    };
+  }, [onClose]);
+
+  return ref;
 }
 
 // Language-aware SelectField with teal-highlighted selected option
@@ -219,6 +241,98 @@ function SelectField({ label, value, onChange, options }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function PhoneCountryPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useOutsideClose(() => {
+    setOpen(false);
+    setQuery("");
+  });
+
+  const options = PHONE_COUNTRY_CODES.map((option) => ({
+    ...option,
+    flag: countryToFlag(option.label),
+  }));
+  const selected = options.find((o) => o.code === value) || options[0];
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredOptions = normalizedQuery
+    ? options.filter((opt) =>
+        `${opt.label} ${opt.code}`.toLowerCase().includes(normalizedQuery)
+      )
+    : options;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((prev) => {
+            if (!prev) setQuery("");
+            return !prev;
+          });
+        }}
+        className="flex h-[42px] min-w-[128px] items-center justify-between gap-2 border-r border-gray-200 rounded-l-xl bg-gray-50 px-3 text-sm font-semibold text-[var(--color-text)] transition-colors hover:bg-gray-100 focus:outline-none"
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="text-base leading-none">{selected?.flag || "🌐"}</span>
+          <span className="truncate">{selected?.code || "+92"}</span>
+        </span>
+        <span className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}>
+          <ChevronDownIcon />
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-30 mt-2 w-[280px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+          <div className="border-b border-gray-100 p-2">
+            <div className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2.5 focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 shrink-0">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="16.65" y1="16.65" x2="21" y2="21" />
+              </svg>
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search country"
+                className="w-full bg-transparent text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="max-h-64 overflow-y-auto py-1">
+            {filteredOptions.length > 0 ? filteredOptions.map((opt) => {
+              const active = opt.code === value;
+              return (
+                <button
+                  key={`${opt.label}-${opt.code}`}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.code);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition-colors ${
+                    active ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]" : "hover:bg-gray-50 text-[var(--color-text)]"
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="text-base leading-none">{opt.flag || "🌐"}</span>
+                    <span className="truncate">{opt.label}</span>
+                  </span>
+                  <span className="ml-3 shrink-0 text-xs font-semibold text-gray-400">{opt.code}</span>
+                </button>
+              );
+            }) : (
+              <p className="px-3 py-4 text-sm text-gray-400">No countries found.</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1070,6 +1184,7 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
   const [initialized, setInitialized] = useState(false);
   const [phoneCountryCode, setPhoneCountryCode] = useState("+92");
   const fileInputRef = React.useRef(null);
+  const [profileImageFile, setProfileImageFile] = useState(null);
 
   const REQUIRED_FIELDS = ["firstName", "lastName", "email", "phoneNumber", "bio", "profileImage", "addressLine1", "addressLine2", "dateOfBirth", "state", "country", "postalCode", "businessName", "businessType"];
 
@@ -1084,11 +1199,12 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
       const pp  = profile.providerProfile ?? {};
       const loc = pp.location ?? {};
       const dob = pp.dateOfBirth ?? profile.dateOfBirth ?? "";
-      setForm({
+      const savedPhone = parsePhoneNumber(pp.phoneNumber ?? profile.phoneNumber ?? profile.phone ?? "");
+      const nextForm = {
         firstName:    pp.firstName    ?? profile.firstName    ?? "",
         lastName:     pp.lastName     ?? profile.lastName     ?? "",
         email:        profile.email   ?? "",
-        phoneNumber:  pp.phoneNumber  ?? profile.phoneNumber  ?? profile.phone ?? "",
+        phoneNumber:  savedPhone.number,
         dateOfBirth:  dob ? dob.split("T")[0] : "",
         bio:          pp.bio          ?? profile.bio          ?? "",
         profileImage: pp.profileImage ?? profile.profileImage ?? "",
@@ -1100,20 +1216,37 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
         country:      loc.country      ?? pp.country    ?? profile.country    ?? "",
         businessName: pp.businessName  ?? profile.businessName ?? profile.agencyName ?? "",
         businessType: pp.businessType  ?? profile.businessType ?? "",
-      });
-      setInitialized(true);
+      };
+      const code = savedPhone.countryCode || "+92";
+      const timeoutId = setTimeout(() => {
+        setForm(nextForm);
+        setProfileImageFile(null);
+        setPhoneCountryCode(code);
+        setInitialized(true);
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [profile, initialized]);
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const maxBytes = PROFILE_PICTURE_MAX_MB * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error(`Profile picture must be ${PROFILE_PICTURE_MAX_MB}MB or smaller.`);
+      e.target.value = "";
+      return;
+    }
+
+    setProfileImageFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       setForm((f) => ({ ...f, profileImage: ev.target.result }));
       if (fieldErrors.profileImage) setFieldErrors((fe) => ({ ...fe, profileImage: undefined }));
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   const set = (k) => (e) => {
@@ -1123,15 +1256,19 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
 
   const setPhoneNumber = (e) => {
     const raw = e.target.value;
-    const digits = raw.replace(/\D/g, "");
+    const digits = stripPhoneNumber(raw).replace(/^0+/, "");
     if (digits.length > 15) return;
-    const value = raw.replace(/[^\d\s()-]/g, "");
-    setForm((f) => ({ ...f, phoneNumber: value }));
+    setForm((f) => ({ ...f, phoneNumber: digits }));
     if (fieldErrors.phoneNumber) setFieldErrors((fe) => ({ ...fe, phoneNumber: undefined }));
   };
 
-  const setPhoneCode = (e) => {
-    setPhoneCountryCode(e.target.value);
+  const setPhoneCode = (valueOrEvent) => {
+    const nextCode =
+      typeof valueOrEvent === "string"
+        ? valueOrEvent
+        : valueOrEvent?.target?.value;
+    if (!nextCode) return;
+    setPhoneCountryCode(nextCode);
     if (fieldErrors.phoneNumber) setFieldErrors((fe) => ({ ...fe, phoneNumber: undefined }));
   };
 
@@ -1156,61 +1293,92 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
       return;
     }
 
-    if (!validatePhoneNumber(form.phoneNumber)) {
-      const digits = String(form.phoneNumber ?? "").replace(/\D/g, "");
+    if (!phoneCountryCode) {
+      setFieldErrors((fe) => ({ ...fe, phoneNumber: "Please select a country code." }));
+      toast.error("Please select a country code.");
+      return;
+    }
+
+    if (!validatePhoneNumber(form.phoneNumber, { allowLeadingZero: false })) {
+      const digits = stripPhoneNumber(form.phoneNumber);
       const message = digits.length > 15
         ? "Phone number cannot exceed 15 digits."
-        : "Please enter a valid phone number.";
+        : digits.startsWith("0")
+          ? "Please enter the phone number without the leading 0."
+          : "Please enter a valid phone number.";
       setFieldErrors((fe) => ({ ...fe, phoneNumber: message }));
       toast.error(message);
       return;
     }
 
     setSaving(true);
-    const payload = {
-      ...form,
-      phoneNumber: formatPhoneNumber(phoneCountryCode, form.phoneNumber),
-    };
-    if (payload.profileImage?.startsWith("data:")) {
-      delete payload.profileImage;
-    }
-    const result = await dispatch(updateProviderProfile(payload));
-    setSaving(false);
 
-    if (updateProviderProfile.fulfilled.match(result)) {
-      const updatedUser = result.payload;
-      const provider = updatedUser?.providerProfile ?? updatedUser;
-      const location = provider?.location ?? updatedUser?.location ?? {};
-      const savedPhone = parsePhoneNumber(provider?.phoneNumber ?? updatedUser?.phoneNumber ?? updatedUser?.phone ?? "");
-      setForm((prev) => ({
-        ...prev,
-        firstName:    provider?.firstName    ?? prev.firstName,
-        lastName:     provider?.lastName     ?? prev.lastName,
-        email:        updatedUser?.email     ?? prev.email,
-        phoneNumber:  savedPhone.number || prev.phoneNumber,
-        dateOfBirth:  provider?.dateOfBirth  ?? updatedUser?.dateOfBirth ?? prev.dateOfBirth,
-        bio:          provider?.bio          ?? prev.bio,
-        profileImage: provider?.profileImage ?? prev.profileImage,
-        addressLine1: location?.addressLine1 ?? prev.addressLine1,
-        addressLine2: location?.addressLine2 ?? prev.addressLine2,
-        city:         location?.city         ?? updatedUser?.city ?? prev.city,
-        state:        location?.state        ?? updatedUser?.state ?? prev.state,
-        postalCode:   location?.postalCode   ?? updatedUser?.postalCode ?? prev.postalCode,
-        country:      location?.country      ?? updatedUser?.country ?? prev.country,
-        businessName: provider?.businessName ?? prev.businessName,
-        businessType: provider?.businessType ?? prev.businessType,
-      }));
-      toast.success("Profile updated successfully.");
-      setFieldErrors({});
-    } else {
-      const payload = result.payload;
-      if (payload?.errors && typeof payload.errors === "object") {
-        setFieldErrors(payload.errors);
-        const firstMsg = Object.values(payload.errors)[0];
-        toast.error(firstMsg || payload.message || "Validation failed.");
-      } else {
-        toast.error(payload?.message ?? (typeof payload === "string" ? payload : "Failed to update profile."));
+    try {
+      let profileImage = form.profileImage;
+
+      if (profileImageFile instanceof File) {
+        const uploadResult = await dispatch(uploadProfilePicture(profileImageFile));
+        if (uploadProfilePicture.rejected.match(uploadResult)) {
+          const uploadError = uploadResult.payload;
+          const message =
+            typeof uploadError === "string"
+              ? uploadError
+              : uploadError?.message || "Failed to upload profile picture.";
+          throw new Error(message);
+        }
+        profileImage = uploadResult.payload;
       }
+
+      const payload = {
+        ...form,
+        phoneNumber: formatPhoneNumber(phoneCountryCode, form.phoneNumber),
+        profileImage,
+      };
+
+      const result = await dispatch(updateProviderProfile(payload));
+
+      if (updateProviderProfile.fulfilled.match(result)) {
+        const updatedUser = result.payload;
+        const provider = updatedUser?.providerProfile ?? updatedUser;
+        const location = provider?.location ?? updatedUser?.location ?? {};
+        const savedPhone = parsePhoneNumber(provider?.phoneNumber ?? updatedUser?.phoneNumber ?? updatedUser?.phone ?? "");
+        setForm((prev) => ({
+          ...prev,
+          firstName:    provider?.firstName    ?? prev.firstName,
+          lastName:     provider?.lastName     ?? prev.lastName,
+          email:        updatedUser?.email     ?? prev.email,
+          phoneNumber:  savedPhone.number || prev.phoneNumber,
+          dateOfBirth:  provider?.dateOfBirth  ?? updatedUser?.dateOfBirth ?? prev.dateOfBirth,
+          bio:          provider?.bio          ?? prev.bio,
+          profileImage: provider?.profileImage ?? profileImage ?? prev.profileImage,
+          addressLine1: location?.addressLine1 ?? prev.addressLine1,
+          addressLine2: location?.addressLine2 ?? prev.addressLine2,
+          city:         location?.city         ?? updatedUser?.city ?? prev.city,
+          state:        location?.state        ?? updatedUser?.state ?? prev.state,
+          postalCode:   location?.postalCode   ?? updatedUser?.postalCode ?? prev.postalCode,
+          country:      location?.country      ?? updatedUser?.country ?? prev.country,
+          businessName: provider?.businessName ?? prev.businessName,
+          businessType: provider?.businessType ?? prev.businessType,
+        }));
+        setProfileImageFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        setPhoneCountryCode(savedPhone.countryCode || phoneCountryCode || "+92");
+        toast.success("Profile updated successfully.");
+        setFieldErrors({});
+      } else {
+        const payload = result.payload;
+        if (payload?.errors && typeof payload.errors === "object") {
+          setFieldErrors(payload.errors);
+          const firstMsg = Object.values(payload.errors)[0];
+          toast.error(firstMsg || payload.message || "Validation failed.");
+        } else {
+          toast.error(payload?.message ?? (typeof payload === "string" ? payload : "Failed to update profile."));
+        }
+      }
+    } catch (err) {
+      toast.error(err?.message || "Failed to update profile.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -1255,30 +1423,23 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
           <span className="text-red-500 ml-0.5">*</span>
         </label>
         <div
-          className={`flex overflow-hidden rounded-xl border bg-white transition-colors focus-within:ring-2 ${
+          className={`flex items-stretch overflow-visible rounded-xl border bg-white transition-colors focus-within:ring-2 ${
             hasError
               ? "border-red-400 focus-within:ring-red-200"
               : "border-gray-200 focus-within:ring-[var(--color-primary)]/20 focus-within:border-[var(--color-primary)]"
           }`}
         >
-          <select
+          <PhoneCountryPicker
             value={phoneCountryCode}
             onChange={setPhoneCode}
-            className="w-28 border-r border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-[var(--color-text)] focus:outline-none"
-          >
-            {PHONE_COUNTRY_CODES.map(({ label, code }) => (
-              <option key={`${label}-${code}`} value={code}>
-                {label} {code}
-              </option>
-            ))}
-          </select>
+          />
           <input
             type="tel"
-            placeholder="300 1234567"
+            placeholder="Enter phone number"
             maxLength={20}
             value={form.phoneNumber}
             onChange={setPhoneNumber}
-            className="min-w-0 flex-1 px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
+            className="min-w-0 h-[42px] flex-1 rounded-r-xl px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
           />
         </div>
         {hasError && (
@@ -1331,6 +1492,9 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
             >
               Change profile picture
             </button>
+            <p className="mt-1 text-[11px] text-gray-400">
+              JPG, PNG, or WEBP. Max size {PROFILE_PICTURE_MAX_MB}MB.
+            </p>
             {fieldErrors.profileImage && (
               <p className="mt-1 text-xs text-red-500 font-medium">{fieldErrors.profileImage}</p>
             )}
@@ -1347,7 +1511,7 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
             {field("First Name",    "firstName",   "John",                 null)}
             {field("Last Name",     "lastName",    "Doe",                  null)}
             {field("Email Address", "email",       "john.doe@example.com", <MailIcon />)}
-            {field("Phone Number",  "phoneNumber", "+1 (555) 123-4567",    <PhoneIcon />)}
+            {phoneField()}
             <DatePickerField
               value={form.dateOfBirth}
               onChange={(v) => { setForm((f) => ({ ...f, dateOfBirth: v })); if (fieldErrors.dateOfBirth) setFieldErrors((fe) => ({ ...fe, dateOfBirth: undefined })); }}

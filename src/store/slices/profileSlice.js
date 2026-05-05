@@ -35,12 +35,45 @@ export const updateProviderProfile = createAsyncThunk(
   "profile/updateProviderProfile",
   async (payload, { rejectWithValue }) => {
     try {
-      const safePayload = { ...payload };
-      if (safePayload.profileImage?.startsWith?.("data:")) {
-        delete safePayload.profileImage;
-      }
-      const { data } = await axiosInstance.patch("/users/provider-profile", safePayload);
+      const { data } = await axiosInstance.patch("/users/provider-profile", payload);
       return data?.data?.user ?? data?.data ?? null;
+    } catch (err) {
+      const res = err.response?.data;
+      return rejectWithValue(res ?? err.message);
+    }
+  }
+);
+
+export const uploadProfilePicture = createAsyncThunk(
+  "profile/uploadProfilePicture",
+  async (file, { rejectWithValue }) => {
+    try {
+      if (!file) {
+        return rejectWithValue("Profile picture file is required.");
+      }
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const { data } = await axiosInstance.post("/users/profile-picture", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const imageUrl =
+        data?.data?.imageUrl ??
+        data?.data?.url ??
+        data?.data?.profileImage ??
+        data?.data?.image ??
+        data?.data ??
+        null;
+
+      if (typeof imageUrl !== "string" || !imageUrl) {
+        return rejectWithValue(data?.message ?? "Failed to upload profile picture.");
+      }
+
+      return imageUrl;
     } catch (err) {
       const res = err.response?.data;
       return rejectWithValue(res ?? err.message);
