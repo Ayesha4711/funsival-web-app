@@ -88,6 +88,8 @@ function mapBookingToRow(b) {
       ? bookedBy
       : bookedBy?.email || bookedBy?.name || bookedBy?.id || "Guest";
 
+  const image = b.listing?.photos?.[0] ?? b.listing?.images?.[0] ?? null;
+
   return {
     id: b.id,
     name,
@@ -103,6 +105,7 @@ function mapBookingToRow(b) {
     currency: b.currency,
     cancelledAt: b.cancelledAt,
     cancelledBy: b.cancelledBy,
+    image,
     _raw: b,
   };
 }

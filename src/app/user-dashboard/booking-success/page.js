@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AppFooter from "@/components/shared/AppFooter";
+
 const ArrowRightIcon = () => (
   <svg
     width="20"
@@ -18,8 +19,40 @@ const ArrowRightIcon = () => (
     <polyline points="12 5 19 12 12 19" />
   </svg>
 );
+
+const ChatIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
 export default function BookingSuccessPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // ConfirmAndPayPage passes these via query string after booking creation
+  const recipientId = searchParams.get("recipientId");
+  const listingId = searchParams.get("listingId");
+
+  const handleChatWithProvider = () => {
+    if (!recipientId) return;
+    const params = new URLSearchParams({ startChat: recipientId });
+    if (listingId) params.set("listingId", listingId);
+    params.set(
+      "message",
+      "Hi, I just made a reservation. Looking forward to it!",
+    );
+    router.push(`/user-dashboard/messages?${params.toString()}`);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -44,16 +77,31 @@ export default function BookingSuccessPage() {
           Great !! Your Booking has been added successfully.
         </p>
 
-        {/* Explore Now button */}
-        <button
-          onClick={() => router.push("/user-dashboard/explore")}
-          className="flex items-center justify-between bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold text-sm rounded-full transition-colors pl-8 pr-2 py-2 w-56"
-        >
-          <span className="flex-1 text-center">Explore Now</span>
-          <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800">
-            <ArrowRightIcon />
-          </span>
-        </button>
+        <div className="flex flex-col items-center gap-4 w-56">
+          {/* Chat with Provider button — shown only when recipientId is available */}
+          {recipientId && (
+            <button
+              onClick={handleChatWithProvider}
+              className="flex items-center justify-between bg-(--color-primary,#4AA7A7) hover:opacity-90 text-white font-bold text-sm rounded-full transition-opacity pl-8 pr-2 py-2 w-full"
+            >
+              <span className="flex-1 text-center">Chat with Provider</span>
+              <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 text-(--color-primary,#4AA7A7)">
+                <ChatIcon />
+              </span>
+            </button>
+          )}
+
+          {/* Explore Now button */}
+          <button
+            onClick={() => router.push("/user-dashboard/explore")}
+            className="flex items-center justify-between bg-[#FEB538]  text-gray-900 font-bold text-sm rounded-full transition-colors pl-8 pr-2 py-2 w-full"
+          >
+            <span className="flex-1 text-center">Explore Now</span>
+            <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800">
+              <ArrowRightIcon />
+            </span>
+          </button>
+        </div>
       </main>
 
       <AppFooter />

@@ -46,7 +46,11 @@ export const createBooking = createAsyncThunk(
       const { data } = await axiosInstance.post("/bookings", payload);
       return data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message ?? err.message);
+      const responseData = err.response?.data;
+      return rejectWithValue({
+        message: responseData?.message ?? err.message,
+        errors: responseData?.errors ?? null,
+      });
     }
   }
 );

@@ -80,13 +80,13 @@ function ReservationRow({ r, className = "" }) {
   const date = formatDate(r.createdAt ?? r.startDate);
   const type = r.listing?.category ?? r.category ?? "";
   const normalStatus = normalizeStatus(r.status);
-  const img = r.listing?.images?.[0] ?? null;
+  const img = r.listing?.photos?.[0] ?? r.listing?.images?.[0] ?? null;
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 relative bg-gray-100">
         {img ? (
-          <Image src={img} alt={name} fill sizes="48px" className="object-cover" />
+          <img src={img} alt={name} className="w-full h-full object-cover" />
         ) : (
           <Image src={heroImg} alt={name} fill sizes="48px" className="object-cover" />
         )}

@@ -5,8 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import logo from "@/assets/images/logo.svg";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { selectUser } from "@/store/slices/profileSlice";
+import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
 import NotificationPopover from "@/components/shared/NotificationPopover";
 
 const UserIcon = () =>
@@ -157,9 +158,10 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
   const profileRef = useRef(null);
   const router = useRouter();
   const pathname = usePathname();
+  const dispatch = useDispatch();
   const profile = useSelector(selectUser);
+  const totalUnread = useSelector(selectTotalUnreadCount);
 
-  // Derive initial view from pathname, then let selection override it
   const [activeView, setActiveView] = useState(
     pathname?.startsWith("/user-dashboard") ? "user" : "provider"
   );
@@ -167,6 +169,11 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
   const avatarLetter = profile?.email
     ? profile.email[0].toUpperCase()
     : (activeView === "user" ? "U" : "P");
+  const profileImage = profile?.profileImage ?? null;
+
+  useEffect(() => {
+    dispatch(fetchConversations());
+  }, [dispatch]);
 
   // Close popovers when clicking outside
   useEffect(() => {
@@ -305,10 +312,15 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
         {/* Message — sm and up only */}
         <button
           onClick={() => router.push("/dashboard/messages")}
-          className="hidden sm:flex text-white/90 hover:text-white transition-colors p-1"
+          className="hidden sm:flex relative text-white/90 hover:text-white transition-colors p-1"
           aria-label="Messages"
         >
           <MessageIcon />
+          {totalUnread > 0 && (
+            <span className="absolute top-0 right-0 min-w-3.5 h-3.5 bg-[var(--color-secondary)] rounded-full text-[8px] flex items-center justify-center text-white font-bold border border-[#228E8A] px-0.5">
+              {totalUnread > 9 ? "9+" : totalUnread}
+            </span>
+          )}
         </button>
 
         {/* Avatar + Profile Dropdown — sm and up only */}
@@ -318,7 +330,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
             className="w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden border-2 border-white/30 hover:border-white/60 transition-colors"
             aria-label="Profile menu"
           >
-            {avatarLetter}
+            {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
           </button>
           {profileOpen &&
             <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl py-1.5 z-50 border border-gray-100">
@@ -374,8 +386,8 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 bg-[#228E8A]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-base">
-                  {avatarLetter}
+                <div className="w-10 h-10 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-base overflow-hidden">
+                  {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
                 </div>
                 <div>
                   {profile?.email && <p className="text-xs font-semibold text-white truncate max-w-[160px]">{profile.email}</p>}

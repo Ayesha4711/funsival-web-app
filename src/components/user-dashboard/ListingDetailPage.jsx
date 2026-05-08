@@ -13,8 +13,18 @@ import CustomCalendar from "@/components/shared/CustomCalendar";
 import { toast } from "sonner";
 
 const parseCalendarDate = (value = "") => {
-  const [month, day, year] = String(value).split("/").map(Number);
-  if (!month || !day || !year) return null;
+  const str = String(value).trim();
+  let year, month, day;
+  if (str.includes("-")) {
+    // ISO format: yyyy-mm-dd
+    [year, month, day] = str.split("-").map(Number);
+  } else if (str.includes("/")) {
+    // Legacy mm/dd/yyyy
+    [month, day, year] = str.split("/").map(Number);
+  } else {
+    return null;
+  }
+  if (!year || !month || !day) return null;
   const date = new Date(year, month - 1, day);
   return Number.isFinite(date.getTime()) ? date : null;
 };
@@ -22,7 +32,7 @@ const parseCalendarDate = (value = "") => {
 const calculateDaysBetween = (start, end) => {
   const startDate = parseCalendarDate(start);
   const endDate = parseCalendarDate(end);
-  if (!startDate || !endDate) return NaN;
+  if (!startDate || !endDate) return 1;
   const diff = Math.round((endDate.getTime() - startDate.getTime()) / 86400000);
   return diff >= 1 ? diff : 1;
 };
@@ -123,11 +133,19 @@ function adaptApiListing(api, urlType) {
       : "per_hour");
 
   const host = api.host ?? {};
-  const hostName = host.name || host.email || "Host";
-  const hostAvatar = host.avatar || "https://i.pravatar.cc/60?img=3";
-  const hostLocation = host.location || [loc.city, loc.country].filter(Boolean).join(", ") || "—";
-  const hostRating = toNum(host.rating) ?? 4.4;
-  const hostReviews = host.reviewCount ?? host.reviews ?? 9;
+  const hostFirstName = host.firstName ?? "";
+  const hostLastName  = host.lastName  ?? "";
+  const hostFullName  = [hostFirstName, hostLastName].filter(Boolean).join(" ")
+    || host.name || host.fullName || host.email || "Host";
+  const hostAvatar    = host.profileImage || host.avatar || null;
+  const hostCity      = host.city || host.location?.city || "";
+  const hostCountry   = host.country || host.location?.country || "";
+  const hostLocation  = [hostCity, hostCountry].filter(Boolean).join(", ")
+    || host.location
+    || [loc.city, loc.country].filter(Boolean).join(", ")
+    || "—";
+  const hostRating    = toNum(host.rating) ?? null;
+  const hostReviews   = host.reviewCount ?? host.reviews ?? null;
 
   const description = info.description || service.description || api.description || "";
   const amenities = Array.isArray(info.amenities) ? info.amenities
@@ -150,7 +168,7 @@ function adaptApiListing(api, urlType) {
     reviews: api.reviewCount ?? "21K",
     price,
     images,
-    host: { name: hostName, avatar: hostAvatar, location: hostLocation, rating: hostRating, reviews: hostReviews },
+    host: { name: hostFullName, avatar: hostAvatar, location: hostLocation, rating: hostRating, reviews: hostReviews },
     details: {
       activityTitle: title,
       location,
@@ -214,6 +232,7 @@ const TIME_OPTIONS = (() => {
 /* ─── Custom Time Dropdown ───────────────────────────────────────────────────── */
 function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
   const [open, setOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState({});
   const ref = useRef(null);
   const listRef = useRef(null);
 
@@ -224,6 +243,20 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const handleToggle = () => {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: 176,
+        zIndex: 9999,
+      });
+    }
+    setOpen(o => !o);
+  };
 
   useEffect(() => {
     if (open && value && listRef.current) {
@@ -241,7 +274,7 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
     <div ref={ref} className="relative w-full">
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={handleToggle}
         className="w-full flex items-center justify-between gap-1 text-xs sm:text-sm font-medium text-left focus:outline-none"
       >
         <span className={`truncate ${selected ? "text-gray-900 font-semibold" : "text-gray-400"}`}>
@@ -253,8 +286,8 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
       {open && (
         <div
           ref={listRef}
-          className="absolute z-50 left-0 top-full mt-1 w-44 bg-white rounded-2xl border border-gray-200 shadow-xl overflow-y-auto"
-          style={{ maxHeight: 280 }}
+          className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-y-auto"
+          style={{ ...dropdownStyle, maxHeight: 280 }}
         >
           {TIME_OPTIONS.map(t => (
             <button
@@ -360,6 +393,32 @@ function TimeRangeField({ startTime, setStartTime, endTime, setEndTime, startErr
   );
 }
 
+/* ─── Split date field (Check-in | Check-out in one row) ─────────────────────── */
+function DateRangeField({ checkIn, setCheckIn, checkOut, setCheckOut, checkInError, checkOutError }) {
+  return (
+    <div className="flex gap-3">
+      {/* Check-in */}
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-gray-500 font-medium mb-1 pl-1">Check-in</p>
+        <div className={`flex items-center gap-2 rounded-full border bg-white px-3 py-2.5 ${checkInError ? "border-red-400" : "border-gray-200"}`}>
+          <span className="shrink-0"><CalendarIcon /></span>
+          <CalendarDropdown value={checkIn} onChange={setCheckIn} placeholder="mm/dd/yyyy" />
+        </div>
+        {checkInError && <p className="text-[10px] text-red-500 mt-1 pl-1">Check-in required</p>}
+      </div>
+      {/* Check-out */}
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-gray-500 font-medium mb-1 pl-1">Check-out</p>
+        <div className={`flex items-center gap-2 rounded-full border bg-white px-3 py-2.5 ${checkOutError ? "border-red-400" : "border-gray-200"}`}>
+          <span className="shrink-0"><CalendarIcon /></span>
+          <CalendarDropdown value={checkOut} onChange={setCheckOut} placeholder="mm/dd/yyyy" />
+        </div>
+        {checkOutError && <p className="text-[10px] text-red-500 mt-1 pl-1">Check-out required</p>}
+      </div>
+    </div>
+  );
+}
+
 function SummaryLine({ label, value, bold }) {
   return (
     <div className={`flex items-center justify-between gap-4 ${bold ? "font-bold text-gray-900 text-sm" : "text-sm text-gray-500"}`}>
@@ -394,7 +453,7 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
   const ratingNum = Number(rating);
   const ratingText = Number.isFinite(ratingNum) ? ratingNum.toFixed(1) : "4.4";
   return (
-    <div className="w-full bg-white flex flex-col h-full rounded-[20px] border border-gray-200 p-4 sm:p-7">
+    <div className="w-full bg-white flex flex-col h-auto xl:h-full rounded-[20px] border border-gray-200 p-4 sm:p-7">
 
       {/* Pill / mode selector — above everything */}
       {topSlot && <div className="shrink-0 mb-5">{topSlot}</div>}
@@ -416,11 +475,11 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
       </div>
 
       {/* Scrollable middle content */}
-      <div className="flex-1 overflow-y-auto flex flex-col gap-5 pr-1 -mr-1">
+      <div className="flex flex-col gap-5 xl:flex-1 xl:overflow-y-auto xl:pr-1 xl:-mr-1">
         {children}
       </div>
 
-      {/* Reserve button — pinned at bottom */}
+      {/* Reserve button — full width at bottom */}
       <div className="shrink-0 mt-5">
         {reserveButton}
       </div>
@@ -431,7 +490,7 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
 /* ─── Navigate to confirm-and-pay ────────────────────────────────────────────── */
 function useNavigateToConfirm(listing, listingId) {
   const router = useRouter();
-  return (fields) => {
+  return (fields, sessionKey) => {
     const p = new URLSearchParams({
       listingId,
       title: listing.title,
@@ -440,6 +499,7 @@ function useNavigateToConfirm(listing, listingId) {
       bookingType: listing.bookingType,
       pricePerUnit: String(listing.price),
       funsivalFee: "8",
+      ...(sessionKey ? { _skey: sessionKey } : {}),
       ...fields,
     });
     router.push(`/user-dashboard/confirm-and-pay?${p.toString()}`);
@@ -449,8 +509,9 @@ function useNavigateToConfirm(listing, listingId) {
 /* ─── Activity Booking Card ──────────────────────────────────────────────────── */
 function ActivityBookingCard({ listing, listingId }) {
   const SKEY = `booking_activity_${listingId}`;
-  const saved = typeof window !== "undefined" ? JSON.parse(sessionStorage.getItem(SKEY) || "{}") : {};
-  const [date, setDate] = useState(saved.date || "");
+  const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
+  const [checkIn, setCheckIn] = useState(saved.checkIn || "");
+  const [checkOut, setCheckOut] = useState(saved.checkOut || "");
   const [startTime, setStartTime] = useState(saved.startTime || "");
   const [endTime, setEndTime] = useState(saved.endTime || "");
   const [persons, setPersons] = useState(saved.persons || "");
@@ -458,8 +519,8 @@ function ActivityBookingCard({ listing, listingId }) {
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
   useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ date, startTime, endTime, persons }));
-  }, [date, startTime, endTime, persons, SKEY]);
+    sessionStorage.setItem(SKEY, JSON.stringify({ checkIn, checkOut, startTime, endTime, persons }));
+  }, [checkIn, checkOut, startTime, endTime, persons, SKEY]);
 
   const isPerPerson = listing.bookingType === "per_person";
 
@@ -479,15 +540,16 @@ function ActivityBookingCard({ listing, listingId }) {
 
   const handleReserve = () => {
     const newErrors = {};
-    if (!date) { toast.error("Date is required."); newErrors.date = true; }
+    if (!checkIn) { toast.error("Check-in date is required."); newErrors.checkIn = true; }
+    if (!checkOut) { toast.error("Check-out date is required."); newErrors.checkOut = true; }
     if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
     if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
     if (isPerPerson && !persons) { toast.error("Number of guests is required."); newErrors.persons = true; }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     const fields = isPerPerson
-      ? { startDate: date, endDate: date, startTime, endTime, numberOfGuests: persons || 1, units, dateFrom: date, dateTo: date, guests: `${persons || 1} guest` }
-      : { startDate: date, endDate: date, startTime, endTime, units: hours, dateFrom: date, dateTo: date };
-    navigateToConfirm(fields);
+      ? { startDate: checkIn, endDate: checkOut, startTime, endTime, numberOfGuests: persons || 1, units, dateFrom: checkIn, dateTo: checkOut, guests: `${persons || 1} guest` }
+      : { startDate: checkIn, endDate: checkOut, startTime, endTime, units: hours, dateFrom: checkIn, dateTo: checkOut };
+    navigateToConfirm(fields, SKEY);
   };
 
   return (
@@ -505,16 +567,18 @@ function ActivityBookingCard({ listing, listingId }) {
       reserveButton={
         <button
           onClick={handleReserve}
-          className="w-full rounded-full bg-[#FEB538] hover:bg-[#e0b430] py-4 text-sm font-bold text-gray-900 transition-colors"
+          className="w-full py-4 rounded-full bg-[#FEB538] hover:bg-[#e0b430] text-sm font-bold text-gray-900 transition-colors"
         >
           Reserve
         </button>
       }
     >
-      {/* Date field */}
-      <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
-        <CalendarDropdown value={date} onChange={v => { setDate(v); setErrors(e => ({ ...e, date: false })); }} placeholder="mm/dd/yyyy" />
-      </BookingField>
+      {/* Check-in / Check-out */}
+      <DateRangeField
+        checkIn={checkIn} setCheckIn={v => { setCheckIn(v); setErrors(e => ({ ...e, checkIn: false })); }}
+        checkOut={checkOut} setCheckOut={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }}
+        checkInError={errors.checkIn} checkOutError={errors.checkOut}
+      />
 
       {/* Start / End time */}
       <TimeRangeField
@@ -550,8 +614,9 @@ function ActivityBookingCard({ listing, listingId }) {
 /* ─── Places Booking Card ────────────────────────────────────────────────────── */
 function PlacesBookingCard({ listing, listingId }) {
   const SKEY = `booking_places_${listingId}`;
-  const saved = typeof window !== "undefined" ? JSON.parse(sessionStorage.getItem(SKEY) || "{}") : {};
-  const [date, setDate] = useState(saved.date || "");
+  const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
+  const [checkIn, setCheckIn] = useState(saved.checkIn || "");
+  const [checkOut, setCheckOut] = useState(saved.checkOut || "");
   const [startTime, setStartTime] = useState(saved.startTime || "");
   const [endTime, setEndTime] = useState(saved.endTime || "");
   const [guests, setGuests] = useState(saved.guests || "");
@@ -559,8 +624,8 @@ function PlacesBookingCard({ listing, listingId }) {
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
   useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ date, startTime, endTime, guests }));
-  }, [date, startTime, endTime, guests, SKEY]);
+    sessionStorage.setItem(SKEY, JSON.stringify({ checkIn, checkOut, startTime, endTime, guests }));
+  }, [checkIn, checkOut, startTime, endTime, guests, SKEY]);
 
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
@@ -571,11 +636,12 @@ function PlacesBookingCard({ listing, listingId }) {
 
   const handleReserve = () => {
     const newErrors = {};
-    if (!date) { toast.error("Date is required."); newErrors.date = true; }
+    if (!checkIn) { toast.error("Check-in date is required."); newErrors.checkIn = true; }
+    if (!checkOut) { toast.error("Check-out date is required."); newErrors.checkOut = true; }
     if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
     if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    navigateToConfirm({ startDate: date, endDate: date, startTime, endTime, numberOfGuests: guests || 1, units: hours, dateFrom: date, dateTo: date, guests: `${guests || 1} guest` });
+    navigateToConfirm({ startDate: checkIn, endDate: checkOut, startTime, endTime, numberOfGuests: guests || 1, units: hours, dateFrom: checkIn, dateTo: checkOut, guests: `${guests || 1} guest` }, SKEY);
   };
 
   return (
@@ -593,18 +659,20 @@ function PlacesBookingCard({ listing, listingId }) {
       reserveButton={
         <button
           onClick={handleReserve}
-          className="w-full rounded-full bg-[#FEB538] hover:bg-[#e0b430] py-4 text-sm font-bold text-gray-900 transition-colors"
+          className="w-full py-4 rounded-full bg-[#FEB538] hover:bg-[#e0b430] text-sm font-bold text-gray-900 transition-colors"
         >
           Reserve
         </button>
       }
     >
-      {/* Date field — no label */}
-      <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
-        <CalendarDropdown value={date} onChange={v => { setDate(v); setErrors(e => ({ ...e, date: false })); }} placeholder="mm/dd/yyyy" />
-      </BookingField>
+      {/* Check-in / Check-out */}
+      <DateRangeField
+        checkIn={checkIn} setCheckIn={v => { setCheckIn(v); setErrors(e => ({ ...e, checkIn: false })); }}
+        checkOut={checkOut} setCheckOut={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }}
+        checkInError={errors.checkIn} checkOutError={errors.checkOut}
+      />
 
-      {/* Start / End time — single split field */}
+      {/* Start / End time */}
       <TimeRangeField
         startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
         endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
@@ -636,24 +704,24 @@ function PlacesBookingCard({ listing, listingId }) {
 /* ─── Equipment Booking Card ─────────────────────────────────────────────────── */
 function EquipmentBookingCard({ listing, listingId }) {
   const SKEY = `booking_equipment_${listingId}`;
-  const saved = typeof window !== "undefined" ? JSON.parse(sessionStorage.getItem(SKEY) || "{}") : {};
+  const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
   const [mode, setMode] = useState(saved.mode || "hourly");
-  const [startDate, setStartDate] = useState(saved.startDate || "");
-  const [endDate, setEndDate] = useState(saved.endDate || "");
+  const [checkIn, setCheckIn] = useState(saved.checkIn || "");
+  const [checkOut, setCheckOut] = useState(saved.checkOut || "");
   const [startTime, setStartTime] = useState(saved.startTime || "");
   const [endTime, setEndTime] = useState(saved.endTime || "");
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
   useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ mode, startDate, endDate, startTime, endTime }));
-  }, [mode, startDate, endDate, startTime, endTime, SKEY]);
+    sessionStorage.setItem(SKEY, JSON.stringify({ mode, checkIn, checkOut, startTime, endTime }));
+  }, [mode, checkIn, checkOut, startTime, endTime, SKEY]);
 
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
     : 3;
-  const days = startDate && endDate
-    ? calculateDaysBetween(startDate, endDate)
+  const days = checkIn && checkOut
+    ? calculateDaysBetween(checkIn, checkOut)
     : 1;
   const span = mode === "daily" ? days : hours;
   const subtotal = listing.price * span;
@@ -662,12 +730,12 @@ function EquipmentBookingCard({ listing, listingId }) {
 
   const handleReserve = () => {
     const newErrors = {};
-    if (!startDate) { toast.error("Start date is required."); newErrors.startDate = true; }
-    if (mode === "daily" && !endDate) { toast.error("End date is required."); newErrors.endDate = true; }
+    if (!checkIn) { toast.error("Check-in date is required."); newErrors.checkIn = true; }
+    if (!checkOut) { toast.error("Check-out date is required."); newErrors.checkOut = true; }
     if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
     if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    navigateToConfirm({ startDate, endDate: endDate || startDate, startTime, endTime, units: span, dateFrom: startDate, dateTo: endDate || startDate });
+    navigateToConfirm({ startDate: checkIn, endDate: checkOut, startTime, endTime, units: span, dateFrom: checkIn, dateTo: checkOut }, SKEY);
   };
 
   return (
@@ -682,38 +750,25 @@ function EquipmentBookingCard({ listing, listingId }) {
       reserveButton={
         <button
           onClick={handleReserve}
-          className="w-full rounded-full bg-[#FEB538] hover:bg-[#e0b430] py-4 text-sm font-bold text-gray-900 transition-colors"
+          className="w-full py-4 rounded-full bg-[#FEB538] hover:bg-[#e0b430] text-sm font-bold text-gray-900 transition-colors"
         >
           Reserve
         </button>
       }
     >
-      {/* Start date */}
-      <BookingField icon={<CalendarIcon />} error={errors.startDate} errorMessage="Start date is required">
-        <CalendarDropdown value={startDate} onChange={v => { setStartDate(v); setErrors(e => ({ ...e, startDate: false })); }} placeholder="Start date (mm/dd/yyyy)" />
-      </BookingField>
+      {/* Check-in / Check-out — same for both hourly and daily */}
+      <DateRangeField
+        checkIn={checkIn} setCheckIn={v => { setCheckIn(v); setErrors(e => ({ ...e, checkIn: false })); }}
+        checkOut={checkOut} setCheckOut={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }}
+        checkInError={errors.checkIn} checkOutError={errors.checkOut}
+      />
 
-      {mode === "daily" ? (
-        <>
-          {/* End date for daily mode */}
-          <BookingField icon={<CalendarIcon />} error={errors.endDate} errorMessage="End date is required">
-            <CalendarDropdown value={endDate} onChange={v => { setEndDate(v); setErrors(e => ({ ...e, endDate: false })); }} placeholder="End date (mm/dd/yyyy)" />
-          </BookingField>
-          {/* Time range always shown */}
-          <TimeRangeField
-            startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
-            endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
-            startError={errors.startTime} endError={errors.endTime}
-          />
-        </>
-      ) : (
-        /* Start / End time for hourly mode */
-        <TimeRangeField
-          startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
-          endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
-          startError={errors.startTime} endError={errors.endTime}
-        />
-      )}
+      {/* Start / End time */}
+      <TimeRangeField
+        startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
+        endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
+        startError={errors.startTime} endError={errors.endTime}
+      />
 
       {/* Summary */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
@@ -725,23 +780,139 @@ function EquipmentBookingCard({ listing, listingId }) {
   );
 }
 
-/* ─── Location Map ───────────────────────────────────────────────────────────── */
-function ListingLocationMap({ listing }) {
-  const [coords, setCoords] = useState(null);
-  const [showCard, setShowCard] = useState(true);
+/* ─── Reviews Section ────────────────────────────────────────────────────────── */
+const HARDCODED_REVIEWS = [
+  {
+    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
+    name: "Alex",
+    date: "September 2023",
+    avatar: "https://i.pravatar.cc/80?img=11",
+  },
+  {
+    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
+    name: "Alexandrea",
+    date: "September 2023",
+    avatar: "https://i.pravatar.cc/80?img=5",
+  },
+  {
+    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
+    name: "Ana de",
+    date: "September 2023",
+    avatar: "https://i.pravatar.cc/80?img=9",
+  },
+  {
+    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
+    name: "James",
+    date: "October 2023",
+    avatar: "https://i.pravatar.cc/80?img=12",
+  },
+  {
+    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
+    name: "Maria",
+    date: "October 2023",
+    avatar: "https://i.pravatar.cc/80?img=20",
+  },
+  {
+    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
+    name: "Lucas",
+    date: "November 2023",
+    avatar: "https://i.pravatar.cc/80?img=7",
+  },
+];
+
+const REVIEWS_PER_PAGE_DESKTOP = 3;
+const REVIEWS_PER_PAGE_MOBILE = 1;
+
+function ReviewsSection() {
+  const [page, setPage] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const hasRealCoords =
-      listing.mapLat != null &&
-      listing.mapLng != null &&
-      Number.isFinite(listing.mapLat) &&
-      Number.isFinite(listing.mapLng);
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
-    if (hasRealCoords) {
-      setCoords({ lat: listing.mapLat, lon: listing.mapLng });
-      return;
-    }
+  const perPage = isMobile ? REVIEWS_PER_PAGE_MOBILE : REVIEWS_PER_PAGE_DESKTOP;
+  const totalPages = Math.ceil(HARDCODED_REVIEWS.length / perPage);
+  const visible = HARDCODED_REVIEWS.slice(page * perPage, page * perPage + perPage);
 
+  const prev = () => setPage(p => Math.max(0, p - 1));
+  const next = () => setPage(p => Math.min(totalPages - 1, p + 1));
+
+  return (
+    <div className="mt-6 rounded-[22px] border border-gray-200 bg-white p-6">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <h2 className="text-xl font-bold text-gray-900">Reviews</h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={prev}
+            disabled={page === 0}
+            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${page === 0 ? "border-gray-200 text-gray-300" : "border-gray-300 text-gray-500 hover:border-[#4AA7A7] hover:text-[#4AA7A7]"}`}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button
+            onClick={next}
+            disabled={page >= totalPages - 1}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${page >= totalPages - 1 ? "border border-gray-200 text-gray-300" : "bg-[#4AA7A7] text-white hover:bg-[#3d9090]"}`}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Review cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        {visible.map((r, i) => (
+          <div key={i} className="flex flex-col gap-4">
+            <p className="text-sm text-gray-500 leading-7">{r.text}</p>
+            <div className="flex items-center gap-3">
+              <img src={r.avatar} alt={r.name} className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-100" />
+              <div>
+                <p className="text-sm font-bold text-gray-900">{r.name}</p>
+                <p className="text-xs text-gray-400">{r.date}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Dot pagination */}
+      <div className="flex items-center justify-center gap-2 mt-8">
+        {Array.from({ length: totalPages }).map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setPage(i)}
+            className={`rounded-full transition-all ${i === page ? "w-6 h-2.5 bg-[#F5C842]" : "w-2.5 h-2.5 bg-gray-200 hover:bg-gray-300"}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Location Map ───────────────────────────────────────────────────────────── */
+function ListingLocationMap({ listing }) {
+  const hasRealCoords =
+    listing.mapLat != null &&
+    listing.mapLng != null &&
+    Number.isFinite(listing.mapLat) &&
+    Number.isFinite(listing.mapLng);
+
+  const [geocodedCoords, setGeocodedCoords] = useState(null);
+  const [showCard, setShowCard] = useState(true);
+
+  // Only geocode when we don't already have real coordinates from the API
+  useEffect(() => {
+    if (hasRealCoords) return;
     const q = listing.location && listing.location !== "—" ? listing.location : null;
     if (!q) return;
 
@@ -752,12 +923,16 @@ function ListingLocationMap({ listing }) {
       .then(r => r.json())
       .then(data => {
         if (!cancelled && data?.[0]) {
-          setCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) });
+          setGeocodedCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) });
         }
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [listing.location, listing.mapLat, listing.mapLng]);
+  }, [listing.location, hasRealCoords]);
+
+  const coords = hasRealCoords
+    ? { lat: listing.mapLat, lon: listing.mapLng }
+    : geocodedCoords;
 
   if (!coords) {
     return (
@@ -769,44 +944,73 @@ function ListingLocationMap({ listing }) {
 
   const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.05}%2C${coords.lat - 0.05}%2C${coords.lon + 0.05}%2C${coords.lat + 0.05}&layer=mapnik&marker=${coords.lat}%2C${coords.lon}`;
 
+  const ratingNum = Number(listing.rating);
+  const priceLabel = listing.bookingType === "per_person" ? "Per Person"
+    : listing.bookingType === "per_day" ? "Daily"
+    : "Hourly";
+  const priceLabel2 = listing.bookingType === "per_hour" ? "Daily" : null;
+
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border border-gray-100" style={{ height: 380 }}>
       <iframe title="Listing location" width="100%" height="100%" frameBorder="0" scrolling="no" src={mapSrc} />
       {showCard && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-white rounded-2xl overflow-hidden shadow-xl" style={{ width: 240 }}>
-          <div className="relative h-32">
+        <div className="absolute z-10 bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ width: 260, top: "50%", left: "50%", transform: "translate(8px, -80%)" }}>
+          {/* Image */}
+          <div className="relative h-36 bg-gray-100">
             <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
-            <button onClick={() => setShowCard(false)} className="absolute top-2 right-2 w-7 h-7 bg-[#F5823A] rounded-full flex items-center justify-center shadow">
+            <button
+              onClick={() => setShowCard(false)}
+              className="absolute top-2 right-2 w-7 h-7 bg-[#F5823A] rounded-full flex items-center justify-center shadow-md"
+            >
               <svg className="w-3.5 h-3.5 text-white fill-current" viewBox="0 0 24 24">
                 <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
             </button>
           </div>
+
           <div className="p-3 flex flex-col gap-2">
+            {/* Title + category tag */}
             <div className="flex items-start justify-between gap-1.5">
               <p className="text-[13px] font-bold text-[#3DAA8A] leading-tight line-clamp-1 flex-1">{listing.title}</p>
               <span className="shrink-0 text-[10px] font-medium text-[#F5823A] border border-[#F5823A] rounded-full px-2 py-0.5 whitespace-nowrap">
                 {listing.details.serviceCategory || listing.type}
               </span>
             </div>
+
+            {/* Rating */}
             <div className="flex items-center gap-1">
-              <span className="text-xs font-bold text-gray-800">{Number(listing.rating).toFixed(1)}</span>
+              <span className="text-xs font-bold text-gray-800">{Number.isFinite(ratingNum) ? ratingNum.toFixed(1) : "4.4"}</span>
               <svg className="w-3.5 h-3.5 text-[#F5C842] fill-current" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
               <span className="text-[11px] text-gray-400">({listing.reviews} Reviews)</span>
             </div>
-            <div className="flex items-center rounded-full border border-[#F5C842] overflow-hidden text-xs font-medium w-full">
-              <span className="px-3 py-1.5 text-gray-400 bg-[#FFF9EC] whitespace-nowrap">Per Person</span>
-              <span className="flex-1 text-right px-3 py-1.5 text-[#F5823A] font-bold bg-[#FFF9EC]">${listing.price}</span>
+
+            {/* Price pills — Hourly + Daily side by side like design */}
+            <div className="flex gap-1.5">
+              <div className="flex items-center rounded-full border border-[#F5C842] overflow-hidden text-[10px] font-medium flex-1">
+                <span className="px-2 py-1.5 text-gray-400 bg-[#FFF9EC] whitespace-nowrap">{priceLabel}</span>
+                <span className="flex-1 text-right px-2 py-1.5 text-[#F5823A] font-bold bg-[#FFF9EC]">${listing.price}</span>
+              </div>
+              {priceLabel2 && (
+                <div className="flex items-center rounded-full border border-[#4AA7A7] overflow-hidden text-[10px] font-medium flex-1">
+                  <span className="px-2 py-1.5 text-gray-400 bg-[#EDF8F8] whitespace-nowrap">{priceLabel2}</span>
+                  <span className="flex-1 text-right px-2 py-1.5 text-[#4AA7A7] font-bold bg-[#EDF8F8]">${listing.price * 8}</span>
+                </div>
+              )}
             </div>
+
+            {/* Location */}
             <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 shrink-0 text-[#F5823A] fill-current" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 shrink-0 text-[#F5823A] fill-current" viewBox="0 0 24 24">
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
               </svg>
-              <span className="text-xs text-gray-500 line-clamp-1">{listing.location}</span>
+              <span className="text-[11px] text-gray-500 line-clamp-1">{listing.location}</span>
             </div>
           </div>
+
+          {/* Pointer triangle pointing to the pin */}
+          <div className="absolute -bottom-2 left-6 w-4 h-4 bg-white rotate-45 shadow-md" style={{ zIndex: -1 }} />
         </div>
       )}
     </div>
@@ -1006,15 +1210,15 @@ export default function ListingDetailPage({ params: paramsPromise }) {
 
       <main className="flex-1 max-w-[1400px] mx-auto w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-6 lg:py-10">
 
-        {/* ── Two-column: image 748px + booking 548px ── */}
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-stretch">
+        {/* ── Two-column: image left + booking right ── */}
+        <div className="flex flex-col xl:flex-row gap-4 sm:gap-6 items-stretch">
           {/* Left – image section */}
-          <div className="w-full lg:w-[748px] shrink-0">
+          <div className="w-full xl:flex-1 min-w-0">
             <ImageGallery images={listing.images} title={listing.title} />
           </div>
 
           {/* Right – booking section */}
-          <div className="w-full lg:w-[548px] shrink-0 lg:self-stretch">
+          <div className="w-full xl:w-[440px] shrink-0 xl:self-stretch">
             {listing.type === "places"     && <PlacesBookingCard    listing={listing} listingId={rawId} />}
             {listing.type === "equipment"  && <EquipmentBookingCard listing={listing} listingId={rawId} />}
             {(listing.type === "activities" || listing.type === "activity") && <ActivityBookingCard listing={listing} listingId={rawId} />}
@@ -1025,18 +1229,28 @@ export default function ListingDetailPage({ params: paramsPromise }) {
         <div className="mt-4 sm:mt-6 rounded-2xl sm:rounded-[22px] border border-gray-200 bg-white p-4 sm:p-6">
           <div className="flex items-center justify-between gap-3 sm:gap-4 flex-wrap">
             <div className="flex items-center gap-3 sm:gap-4">
-              <img src={listing.host.avatar} alt={listing.host.name} className="h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover shrink-0" />
+              {listing.host.avatar ? (
+                <img src={listing.host.avatar} alt={listing.host.name} className="h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-[#228E8A] flex items-center justify-center shrink-0 text-white font-bold text-lg">
+                  {listing.host.name?.[0]?.toUpperCase() ?? "H"}
+                </div>
+              )}
               <div>
                 <p className="text-xs font-medium text-[#F5C842]">Hosted By</p>
                 <p className="text-base font-bold text-gray-900">{listing.host.name}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <svg className="w-3.5 h-3.5 text-[#F5C842] fill-current" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                  <span className="text-xs text-gray-600 font-medium">{Number(listing.host.rating).toFixed(1)}</span>
-                  <span className="text-xs text-gray-400">( {listing.host.reviews} reviews )</span>
-                </div>
-                <p className="text-xs text-gray-400 mt-0.5">{listing.host.location}</p>
+                {(listing.host.rating !== null || listing.host.reviews !== null) && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <svg className="w-3.5 h-3.5 text-[#F5C842] fill-current" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    {listing.host.rating !== null && <span className="text-xs text-gray-600 font-medium">{Number(listing.host.rating).toFixed(1)}</span>}
+                    {listing.host.reviews !== null && <span className="text-xs text-gray-400">( {listing.host.reviews} reviews )</span>}
+                  </div>
+                )}
+                {listing.host.location && listing.host.location !== "—" && (
+                  <p className="text-xs text-gray-400 mt-0.5">{listing.host.location}</p>
+                )}
               </div>
             </div>
             <button className="rounded-full border border-[#4AA7A7] px-5 py-2.5 text-sm font-medium text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white transition-colors shrink-0">
@@ -1065,32 +1279,7 @@ export default function ListingDetailPage({ params: paramsPromise }) {
         </div>
 
         {/* Reviews */}
-        {listing.reviews_list.length > 0 && (
-          <div className="mt-6 rounded-[22px] border border-gray-200 bg-white p-6">
-            <div className="flex items-center justify-between gap-4 mb-5">
-              <h2 className="text-xl font-bold text-gray-900">Reviews</h2>
-              <div className="flex items-center gap-1.5">
-                <StarRating rating={listing.rating} />
-                <span className="text-sm font-semibold text-gray-700">{listing.rating}</span>
-                <span className="text-sm text-gray-400">({listing.reviews})</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {listing.reviews_list.map((r, i) => (
-                <div key={i} className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
-                    <img src={r.avatar || "https://i.pravatar.cc/40"} alt={r.name} className="w-9 h-9 rounded-full object-cover" />
-                    <div>
-                      <p className="text-sm font-bold text-gray-900">{r.name}</p>
-                      <StarRating rating={r.rating} />
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-500 leading-relaxed">{r.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <ReviewsSection />
 
       </main>
 
