@@ -118,7 +118,10 @@ export default function ReservationCards({ data, onViewDetails, onCancel }) {
           {/* Header Info */}
           <div className="flex items-center gap-3 mb-4 pr-8">
             <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 relative">
-              <Image src={heroImg} alt={item.name} fill sizes="56px" className="object-cover" />
+              {item.image
+                ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                : <Image src={heroImg} alt={item.name} fill sizes="56px" className="object-cover" />
+              }
             </div>
             <div>
               <p className="text-sm font-extrabold text-[var(--color-text)]">{item.name}</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 const DAYS   = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTHS = [
@@ -9,6 +9,61 @@ const MONTHS = [
 ];
 
 const FONT = "var(--font-sofia-pro), Sofia Pro, sans-serif";
+
+/* ─── Inline dropdown (opens below, no OS chrome) ───────────────────────── */
+function InlineSelect({ value, options, onChange, width = 110 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <div ref={ref} className="relative" style={{ width }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{ fontFamily: FONT, width }}
+        className="flex items-center justify-between gap-1 rounded-xl border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 hover:border-gray-300 transition-colors"
+      >
+        <span className="truncate">{selected?.label ?? value}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={open ? "rotate-180 transition-transform" : "transition-transform"}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className="absolute left-0 top-full mt-1 z-[200] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
+          style={{ width, maxHeight: 200, overflowY: "auto" }}
+        >
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              style={{ fontFamily: FONT }}
+              className={[
+                "w-full text-left px-3 py-1.5 text-xs transition-colors",
+                opt.value === value
+                  ? "bg-[var(--color-primary)] text-white font-bold"
+                  : "text-gray-700 hover:bg-gray-50",
+              ].join(" ")}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CustomCalendar({ value, onChange, onClose }) {
   const today   = new Date();
@@ -22,8 +77,9 @@ export default function CustomCalendar({ value, onChange, onClose }) {
   const yearStart = Math.min(currentYear - 100, initial.getFullYear());
   const yearOptions = [];
   for (let year = currentYear; year >= yearStart; year -= 1) {
-    yearOptions.push(year);
+    yearOptions.push({ value: year, label: String(year) });
   }
+  const monthOptions = MONTHS.map((m, i) => ({ value: i, label: m }));
 
   const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
@@ -75,7 +131,7 @@ export default function CustomCalendar({ value, onChange, onClose }) {
       className="bg-white rounded-2xl border border-gray-200 shadow-xl select-none"
       style={{ width: 268, padding: "14px 14px 12px" }}
     >
-      {/* ── Month navigation ── */}
+      {/* ── Month / Year navigation ── */}
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={prevMonth}
@@ -88,26 +144,18 @@ export default function CustomCalendar({ value, onChange, onClose }) {
         </button>
 
         <div className="flex items-center gap-2">
-          <select
+          <InlineSelect
             value={viewMonth}
-            onChange={(event) => setViewMonth(Number(event.target.value))}
-            style={{ fontFamily: FONT }}
-            className="rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
-          >
-            {MONTHS.map((month, index) => (
-              <option key={month} value={index}>{month}</option>
-            ))}
-          </select>
-          <select
+            options={monthOptions}
+            onChange={(v) => setViewMonth(Number(v))}
+            width={104}
+          />
+          <InlineSelect
             value={viewYear}
-            onChange={(event) => setViewYear(Number(event.target.value))}
-            style={{ fontFamily: FONT }}
-            className="rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
-          >
-            {yearOptions.map((year) => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
+            options={yearOptions}
+            onChange={(v) => setViewYear(Number(v))}
+            width={74}
+          />
         </div>
 
         <button

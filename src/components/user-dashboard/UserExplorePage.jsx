@@ -452,6 +452,242 @@ function ListingCard({ listing }) {
   );
 }
 
+/* ─── Filter Panel ───────────────────────────────────────────────────────────── */
+const PLACES_CATEGORIES = ['Pools','Jacuzzi','Basketball Courts','Arcade','Pickleball Courts','Golf Course','Bowling Alleys','Ice Skating Rink','Ski Resort','Rock Climbing Gym','Trampoline Parks','Mini-Golf Courses'];
+const EQUIPMENT_CATEGORIES = ['Bikes','Kayak','Camping Gear','Diving Gear','Surfboard','Skis','Telescope','Drone'];
+const ACTIVITIES_CATEGORIES = ['Skydiving','Horse Riding','Scuba Diving','Paragliding','Zipline','Jeep Rally','Hang Glider','Bungee','Bowling','Trampoline','Golf','Boating'];
+
+function FilterPanel({ open, onClose, filters, onChange }) {
+  const [priceTab, setPriceTab] = useState('hourly');
+  const [priceRange, setPriceRange] = useState(filters.priceRange || [0, 5000]);
+  const [minInput, setMinInput] = useState(String(filters.priceRange?.[0] ?? 0));
+  const [maxInput, setMaxInput] = useState(String(filters.priceRange?.[1] ?? 5000));
+  const [location, setLocation] = useState(filters.location || '');
+  const [radius, setRadius] = useState(filters.radius ?? 1);
+  const [date, setDate] = useState(filters.date || '');
+  const [categoryTab, setCategoryTab] = useState('places');
+  const [selectedCategories, setSelectedCategories] = useState(filters.categories || []);
+  const [rating, setRating] = useState(filters.rating || null);
+  const [instantBook, setInstantBook] = useState(filters.instantBook || null);
+
+  const categoryOptions = categoryTab === 'places' ? PLACES_CATEGORIES : categoryTab === 'equipment' ? EQUIPMENT_CATEGORIES : ACTIVITIES_CATEGORIES;
+
+  const toggleCategory = (cat) => {
+    setSelectedCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+  };
+
+  const handleApply = () => {
+    onChange({ priceTab, priceRange, location, radius, date, categories: selectedCategories, rating, instantBook });
+    onClose();
+  };
+
+  const handleReset = () => {
+    setPriceTab('hourly'); setPriceRange([0, 5000]); setMinInput('0'); setMaxInput('5000');
+    setLocation(''); setRadius(1); setDate(''); setSelectedCategories([]); setRating(null); setInstantBook(null);
+    onChange({});
+    onClose();
+  };
+
+  if (!open) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
+      {/* Panel */}
+      <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-white z-50 flex flex-col shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 bg-[#FEB538] shrink-0">
+          <span className="text-base font-bold text-gray-900">Filters</span>
+          <button onClick={onClose} className="text-gray-700 hover:text-gray-900">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
+
+          {/* Price */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-semibold text-gray-900 text-sm">Price</span>
+            </div>
+            {/* Price type tabs */}
+            <div className="flex rounded-full border border-gray-200 overflow-hidden mb-4 text-xs font-semibold">
+              {['hourly','daily','per person'].map(t => (
+                <button key={t} onClick={() => setPriceTab(t)}
+                  className={`flex-1 py-2 transition-colors capitalize ${priceTab === t ? 'bg-[#FEB538] text-gray-900' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+            {/* Range labels */}
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span>$0</span><span>$5000</span>
+            </div>
+            {/* Dual range — simplified with two overlapping inputs */}
+            <div className="relative h-5 mb-3">
+              <input type="range" min={0} max={5000} value={priceRange[0]}
+                onChange={e => { const v = Math.min(Number(e.target.value), priceRange[1] - 50); setPriceRange([v, priceRange[1]]); setMinInput(String(v)); }}
+                className="absolute w-full h-1 appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:cursor-pointer pointer-events-none"
+                style={{ pointerEvents: 'auto' }}
+              />
+              <input type="range" min={0} max={5000} value={priceRange[1]}
+                onChange={e => { const v = Math.max(Number(e.target.value), priceRange[0] + 50); setPriceRange([priceRange[0], v]); setMaxInput(String(v)); }}
+                className="absolute w-full h-1 appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:cursor-pointer"
+                style={{ pointerEvents: 'auto' }}
+              />
+              {/* Track fill */}
+              <div className="absolute top-1/2 -translate-y-1/2 h-1 w-full rounded-full bg-gray-200 -z-10" />
+              <div className="absolute top-1/2 -translate-y-1/2 h-1 rounded-full bg-gray-900 -z-10"
+                style={{ left: `${(priceRange[0]/5000)*100}%`, right: `${100-(priceRange[1]/5000)*100}%` }} />
+            </div>
+            {/* Min / Max inputs */}
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <p className="text-[10px] text-gray-400 mb-1">Minimum</p>
+                <div className="flex items-center border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                  <span className="text-gray-400 mr-1">$</span>
+                  <input type="number" value={minInput} onChange={e => { setMinInput(e.target.value); const v = Math.min(Number(e.target.value), priceRange[1]-50); if(!isNaN(v)) setPriceRange([v, priceRange[1]]); }}
+                    className="w-full focus:outline-none text-gray-900" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] text-gray-400 mb-1">Maximum</p>
+                <div className="flex items-center border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                  <span className="text-gray-400 mr-1">$</span>
+                  <input type="number" value={maxInput} onChange={e => { setMaxInput(e.target.value); const v = Math.max(Number(e.target.value), priceRange[0]+50); if(!isNaN(v)) setPriceRange([priceRange[0], v]); }}
+                    className="w-full focus:outline-none text-gray-900" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div className="border-t border-gray-100" />
+
+          {/* Location */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-semibold text-gray-900 text-sm">Location</span>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+            </div>
+            <input type="text" placeholder="City or address" value={location} onChange={e => setLocation(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#4AA7A7] mb-3" />
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-gray-500">Radius</span>
+              <span className="text-[#4AA7A7] font-semibold">{radius} miles</span>
+            </div>
+            <input type="range" min={1} max={100} value={radius} onChange={e => setRadius(Number(e.target.value))}
+              className="w-full h-1 accent-gray-900 cursor-pointer" />
+          </section>
+
+          <div className="border-t border-gray-100" />
+
+          {/* Availability */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-semibold text-gray-900 text-sm">Availability</span>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+            </div>
+            <input type="text" placeholder="dd/mm/yyyy" value={date} onChange={e => setDate(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#4AA7A7]" />
+          </section>
+
+          <div className="border-t border-gray-100" />
+
+          {/* Category */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-semibold text-gray-900 text-sm">Category</span>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+            </div>
+            {/* Category tabs */}
+            <div className="flex gap-4 mb-3 border-b border-gray-100">
+              {['places','equipment','activities'].map(t => (
+                <button key={t} onClick={() => setCategoryTab(t)}
+                  className={`pb-2 text-sm font-semibold capitalize transition-colors ${categoryTab === t ? 'text-[#4AA7A7] border-b-2 border-[#FEB538]' : 'text-gray-400 hover:text-gray-600'}`}>
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-2.5 max-h-48 overflow-y-auto">
+              {categoryOptions.map(cat => (
+                <label key={cat} className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)}
+                    className="w-4 h-4 rounded border-gray-300 accent-[#4AA7A7] cursor-pointer" />
+                  <span className="text-sm text-gray-700">{cat}</span>
+                </label>
+              ))}
+            </div>
+          </section>
+
+          <div className="border-t border-gray-100" />
+
+          {/* Rating */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-semibold text-gray-900 text-sm">Rating</span>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+            </div>
+            <div className="space-y-2.5">
+              {[5,4,3,null].map((r, i) => (
+                <label key={i} className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={rating === r} onChange={() => setRating(rating === r ? null : r)}
+                    className="w-4 h-4 rounded border-gray-300 accent-[#4AA7A7] cursor-pointer" />
+                  {r !== null ? (
+                    <div className="flex items-center gap-1">
+                      {[1,2,3,4,5].map(s => (
+                        <svg key={s} className={`w-3.5 h-3.5 ${s <= r ? 'text-[#F5C842] fill-current' : 'text-gray-300 fill-current'}`} viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                      <span className="text-xs text-gray-500 ml-1">&amp; up</span>
+                    </div>
+                  ) : <span className="text-sm text-gray-700">Any rating</span>}
+                </label>
+              ))}
+            </div>
+          </section>
+
+          <div className="border-t border-gray-100" />
+
+          {/* Instant Book */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-semibold text-gray-900 text-sm">Instant Book</span>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+            </div>
+            <div className="space-y-2.5">
+              {[['any','Any'],['instant','Instant Book only'],['request','Request to book']].map(([val, label]) => (
+                <label key={val} className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={instantBook === val} onChange={() => setInstantBook(instantBook === val ? null : val)}
+                    className="w-4 h-4 rounded border-gray-300 accent-[#4AA7A7] cursor-pointer" />
+                  <span className="text-sm text-gray-700">{label}</span>
+                </label>
+              ))}
+            </div>
+          </section>
+
+        </div>
+
+        {/* Footer actions */}
+        <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0">
+          <button onClick={handleReset}
+            className="flex-1 py-3 rounded-full border border-[#FEB538] text-[#FEB538] text-sm font-semibold hover:bg-[#FEB538]/10 transition-colors">
+            Reset Filter
+          </button>
+          <button onClick={handleApply}
+            className="flex-1 py-3 rounded-full bg-[#4AA7A7] text-white text-sm font-semibold hover:bg-[#3d9090] transition-colors">
+            Show Results
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ─── Main Page ──────────────────────────────────────────────────────────────── */
 export default function UserExplorePage() {
   const dispatch = useDispatch();
@@ -463,6 +699,8 @@ export default function UserExplorePage() {
   const [activeSubFilter, setActiveSubFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState({});
   const ITEMS_PER_PAGE = 10;
   const pillsScrollRef = useRef(null);
 
@@ -546,7 +784,7 @@ export default function UserExplorePage() {
               </button>
 
               {/* Filter icon button — always visible */}
-              <button className="flex items-center justify-center w-9 h-9 border border-[#4AA7A7] rounded-full text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white transition-colors">
+              <button onClick={() => setFilterOpen(true)} className="flex items-center justify-center w-9 h-9 border border-[#4AA7A7] rounded-full text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white transition-colors">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
@@ -633,6 +871,13 @@ export default function UserExplorePage() {
         </div>
       </main>
 
+
+      <FilterPanel
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        filters={appliedFilters}
+        onChange={setAppliedFilters}
+      />
 
       <AppFooter />
 

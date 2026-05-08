@@ -164,7 +164,10 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
-                        <Image src={heroImg} alt={item.name} fill className="object-cover" />
+                        {item.image
+                          ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                          : <Image src={heroImg} alt={item.name} fill className="object-cover" />
+                        }
                       </div>
                       <div className="min-w-0">
                         <p
