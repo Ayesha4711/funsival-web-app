@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
 import reservationImg from "@/assets/images/reservationImg.png";
 import {
   fetchBookings,
@@ -14,6 +15,7 @@ import {
   selectBookingsCancelStatus,
   selectBookingsError,
 } from "@/store/slices/bookingsSlice";
+import { startOrGetConversation } from "@/store/slices/chatSlice";
 import AppFooter from "@/components/shared/AppFooter";
 
 /* ─── Data helpers ───────────────────────────────────────────────────────────── */
@@ -52,8 +54,8 @@ const BackIcon = () => (
     <polyline points="12 19 5 12 12 5" />
   </svg>
 );
-const HeartIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+const HeartIcon = ({ filled }) => (
+  <svg className="w-4 h-4" fill={filled ? "#ef4444" : "none"} stroke={filled ? "#ef4444" : "currentColor"} viewBox="0 0 24 24" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
   </svg>
 );
@@ -281,7 +283,7 @@ function ReportListingModal({ onClose }) {
 }
 
 /* ─── Dots menu ──────────────────────────────────────────────────────────────── */
-function DotsMenu({ onReportListing }) {
+function DotsMenu({ onReportListing, onContactHost }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -302,10 +304,13 @@ function DotsMenu({ onReportListing }) {
             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
             Report an issue
           </button>
-          <button className="flex items-center gap-2.5 w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setOpen(false)}>
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
-            Contact Host
-          </button>
+          {onContactHost && (
+            <button onClick={() => { setOpen(false); onContactHost(); }}
+              className="flex items-center gap-2.5 w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
+              Contact Host
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -313,7 +318,7 @@ function DotsMenu({ onReportListing }) {
 }
 
 /* ─── Booking card row ───────────────────────────────────────────────────────── */
-function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportListing }) {
+function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportListing, onContactHost, wishlisted, onToggleWishlist, onShare }) {
   const statusKey = getStatusKey(booking);
   const guests = booking.numberOfGuests ? `${booking.numberOfGuests} Adult${booking.numberOfGuests > 1 ? "s" : ""}` : null;
 
@@ -341,9 +346,21 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
           </div>
           {/* Heart / Share / Dots — stop propagation so card click doesn't fire */}
           <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-            <button className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400"><HeartIcon /></button>
-            <button className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400"><ShareIcon /></button>
-            <DotsMenu onReportListing={onReportListing} />
+            <button
+              onClick={onToggleWishlist}
+              title={wishlisted ? "Remove from Wishlists" : "Add to Wishlists"}
+              className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${wishlisted ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-100 text-gray-400"}`}
+            >
+              <HeartIcon filled={wishlisted} />
+            </button>
+            <button
+              onClick={onShare}
+              title="Share"
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400"
+            >
+              <ShareIcon />
+            </button>
+            <DotsMenu onReportListing={onReportListing} onContactHost={onContactHost} />
           </div>
         </div>
 
@@ -397,11 +414,11 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
 
 /* ─── Detail view ────────────────────────────────────────────────────────────── */
 /* ─── Location map using OpenStreetMap embed ─────────────────────────────────── */
-function LocationMap({ location }) {
+function LocationMap({ location, booking }) {
   const encoded = encodeURIComponent(location);
-  const src = `https://www.openstreetmap.org/export/embed.html?bbox=-0.5,51.2,0.5,51.8&layer=mapnik&marker=51.5,0&mlat=51.5&mlon=0`;
   const searchSrc = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`;
   const [coords, setCoords] = React.useState(null);
+  const [showCard, setShowCard] = React.useState(true);
 
   React.useEffect(() => {
     fetch(searchSrc)
@@ -416,8 +433,22 @@ function LocationMap({ location }) {
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${Number(coords.lon)-0.05},${Number(coords.lat)-0.03},${Number(coords.lon)+0.05},${Number(coords.lat)+0.03}&layer=mapnik&marker=${coords.lat},${coords.lon}`
     : `https://www.openstreetmap.org/export/embed.html?bbox=-74.05,40.68,-73.85,40.78&layer=mapnik`;
 
+  const title = booking ? getTitle(booking) : "";
+  const image = booking ? getImage(booking) : "";
+  const locStr = booking ? (getLocation(booking) || location) : location;
+  const info = booking?.listing?.basicInformation ?? {};
+  const priceObj = booking?.listing?.price ?? {};
+  const toNum = (v) => { const n = Number(v); return !isNaN(n) && n > 0 ? n : null; };
+  const hourlyPrice = toNum(priceObj?.hourly ?? priceObj?.perHour ?? info.pricePerHour);
+  const dailyPrice  = toNum(priceObj?.daily  ?? priceObj?.dailyRate ?? info.dailyRate);
+  const perPersonPrice = toNum(priceObj?.perPerson ?? info.pricePerPerson);
+  const fallbackPrice = !hourlyPrice && !dailyPrice && !perPersonPrice ? toNum(typeof priceObj === "number" ? priceObj : null) : null;
+  const rating = booking?.listing?.rating ?? 4.4;
+  const reviews = booking?.listing?.reviewCount ?? booking?.listing?.reviews ?? "21K";
+  const category = info.category || info.serviceCategory || booking?.listing?.category || "";
+
   return (
-    <div className="relative w-full h-52 rounded-xl overflow-hidden border border-gray-100">
+    <div className="relative w-full rounded-xl overflow-hidden border border-gray-100" style={{ height: 420 }}>
       <iframe
         src={mapSrc}
         className="w-full h-full"
@@ -425,18 +456,92 @@ function LocationMap({ location }) {
         loading="lazy"
         title={`Map of ${location}`}
       />
-      {/* Location label overlay at bottom */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-md flex items-center gap-2 whitespace-nowrap max-w-[80%]">
-        <svg className="w-3.5 h-3.5 text-[#4AA7A7] shrink-0" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-        </svg>
-        <span className="text-xs font-medium text-gray-700 truncate">{location}</span>
-      </div>
+
+      {/* Listing card overlay — positioned right of the pin */}
+      {booking && showCard && (
+        <div
+          className="absolute z-10 bg-white rounded-2xl overflow-hidden shadow-2xl"
+          style={{ width: 240, top: "12%", left: "52%" }}
+        >
+          {/* Image */}
+          <div className="relative h-32 bg-gray-100">
+            <img src={image} alt={title} className="w-full h-full object-cover" />
+            <button
+              onClick={() => setShowCard(false)}
+              className="absolute top-2 right-2 w-7 h-7 bg-[#F5823A] rounded-full flex items-center justify-center shadow-md"
+            >
+              <svg className="w-3.5 h-3.5 text-white fill-current" viewBox="0 0 24 24">
+                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="p-3 flex flex-col gap-2">
+            {/* Title + category */}
+            <div className="flex items-start justify-between gap-1.5">
+              <p className="text-[13px] font-bold text-[#3DAA8A] leading-tight line-clamp-1 flex-1">{title}</p>
+              {category && (
+                <span className="shrink-0 text-[10px] font-medium text-[#F5823A] border border-[#F5823A] rounded-full px-2 py-0.5 whitespace-nowrap">
+                  {category}
+                </span>
+              )}
+            </div>
+
+            {/* Rating */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-bold text-gray-800">{Number(rating).toFixed(1)}</span>
+              <svg className="w-3.5 h-3.5 text-[#F5C842] fill-current" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <span className="text-[11px] text-gray-400">({reviews} Reviews)</span>
+            </div>
+
+            {/* Price pills */}
+            <div className="flex gap-1.5">
+              {hourlyPrice && (
+                <div className="flex items-center rounded-full border border-[#F5C842] overflow-hidden text-[10px] font-medium flex-1">
+                  <span className="px-2 py-1.5 text-gray-400 bg-[#FFF9EC] whitespace-nowrap">Hourly</span>
+                  <span className="flex-1 text-right px-2 py-1.5 text-[#F5823A] font-bold bg-[#FFF9EC]">${hourlyPrice}</span>
+                </div>
+              )}
+              {dailyPrice && (
+                <div className="flex items-center rounded-full border border-[#4AA7A7] overflow-hidden text-[10px] font-medium flex-1">
+                  <span className="px-2 py-1.5 text-gray-400 bg-[#EDF8F8] whitespace-nowrap">Daily</span>
+                  <span className="flex-1 text-right px-2 py-1.5 text-[#4AA7A7] font-bold bg-[#EDF8F8]">${dailyPrice}</span>
+                </div>
+              )}
+              {perPersonPrice && !hourlyPrice && !dailyPrice && (
+                <div className="flex items-center rounded-full border border-[#F5C842] overflow-hidden text-[10px] font-medium flex-1">
+                  <span className="px-2 py-1.5 text-gray-400 bg-[#FFF9EC] whitespace-nowrap">Per Person</span>
+                  <span className="flex-1 text-right px-2 py-1.5 text-[#F5823A] font-bold bg-[#FFF9EC]">${perPersonPrice}</span>
+                </div>
+              )}
+              {fallbackPrice && (
+                <div className="flex items-center rounded-full border border-[#F5C842] overflow-hidden text-[10px] font-medium flex-1">
+                  <span className="px-2 py-1.5 text-gray-400 bg-[#FFF9EC] whitespace-nowrap">From</span>
+                  <span className="flex-1 text-right px-2 py-1.5 text-[#F5823A] font-bold bg-[#FFF9EC]">${fallbackPrice}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Location */}
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 shrink-0 text-[#F5823A] fill-current" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+              </svg>
+              <span className="text-[11px] text-gray-500 line-clamp-1">{locStr}</span>
+            </div>
+          </div>
+
+          {/* Pointer triangle */}
+          <div className="absolute -bottom-2 left-5 w-4 h-4 bg-white rotate-45 shadow-md" style={{ zIndex: -1 }} />
+        </div>
+      )}
     </div>
   );
 }
 
-function BookingDetailView({ booking, onLeaveReview, onCancel }) {
+function BookingDetailView({ booking, onLeaveReview, onCancel, onContactHost, wishlisted, onToggleWishlist, onShare }) {
   const listing = booking.listing ?? {};
   const info = listing.basicInformation ?? {};
   const service = listing.serviceDetails ?? {};
@@ -462,27 +567,41 @@ function BookingDetailView({ booking, onLeaveReview, onCancel }) {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <button className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400"><HeartIcon /></button>
-                <button className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400"><ShareIcon /></button>
-                <DotsMenu onReportListing={() => {}} />
+                <button
+                  onClick={onToggleWishlist}
+                  title={wishlisted ? "Remove from Wishlists" : "Add to Wishlists"}
+                  className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${wishlisted ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-100 text-gray-400"}`}
+                >
+                  <HeartIcon filled={wishlisted} />
+                </button>
+                <button
+                  onClick={onShare}
+                  title="Share"
+                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400"
+                >
+                  <ShareIcon />
+                </button>
+                <DotsMenu onReportListing={() => {}} onContactHost={onContactHost} />
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-500 w-36 text-xs shrink-0">Reservation Dates:</span>
-                <span className="font-bold text-gray-900">{formatDateRange(booking.startDate, booking.endDate)}</span>
+            <div className="flex flex-col gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1 border border-gray-200 rounded-xl px-4 py-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Check-in</p>
+                  <p className="text-sm font-bold text-gray-900">{booking.startDate || "—"}</p>
+                  {booking.startTime && <p className="text-xs text-gray-500">{booking.startTime}</p>}
+                </div>
+                <div className="flex flex-col gap-1 border border-gray-200 rounded-xl px-4 py-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Check-out</p>
+                  <p className="text-sm font-bold text-gray-900">{booking.endDate || booking.startDate || "—"}</p>
+                  {booking.endTime && <p className="text-xs text-gray-500">{booking.endTime}</p>}
+                </div>
               </div>
               {guests && (
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 w-36 text-xs shrink-0">Guests:</span>
                   <span className="font-bold text-gray-900">{guests}</span>
-                </div>
-              )}
-              {booking.startTime && (
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-500 w-36 text-xs shrink-0">Time:</span>
-                  <span className="font-bold text-gray-900">{booking.startTime} – {booking.endTime}</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
@@ -524,7 +643,10 @@ function BookingDetailView({ booking, onLeaveReview, onCancel }) {
               <p className="text-xs text-gray-400">{booking.host.city || getLocation(booking) || "—"}</p>
             </div>
           </div>
-          <button className="px-5 py-2.5 border border-[#4AA7A7] text-[#4AA7A7] font-semibold rounded-full text-sm hover:bg-[#4AA7A7]/5 transition-colors whitespace-nowrap">
+          <button
+            onClick={onContactHost}
+            className="px-5 py-2.5 border border-[#4AA7A7] text-[#4AA7A7] font-semibold rounded-full text-sm hover:bg-[#4AA7A7]/5 transition-colors whitespace-nowrap"
+          >
             Contact Host
           </button>
         </div>
@@ -612,7 +734,7 @@ function BookingDetailView({ booking, onLeaveReview, onCancel }) {
       {(getLocation(booking) || info.location) && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <h3 className="text-lg font-bold text-gray-900 mb-3">Location</h3>
-          <LocationMap location={getLocation(booking) || info.location} />
+          <LocationMap location={getLocation(booking) || info.location} booking={booking} />
         </div>
       )}
     </div>
@@ -688,16 +810,41 @@ export default function MyReservationPage() {
   const [activeBooking, setActiveBooking] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("all");
+  const [wishlistIds, setWishlistIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("reservation_wishlists") || "[]"); } catch { return []; }
+  });
 
   useEffect(() => {
     dispatch(fetchBookings({ page: currentPage, limit: 10 }));
   }, [dispatch, currentPage]);
 
+  const toggleWishlist = (id) => {
+    setWishlistIds(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem("reservation_wishlists", JSON.stringify(next));
+      toast.success(prev.includes(id) ? "Removed from Wishlists" : "Added to Wishlists");
+      return next;
+    });
+  };
+
+  const handleShare = (booking) => {
+    const title = getTitle(booking);
+    const url = `${window.location.origin}/user-dashboard/listing/${booking.listingId || booking.listing?._id || booking.listing?.id}`;
+    const text = `Check out "${title}" on Funsival!`;
+    if (navigator.share) {
+      navigator.share({ title, text, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(`${text} ${url}`).then(() => toast.success("Link copied to clipboard!")).catch(() => toast.error("Could not copy link."));
+    }
+  };
+
   const hasData = bookings.length > 0;
 
-  const filtered = activeTab === "all"
-    ? bookings
-    : bookings.filter((b) => getStatusKey(b) === activeTab);
+  const filtered = activeTab === "wishlists"
+    ? bookings.filter((b) => wishlistIds.includes(b.id))
+    : activeTab === "all"
+      ? bookings
+      : bookings.filter((b) => getStatusKey(b) === activeTab);
 
   const openModal = (type, booking = null) => { setActiveBooking(booking); setModal(type); };
   const closeModal = () => { setModal(null); setActiveBooking(null); };
@@ -708,6 +855,26 @@ export default function MyReservationPage() {
     closeModal();
     if (detailView?.id === activeBooking.id) setDetailView(null);
     dispatch(fetchBookings({ page: currentPage, limit: 10 }));
+  };
+
+  const handleContactHost = async (booking) => {
+    const hostId = booking?.host?.id || booking?.host?._id;
+    const listingId = booking?.listingId || booking?.listing?.id;
+    if (!hostId) {
+      toast.error("Host information not available.");
+      return;
+    }
+    try {
+      const result = await dispatch(
+        startOrGetConversation({ recipientId: hostId, listingId })
+      ).unwrap();
+      const convId = result?.data?.conversation?.id;
+      if (convId) {
+        router.push(`/user-dashboard/messages?startChat=${hostId}${listingId ? `&listingId=${listingId}` : ""}`);
+      }
+    } catch {
+      toast.error("Could not start conversation. Please try again.");
+    }
   };
 
   return (
@@ -765,9 +932,37 @@ export default function MyReservationPage() {
               booking={detailView}
               onLeaveReview={() => openModal("review", detailView)}
               onCancel={() => openModal("cancel", detailView)}
+              onContactHost={() => handleContactHost(detailView)}
+              wishlisted={wishlistIds.includes(detailView.id)}
+              onToggleWishlist={() => toggleWishlist(detailView.id)}
+              onShare={() => handleShare(detailView)}
             />
           ) : !hasData ? (
             <EmptyState onStartBooking={() => router.push("/user-dashboard/explore")} />
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                {activeTab === "cancelled" ? (
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m2 0a8 8 0 11-16 0 8 8 0 0116 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <p className="text-base font-semibold text-gray-700 mb-1">
+                  {activeTab === "cancelled" ? "No Cancelled Reservations" : "Nothing Here Yet"}
+                </p>
+                <p className="text-sm text-gray-400 max-w-xs">
+                  {activeTab === "cancelled"
+                    ? "You haven't cancelled any reservations. Your active bookings are doing great!"
+                    : "No reservations match this filter."}
+                </p>
+              </div>
+            </div>
           ) : (
             <div className="flex flex-col gap-4">
               {filtered.map((b) => (
@@ -778,6 +973,10 @@ export default function MyReservationPage() {
                   onCancel={(bk) => openModal("cancel", bk)}
                   onLeaveReview={(bk) => openModal("review", bk)}
                   onReportListing={() => openModal("report-listing", b)}
+                  onContactHost={() => handleContactHost(b)}
+                  wishlisted={wishlistIds.includes(b.id)}
+                  onToggleWishlist={() => toggleWishlist(b.id)}
+                  onShare={() => handleShare(b)}
                 />
               ))}
               {pagination.totalPages > 1 && (

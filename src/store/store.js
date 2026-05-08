@@ -4,6 +4,7 @@ import profileReducer from "./slices/profileSlice";
 import listingsReducer from "./slices/listingsSlice";
 import activitiesReducer from "./slices/activitiesSlice";
 import bookingsReducer from "./slices/bookingsSlice";
+import chatReducer from "./slices/chatSlice";
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     listings: listingsReducer,
     activities: activitiesReducer,
     bookings: bookingsReducer,
+    chat: chatReducer,
   },
 });
 

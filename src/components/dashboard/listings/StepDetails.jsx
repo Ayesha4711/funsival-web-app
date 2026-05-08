@@ -79,18 +79,38 @@ function FieldError({ msg }) {
   return <p className="mt-1 text-xs text-red-500 font-medium">{msg}</p>;
 }
 
-function Textarea({ error, rows = 3, ...props }) {
+const DESCRIPTION_MAX = 500;
+
+function Textarea({ error, rows = 3, maxLength, onChange, value, ...props }) {
+  const count = typeof value === "string" ? value.length : 0;
+  const limit = maxLength ?? null;
+  const over = limit !== null && count > limit;
+
+  const handleChange = (e) => {
+    if (limit !== null && e.target.value.length > limit) return;
+    onChange?.(e);
+  };
+
   return (
-    <textarea
-      rows={rows}
-      className={[
-        "w-full px-3 py-2.5 rounded-xl border bg-[#F5F5F5] text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:bg-white resize-none transition-colors",
-        error
-          ? "border-red-400 focus:ring-red-200 focus:border-red-500"
-          : "border-transparent focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
-      ].join(" ")}
-      {...props}
-    />
+    <div className="relative">
+      <textarea
+        rows={rows}
+        value={value}
+        onChange={handleChange}
+        className={[
+          "w-full px-3 py-2.5 rounded-xl border bg-[#F5F5F5] text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:bg-white resize-none transition-colors",
+          error || over
+            ? "border-red-400 focus:ring-red-200 focus:border-red-500"
+            : "border-transparent focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
+        ].join(" ")}
+        {...props}
+      />
+      {limit !== null && (
+        <span className={`absolute bottom-2 right-3 text-[11px] font-medium pointer-events-none ${over ? "text-red-400" : count >= limit * 0.9 ? "text-amber-500" : "text-gray-400"}`}>
+          {count}/{limit}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -888,7 +908,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             </div> */}
             <div className="sm:col-span-2">
               <Label required>Description</Label>
-              <Textarea placeholder="Tell guests what your experience includes and why it's unique" value={form.description} error={!!fe.description} onChange={(e) => set("description", e.target.value)} />
+              <Textarea placeholder="Tell guests what your experience includes and why it's unique" value={form.description} error={!!fe.description} onChange={(e) => setWithClear("description", e.target.value, "description")} maxLength={DESCRIPTION_MAX} rows={4} />
               <FieldError msg={fe.description} />
             </div>
           </div>
@@ -1162,6 +1182,8 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               return;
             }
             if (!form.title?.trim()) errs.activityTitle = "Activity title is required";
+            if (!form.description?.trim()) errs.description = "Description is required";
+            else if (form.description.length > DESCRIPTION_MAX) errs.description = `Description must be ${DESCRIPTION_MAX} characters or less`;
             if (!form.difficulty) errs.difficulty = "Difficulty level is required";
             if (!form.duration) errs.duration = "Duration is required";
             if (!form.instructorName?.trim()) errs.instructorName = "Instructor name is required";

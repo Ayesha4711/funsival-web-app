@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import logo from "@/assets/images/logo.svg";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProfile, selectUser, selectProfileStatus } from "@/store/slices/profileSlice";
+import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
 import NotificationPopover from "@/components/shared/NotificationPopover";
 import FullPageLoader from "@/components/common/FullPageLoader";
 
@@ -79,7 +80,10 @@ const CloseIcon = () => (
 /* ─── Navbar ─────────────────────────────────────────────────────────────────── */
 function UserNavbar() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const profile = useSelector(selectUser);
+  const currentUserId = profile?.id || profile?._id || null;
+  const totalUnread = useSelector((state) => selectTotalUnreadCount(state, currentUserId));
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
@@ -89,6 +93,11 @@ function UserNavbar() {
   const roleRef = useRef(null);
 
   const avatarLetter = profile?.email ? profile.email[0].toUpperCase() : "U";
+  const profileImage = profile?.profileImage ?? null;
+
+  useEffect(() => {
+    dispatch(fetchConversations());
+  }, [dispatch]);
 
   useEffect(() => {
     const h = (e) => {
@@ -160,14 +169,19 @@ function UserNavbar() {
           </div>
 
           {/* Messages */}
-          <button onClick={() => router.push("/user-dashboard/messages")} className="w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer" aria-label="Messages">
+          <button onClick={() => router.push("/user-dashboard/messages")} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer" aria-label="Messages">
             <MessageIcon />
+            {totalUnread > 0 && (
+              <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 bg-[#F5C842] rounded-full text-[8px] flex items-center justify-center text-gray-900 font-bold border border-[#228E8A] px-0.5">
+                {totalUnread > 9 ? "9+" : totalUnread}
+              </span>
+            )}
           </button>
 
           {/* Avatar + profile dropdown */}
           <div className="relative" ref={profileRef}>
-            <button onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }} className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm border-2 border-white/40 hover:border-white/70 transition-colors cursor-pointer" aria-label="Profile menu">
-              {avatarLetter}
+            <button onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }} className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm border-2 border-white/40 hover:border-white/70 transition-colors cursor-pointer overflow-hidden" aria-label="Profile menu">
+              {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
             </button>
             {profileOpen && (
               <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-2xl shadow-xl z-50 overflow-hidden">
@@ -207,8 +221,13 @@ function UserNavbar() {
             <BellIcon />
             <span className="absolute top-1 right-1 w-3 h-3 bg-[#F5C842] rounded-full text-[8px] flex items-center justify-center text-gray-900 font-bold border border-[#228E8A]">3</span>
           </button>
-          <button onClick={() => router.push("/user-dashboard/messages")} className="w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors">
+          <button onClick={() => router.push("/user-dashboard/messages")} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors">
             <MessageIcon />
+            {totalUnread > 0 && (
+              <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 bg-[#F5C842] rounded-full text-[8px] flex items-center justify-center text-gray-900 font-bold border border-[#228E8A] px-0.5">
+                {totalUnread > 9 ? "9+" : totalUnread}
+              </span>
+            )}
           </button>
           <button onClick={() => setMobileOpen((v) => !v)} className="w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors" aria-label="Menu">
             {mobileOpen ? <CloseIcon /> : <HamburgerIcon />}
@@ -226,8 +245,8 @@ function UserNavbar() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 bg-[#228E8A]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-base">
-                  {avatarLetter}
+                <div className="w-10 h-10 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-base overflow-hidden">
+                  {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
                 </div>
                 <div>
                   {profile?.email && <p className="text-xs font-semibold text-white truncate max-w-[160px]">{profile.email}</p>}

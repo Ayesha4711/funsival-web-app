@@ -1,30 +1,31 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useRef, useEffect, lazy, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
 
-/* ─── Mock data ──────────────────────────────────────────────────────────────── */
-const CONTACTS = [
-  { id: 1, name: "David H. Brown",  preview: "Hi, want to know more about....", time: "2:24 pm", unread: 0,  online: true  },
-  { id: 2, name: "Lake Serene",     preview: "Hi, want to know more about....", time: "2:24 pm", unread: 3,  online: false },
-  { id: 3, name: "Jordan Lake",     preview: "Hi, want to know more about....", time: "2:24 pm", unread: 1,  online: false },
-  { id: 4, name: "Alina James",     preview: "Hi, want to know more about....", time: "2:24 pm", unread: 0,  online: false },
-  { id: 5, name: "Alex Tim",        preview: "Hi, want to know more about....", time: "2:24 pm", unread: 0,  online: false },
-  { id: 6, name: "Fabian Chris",    preview: "Hi, want to know more about....", time: "2:24 pm", unread: 0,  online: false },
-  { id: 7, name: "Fabian Chris",    preview: "Hi, want to know more about....", time: "2:24 pm", unread: 0,  online: false },
-];
+const EmojiPicker = lazy(() => import("emoji-picker-react"));
+import {
+  fetchConversations,
+  fetchMessages,
+  sendMessage,
+  startOrGetConversation,
+  setActiveConversation,
+  appendOptimisticMessage,
+  markConversationRead,
+  clearUnreadCount,
+  selectConversations,
+  selectConversationsStatus,
+  selectActiveConversationId,
+  selectMessagesByConversation,
+  selectMessagesStatus,
+  selectSendStatus,
+} from "@/store/slices/chatSlice";
+import { selectUser } from "@/store/slices/profileSlice";
+import { onForegroundMessage } from "@/lib/firebase";
 
-const MESSAGES_MAP = {
-  1: [
-    { id: 1, from: "them", text: "I want to make an appointment tomorrow from 2:00pm to 3:00pm?", time: "1:55pm" },
-    { id: 2, from: "me",   text: "Hello, Thomas! I will check the schedule and inform you",        time: "1:58pm" },
-    { id: 3, from: "them", text: "Sure, Thanks",                                                   time: "1:59pm" },
-    { id: 4, from: "me",   text: "You are welcome!",                                               time: "2:00pm" },
-    { id: 5, from: "them", text: "I want to make an appointment tomorrow from 2:00pm to 3:00pm?I want to make an appointment tomorrow from 2:00pm to 3:00pm?", time: "1:59pm" },
-    { id: 6, from: "me",   text: "You are welcome!",                                               time: "2:00pm" },
-    { id: 7, from: "them", text: "Sure, Thanks",                                                   time: "1:59pm" },
-  ],
-};
+const POLL_INTERVAL_MS = 3000;
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const BackIcon = () => (
@@ -42,7 +43,7 @@ const SearchIcon = () => (
 
 const MoreIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="5"  r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" />
+    <circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" />
   </svg>
 );
 
@@ -51,12 +52,6 @@ const EmojiIcon = () => (
     <circle cx="12" cy="12" r="10" />
     <path d="M8 14s1.5 2 4 2 4-2 4-2" />
     <line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
-  </svg>
-);
-
-const AttachIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
   </svg>
 );
 
@@ -70,44 +65,116 @@ const NoMsgIcon = () => (
   <svg width="80" height="80" viewBox="0 0 100 100" fill="none">
     <ellipse cx="50" cy="45" rx="34" ry="28" fill="#e8edf0" />
     <ellipse cx="32" cy="60" rx="20" ry="16" fill="#d4dde3" />
-    <circle  cx="50" cy="55" r="16" fill="#8fa3b0" />
-    <circle  cx="50" cy="55" r="9"  fill="white" />
+    <circle cx="50" cy="55" r="16" fill="#8fa3b0" />
+    <circle cx="50" cy="55" r="9" fill="white" />
     <line x1="46" y1="51" x2="54" y2="59" stroke="#8fa3b0" strokeWidth="2.5" strokeLinecap="round" />
     <line x1="46" y1="51" x2="46" y2="45" stroke="#8fa3b0" strokeWidth="2.5" strokeLinecap="round" />
   </svg>
 );
 
+/* ─── Helpers ─────────────────────────────────────────────────────────────────── */
+function formatTime(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatConvTime(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  const now = new Date();
+  const diffDays = Math.floor((now - d) / 86400000);
+  if (diffDays === 0) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return d.toLocaleDateString([], { weekday: "short" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
 /* ─── Avatar ─────────────────────────────────────────────────────────────────── */
-function Avatar({ name, size = 10, online = false }) {
-  const initials = name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+function Avatar({ name = "?", src, size = 10 }) {
+  const initials = name.split(" ").slice(0, 2).map((w) => w[0] || "").join("").toUpperCase() || "?";
   const colours = ["bg-teal-500", "bg-blue-500", "bg-purple-500", "bg-rose-400", "bg-amber-500", "bg-emerald-500"];
-  const colour = colours[name.charCodeAt(0) % colours.length];
+  const colour = colours[(name.charCodeAt(0) || 0) % colours.length];
+
+  if (src) {
+    return (
+      <div className={`relative shrink-0 w-${size} h-${size} rounded-full overflow-hidden`}>
+        <img src={src} alt={name} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+
   return (
     <div className={`relative shrink-0 w-${size} h-${size} rounded-full ${colour} flex items-center justify-center text-white font-bold text-sm`}>
       {initials}
-      {online && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-white" />}
+    </div>
+  );
+}
+
+/* ─── 3-dot dropdown ─────────────────────────────────────────────────────────── */
+function ChatMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  const handleViewProfile = () => {
+    setOpen(false);
+    const base = pathname?.startsWith("/user-dashboard") ? "/user-dashboard" : "/dashboard";
+    router.push(`${base}/settings?tab=profile`);
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="p-2 rounded-lg text-[var(--color-text-muted)] hover:bg-gray-100 transition-colors"
+      >
+        <MoreIcon />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-10 z-30 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[160px]">
+          <button onClick={handleViewProfile} className="w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50">View Profile</button>
+          <button onClick={() => setOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">Report</button>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ─── Contact List Item ──────────────────────────────────────────────────────── */
-function ContactItem({ contact, isActive, onClick }) {
+function ConversationItem({ conv, isActive, onClick, currentUserId }) {
+  const otherParticipant = Object.values(conv.participantInfo || {}).find(
+    (p) => p.id !== currentUserId
+  );
+  const name = otherParticipant?.name || "Unknown";
+  const src = otherParticipant?.profileImage || null;
+  const preview = conv.lastMessage?.text || "No messages yet";
+  const time = formatConvTime(conv.lastMessageAt);
+  const unread = currentUserId ? (conv.unreadCount?.[currentUserId] ?? 0) : 0;
+
   return (
     <button
-      onClick={() => onClick(contact)}
+      onClick={() => onClick(conv)}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${isActive ? "bg-gray-100" : "hover:bg-gray-50"}`}
     >
-      <Avatar name={contact.name} size={10} online={contact.online} />
+      <Avatar name={name} src={src} size={10} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <p className="text-sm font-semibold text-[var(--color-text)] truncate">{contact.name}</p>
-          <span className="text-[10px] text-[var(--color-text-muted)] shrink-0 ml-2">{contact.time}</span>
+          <p className="text-sm font-semibold text-[var(--color-text)] truncate">{name}</p>
+          <span className="text-[10px] text-[var(--color-text-muted)] shrink-0 ml-2">{time}</span>
         </div>
         <div className="flex items-center justify-between">
-          <p className="text-xs text-[var(--color-text-muted)] truncate">{contact.preview}</p>
-          {contact.unread > 0 && (
+          <p className="text-xs text-[var(--color-text-muted)] truncate">{preview}</p>
+          {unread > 0 && (
             <span className="ml-2 shrink-0 w-5 h-5 rounded-full bg-[var(--color-secondary)] text-white text-[10px] font-bold flex items-center justify-center">
-              {contact.unread}
+              {unread > 9 ? "9+" : unread}
             </span>
           )}
         </div>
@@ -117,13 +184,23 @@ function ContactItem({ contact, isActive, onClick }) {
 }
 
 /* ─── Sidebar / Contact panel ────────────────────────────────────────────────── */
-function ContactPanel({ activeContact, onSelect, searchQuery, setSearchQuery, activeTab, setActiveTab }) {
-  const tabs = ["All", "Unread", "Favourites"];
+function ContactPanel({ activeConvId, onSelect, currentUserId }) {
+  const dispatch = useDispatch();
+  const conversations = useSelector(selectConversations);
+  const convStatus = useSelector(selectConversationsStatus);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("All");
+  const tabs = ["All", "Unread"];
 
-  const filtered = CONTACTS.filter((c) => {
-    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase());
-    if (activeTab === "Unread")     return matchesSearch && c.unread > 0;
-    if (activeTab === "Favourites") return false;
+  const filtered = conversations.filter((conv) => {
+    const otherParticipant = Object.values(conv.participantInfo || {}).find(
+      (p) => p.id !== currentUserId
+    );
+    const name = otherParticipant?.name || "";
+    const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
+    if (activeTab === "Unread") {
+      return matchesSearch && (conv.unreadCount?.[currentUserId] ?? 0) > 0;
+    }
     return matchesSearch;
   });
 
@@ -159,73 +236,134 @@ function ContactPanel({ activeContact, onSelect, searchQuery, setSearchQuery, ac
       </div>
 
       <div className="flex-1 overflow-y-auto px-2">
-        {filtered.length === 0 ? (
+        {convStatus === "loading" && (
+          <div className="flex flex-col gap-2 px-2 py-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-2 py-3 animate-pulse">
+                <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-gray-200 rounded w-3/4" />
+                  <div className="h-2 bg-gray-100 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {convStatus !== "loading" && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <span className="text-3xl">🔍</span>
-            <p className="text-sm font-medium text-orange-400 bg-orange-50 border border-orange-100 px-4 py-1.5 rounded-full">
-              No result found
+            <span className="text-3xl">💬</span>
+            <p className="text-sm font-medium text-gray-400 bg-gray-50 border border-gray-100 px-4 py-1.5 rounded-full">
+              No conversations yet
             </p>
           </div>
-        ) : (
-          filtered.map((c) => (
-            <ContactItem key={c.id} contact={c} isActive={activeContact?.id === c.id} onClick={onSelect} />
-          ))
         )}
+        {filtered.map((conv) => (
+          <ConversationItem
+            key={conv.id}
+            conv={conv}
+            isActive={activeConvId === conv.id}
+            onClick={onSelect}
+            currentUserId={currentUserId}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-/* ─── 3-dot dropdown ─────────────────────────────────────────────────────────── */
-function ChatMenu() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+/* ─── Chat Window ────────────────────────────────────────────────────────────── */
+function ChatWindow({ conv, onBack, showBackBtn, currentUserId }) {
+  const dispatch = useDispatch();
+  const messagesStatus = useSelector(selectMessagesStatus);
+  const sendStatus = useSelector(selectSendStatus);
+  const messages = useSelector(selectMessagesByConversation(conv.id));
+  const [text, setText] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const messagesContainerRef = useRef(null);
+  const prevMessageCountRef = useRef(null);
+  const emojiRef = useRef(null);
+  const lastSentAtRef = useRef(0);
+
   useEffect(() => {
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const h = (e) => { if (emojiRef.current && !emojiRef.current.contains(e.target)) setEmojiOpen(false); };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="p-2 rounded-lg text-[var(--color-text-muted)] hover:bg-gray-100 transition-colors"
-      >
-        <MoreIcon />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-10 z-30 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[160px]">
-          <button onClick={() => setOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50">View Profile</button>
-          <button onClick={() => setOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50">Search message</button>
-          <button onClick={() => setOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">Report</button>
-        </div>
-      )}
-    </div>
+  const otherParticipant = Object.values(conv.participantInfo || {}).find(
+    (p) => p.id !== currentUserId
   );
-}
-
-/* ─── Chat Window ────────────────────────────────────────────────────────────── */
-function ChatWindow({ contact, onBack, showBackBtn }) {
-  const [text, setText] = useState("");
-  const [messages, setMessages] = useState(MESSAGES_MAP[contact.id] ?? []);
-  const bottomRef = useRef(null);
+  const name = otherParticipant?.name || "Unknown";
+  const src = otherParticipant?.profileImage || null;
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    prevMessageCountRef.current = null;
+    dispatch(fetchMessages({ conversationId: conv.id }));
+
+    // Poll for new messages while this chat window is open.
+    // Skip the poll for 4s after a send to avoid overwriting optimistic messages.
+    const timer = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      if (Date.now() - lastSentAtRef.current < 4000) return;
+      dispatch(fetchMessages({ conversationId: conv.id }));
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [conv.id, dispatch]);
+
+  useEffect(() => {
+    const prev = prevMessageCountRef.current;
+    const curr = messages.length;
+    const el = messagesContainerRef.current;
+    if (!el) { prevMessageCountRef.current = curr; return; }
+    if (prev === null) {
+      el.scrollTop = el.scrollHeight;
+    } else if (curr > prev) {
+      // New message arrived from the other person — mark as read immediately
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg && lastMsg.senderId !== currentUserId) {
+        dispatch(clearUnreadCount(conv.id));
+        dispatch(markConversationRead(conv));
+      }
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
+    prevMessageCountRef.current = curr;
   }, [messages]);
 
-  const sendMessage = () => {
+  const handleSend = async () => {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now(), from: "me", text: trimmed, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
-    ]);
+    if (!trimmed || sendStatus === "loading") return;
     setText("");
+    lastSentAtRef.current = Date.now();
+
+    // Optimistic update
+    const tempId = `_opt_${Date.now()}`;
+    dispatch(appendOptimisticMessage({
+      conversationId: conv.id,
+      message: {
+        id: tempId,
+        _optimistic: true,
+        senderId: currentUserId,
+        type: "text",
+        text: trimmed,
+        createdAt: new Date().toISOString(),
+        sender: { id: currentUserId },
+      },
+    }));
+
+    try {
+      await dispatch(sendMessage({ conversationId: conv.id, text: trimmed })).unwrap();
+    } catch {
+      toast.error("Failed to send message.");
+    }
   };
 
-  const handleKey = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
+  const handleKey = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -236,56 +374,104 @@ function ChatWindow({ contact, onBack, showBackBtn }) {
             <BackIcon />
           </button>
         )}
-        <Avatar name={contact.name} size={10} online={contact.online} />
+        <Avatar name={name} src={src} size={10} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-[var(--color-text)]">{contact.name}</p>
-          <p className="text-xs font-medium" style={{ color: contact.online ? "#22c55e" : "#9ca3af" }}>
-            {contact.online ? "Online" : "Offline"}
-          </p>
+          <p className="text-sm font-bold text-[var(--color-text)]">{name}</p>
+          {otherParticipant?.role && (
+            <p className="text-xs text-gray-400 capitalize">{otherParticipant.role}</p>
+          )}
         </div>
         <ChatMenu />
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col gap-4">
-        <div className="flex items-center justify-center">
-          <span className="text-xs text-[var(--color-text-muted)] bg-gray-100 px-3 py-1 rounded-full">Today</span>
-        </div>
-
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex flex-col ${msg.from === "me" ? "items-end" : "items-start"}`}>
-            <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-              msg.from === "me"
-                ? "bg-[var(--color-primary)] text-white rounded-tr-sm"
-                : "bg-gray-100 text-[var(--color-text)] rounded-tl-sm"
-            }`}>
-              {msg.text}
-            </div>
-            <span className="text-[10px] text-[var(--color-text-muted)] mt-1 px-1">{msg.time}</span>
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col gap-4">
+        {messagesStatus === "loading" && messages.length === 0 && (
+          <div className="flex flex-col gap-3 animate-pulse">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className={`flex ${i % 2 === 0 ? "justify-end" : "justify-start"}`}>
+                <div className={`h-9 rounded-2xl bg-gray-200 ${i % 2 === 0 ? "w-48" : "w-56"}`} />
+              </div>
+            ))}
           </div>
-        ))}
-        <div ref={bottomRef} />
+        )}
+
+        {messages.length > 0 && (
+          <>
+            <div className="flex items-center justify-center">
+              <span className="text-xs text-[var(--color-text-muted)] bg-gray-100 px-3 py-1 rounded-full">
+                {new Date(messages[0].createdAt).toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" })}
+              </span>
+            </div>
+
+            {messages.map((msg) => {
+              const isMe = msg.senderId === currentUserId;
+              return (
+                <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+                  <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                    isMe
+                      ? `bg-[var(--color-primary)] text-white rounded-tr-sm ${msg._optimistic ? "opacity-70" : ""}`
+                      : "bg-gray-100 text-[var(--color-text)] rounded-tl-sm"
+                  }`}>
+                    {msg.text}
+                  </div>
+                  <span className="text-[10px] text-[var(--color-text-muted)] mt-1 px-1">
+                    {formatTime(msg.createdAt)}
+                  </span>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {messagesStatus !== "loading" && messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center flex-1 gap-2 text-center py-12">
+            <p className="text-sm text-gray-400">No messages yet. Say hello!</p>
+          </div>
+        )}
+
       </div>
 
       {/* Input */}
       <div className="px-4 sm:px-6 py-4 border-t border-gray-100 shrink-0">
-        <div className="flex items-center gap-3 bg-gray-50 rounded-full px-4 py-2">
-          <button className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors shrink-0"><EmojiIcon /></button>
-          <button className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors shrink-0"><AttachIcon /></button>
-          <input
-            type="text"
-            placeholder="Type a message"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKey}
-            className="flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none min-w-0"
-          />
-          <button
-            onClick={sendMessage}
-            className="shrink-0 w-10 h-10 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white hover:opacity-90 transition-opacity"
-          >
-            <SendIcon />
-          </button>
+        <div className="relative" ref={emojiRef}>
+          {emojiOpen && (
+            <div className="absolute bottom-14 left-0 z-30">
+              <Suspense fallback={null}>
+                <EmojiPicker
+                  onEmojiClick={(e) => setText((t) => t + e.emoji)}
+                  skinTonesDisabled
+                  searchDisabled={false}
+                  height={380}
+                  width={320}
+                />
+              </Suspense>
+            </div>
+          )}
+          <div className="flex items-center gap-3 bg-gray-50 rounded-full px-4 py-2">
+            <button
+              type="button"
+              onClick={() => setEmojiOpen((v) => !v)}
+              className={`text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors shrink-0 ${emojiOpen ? "text-[var(--color-primary)]" : ""}`}
+            >
+              <EmojiIcon />
+            </button>
+            <input
+              type="text"
+              placeholder="Type a message"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleKey}
+              className="flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none min-w-0"
+            />
+            <button
+              onClick={handleSend}
+              disabled={sendStatus === "loading" || !text.trim()}
+              className="shrink-0 w-10 h-10 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              <SendIcon />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -304,24 +490,79 @@ function NoMessageSelected() {
 }
 
 /* ─── Main Component ─────────────────────────────────────────────────────────── */
-/**
- * Shared messages page used by both provider dashboard and user dashboard.
- *
- * No props required — the wrapping layout/navbar is handled by the parent page.
- */
 export default function MessagesPage() {
   const router = useRouter();
-  const [activeContact, setActiveContact] = useState(CONTACTS[0]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("All");
+  const searchParams = useSearchParams();
+  const dispatch = useDispatch();
+  const profile = useSelector(selectUser);
+
+  const conversations = useSelector(selectConversations);
+  const activeConvId = useSelector(selectActiveConversationId);
   const [mobileView, setMobileView] = useState(null);
 
-  const handleSelectContact = (contact) => {
-    setActiveContact(contact);
-    setMobileView(contact);
+  const currentUserId = profile?.id || profile?._id || null;
+
+  // Fetch all conversations on mount
+  useEffect(() => {
+    dispatch(fetchConversations());
+  }, [dispatch]);
+
+  // When a chat FCM message arrives while the app is open, refresh conversations
+  // and pull new messages for the active conversation immediately
+  useEffect(() => {
+    let unsubscribe;
+    onForegroundMessage((payload) => {
+      dispatch(fetchConversations());
+      const convId = payload?.data?.conversationId ?? activeConvId;
+      if (convId) {
+        dispatch(fetchMessages({ conversationId: convId }));
+      }
+    }).then((unsub) => { unsubscribe = unsub; });
+    return () => { if (typeof unsubscribe === "function") unsubscribe(); };
+  }, [dispatch, activeConvId]);
+
+  // Handle deep-link from booking success: ?startChat=recipientId&listingId=xxx&message=xxx
+  useEffect(() => {
+    const recipientId = searchParams.get("startChat");
+    const listingId = searchParams.get("listingId");
+    const initialMessage = searchParams.get("message");
+
+    if (!recipientId) return;
+
+    dispatch(
+      startOrGetConversation({ recipientId, listingId, initialMessage })
+    ).then((result) => {
+      const conv = result.payload?.data?.conversation;
+      if (conv?.id) {
+        dispatch(setActiveConversation(conv.id));
+        dispatch(clearUnreadCount(conv.id));
+        dispatch(markConversationRead(conv));
+      }
+    });
+  }, [searchParams, dispatch]);
+
+  // Auto-select the active conversation when id changes
+  useEffect(() => {
+    if (activeConvId && conversations.length > 0) {
+      const conv = conversations.find((c) => c.id === activeConvId);
+      if (conv) setMobileView(conv);
+    }
+  }, [activeConvId, conversations]);
+
+  const activeConv = conversations.find((c) => c.id === activeConvId) ?? null;
+
+  const handleSelectConv = (conv) => {
+    dispatch(setActiveConversation(conv.id));
+    setMobileView(conv);
+    // Optimistically clear badge immediately, then confirm with backend
+    dispatch(clearUnreadCount(conv.id));
+    dispatch(markConversationRead(conv));
   };
 
-  const handleBack = () => setMobileView(null);
+  const handleBack = () => {
+    setMobileView(null);
+    dispatch(setActiveConversation(null));
+  };
 
   return (
     <div className="flex flex-col" style={{ height: "calc(100dvh - 64px)" }}>
@@ -348,12 +589,9 @@ export default function MessagesPage() {
             lg:flex
           `}>
             <ContactPanel
-              activeContact={activeContact}
-              onSelect={handleSelectContact}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
+              activeConvId={activeConvId}
+              onSelect={handleSelectConv}
+              currentUserId={currentUserId}
             />
           </div>
 
@@ -362,12 +600,13 @@ export default function MessagesPage() {
             flex-1 min-w-0
             ${mobileView ? "flex flex-col" : "hidden lg:flex lg:flex-col"}
           `}>
-            {activeContact ? (
+            {activeConv ? (
               <ChatWindow
-                key={activeContact.id}
-                contact={activeContact}
+                key={activeConv.id}
+                conv={activeConv}
                 onBack={handleBack}
                 showBackBtn={!!mobileView}
+                currentUserId={currentUserId}
               />
             ) : (
               <NoMessageSelected />
