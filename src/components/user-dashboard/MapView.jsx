@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 export default function MapView({ listings }) {
   const router = useRouter();
   const [activePin, setActivePin] = useState(null);
+  const containerRef = useRef(null);
+  const CARD_WIDTH = 220;
 
   const center = { lat: 40.7128, lon: -74.0060 };
   const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${center.lon - 0.1}%2C${center.lat - 0.1}%2C${center.lon + 0.1}%2C${center.lat + 0.1}&layer=mapnik`;
@@ -82,20 +84,22 @@ export default function MapView({ listings }) {
 
   return (
     <div
+      ref={containerRef}
       className="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-100"
       style={{ height: 'calc(100vh - 260px)', minHeight: 500 }}
       onClick={() => setActivePin(null)}
     >
       {/* Map iframe */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 overflow-hidden">
         <iframe
           title="Explore Map"
           width="100%"
-          height="100%"
+          height="105%"
           frameBorder="0"
           scrolling="no"
           src={mapSrc}
           className="opacity-90"
+          style={{ marginBottom: '-5%' }}
         />
       </div>
 
@@ -123,16 +127,22 @@ export default function MapView({ listings }) {
         const pinTopPct = parseFloat(activePinObj.top);
         const pinLeftPct = parseFloat(activePinObj.left);
         const flipUp = pinTopPct > 55;
-        const clampLeft = Math.min(Math.max(pinLeftPct, 18), 82);
+        const containerW = containerRef.current?.offsetWidth ?? 800;
+        const pinPx = (pinLeftPct / 100) * containerW;
+        const halfCard = CARD_WIDTH / 2;
+        // Better centering for ultra-wide screens (2560px+)
+        const clampedPx = containerW > 2000
+          ? Math.max(halfCard + 8, Math.min(pinPx, containerW - halfCard - 8))
+          : Math.min(Math.max(pinPx, halfCard + 8), containerW - halfCard - 8);
         return (
         <div
           className="absolute z-20 bg-white rounded-2xl overflow-hidden shadow-xl cursor-pointer"
           style={{
-            width: 220,
+            width: CARD_WIDTH,
             ...(flipUp
               ? { bottom: `calc(${100 - pinTopPct}% + 14px)` }
               : { top: `calc(${activePinObj.top} + 14px)` }),
-            left: `${clampLeft}%`,
+            left: clampedPx,
             transform: 'translateX(-50%)',
           }}
           onClick={(e) => {
@@ -203,11 +213,6 @@ export default function MapView({ listings }) {
         </div>
         );
       })()}
-
-      {/* Attribution */}
-      <div className="absolute bottom-2 right-3 text-[9px] text-gray-400 bg-white/80 rounded px-1.5 py-0.5">
-        Map data © OpenStreetMap
-      </div>
     </div>
   );
 }

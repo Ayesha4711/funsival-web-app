@@ -76,7 +76,7 @@ export default function AppFooter() {
           />
           <button
             type="submit"
-            className="shrink-0 px-6 py-2.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold text-sm rounded-full transition-colors"
+            className="shrink-0 px-6 py-2.5 bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-semibold text-sm rounded-full transition-colors"
           >
             Subscribe
           </button>

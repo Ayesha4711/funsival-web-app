@@ -8,13 +8,14 @@ export function LocationMap({ coords, searchValue, onSearchChange, onSelect, onU
   return (
     <div className="relative w-full h-64 sm:h-80 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
       {/* Real OSM Map Iframe */}
-      <div className="absolute inset-0">
-        <iframe 
-          key={`${coords.lat}-${coords.lon}`} 
-          src={mapSrc} 
-          className="w-full h-full border-0 grayscale-[10%] contrast-[1.1]" 
-          title="Location map" 
-          loading="lazy" 
+      <div className="absolute inset-0 overflow-hidden">
+        <iframe
+          key={`${coords.lat}-${coords.lon}`}
+          src={mapSrc}
+          className="w-full border-0 grayscale-[10%] contrast-[1.1]"
+          style={{ height: '105%', marginBottom: '-5%' }}
+          title="Location map"
+          loading="lazy"
         />
       </div>
 
@@ -72,9 +73,6 @@ export function LocationMap({ coords, searchValue, onSearchChange, onSelect, onU
           )}
         </div>
       </div>
-
-      {/* Hide OSM attribution bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-6 bg-white pointer-events-none z-10" />
     </div>
   );
 }
@@ -132,14 +130,12 @@ export function SimpleMap({ location, lat: latProp, lng: lngProp, height = 200 }
       <iframe
         title="Map location"
         width="100%"
-        height="100%"
         frameBorder="0"
         scrolling="no"
         src={mapSrc}
         className="grayscale-[15%] contrast-[1.05]"
+        style={{ height: '105%', marginBottom: '-5%' }}
       />
-      {/* Hide OSM attribution bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-6 bg-white pointer-events-none z-10" />
     </div>
   );
 }

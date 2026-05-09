@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchBrowseListings,
@@ -11,241 +10,17 @@ import {
   selectActivitiesStatus,
 } from '@/store/slices/activitiesSlice';
 import AppFooter from '@/components/shared/AppFooter';
-import NotificationPopover from '@/components/shared/NotificationPopover';
 import MapView from '@/components/user-dashboard/MapView';
 import Pagination from '@/components/shared/Pagination';
+import CustomCalendar from '@/components/shared/CustomCalendar';
 
-/* ─── Navbar Icons ───────────────────────────────────────────────────────────── */
-const BellIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-  </svg>
-);
-
-const MessageIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  </svg>
-);
-
-const UserIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-  </svg>
-);
-
-const SettingsIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>
-);
-
-const LogoutIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" y1="12" x2="9" y2="12" />
-  </svg>
-);
-
-const ChevronDownIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
-
-/* ─── Navbar ─────────────────────────────────────────────────────────────────── */
-function ExploreNavbar() {
-  const router = useRouter();
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const notifRef = useRef(null);
-  const profileRef = useRef(null);
-    const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  useEffect(() => {
-    const handleOutside = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
-      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
-    };
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, []);
-
-  const handleBellClick = () => {
-    if (window.innerWidth < 1024) {
-      router.push('/user-dashboard/notifications');
-    } else {
-      setNotifOpen((v) => !v);
-      setProfileOpen(false);
-    }
-  };
-
-  return (
-    <header className="sticky top-0 z-50 w-full bg-[#4AA7A7]">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-3">
-          {/* Logo */}
-          <Link href="/user-dashboard/explore" className="flex items-center gap-2 shrink-0">
-            <svg className="w-7 h-7 text-[#F5C842]" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-            <span className="text-xl font-bold text-white hidden sm:inline">funsival</span>
-          </Link>
-
-          {/* Search Bar */}
-          <div className="flex-1 max-w-xl mx-2 sm:mx-4">
-            <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2">
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search here"
-                className="bg-transparent text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none w-full"
-              />
-            </div>
-          </div>
-
-          {/* Right Actions */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* User label + chevron — desktop */}
-            {/* <div className="hidden sm:flex items-center gap-1 text-white text-sm font-medium">
-              User <ChevronDownIcon />
-            </div> */}
-
-             <div className="relative hidden sm:block">
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-1.5 text-white text-sm font-medium hover:text-white/80 transition-colors"
-          >
-            User
-            <ChevronDownIcon />
-          </button>
-          {dropdownOpen &&
-            <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl py-1 z-50">
-              <button
-                onClick={() => {
-                  setDropdownOpen(false);
-                  router.push("/dashboard");
-                }}
-                className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]"
-              >
-                Provider
-              </button>
-              <button
-                onClick={() => {
-                  setDropdownOpen(false);
-                  router.push("/user-dashboard/explore");
-                }}
-                className="block w-full text-left px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-primary-light)]"
-              >
-                User
-              </button>
-            </div>}
-        </div>
-
-            {/* Bell */}
-            <div className="relative" ref={notifRef}>
-              <button
-                onClick={handleBellClick}
-                className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors"
-              >
-                <BellIcon />
-                <span className="absolute top-1 right-1 w-3 h-3 bg-[#F5C842] rounded-full text-[8px] flex items-center justify-center text-gray-900 font-bold border border-[#4AA7A7]">3</span>
-              </button>
-              {notifOpen && (
-                <NotificationPopover viewAllHref="/user-dashboard/notifications" onClose={() => setNotifOpen(false)} />
-              )}
-            </div>
-
-            {/* Messages */}
-            <button
-              onClick={() => router.push('/user-dashboard/messages')}
-              className="w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors"
-              aria-label="Messages"
-            >
-              <MessageIcon />
-            </button>
-
-            {/* Avatar + Profile Dropdown */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }}
-                className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm shrink-0 border-2 border-white/40 hover:border-white/70 transition-colors"
-                aria-label="Profile menu"
-              >
-                U
-              </button>
-
-              {profileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl py-1.5 z-50 border border-gray-100">
-                  <button
-                    onClick={() => { setProfileOpen(false); router.push('/user-dashboard/profile'); }}
-                    className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="text-gray-500"><UserIcon /></span>
-                    View Profile
-                  </button>
-                  <button
-                    onClick={() => { setProfileOpen(false); router.push('/user-dashboard/settings'); }}
-                    className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="text-gray-500"><SettingsIcon /></span>
-                    Settings
-                  </button>
-                  <div className="my-1 border-t border-gray-100" />
-                  <button
-                    onClick={() => { setProfileOpen(false); router.push('/login'); }}
-                    className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <LogoutIcon />
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Mobile hamburger (extra small screens) */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="sm:hidden w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile dropdown for xs screens */}
-        {mobileMenuOpen && (
-          <div className="sm:hidden py-3 border-t border-white/20 flex flex-col gap-1 pb-4">
-            <button onClick={() => { setMobileMenuOpen(false); router.push('/user-dashboard/notifications'); }}
-              className="flex items-center gap-2 text-white text-sm px-3 py-2 rounded-lg hover:bg-white/10">
-              <BellIcon /> Notifications
-            </button>
-            <button onClick={() => { setMobileMenuOpen(false); router.push('/user-dashboard/messages'); }}
-              className="flex items-center gap-2 text-white text-sm px-3 py-2 rounded-lg hover:bg-white/10">
-              <MessageIcon /> Messages
-            </button>
-            <button onClick={() => { setMobileMenuOpen(false); router.push('/user-dashboard/settings'); }}
-              className="flex items-center gap-2 text-white text-sm px-3 py-2 rounded-lg hover:bg-white/10">
-              <SettingsIcon /> Settings
-            </button>
-            <button onClick={() => { setMobileMenuOpen(false); router.push('/login'); }}
-              className="flex items-center gap-2 text-red-300 text-sm px-3 py-2 rounded-lg hover:bg-white/10">
-              <LogoutIcon /> Logout
-            </button>
-          </div>
-        )}
-      </div>
-    </header>
-  );
-}
+/* ─── Tab → API category mapping ────────────────────────────────────────────── */
+const TAB_TO_CATEGORY = {
+  all: undefined,
+  places: 'Place',
+  equipment: 'Equipment',
+  activities: 'Services',
+};
 
 /* ─── Tab Bar ────────────────────────────────────────────────────────────────── */
 const TABS = [
@@ -352,9 +127,10 @@ function ListingCard({ listing }) {
   const rating = listing.rating ?? 4.4;
   const reviews = listing.reviewCount ?? listing.reviews ?? '21K';
 
-  const categoryLabel = info.category || listing.categoryLabel || (
-    category === 'places' ? 'Swimming' : category === 'equipment' ? 'Equipment' : 'Diving'
-  );
+  const rawType = listing.type || info.category || listing.categoryLabel;
+  const categoryLabel = rawType
+    ? rawType.charAt(0).toUpperCase() + rawType.slice(1).replace(/_/g, ' ')
+    : category === 'places' ? 'Place' : category === 'equipment' ? 'Equipment' : 'Activity';
 
   const navigateToListing = () => {
     router.push(`/user-dashboard/listing/${id}?type=${category}`);
@@ -457,33 +233,86 @@ const PLACES_CATEGORIES = ['Pools','Jacuzzi','Basketball Courts','Arcade','Pickl
 const EQUIPMENT_CATEGORIES = ['Bikes','Kayak','Camping Gear','Diving Gear','Surfboard','Skis','Telescope','Drone'];
 const ACTIVITIES_CATEGORIES = ['Skydiving','Horse Riding','Scuba Diving','Paragliding','Zipline','Jeep Rally','Hang Glider','Bungee','Bowling','Trampoline','Golf','Boating'];
 
+const CITIES = ['Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'];
+
 function FilterPanel({ open, onClose, filters, onChange }) {
+  const cityDropdownRef = useRef(null);
+  const calendarRef = useRef(null);
   const [priceTab, setPriceTab] = useState('hourly');
   const [priceRange, setPriceRange] = useState(filters.priceRange || [0, 5000]);
   const [minInput, setMinInput] = useState(String(filters.priceRange?.[0] ?? 0));
   const [maxInput, setMaxInput] = useState(String(filters.priceRange?.[1] ?? 5000));
-  const [location, setLocation] = useState(filters.location || '');
-  const [radius, setRadius] = useState(filters.radius ?? 1);
+  const [city, setCity] = useState(filters.city || '');
+  const [citySearch, setCitySearch] = useState(filters.city || '');
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [sort, setSort] = useState(filters.sort || '');
   const [date, setDate] = useState(filters.date || '');
+  const [showCalendar, setShowCalendar] = useState(false);
   const [categoryTab, setCategoryTab] = useState('places');
   const [selectedCategories, setSelectedCategories] = useState(filters.categories || []);
   const [rating, setRating] = useState(filters.rating || null);
   const [instantBook, setInstantBook] = useState(filters.instantBook || null);
 
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState({
+    price: true,
+    city: false,
+    availability: false,
+    category: false,
+    rating: false,
+    instantBook: false
+  });
+
+  // Close city dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target)) {
+        setShowCityDropdown(false);
+      }
+      if (calendarRef.current && !calendarRef.current.contains(e.target)) {
+        setShowCalendar(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const categoryOptions = categoryTab === 'places' ? PLACES_CATEGORIES : categoryTab === 'equipment' ? EQUIPMENT_CATEGORIES : ACTIVITIES_CATEGORIES;
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const toggleCategory = (cat) => {
     setSelectedCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
   };
 
+  const filteredCities = CITIES.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()));
+
+  const selectCity = (selectedCity) => {
+    setCity(selectedCity);
+    setCitySearch(selectedCity);
+    setShowCityDropdown(false);
+  };
+
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  };
+
   const handleApply = () => {
-    onChange({ priceTab, priceRange, location, radius, date, categories: selectedCategories, rating, instantBook });
+    const min = Math.max(0, Number(minInput) || 0);
+    const max = Math.max(min, Number(maxInput) || 5000);
+    const finalRange = [min, max];
+    setPriceRange(finalRange);
+    onChange({ priceTab, priceRange: finalRange, city, sort, date, categories: selectedCategories, rating, instantBook });
     onClose();
   };
 
   const handleReset = () => {
     setPriceTab('hourly'); setPriceRange([0, 5000]); setMinInput('0'); setMaxInput('5000');
-    setLocation(''); setRadius(1); setDate(''); setSelectedCategories([]); setRating(null); setInstantBook(null);
+    setCity(''); setCitySearch(''); setSort(''); setDate(''); setSelectedCategories([]); setRating(null); setInstantBook(null);
     onChange({});
     onClose();
   };
@@ -550,7 +379,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
                 <p className="text-[10px] text-gray-400 mb-1">Minimum</p>
                 <div className="flex items-center border border-gray-200 rounded-lg px-3 py-2 text-sm">
                   <span className="text-gray-400 mr-1">$</span>
-                  <input type="number" value={minInput} onChange={e => { setMinInput(e.target.value); const v = Math.min(Number(e.target.value), priceRange[1]-50); if(!isNaN(v)) setPriceRange([v, priceRange[1]]); }}
+                  <input type="number" value={minInput} onChange={e => { setMinInput(e.target.value); const v = Number(e.target.value); if (!isNaN(v) && v >= 0) setPriceRange([v, priceRange[1]]); }}
                     className="w-full focus:outline-none text-gray-900" />
                 </div>
               </div>
@@ -558,7 +387,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
                 <p className="text-[10px] text-gray-400 mb-1">Maximum</p>
                 <div className="flex items-center border border-gray-200 rounded-lg px-3 py-2 text-sm">
                   <span className="text-gray-400 mr-1">$</span>
-                  <input type="number" value={maxInput} onChange={e => { setMaxInput(e.target.value); const v = Math.max(Number(e.target.value), priceRange[0]+50); if(!isNaN(v)) setPriceRange([priceRange[0], v]); }}
+                  <input type="number" value={maxInput} onChange={e => { setMaxInput(e.target.value); const v = Number(e.target.value); if (!isNaN(v) && v >= 0) setPriceRange([priceRange[0], v]); }}
                     className="w-full focus:outline-none text-gray-900" />
                 </div>
               </div>
@@ -569,40 +398,104 @@ function FilterPanel({ open, onClose, filters, onChange }) {
 
           {/* Location */}
           <section>
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-semibold text-gray-900 text-sm">Location</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
-            </div>
-            <input type="text" placeholder="City or address" value={location} onChange={e => setLocation(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#4AA7A7] mb-3" />
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-gray-500">Radius</span>
-              <span className="text-[#4AA7A7] font-semibold">{radius} miles</span>
-            </div>
-            <input type="range" min={1} max={100} value={radius} onChange={e => setRadius(Number(e.target.value))}
-              className="w-full h-1 accent-gray-900 cursor-pointer" />
+            <button onClick={() => toggleSection('city')} className="flex items-center justify-between mb-3 w-full">
+              <span className="font-semibold text-gray-900 text-sm">City</span>
+              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.city ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            {expandedSections.city && (
+              <div className="relative" ref={cityDropdownRef}>
+                <input
+                  type="text"
+                  placeholder="e.g. Lahore"
+                  value={citySearch}
+                  onChange={e => { setCitySearch(e.target.value); setShowCityDropdown(true); }}
+                  onFocus={() => setShowCityDropdown(true)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#4AA7A7]"
+                />
+                {showCityDropdown && filteredCities.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {filteredCities.map(cityOption => (
+                      <button
+                        key={cityOption}
+                        onClick={() => selectCity(cityOption)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                      >
+                        {cityOption}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           <div className="border-t border-gray-100" />
 
           {/* Availability */}
           <section>
-            <div className="flex items-center justify-between mb-3">
+            <button onClick={() => toggleSection('availability')} className="flex items-center justify-between mb-3 w-full">
               <span className="font-semibold text-gray-900 text-sm">Availability</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.availability ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            {expandedSections.availability && (
+              <div className="relative" ref={calendarRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowCalendar(!showCalendar)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#4AA7A7] flex items-center justify-between text-left"
+                >
+                  <span className={date ? 'text-gray-900' : 'text-gray-400'}>
+                    {date ? formatDisplayDate(date) : 'dd/mm/yyyy'}
+                  </span>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </button>
+                {showCalendar && (
+                  <div className="absolute z-[100] mt-2 left-0">
+                    <CustomCalendar
+                      value={date}
+                      onChange={(newDate) => {
+                        setDate(newDate);
+                        setShowCalendar(false);
+                      }}
+                      onClose={() => setShowCalendar(false)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
+          <div className="border-t border-gray-100" />
+
+          {/* Sort */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-semibold text-gray-900 text-sm">Sort By</span>
             </div>
-            <input type="text" placeholder="dd/mm/yyyy" value={date} onChange={e => setDate(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#4AA7A7]" />
+            <div className="grid grid-cols-2 gap-2">
+              {[['newest','Newest'],['oldest','Oldest'],['price-asc','Price: Low→High'],['price-desc','Price: High→Low']].map(([val, label]) => (
+                <button key={val} onClick={() => setSort(sort === val ? '' : val)}
+                  className={`py-2 px-3 rounded-lg border text-xs font-medium transition-colors ${sort === val ? 'bg-[#4AA7A7] text-white border-[#4AA7A7]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#4AA7A7]'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </section>
 
           <div className="border-t border-gray-100" />
 
           {/* Category */}
           <section>
-            <div className="flex items-center justify-between mb-3">
+            <button onClick={() => toggleSection('category')} className="flex items-center justify-between mb-3 w-full">
               <span className="font-semibold text-gray-900 text-sm">Category</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
-            </div>
+              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.category ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            {expandedSections.category && (<>
             {/* Category tabs */}
             <div className="flex gap-4 mb-3 border-b border-gray-100">
               {['places','equipment','activities'].map(t => (
@@ -621,16 +514,18 @@ function FilterPanel({ open, onClose, filters, onChange }) {
                 </label>
               ))}
             </div>
+            </>)}
           </section>
 
           <div className="border-t border-gray-100" />
 
           {/* Rating */}
           <section>
-            <div className="flex items-center justify-between mb-3">
+            <button onClick={() => toggleSection('rating')} className="flex items-center justify-between mb-3 w-full">
               <span className="font-semibold text-gray-900 text-sm">Rating</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
-            </div>
+              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.rating ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            {expandedSections.rating && (
             <div className="space-y-2.5">
               {[5,4,3,null].map((r, i) => (
                 <label key={i} className="flex items-center gap-3 cursor-pointer">
@@ -649,16 +544,18 @@ function FilterPanel({ open, onClose, filters, onChange }) {
                 </label>
               ))}
             </div>
+            )}
           </section>
 
           <div className="border-t border-gray-100" />
 
           {/* Instant Book */}
           <section>
-            <div className="flex items-center justify-between mb-3">
+            <button onClick={() => toggleSection('instantBook')} className="flex items-center justify-between mb-3 w-full">
               <span className="font-semibold text-gray-900 text-sm">Instant Book</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
-            </div>
+              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.instantBook ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            {expandedSections.instantBook && (
             <div className="space-y-2.5">
               {[['any','Any'],['instant','Instant Book only'],['request','Request to book']].map(([val, label]) => (
                 <label key={val} className="flex items-center gap-3 cursor-pointer">
@@ -668,6 +565,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
                 </label>
               ))}
             </div>
+            )}
           </section>
 
         </div>
@@ -691,6 +589,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
 /* ─── Main Page ──────────────────────────────────────────────────────────────── */
 export default function UserExplorePage() {
   const dispatch = useDispatch();
+  const searchParams = useSearchParams();
   const apiListings = useSelector(selectActivities);
   const listingsStatus = useSelector(selectActivitiesStatus);
   const pagination = useSelector(selectActivitiesPagination);
@@ -704,6 +603,8 @@ export default function UserExplorePage() {
   const ITEMS_PER_PAGE = 10;
   const pillsScrollRef = useRef(null);
 
+  const searchQuery = searchParams.get('search') || '';
+
   const scrollPills = (dir) => {
     if (pillsScrollRef.current) {
       pillsScrollRef.current.scrollBy({ left: dir * 240, behavior: 'smooth' });
@@ -711,9 +612,35 @@ export default function UserExplorePage() {
   };
 
   useEffect(() => {
-    const category = activeTab === 'all' ? undefined : activeTab;
-    dispatch(fetchBrowseListings({ page: currentPage, limit: ITEMS_PER_PAGE, category }));
-  }, [dispatch, currentPage, activeTab]);
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const category = TAB_TO_CATEGORY[activeTab];
+    const { city, priceRange, sort, date, categories, rating, instantBook } = appliedFilters;
+    const minPrice = priceRange?.[0] > 0 ? priceRange[0] : undefined;
+    const maxPrice = priceRange?.[1] < 5000 ? priceRange[1] : undefined;
+
+    // Build filter params
+    const filterParams = {
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      category,
+      search: searchQuery || undefined,
+      city: city || undefined,
+      minPrice,
+      maxPrice,
+      sort: sort || undefined,
+    };
+
+    // Add additional filters if present
+    if (date) filterParams.date = date;
+    if (categories && categories.length > 0) filterParams.type = categories.join(',');
+    if (rating != null) filterParams.rating = rating;
+    if (instantBook) filterParams.instantBook = instantBook;
+
+    dispatch(fetchBrowseListings(filterParams));
+  }, [dispatch, currentPage, activeTab, appliedFilters, searchQuery]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -731,6 +658,11 @@ export default function UserExplorePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleFiltersApply = (newFilters) => {
+    setAppliedFilters(newFilters);
+    setCurrentPage(1);
+  };
+
   // API already filters by category; apply sub-filter (type) client-side
   const allListings = apiListings || [];
   const filteredListings =
@@ -745,11 +677,11 @@ export default function UserExplorePage() {
   const subFilters = SUB_FILTERS[activeTab] || [];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F5F5]">
+    <div className="flex flex-col flex-1 bg-[#F5F5F5]">
 
       {/* ── Main content: single white rounded card ── */}
-      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-        <div className="bg-white rounded-3xl shadow-sm p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 flex flex-col w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+        <div className="flex-1 flex flex-col bg-white rounded-3xl shadow-sm p-4 sm:p-6 lg:p-8">
 
           {/* ── Tabs row + View Toggles + Filter — inside the card ── */}
           <div className="flex items-center justify-between gap-2 mb-6">
@@ -831,21 +763,23 @@ export default function UserExplorePage() {
           )}
 
           {/* ── Grid / Map / States ── */}
+          <div className="flex-1 flex flex-col">
           {viewMode === 'map' ? (
             <MapView listings={filteredListings} />
           ) : listingsStatus === 'loading' ? (
-            <div className="flex items-center justify-center py-24">
+            <div className="flex-1 flex items-center justify-center py-24">
               <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : paginatedListings.length > 0 ? (
-            <>
+            <div className="flex flex-col flex-1">
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
                 {paginatedListings.map((listing) => (
                   <ListingCard key={listing._id || listing.id} listing={listing} />
                 ))}
               </div>
 
-              {/* Pagination — centered */}
+              {/* Pagination — pushed to bottom */}
+              <div className="flex-1" />
               {totalPages >= 1 && (
                 <div className="flex justify-center mt-8">
                   <Pagination
@@ -855,9 +789,9 @@ export default function UserExplorePage() {
                   />
                 </div>
               )}
-            </>
+            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -867,6 +801,7 @@ export default function UserExplorePage() {
               <p className="text-sm text-gray-400">Try a different category or filter</p>
             </div>
           )}
+          </div>
 
         </div>
       </main>
@@ -876,7 +811,7 @@ export default function UserExplorePage() {
         open={filterOpen}
         onClose={() => setFilterOpen(false)}
         filters={appliedFilters}
-        onChange={setAppliedFilters}
+        onChange={handleFiltersApply}
       />
 
       <AppFooter />

@@ -734,8 +734,8 @@ const notifItems = [
 function NotificationsTab() {
   const [state, setState] = useState({ booking: true, messages: true, reminders: false, promotions: false });
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
+    <div className="space-y-6 2xl:min-h-[calc(100vh-400px)]">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6 2xl:min-h-[600px]">
         <SectionHeader emoji="🔔" title="Notifications" subtitle="Manage your notification preferences" />
         <div className="divide-y divide-gray-100">
           {notifItems.map((item) => (
@@ -769,8 +769,8 @@ function PreferencesTab() {
   const [currency, setCurrency] = useState("usd");
   const [tz, setTz] = useState("est");
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
+    <div className="space-y-6 2xl:min-h-[calc(100vh-400px)]">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6 2xl:min-h-[600px]">
         <SectionHeader emoji="🌍" title="Preferences" subtitle="Customize your experience" />
         <SelectField label="Language" value={lang} onChange={setLang} options={languages} />
         <SelectField label="Currency" value={currency} onChange={setCurrency} options={currencies} />
@@ -842,8 +842,8 @@ function SecurityTab() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
+    <div className="space-y-6 2xl:min-h-[calc(100vh-400px)]">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6 2xl:min-h-[600px]">
         <SectionHeader emoji="🔒" title="Security" subtitle="Manage your security settings" />
 
         {/* 2FA toggle row */}
@@ -903,8 +903,8 @@ const legalItems = [
 
 function LegalTab() {
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
+    <div className="space-y-6 2xl:min-h-[calc(100vh-400px)]">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6 2xl:min-h-[600px]">
         <SectionHeader emoji="📜" title="Legal & Account" subtitle="Legal documents and account options" />
         <div className="space-y-3">
           {legalItems.map((item) => (
@@ -1450,9 +1450,9 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 2xl:min-h-[calc(100vh-400px)]">
       {/* Main profile card */}
-      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6 2xl:min-h-[600px]">
         <SectionHeader emoji="👤" title="Account Settings" subtitle="Manage your account details and security" />
 
         {/* Avatar row */}
@@ -1645,8 +1645,8 @@ function PaymentMethodTab() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6">
+    <div className="space-y-6 2xl:min-h-[calc(100vh-400px)]">
+      <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6 2xl:min-h-[600px]">
         {/* Header row with Add Method button */}
         <div className="flex items-start justify-between mb-1">
           <div>
@@ -1786,7 +1786,7 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
         </div>
       </div>
 
-      <div className="flex-1 bg-[#F4F6F8] min-h-screen p-4 sm:p-6 lg:p-8">
+      <div className="flex-1 bg-[#F4F6F8] p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-200px)] 2xl:min-h-[800px]">
 
         {/* ── Mobile: list view (shown when mobileView is null) ─────────────── */}
         <div className="md:hidden">
@@ -1847,8 +1847,8 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
         </div>
 
         {/* ── Desktop (md+) layout ──────────────────────────────────────────── */}
-        <div className="hidden md:block">
-          <div className="flex gap-6 items-start">
+        <div className="hidden md:flex flex-col flex-1">
+          <div className="flex gap-6 flex-1 items-stretch">
             {/* Sidebar */}
             <aside className="w-56 lg:w-64 shrink-0 bg-white border border-gray-100 rounded-2xl overflow-hidden self-start">
               <div className="p-3 space-y-1">

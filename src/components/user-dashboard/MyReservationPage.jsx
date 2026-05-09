@@ -393,15 +393,18 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
           {canReview(booking) && (
             <button
               onClick={() => onLeaveReview(booking)}
-              className="px-6 py-2.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold rounded-full text-sm transition-colors whitespace-nowrap"
+              className="flex items-center justify-between pl-8 pr-2 py-2 bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-bold rounded-full text-sm transition-colors w-44"
             >
-              Leave a Review
+              <span className="flex-1 text-center">Leave a Review</span>
+              <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800">
+                <ArrowRightIcon />
+              </span>
             </button>
           )}
           {canCancel(booking) && (
             <button
               onClick={() => onCancel(booking)}
-              className="px-6 py-2.5 border-2 border-[#F5C842] text-gray-800 font-semibold rounded-full text-sm hover:bg-[#F5C842]/10 transition-colors whitespace-nowrap"
+              className="px-6 py-2.5 border-2 border-[#FEB538] text-gray-800 font-semibold rounded-full text-sm hover:bg-[#FEB538]/10 transition-colors whitespace-nowrap"
             >
               Cancel Reservation
             </button>
@@ -451,8 +454,8 @@ function LocationMap({ location, booking }) {
     <div className="relative w-full rounded-xl overflow-hidden border border-gray-100" style={{ height: 420 }}>
       <iframe
         src={mapSrc}
-        className="w-full h-full"
-        style={{ border: 0 }}
+        className="w-full"
+        style={{ border: 0, height: '105%', marginBottom: '-5%' }}
         loading="lazy"
         title={`Map of ${location}`}
       />
@@ -461,7 +464,7 @@ function LocationMap({ location, booking }) {
       {booking && showCard && (
         <div
           className="absolute z-10 bg-white rounded-2xl overflow-hidden shadow-2xl"
-          style={{ width: 240, top: "12%", left: "52%" }}
+          style={{ width: 240, top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
         >
           {/* Image */}
           <div className="relative h-32 bg-gray-100">
@@ -585,23 +588,21 @@ function BookingDetailView({ booking, onLeaveReview, onCancel, onContactHost, wi
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 text-sm">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1 border border-gray-200 rounded-xl px-4 py-3">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Check-in</p>
-                  <p className="text-sm font-bold text-gray-900">{booking.startDate || "—"}</p>
-                  {booking.startTime && <p className="text-xs text-gray-500">{booking.startTime}</p>}
-                </div>
-                <div className="flex flex-col gap-1 border border-gray-200 rounded-xl px-4 py-3">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Check-out</p>
-                  <p className="text-sm font-bold text-gray-900">{booking.endDate || booking.startDate || "—"}</p>
-                  {booking.endTime && <p className="text-xs text-gray-500">{booking.endTime}</p>}
-                </div>
+            <div className="flex flex-col gap-1.5 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 w-36 text-xs shrink-0">Reservation Dates:</span>
+                <span className="font-bold text-gray-900">{formatDateRange(booking.startDate, booking.endDate)}</span>
               </div>
               {guests && (
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 w-36 text-xs shrink-0">Guests:</span>
                   <span className="font-bold text-gray-900">{guests}</span>
+                </div>
+              )}
+              {booking.startTime && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 w-36 text-xs shrink-0">Time:</span>
+                  <span className="font-bold text-gray-900">{booking.startTime} – {booking.endTime}</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
@@ -613,13 +614,16 @@ function BookingDetailView({ booking, onLeaveReview, onCancel, onContactHost, wi
             <div className="flex justify-end mt-auto">
               {canReview(booking) && (
                 <button onClick={onLeaveReview}
-                  className="px-6 py-2.5 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold rounded-full text-sm transition-colors">
-                  Leave a Review
+                  className="flex items-center justify-between pl-8 pr-2 py-2 bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-bold rounded-full text-sm transition-colors w-44">
+                  <span className="flex-1 text-center">Leave a Review</span>
+                  <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800">
+                    <ArrowRightIcon />
+                  </span>
                 </button>
               )}
               {canCancel(booking) && (
                 <button onClick={onCancel}
-                  className="px-6 py-2.5 border-2 border-[#F5C842] text-gray-800 font-semibold rounded-full text-sm hover:bg-[#F5C842]/10 transition-colors">
+                  className="px-6 py-2.5 border-2 border-[#FEB538] text-gray-800 font-semibold rounded-full text-sm hover:bg-[#FEB538]/10 transition-colors">
                   Cancel Reservation
                 </button>
               )}
@@ -744,22 +748,22 @@ function BookingDetailView({ booking, onLeaveReview, onCancel, onContactHost, wi
 /* ─── Empty state ────────────────────────────────────────────────────────────── */
 function EmptyState({ onStartBooking }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 gap-6">
-      <div className="relative flex items-end justify-center w-72 h-64">
-        <Image src={reservationImg} alt="No reservations" width={280} height={256} className="relative z-10 object-contain" />
+    <div className="flex flex-col items-center justify-center py-16 px-4 gap-6 2xl:min-h-[600px]">
+      <div className="relative flex items-end justify-center w-72 h-64 2xl:w-96 2xl:h-80">
+        <Image src={reservationImg} alt="No reservations" width={280} height={256} className="relative z-10 object-contain 2xl:scale-125" />
       </div>
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900">No Reservation Booked...Yet!</h2>
-        <p className="text-sm text-gray-400 mt-2 max-w-sm leading-relaxed">
+      <div className="text-center 2xl:mt-8">
+        <h2 className="text-2xl font-bold text-gray-900 2xl:text-3xl">No Reservation Booked...Yet!</h2>
+        <p className="text-sm text-gray-400 mt-2 max-w-sm leading-relaxed 2xl:text-base 2xl:max-w-md">
           &ldquo;Get ready to pack your curiosity and let&apos;s plot the course for your next great adventure!&rdquo;
         </p>
       </div>
       <button
         onClick={onStartBooking}
-        className="flex items-center justify-between bg-[#FEB538] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors pl-8 pr-2 py-2 w-56"
+        className="flex items-center justify-between bg-[#FEB538] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors pl-8 pr-2 py-2 w-56 2xl:w-64 2xl:text-base 2xl:mt-4"
       >
         <span className="flex-1 text-center">Start Booking</span>
-        <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800">
+        <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800 2xl:w-12 2xl:h-12">
           <ArrowRightIcon />
         </span>
       </button>
@@ -883,7 +887,7 @@ export default function MyReservationPage() {
       <div className="bg-white border-b border-gray-100 w-full">
         <div className="px-4 sm:px-6 lg:px-10 py-5 flex items-center gap-3">
           <button
-            onClick={detailView ? () => setDetailView(null) : () => router.back()}
+            onClick={detailView ? () => setDetailView(null) : () => router.push("/user-dashboard/explore")}
             className="text-gray-900 hover:text-gray-600 transition-colors shrink-0"
           >
             <BackIcon />
