@@ -113,7 +113,7 @@ export default function TransactionHistory() {
   const [activeTab, setActiveTab] = React.useState("transaction");
 
   return (
-    <div className="bg-white rounded-2xl sm:rounded-[32px] p-3 sm:p-5 lg:p-6 border border-[var(--color-border)]">
+    <div className="flex-1 flex flex-col bg-white rounded-2xl sm:rounded-[32px] p-3 sm:p-5 lg:p-6 border border-[var(--color-border)]">
 
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
@@ -179,12 +179,10 @@ export default function TransactionHistory() {
         </div>
       </div>
 
-      {/* Scrollable table — exact spec: w=1078.25, h=239.3125, r=12, border=0.88px */}
+      {/* Scrollable table */}
       <div
-        className="hidden md:block overflow-x-auto overflow-y-auto"
+        className="hidden md:block w-full overflow-x-auto"
         style={{
-          maxWidth: "1078.25px",
-          height: "239.3125px",
           borderRadius: "12px",
           border: "0.88px solid #E5E7EB",
         }}
@@ -275,6 +273,7 @@ export default function TransactionHistory() {
         ))}
       </div>
 
+      <div className="flex-1" />
       <div className="mt-4 sm:mt-6">
         <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />
       </div>

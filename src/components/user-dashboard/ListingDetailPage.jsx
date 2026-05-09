@@ -49,8 +49,9 @@ const StarRating = ({ rating }) => (
   </div>
 );
 const BackIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+  <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
   </svg>
 );
 const HeartIcon = ({ filled }) => (
@@ -875,7 +876,9 @@ function ReviewsSection() {
           <div key={i} className="flex flex-col gap-4">
             <p className="text-sm text-gray-500 leading-7">{r.text}</p>
             <div className="flex items-center gap-3">
-              <img src={r.avatar} alt={r.name} className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-100" />
+              <div className="w-10 h-10 rounded-full bg-[#228E8A] flex items-center justify-center shrink-0 text-white font-bold text-sm">
+                {r.name?.[0]?.toUpperCase() ?? "U"}
+              </div>
               <div>
                 <p className="text-sm font-bold text-gray-900">{r.name}</p>
                 <p className="text-xs text-gray-400">{r.date}</p>
@@ -952,9 +955,9 @@ function ListingLocationMap({ listing }) {
 
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border border-gray-100" style={{ height: 380 }}>
-      <iframe title="Listing location" width="100%" height="100%" frameBorder="0" scrolling="no" src={mapSrc} />
+      <iframe title="Listing location" width="100%" height="105%" frameBorder="0" scrolling="no" src={mapSrc} style={{ marginBottom: '-5%' }} />
       {showCard && (
-        <div className="absolute z-10 bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ width: 260, top: "50%", left: "50%", transform: "translate(8px, -80%)" }}>
+        <div className="absolute z-10 bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ width: 260, top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
           {/* Image */}
           <div className="relative h-36 bg-gray-100">
             <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
@@ -1208,7 +1211,7 @@ export default function ListingDetailPage({ params: paramsPromise }) {
         </div>
       </div>
 
-      <main className="flex-1 max-w-[1400px] mx-auto w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-6 lg:py-10">
+      <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 xl:px-16 py-3 sm:py-6 lg:py-10">
 
         {/* ── Two-column: image left + booking right ── */}
         <div className="flex flex-col xl:flex-row gap-4 sm:gap-6 items-stretch">

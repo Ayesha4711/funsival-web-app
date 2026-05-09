@@ -93,11 +93,11 @@ function ReservationRow({ r, className = "" }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-[var(--color-text)] truncate">{name}</p>
-        <p className="text-xs text-[var(--color-text-muted)]">{date}</p>
+        <p style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 500, fontSize: 12, lineHeight: "12px", letterSpacing: 0 }} className="text-[var(--color-text-muted)]">{date}</p>
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
         <StatusBadge status={normalStatus} />
-        {type && <span className="text-[11px] text-[var(--color-text-subtle)]">{type}</span>}
+        {type && <span style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 600, fontSize: 12, lineHeight: "160%", letterSpacing: 0 }} className="text-[var(--color-text-subtle)]">{type}</span>}
       </div>
     </div>
   );
@@ -408,7 +408,7 @@ function EarningsChart() {
   const periods = ["12 months", "30 days", "7 days", "24 hours"];
 
   return (
-    <div className="bg-white rounded-2xl sm:rounded-[24px] p-4 sm:p-6 lg:p-8 border border-[#E5E7EB] shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
+    <div className="flex flex-col flex-1 bg-white rounded-2xl sm:rounded-[24px] p-4 sm:p-6 lg:p-8 border border-[#E5E7EB] shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
       {/* Row 1: Earnings title + View report button */}
       <div className="flex items-start justify-between gap-4">
         <h2
@@ -441,7 +441,7 @@ function EarningsChart() {
           </button>
         ))}
       </div>
-      <ResponsiveContainer width="100%" height={240} className="sm:!h-[300px]">
+      <ResponsiveContainer width="100%" height="100%" className="flex-1 min-h-[240px]">
         <AreaChart data={earningsData} margin={{ top: 24, right: 0, left: -28, bottom: 8 }} className="sm:!mt-[34px] sm:!mr-[4px] sm:!ml-0">
           <defs>
             <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
@@ -516,7 +516,9 @@ export default function DashboardContent() {
       </div>
 
       {/* Earnings chart */}
-      <EarningsChart />
+      <div className="flex-1 flex flex-col">
+        <EarningsChart />
+      </div>
     </div>
   );
 }
