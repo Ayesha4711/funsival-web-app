@@ -343,7 +343,7 @@ export default function ConfirmAndPayPage() {
 
       {/* White header bar */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-360 mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-4 flex items-center gap-3">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-4 flex items-center gap-3">
           <button onClick={() => router.back()} className="text-[#212121] hover:opacity-70 transition-opacity shrink-0">
             <BackIcon />
           </button>
@@ -351,7 +351,7 @@ export default function ConfirmAndPayPage() {
         </div>
       </div>
 
-      <main className="flex-1 max-w-360 mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-8">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-8">
 
         {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8 items-start">

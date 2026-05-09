@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import logo from "@/assets/images/logo.svg";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProfile, selectUser, selectProfileStatus } from "@/store/slices/profileSlice";
@@ -80,6 +80,7 @@ const CloseIcon = () => (
 /* ─── Navbar ─────────────────────────────────────────────────────────────────── */
 function UserNavbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const dispatch = useDispatch();
   const profile = useSelector(selectUser);
   const currentUserId = profile?.id || profile?._id || null;
@@ -91,6 +92,24 @@ function UserNavbar() {
   const notifRef = useRef(null);
   const profileRef = useRef(null);
   const roleRef = useRef(null);
+  const searchDebounce = useRef(null);
+
+  const isExplorePage = pathname === "/user-dashboard/explore";
+
+  const handleSearchChange = (e) => {
+    if (!isExplorePage) return;
+    const value = e.target.value;
+    clearTimeout(searchDebounce.current);
+    searchDebounce.current = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (value) {
+        params.set("search", value);
+      } else {
+        params.delete("search");
+      }
+      router.replace(`/user-dashboard/explore?${params.toString()}`);
+    }, 400);
+  };
 
   const avatarLetter = profile?.email ? profile.email[0].toUpperCase() : "U";
   const profileImage = profile?.profileImage ?? null;
@@ -110,7 +129,12 @@ function UserNavbar() {
   }, []);
 
   const handleBellClick = () => {
-    router.push("/user-dashboard/notifications");
+    if (window.innerWidth < 1024) {
+      router.push("/user-dashboard/notifications");
+    } else {
+      setNotifOpen((v) => !v);
+      setProfileOpen(false);
+    }
   };
 
   const handleLogout = () => {
@@ -138,7 +162,7 @@ function UserNavbar() {
         <div className="hidden sm:flex flex-1 justify-center px-4">
           <div className="relative w-full max-w-65">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><SearchIcon /></span>
-            <input type="text" placeholder="Search here" className="w-full h-9 pl-10 pr-4 rounded-full bg-white text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
+            <input type="text" placeholder="Search here" onChange={handleSearchChange} className="w-full h-9 pl-10 pr-4 rounded-full bg-white text-sm text-gray-800 placeholder-gray-400 focus:outline-none" />
           </div>
         </div>
 
@@ -318,9 +342,9 @@ export default function UserDashboardShell({ children }) {
   if (status === "idle" || status === "loading") return <FullPageLoader />;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <UserNavbar />
-      <div className="flex-1 min-h-0">{children}</div>
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">{children}</div>
     </div>
   );
 }

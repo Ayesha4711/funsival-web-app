@@ -135,6 +135,13 @@ function WatchlistCard({ item, onRemove }) {
   );
 }
 
+const BackIcon = () => (
+  <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
+  </svg>
+);
+
 export default function WatchlistPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("All");
@@ -150,69 +157,63 @@ export default function WatchlistPage() {
       : items.filter((i) => i.category === activeTab);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F5F5]">
-      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-        <div className="bg-white rounded-3xl shadow-sm p-4 sm:p-6 lg:p-8">
+    <div className="flex-1 flex flex-col">
+      {/* Sticky header */}
+      <div className="bg-white border-b border-gray-100 w-full">
+        <div className="px-4 sm:px-6 lg:px-10 py-5 flex items-center gap-3">
+          <button
+            onClick={() => router.push("/user-dashboard/explore")}
+            className="text-gray-900 hover:text-gray-600 transition-colors shrink-0"
+          >
+            <BackIcon />
+          </button>
+          <h1 className="text-xl font-bold text-gray-900">My Wishlist</h1>
+        </div>
+      </div>
 
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">My Watchlist</h1>
-              <p className="text-sm text-gray-400 mt-0.5">{items.length} saved {items.length === 1 ? "listing" : "listings"}</p>
-            </div>
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 py-6">
+
+        {/* Tab filter */}
+        <div className="flex items-center gap-2 mb-6 bg-[#EDF6F6] rounded-full p-1 w-fit">
+          {TABS.map((tab) => (
             <button
-              onClick={() => router.push("/user-dashboard/explore")}
-              className="flex items-center gap-2 px-4 py-2 bg-[#228E8A] text-white rounded-full text-sm font-medium hover:bg-[#1d7a77] transition-colors"
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                activeTab === tab
+                  ? "bg-white text-[#228E8A] shadow-sm font-semibold"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Explore More
+              {tab}
             </button>
-          </div>
+          ))}
+        </div>
 
-          {/* Tab filter */}
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide bg-[#F0FAFA] rounded-full p-1 w-fit mb-6">
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
-                  activeTab === tab
-                    ? "bg-white text-gray-800 shadow-sm"
-                    : "text-gray-400 hover:text-gray-700"
-                }`}
-              >
-                {tab}
-              </button>
+        {/* Grid */}
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
+            {filtered.map((item) => (
+              <WatchlistCard key={item.id} item={item} onRemove={handleRemove} />
             ))}
           </div>
-
-          {/* Grid */}
-          {filtered.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
-              {filtered.map((item) => (
-                <WatchlistCard key={item.id} item={item} onRemove={handleRemove} />
-              ))}
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mb-5">
+              <svg className="w-10 h-10 text-[#F5823A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mb-5">
-                <svg className="w-10 h-10 text-[#F5823A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </div>
-              <p className="text-lg font-semibold text-gray-700 mb-1">Your watchlist is empty</p>
-              <p className="text-sm text-gray-400 mb-6">Save listings you love and find them here anytime</p>
-              <button
-                onClick={() => router.push("/user-dashboard/explore")}
-                className="px-6 py-2.5 bg-[#228E8A] text-white rounded-full text-sm font-semibold hover:bg-[#1d7a77] transition-colors"
-              >
-                Start Exploring
-              </button>
-            </div>
-          )}
-        </div>
+            <p className="text-lg font-semibold text-gray-700 mb-1">Your wishlist is empty</p>
+            <p className="text-sm text-gray-400 mb-6">Save listings you love and find them here anytime</p>
+            <button
+              onClick={() => router.push("/user-dashboard/explore")}
+              className="px-6 py-2.5 bg-[#228E8A] text-white rounded-full text-sm font-semibold hover:bg-[#1d7a77] transition-colors"
+            >
+              Start Exploring
+            </button>
+          </div>
+        )}
       </main>
 
       <AppFooter />

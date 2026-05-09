@@ -205,12 +205,12 @@ export default function ReservationsPage() {
   const totalPages = pagination?.totalPages ?? 1;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-400 mx-auto flex-1 flex flex-col gap-4">
+    <div className="p-4 sm:p-6 lg:p-8 w-full flex-1 flex flex-col gap-4">
       <ReservationStats />
 
       <div
-        className="bg-white border border-gray-200 flex flex-col w-full"
-        style={{ borderRadius: 16, padding: 20, gap: 0, height: 596 }}
+        className="bg-white border border-gray-200 flex flex-col w-full flex-1"
+        style={{ borderRadius: 16, padding: 20, gap: 0 }}
       >
         <ReservationFilters
           activeTab={activeTab}

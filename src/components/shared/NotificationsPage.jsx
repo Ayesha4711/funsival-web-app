@@ -90,7 +90,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="flex-1 bg-gray-50 flex flex-col">
       {/* ── Sticky header ── */}
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-5 flex items-center gap-3">
         <button
@@ -108,8 +108,8 @@ export default function NotificationsPage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
-        <div className="w-full bg-white rounded-3xl border border-gray-100 p-5 sm:p-7 lg:p-8 flex flex-col gap-6">
+      <div className="flex-1 flex flex-col px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex-1 w-full bg-white rounded-3xl border border-gray-100 p-5 sm:p-7 lg:p-8 flex flex-col gap-6">
 
           {/* Today */}
           <section className="flex flex-col gap-3">

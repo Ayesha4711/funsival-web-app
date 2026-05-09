@@ -5,14 +5,26 @@ import axiosInstance from "../axiosInstance";
 
 export const fetchBrowseListings = createAsyncThunk(
   "activities/fetchBrowseListings",
-  async ({ page = 1, limit = 10, category, type } = {}, { rejectWithValue }) => {
+  async ({ page = 1, limit = 10, category, type, search, city, minPrice, maxPrice, sort, date, rating, instantBook } = {}, { rejectWithValue }) => {
     try {
       const params = new URLSearchParams({ page: page ?? 1, limit: limit ?? 10 });
       if (category) params.set("category", category);
       if (type) params.set("type", type);
+      if (search) params.set("search", search);
+      if (city) params.set("city", city);
+      if (minPrice != null && minPrice !== '' && minPrice > 0) params.set("minPrice", String(minPrice));
+      if (maxPrice != null && maxPrice !== '' && maxPrice < 5000) params.set("maxPrice", String(maxPrice));
+      if (sort) params.set("sort", sort);
+      if (date) params.set("date", date);
+      if (rating != null) params.set("rating", String(rating));
+      if (instantBook) params.set("instantBook", instantBook);
+
+      console.log('API Request Params:', params.toString());
       const { data } = await axiosInstance.get(`/listings/browse?${params}`);
+      console.log('API Response:', data);
       return data;
     } catch (err) {
+      console.error('API Error:', err.response?.data ?? err.message);
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
   }

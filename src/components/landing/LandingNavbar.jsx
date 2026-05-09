@@ -105,7 +105,7 @@ export default function LandingNavbar() {
           <div className="flex items-center gap-1.5 sm:gap-3">
             {/* Book Now — desktop only */}
             <Link href="/signup/role-selection" className="hidden md:block shrink-0">
-              <button className="px-5 py-2 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-semibold rounded-full text-sm transition-colors duration-200 whitespace-nowrap">
+              <button className="px-5 py-2 bg-[#FEB538] hover:bg-[#e0b430] text-gray-900  rounded-full text-sm transition-colors duration-200 whitespace-nowrap">
                 Book Your Jump
               </button>
             </Link>

@@ -36,18 +36,18 @@ export default function DashboardShell({ children }) {
     isWizard || SIDEBAR_HIDDEN_PATHS.includes(pathname);
 
   return (
-    <div className="flex  bg-[#F3F4F6]">
+    <div className="flex h-screen bg-[#F3F4F6]">
       <DashboardSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         hideOnDesktop={hideSidebarDesktop}
       />
-      <div className="flex flex-col flex-1 min-w-0  overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <div className={`shrink-0 ${isWizard ? "lg:hidden" : ""}`}>
           <DashboardNavbar onMenuToggle={() => setSidebarOpen(o => !o)} noSidebar={hideSidebarDesktop} />
         </div>
-        <main className="flex-1 overflow-y-auto min-h-0">
-          {children}
+        <main className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+          <div className="flex-1 flex flex-col">{children}</div>
           <AppFooter />
         </main>
       </div>

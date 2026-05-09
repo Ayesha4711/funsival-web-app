@@ -205,10 +205,10 @@ export default function ListingsPage() {
   const isEmpty = !loading && filtered.length === 0;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto flex flex-col gap-4 flex-1">
+    <div className="p-4 sm:p-6 lg:p-8 w-full flex flex-col gap-4 flex-1">
       <ListingsStats />
 
-      <div className="bg-white flex flex-col" style={{ width: "100%", gap: 16, borderRadius: 24, border: "1px solid var(--color-border)", padding: 20 }}>
+      <div className="bg-white flex flex-col flex-1" style={{ width: "100%", gap: 16, borderRadius: 24, border: "1px solid var(--color-border)", padding: 20 }}>
         <ListingsFilters
           activeTab={activeTab}
           onTabChange={handleTabChange}

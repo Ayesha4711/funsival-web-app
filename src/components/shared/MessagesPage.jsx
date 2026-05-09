@@ -24,6 +24,7 @@ import {
 } from "@/store/slices/chatSlice";
 import { selectUser } from "@/store/slices/profileSlice";
 import { onForegroundMessage } from "@/lib/firebase";
+import AppFooter from "@/components/shared/AppFooter";
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -565,7 +566,7 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="flex flex-col" style={{ height: "calc(100dvh - 64px)" }}>
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Page header */}
       <div className={`px-4 sm:px-6 lg:px-8 py-5 shrink-0 bg-white border-b border-gray-100 ${mobileView ? "hidden lg:flex" : "flex"} items-center gap-3`}>
         <button
@@ -615,6 +616,7 @@ export default function MessagesPage() {
 
         </div>
       </div>
+      <AppFooter />
     </div>
   );
 }
