@@ -88,7 +88,7 @@ export default function LandingNavbar() {
 
   return (
     <header className="absolute top-0 left-0 right-0 z-50 w-full">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px]">
         <div className="flex items-center justify-between h-16 md:h-20 gap-2">
           {/* Logo */}
           <Link href={logoHref} className="flex items-center gap-1 sm:gap-2 shrink-0">

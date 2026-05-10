@@ -16,6 +16,8 @@ const SIDEBAR_HIDDEN_PATHS = [
   "/dashboard/earnings/withdraw"
 ];
 
+const FOOTER_HIDDEN_PATHS = ["/dashboard/messages"];
+
 export default function DashboardShell({ children }) {
   const dispatch = useDispatch();
   const status = useSelector(selectProfileStatus);
@@ -32,8 +34,8 @@ export default function DashboardShell({ children }) {
   if (status === "idle" || status === "loading") return <FullPageLoader />;
 
   const isWizard = pathname === "/dashboard/listings/add";
-  const hideSidebarDesktop =
-    isWizard || SIDEBAR_HIDDEN_PATHS.includes(pathname);
+  const hideSidebarDesktop = isWizard || SIDEBAR_HIDDEN_PATHS.includes(pathname);
+  const hideFooter = FOOTER_HIDDEN_PATHS.includes(pathname);
 
   return (
     <div className="flex h-screen bg-[#F3F4F6]">
@@ -48,7 +50,7 @@ export default function DashboardShell({ children }) {
         </div>
         <main className="flex-1 overflow-y-auto min-h-0 flex flex-col">
           <div className="flex-1 flex flex-col">{children}</div>
-          <AppFooter />
+          {!hideFooter && <AppFooter />}
         </main>
       </div>
     </div>

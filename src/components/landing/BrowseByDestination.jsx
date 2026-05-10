@@ -48,8 +48,8 @@ export default function BrowseByDestination() {
   };
 
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+    <section className="py-12 md:py-16 lg:py-20 2xl:py-28 bg-white">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px]">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 md:mb-8">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900">
@@ -83,13 +83,13 @@ export default function BrowseByDestination() {
         <div className="relative">
           <div
             ref={scrollContainerRef}
-            className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+            className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4 lg:grid lg:grid-cols-4 lg:overflow-visible"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {destinations.map((destination) => (
               <div
                 key={destination.id}
-                className="relative flex-shrink-0 w-56 sm:w-72 md:w-80 lg:w-96 h-56 sm:h-80 lg:h-96 rounded-2xl overflow-hidden cursor-pointer group"
+                className="relative flex-shrink-0 w-56 sm:w-72 md:w-80 lg:w-auto h-56 sm:h-80 lg:h-96 xl:h-[420px] 2xl:h-[480px] rounded-2xl overflow-hidden cursor-pointer group"
               >
                 {/* Destination Image */}
                 <Image

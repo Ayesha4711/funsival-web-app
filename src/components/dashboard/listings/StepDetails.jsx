@@ -176,6 +176,8 @@ function extractUploadedPhotoUrls(response) {
 function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isUploading }) {
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const menuRef = useRef(null);
+  const thumbInputRef = useRef(null);
+  const dropInputRef = useRef(null);
 
   useEffect(() => {
     function handleClick(e) {
@@ -220,8 +222,15 @@ function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isUploading }) {
     setOpenMenuIndex(null);
   };
 
+  const triggerThumb = () => { if (!isUploading) thumbInputRef.current?.click(); };
+  const triggerDrop = () => { if (!isUploading) dropInputRef.current?.click(); };
+
   return (
     <div className="space-y-3">
+      {/* Hidden file inputs */}
+      <input ref={thumbInputRef} type="file" accept="image/jpeg,image/png" multiple className="hidden" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} disabled={isUploading} />
+      <input ref={dropInputRef} type="file" accept="image/jpeg,image/png" multiple className="hidden" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} disabled={isUploading} />
+
       <div className="flex gap-3 flex-wrap">
         {photos.map((src, i) => (
           <div key={i} className="relative w-32 h-24 sm:w-40 sm:h-28 rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-100 shrink-0 group">
@@ -269,18 +278,33 @@ function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isUploading }) {
             </div>
           </div>
         ))}
-        <label className="flex flex-col items-center justify-center w-32 h-24 sm:w-40 sm:h-28 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors shrink-0">
+        {/* Thumbnail + button */}
+        <button
+          type="button"
+          onClick={triggerThumb}
+          disabled={isUploading}
+          className="flex flex-col items-center justify-center w-32 h-24 sm:w-40 sm:h-28 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <input id="photo-add-input" type="file" accept="image/jpeg,image/png" className="sr-only" onChange={(e) => handleFiles(e.target.files)} multiple disabled={isUploading} />
-        </label>
+        </button>
       </div>
-      <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors" onDrop={(e) => { e.preventDefault(); if (!isUploading) handleFiles(e.dataTransfer.files); }} onDragOver={(e) => e.preventDefault()}>
+
+      {/* Drag-drop zone */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={triggerDrop}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") triggerDrop(); }}
+        onDrop={(e) => { e.preventDefault(); if (!isUploading) handleFiles(e.dataTransfer.files); }}
+        onDragOver={(e) => e.preventDefault()}
+        className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors select-none"
+      >
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <p className="text-sm font-bold text-gray-700 mt-2">Upload & Drag Images Here</p>
         <p className="text-xs text-gray-400 mt-0.5">JPEG or PNG files only</p>
         <p className="text-xs text-gray-400">Max size: 5MB</p>
-        <input type="file" accept="image/jpeg,image/png" multiple className="sr-only" onChange={(e) => handleFiles(e.target.files)} disabled={isUploading} />
-      </label>
+      </div>
+
       {isUploading && <p className="text-xs font-medium text-[var(--color-primary)]">Uploading images...</p>}
     </div>
   );

@@ -371,23 +371,20 @@ export default function ConfirmAndPayPage() {
                   Edit Details
                 </button>
               </div>
-              <div className="flex flex-col gap-4">
-                {/* Check-in / Check-out — side by side on md+, stacked on mobile */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1 border border-gray-200 rounded-xl px-4 py-3">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Check-in</p>
-                    <p className="text-sm font-bold text-gray-900">{dateFrom || "—"}</p>
-                    {startTime && <p className="text-xs text-gray-500">{startTime}</p>}
+              <div className="flex flex-col gap-3">
+                {(dateFrom || dateTo) && (
+                  <div>
+                    <p className="text-sm font-bold text-gray-900 mb-0.5">Dates</p>
+                    <p className="text-sm text-gray-500">
+                      {dateFrom && dateTo && dateFrom !== dateTo
+                        ? `${dateFrom} – ${dateTo}`
+                        : dateFrom || dateTo}
+                    </p>
                   </div>
-                  <div className="flex flex-col gap-1 border border-gray-200 rounded-xl px-4 py-3">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Check-out</p>
-                    <p className="text-sm font-bold text-gray-900">{dateTo || dateFrom || "—"}</p>
-                    {endTime && <p className="text-xs text-gray-500">{endTime}</p>}
-                  </div>
-                </div>
+                )}
                 {guests && (
                   <div>
-                    <p className="text-sm font-bold text-gray-900 mb-1">Guests</p>
+                    <p className="text-sm font-bold text-gray-900 mb-0.5">Guests</p>
                     <p className="text-sm text-gray-500">{guests}</p>
                   </div>
                 )}
@@ -508,14 +505,9 @@ export default function ConfirmAndPayPage() {
               <button
                 onClick={handleConfirmAndPay}
                 disabled={!canPay}
-                className={`flex items-center justify-between pl-8 pr-2 py-2 rounded-full text-sm font-bold transition-all w-52 ${canPay ? "bg-[#FEB538]  text-gray-900" : "bg-[#F5C842]/40 text-gray-400 cursor-not-allowed"}`}
+                className={`px-10 py-3.5 rounded-full text-sm font-bold transition-all ${canPay ? "bg-[#FEB538] text-gray-900 hover:opacity-90" : "bg-[#F5C842]/40 text-gray-400 cursor-not-allowed"}`}
               >
-                <span className="flex-1 text-center">{isSubmitting ? "Processing..." : "Confirm & Pay"}</span>
-                <span className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${canPay ? "bg-white text-gray-800" : "bg-white/60 text-gray-400"}`}>
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </span>
+                {isSubmitting ? "Processing..." : "Confirm & Pay"}
               </button>
             </div>
           </div>

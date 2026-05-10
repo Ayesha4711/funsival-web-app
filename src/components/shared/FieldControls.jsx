@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import CustomCalendar from "@/components/shared/CustomCalendar";
 
 export function ChevronDownIcon({ className = "" }) {
@@ -330,22 +331,47 @@ export function TagInputField({ tags, placeholder, onAdd, onRemove, error = fals
 
 export function CalendarField({ value, placeholder = "Select date", onChange }) {
   const [open, setOpen] = useState(false);
-  const ref = useOutsideClose(() => setOpen(false));
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef(null);
+  const calendarRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleMouseDown(e) {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        calendarRef.current && !calendarRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [open]);
+
+  const openCalendar = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + window.scrollY + 8, left: rect.left + window.scrollX });
+    }
+    setOpen(true);
+  };
 
   return (
-    <div ref={ref} className="relative w-full">
+    <div ref={triggerRef} className="relative w-full">
       <div className="flex items-center gap-2 w-full">
         <input
           type="text"
           value={value ?? ""}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
-          onFocus={() => setOpen(true)}
-          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
+          onFocus={openCalendar}
+          readOnly
+          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 cursor-pointer"
         />
         <button
           type="button"
-          onClick={() => setOpen((current) => !current)}
+          onClick={() => open ? setOpen(false) : openCalendar()}
           className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-[var(--color-primary)] hover:bg-gray-50"
           aria-label="Open calendar"
         >
@@ -353,8 +379,11 @@ export function CalendarField({ value, placeholder = "Select date", onChange }) 
         </button>
       </div>
 
-      {open && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-full min-w-[280px]">
+      {open && typeof document !== "undefined" && createPortal(
+        <div
+          ref={calendarRef}
+          style={{ position: "absolute", top: pos.top, left: pos.left, zIndex: 9999 }}
+        >
           <CustomCalendar
             value={value}
             onChange={(nextValue) => {
@@ -363,7 +392,8 @@ export function CalendarField({ value, placeholder = "Select date", onChange }) 
             }}
             onClose={() => setOpen(false)}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

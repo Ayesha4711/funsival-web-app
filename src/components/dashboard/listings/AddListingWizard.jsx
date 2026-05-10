@@ -502,7 +502,7 @@ export default function AddListingWizard() {
 
   if (draftLoading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3">
+      <div className="flex-1 bg-white flex flex-col items-center justify-center gap-3">
         <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5">
           <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
         </svg>
@@ -512,13 +512,13 @@ export default function AddListingWizard() {
   }
 
   return (
-    <div className="flex flex-col  bg-white ">
+    <div className="flex flex-col bg-white min-h-full">
       {/* Full wizard navbar — desktop only */}
       <WizardNavbar step={step} onBack={back} router={router} />
 
-      <div className="w-full flex flex-col">
+      <div className="flex flex-col flex-1">
         {/* Header Section — Full Width */}
-        <div className="px-4 sm:px-6 lg:px-8 py-5 border-b border-gray-100">
+        <div className="px-4 sm:px-6 lg:px-8 py-5 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push("/dashboard/listings")}
@@ -560,12 +560,12 @@ export default function AddListingWizard() {
         </div>
 
         {/* Stepper Section — Full Width */}
-        <div className="px-4 sm:px-6 lg:px-8 py-6 bg-gray-50/30 border-b border-gray-50">
+        <div className="px-4 sm:px-6 lg:px-8 py-6 bg-gray-50/30 border-b border-gray-50 shrink-0">
           <Stepper current={step} onStepClick={jumpToStep} />
         </div>
 
         {/* Step content Section — Full Width */}
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
           <div className="w-full">
             {step === 1 &&
               <StepCategory

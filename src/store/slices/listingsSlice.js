@@ -5,9 +5,24 @@ import axiosInstance from "../axiosInstance";
 
 export const fetchListings = createAsyncThunk(
   "listings/fetchListings",
-  async ({ page = 1, limit = 10 } = {}, { rejectWithValue }) => {
+  async ({ page = 1, limit = 10, category, search, city, minPrice, maxPrice, sort } = {}, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.get(`/listings?page=${page}&limit=${limit}`);
+      const hasFilter =
+        (category && category !== "All Categories") ||
+        (search && search.trim()) ||
+        (city && city.trim()) ||
+        minPrice != null ||
+        maxPrice != null ||
+        sort;
+      const params = new URLSearchParams({ page, limit });
+      if (category && category !== "All Categories") params.set("category", category);
+      if (search && search.trim()) params.set("search", search.trim());
+      if (city && city.trim()) params.set("city", city.trim());
+      if (minPrice != null) params.set("minPrice", minPrice);
+      if (maxPrice != null) params.set("maxPrice", maxPrice);
+      if (sort) params.set("sort", sort);
+      const endpoint = hasFilter ? `/listings/browse?${params.toString()}` : `/listings?${params.toString()}`;
+      const { data } = await axiosInstance.get(endpoint);
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
