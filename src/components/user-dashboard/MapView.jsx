@@ -103,6 +103,13 @@ export default function MapView({ listings }) {
         />
       </div>
 
+      {/* OpenStreetMap attribution */}
+      <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+        <span className="text-[10px] text-gray-600 bg-white/80 px-1.5 py-0.5 rounded">
+          © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline pointer-events-auto">OpenStreetMap</a> contributors
+        </span>
+      </div>
+
       {/* Price pins */}
       {pins.map((pin) => {
         const isActive = activePin === pin.id;

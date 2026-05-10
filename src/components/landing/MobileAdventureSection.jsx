@@ -8,7 +8,7 @@ import Adventure from '@/assets/images/adventure.svg';
 export default function MobileAdventureSection() {
   return (
     <section className="py-12 md:py-16 bg-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px]">
         <div className="flex flex-col xl:flex-row gap-6 xl:gap-8 items-stretch">
           {/* Mobile Section Image */}
           <div className="w-full xl:w-1/2 flex items-center justify-center">

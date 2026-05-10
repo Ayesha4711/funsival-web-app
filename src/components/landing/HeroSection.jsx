@@ -359,7 +359,7 @@ export default function HeroSection() {
 
         {/* Desktop: text over image */}
         <div className="relative z-10 h-full hidden md:flex flex-col justify-center px-4 -translate-y-10">
-          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-medium text-[#000000] mb-2 leading-tight">
               All the fun, none of the commitment.
             </h1>
@@ -372,7 +372,7 @@ export default function HeroSection() {
 
       {/* Desktop search bar — floats up over image bottom edge */}
       <div className="hidden md:block relative z-20 -mt-10 lg:-mt-12">
-        <div ref={searchRef} className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div ref={searchRef} className="relative max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
           <div className="md:flex bg-white rounded-full px-4 py-4 items-center gap-1" style={{ boxShadow: "0px 4px 30px 0px #0000001A" }}>
             {/* ── Where ── */}
             <div className="flex-1 min-w-0 relative">

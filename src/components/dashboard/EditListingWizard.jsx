@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { Country, State } from "country-state-city";
 import StepCategory from "./listings/StepCategory";
@@ -12,6 +13,48 @@ import { useDispatch } from "react-redux";
 import { fetchListing, updateListing } from "@/store/slices/listingsSlice";
 import AppFooter from "@/components/shared/AppFooter";
 import { buildListingPricePayload, createEmptyPrice, formatListingPrice, normalizeListingPrice } from "./listings/listingPrice";
+import logo from "@/assets/images/logo.svg";
+
+/* ─── Wizard Navbar ────────────────────────────────────────────────────────── */
+function WizardNavbar() {
+  return (
+    <header className="h-16 bg-[var(--color-primary)] flex items-center px-8 gap-4 shrink-0 sticky top-0 z-20">
+      <Image src={logo} alt="Funsival" width={120} height={36} className="h-9 w-auto object-contain shrink-0" />
+      <div className="flex-1 flex justify-center">
+        <div className="relative w-full max-w-sm">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search here" className="w-full h-9 pl-10 pr-4 rounded-full bg-white text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none" />
+        </div>
+      </div>
+      <div className="flex items-center gap-4 shrink-0">
+        <span className="flex items-center gap-1 text-white text-sm font-medium">
+          Provider
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+        <button className="text-white/90 hover:text-white p-1 relative">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        </button>
+        <button className="text-white/90 hover:text-white p-1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </button>
+        <div className="w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white font-bold text-sm border-2 border-white/30">
+          P
+        </div>
+      </div>
+    </header>
+  );
+}
 
 /* ─── Step config ──────────────────────────────────────────────────────────── */
 const STEPS = [
@@ -351,10 +394,12 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
   return (
     <div
       ref={scrollRef}
-      className="fixed inset-0 z-50 bg-white overflow-y-auto"
+      className="fixed inset-0 z-50 bg-white overflow-y-auto flex flex-col"
     >
+      <WizardNavbar />
+
       {/* Header + stepper */}
-      <div className="bg-white">
+      <div className="bg-white shrink-0">
         <div className="border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex items-center gap-4">
             <button
@@ -382,7 +427,7 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
       </div>
 
       {/* Step content */}
-      <div className="px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         <div className="w-full">
           {step === 1 &&
             <StepCategory

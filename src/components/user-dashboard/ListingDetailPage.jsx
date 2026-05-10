@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -311,24 +312,45 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
   );
 }
 
-/* ─── Calendar Dropdown — inline trigger inside BookingField ────────────────── */
+/* ─── Calendar Dropdown — portal-based so it escapes overflow clipping ──────── */
 function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy" }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef(null);
+  const calendarRef = useRef(null);
 
   useEffect(() => {
+    if (!open) return;
     function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        calendarRef.current && !calendarRef.current.contains(e.target)
+      ) setOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  }, [open]);
+
+  const CALENDAR_WIDTH = 284;
+  const MARGIN = 12;
+
+  const openCalendar = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const rawLeft = rect.left + window.scrollX;
+      // Clamp so calendar never overflows right edge of viewport
+      const maxLeft = window.innerWidth - CALENDAR_WIDTH - MARGIN + window.scrollX;
+      const left = Math.max(MARGIN, Math.min(rawLeft, maxLeft));
+      setPos({ top: rect.bottom + window.scrollY + 6, left });
+    }
+    setOpen(true);
+  };
 
   return (
-    <div ref={ref} className="relative w-full">
+    <div ref={triggerRef} className="relative w-full">
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => open ? setOpen(false) : openCalendar()}
         className="w-full text-left text-xs sm:text-sm font-medium focus:outline-none"
       >
         <span className={value ? "text-gray-900 font-semibold" : "text-gray-400"}>
@@ -336,14 +358,15 @@ function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy" }) {
         </span>
       </button>
 
-      {open && (
-        <div className="absolute z-[100] left-1/2 -translate-x-1/2 top-full mt-3">
+      {open && typeof document !== "undefined" && createPortal(
+        <div ref={calendarRef} style={{ position: "absolute", top: pos.top, left: pos.left, zIndex: 9999 }}>
           <CustomCalendar
             value={value}
             onChange={(v) => { onChange(v); setOpen(false); }}
             onClose={() => setOpen(false)}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -956,6 +979,12 @@ function ListingLocationMap({ listing }) {
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border border-gray-100" style={{ height: 380 }}>
       <iframe title="Listing location" width="100%" height="105%" frameBorder="0" scrolling="no" src={mapSrc} style={{ marginBottom: '-5%' }} />
+      {/* OpenStreetMap attribution */}
+      <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+        <span className="text-[10px] text-gray-600 bg-white/80 px-1.5 py-0.5 rounded">
+          © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline pointer-events-auto">OpenStreetMap</a> contributors
+        </span>
+      </div>
       {showCard && (
         <div className="absolute z-10 bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ width: 260, top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
           {/* Image */}

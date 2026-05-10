@@ -30,11 +30,33 @@ export const markConversationRead = createAsyncThunk(
         const objectId = parts.find((p) => /^[a-f0-9]{24}$/i.test(p));
         routeId = objectId ?? conv.id;
       }
-      await axiosInstance.put(`/chats/conversations/${routeId}/read`);
+      await axiosInstance.patch(`/chats/conversations/${routeId}/read`);
       return conv.id;
     } catch (err) {
       // Silently swallow 404s — message was already read or conversation id format mismatch
       if (err.response?.status === 404) return conv.id;
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const markMessageRead = createAsyncThunk(
+  "chat/markMessageRead",
+  async ({ conversationId, messageId }, { rejectWithValue }) => {
+    try {
+      // Extract MongoDB ObjectId from compound conversation id (same logic as markConversationRead)
+      let routeId = conversationId;
+      if (!/^[a-f0-9]{24}$/i.test(conversationId)) {
+        const parts = (conversationId ?? "").split(/[_]+/);
+        const objectId = parts.find((p) => /^[a-f0-9]{24}$/i.test(p));
+        if (objectId) routeId = objectId;
+      }
+      const { data } = await axiosInstance.patch(
+        `/chats/conversations/${routeId}/messages/${messageId}/read`
+      );
+      return { conversationId, message: data?.data?.message ?? { id: messageId } };
+    } catch (err) {
+      if (err.response?.status === 404) return { conversationId, message: { id: messageId } };
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
   }
@@ -225,6 +247,15 @@ const chatSlice = createSlice({
       .addCase(markConversationRead.fulfilled, (state, action) => {
         const conv = state.conversations.find((c) => c.id === action.payload);
         if (conv) conv.unreadCount = {};
+      })
+      .addCase(markMessageRead.fulfilled, (state, action) => {
+        const { conversationId, message } = action.payload;
+        const msgs = state.messagesByConversation[conversationId];
+        if (!msgs) return;
+        const idx = msgs.findIndex((m) => m.id === message.id);
+        if (idx !== -1 && message.readBy) {
+          msgs[idx] = { ...msgs[idx], readBy: message.readBy };
+        }
       });
   },
 });
