@@ -344,7 +344,9 @@ export default function UserDashboardShell({ children }) {
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <UserNavbar />
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">{children}</div>
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+        <div className="flex-1 flex flex-col">{children}</div>
+      </div>
     </div>
   );
 }

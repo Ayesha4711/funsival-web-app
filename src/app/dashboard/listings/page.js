@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -12,30 +12,50 @@ import {
 } from "@/store/slices/listingsSlice";
 import { BASE_URL } from "@/lib/api";
 import ListingsStats from "@/components/dashboard/ListingsStats";
-import ListingsFilters from "@/components/dashboard/ListingsFilters";
+import ListingsFilters, { DEFAULT_FILTERS } from "@/components/dashboard/ListingsFilters";
 import ListingsTable from "@/components/dashboard/ListingsTable";
 import ListingsCards from "@/components/dashboard/ListingsCards";
 import EditListingWizard from "@/components/dashboard/EditListingWizard";
 import { describeListingPrice, formatListingPrice } from "@/components/dashboard/listings/listingPrice";
 
 /* ─── Empty state ────────────────────────────────────────────────────────────── */
-function EmptyState() {
+function EmptyState({ hasFilters, onClearFilters }) {
   return (
     <div className="flex flex-col items-center justify-center py-28 gap-5">
       <div className="relative flex items-center justify-center w-52 h-52 mb-4">
         <div className="w-52 h-52 rounded-full bg-gray-50 absolute top-0 left-0" />
         <div className="w-36 h-36 rounded-full bg-gray-100 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
         <div className="relative w-24 h-24 rounded-full bg-[#e8f4f0] flex items-center justify-center z-10">
-          <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-            <rect x="4" y="2" width="12" height="18" rx="2" fill="#2a9d8f" opacity="0.15"/>
-            <rect x="4" y="2" width="12" height="18" rx="2" stroke="#2a9d8f" strokeWidth="1.5"/>
-            <path d="M8 7h5M8 11h5M8 15h3" stroke="#2a9d8f" strokeWidth="1.5" strokeLinecap="round"/>
-            <rect x="12" y="13" width="8" height="8" rx="2" fill="#2a9d8f"/>
-            <path d="M16 15.5v3M14.5 17h3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
+          {hasFilters ? (
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
+              <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" fill="#2a9d8f" opacity="0.15" stroke="#2a9d8f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="4" y1="4" x2="20" y2="20" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          ) : (
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="2" width="12" height="18" rx="2" fill="#2a9d8f" opacity="0.15"/>
+              <rect x="4" y="2" width="12" height="18" rx="2" stroke="#2a9d8f" strokeWidth="1.5"/>
+              <path d="M8 7h5M8 11h5M8 15h3" stroke="#2a9d8f" strokeWidth="1.5" strokeLinecap="round"/>
+              <rect x="12" y="13" width="8" height="8" rx="2" fill="#2a9d8f"/>
+              <path d="M16 15.5v3M14.5 17h3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          )}
         </div>
       </div>
-      <p className="text-lg font-bold text-gray-800 relative z-10">No Data Found</p>
+      {hasFilters ? (
+        <>
+          <p className="text-lg font-bold text-gray-800 relative z-10">No results match your filters</p>
+          <p className="text-sm text-gray-400 text-center max-w-xs">Try adjusting or clearing your filters to find what you&apos;re looking for.</p>
+          <button
+            onClick={onClearFilters}
+            className="relative z-10 mt-1 px-6 py-2.5 rounded-full bg-[var(--color-primary)] text-white text-sm font-bold hover:opacity-90 transition-opacity"
+          >
+            Clear Filters
+          </button>
+        </>
+      ) : (
+        <p className="text-lg font-bold text-gray-800 relative z-10">No Data Found</p>
+      )}
     </div>
   );
 }
@@ -54,7 +74,10 @@ export default function ListingsPage() {
     return new URLSearchParams(window.location.search).get("tab") ?? "all";
   });
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("All Categories");
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const searchDebounceRef = useRef(null);
   const [viewMode, setViewMode] = useState("table");
   const [editingListing, setEditingListing] = useState(null);
   const [deletingListing, setDeletingListing] = useState(null);
@@ -64,7 +87,14 @@ export default function ListingsPage() {
 
   const loadListings = useCallback(async () => {
     const [listingsResult, draftResult] = await Promise.all([
-      dispatch(fetchListings({ page, limit })),
+      dispatch(fetchListings({
+        page, limit, category,
+        search: debouncedSearch,
+        city: filters.city || undefined,
+        minPrice: filters.minPrice > 0 ? filters.minPrice : undefined,
+        maxPrice: filters.maxPrice < 5000 ? filters.maxPrice : undefined,
+        sort: filters.sort || undefined,
+      })),
       dispatch(fetchDraft()),
     ]);
 
@@ -130,7 +160,7 @@ export default function ListingsPage() {
     if (!fetchListings.fulfilled.match(listingsResult) && !fetchDraft.fulfilled.match(draftResult)) {
       toast.error("Failed to load listings.");
     }
-  }, [dispatch, page, limit]);
+  }, [dispatch, page, limit, category, debouncedSearch, filters]);
 
   const handleTabChange = useCallback((value) => {
     setActiveTab(value);
@@ -140,10 +170,21 @@ export default function ListingsPage() {
   const handleSearchChange = useCallback((value) => {
     setSearch(value);
     setPage(1);
+    clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearch(value);
+    }, 400);
   }, []);
 
   const handleCategoryChange = useCallback((value) => {
     setCategory(value);
+    setPage(1);
+    setDebouncedSearch(search);
+  }, [search]);
+
+  const handleFiltersChange = useCallback((f) => {
+    setFilters(f);
+    setCategory(f.category || "All Categories");
     setPage(1);
   }, []);
 
@@ -195,14 +236,24 @@ export default function ListingsPage() {
   };
   const hasDraft = tabCounts.draft > 0;
 
-  const filtered = listings.filter((item) => {
-    const matchesTab = activeTab === "all" || item.status?.toLowerCase() === activeTab.toLowerCase();
-    const matchesSearch = search === "" || item.name?.toLowerCase().includes(search.toLowerCase()) || item.location?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = category === "All Categories" || item.category === category;
-    return matchesTab && matchesSearch && matchesCategory;
-  });
+  const filtered = listings.filter((item) =>
+    activeTab === "all" || item.status?.toLowerCase() === activeTab.toLowerCase()
+  );
 
   const isEmpty = !loading && filtered.length === 0;
+
+  const hasActiveFilters =
+    (filters.city && filters.city.trim()) ||
+    filters.sort ||
+    (filters.category && filters.category !== "All Categories") ||
+    filters.minPrice > 0 ||
+    filters.maxPrice < 5000 ||
+    search.trim().length > 0;
+
+  const handleClearFilters = () => {
+    handleFiltersChange(DEFAULT_FILTERS);
+    handleSearchChange("");
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 w-full flex flex-col gap-4 flex-1">
@@ -220,17 +271,19 @@ export default function ListingsPage() {
           onViewModeChange={setViewMode}
           tabCounts={tabCounts}
           hasDraft={hasDraft}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
         />
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex flex-col flex-1">
           {loading ? (
-            <div className="flex-1 flex items-center justify-center py-20">
+            <div className="flex items-center justify-center py-20">
               <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5">
                 <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
               </svg>
             </div>
           ) : isEmpty ? (
-            <EmptyState />
+            <EmptyState hasFilters={!!hasActiveFilters} onClearFilters={handleClearFilters} />
           ) : viewMode === "table" ? (
             <ListingsTable
               data={filtered} currentPage={page} totalPages={totalPages} onPageChange={setPage}

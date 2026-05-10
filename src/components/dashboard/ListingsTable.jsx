@@ -784,7 +784,7 @@ export default function ListingsTable({
   const [previewItem, setPreviewItem] = useState(null);
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 justify-between">
       {previewItem && (
         <ListingPreviewModal
           item={previewItem}
@@ -796,7 +796,7 @@ export default function ListingsTable({
         />
       )}
 
-      <div className="flex-1 overflow-x-auto">
+      <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[700px]">
           <thead>
             <tr className="border-b-2 border-gray-100 bg-[#F8F9FA]">

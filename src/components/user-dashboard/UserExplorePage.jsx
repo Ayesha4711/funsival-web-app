@@ -252,11 +252,12 @@ function FilterPanel({ open, onClose, filters, onChange }) {
   const [selectedCategories, setSelectedCategories] = useState(filters.categories || []);
   const [rating, setRating] = useState(filters.rating || null);
   const [instantBook, setInstantBook] = useState(filters.instantBook || null);
+  const [radius, setRadius] = useState(filters.radius || 1);
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
     price: true,
-    city: false,
+    city: true,
     availability: false,
     category: false,
     rating: false,
@@ -306,13 +307,13 @@ function FilterPanel({ open, onClose, filters, onChange }) {
     const max = Math.max(min, Number(maxInput) || 5000);
     const finalRange = [min, max];
     setPriceRange(finalRange);
-    onChange({ priceTab, priceRange: finalRange, city, sort, date, categories: selectedCategories, rating, instantBook });
+    onChange({ priceTab, priceRange: finalRange, city, sort, date, categories: selectedCategories, rating, instantBook, radius });
     onClose();
   };
 
   const handleReset = () => {
     setPriceTab('hourly'); setPriceRange([0, 5000]); setMinInput('0'); setMaxInput('5000');
-    setCity(''); setCitySearch(''); setSort(''); setDate(''); setSelectedCategories([]); setRating(null); setInstantBook(null);
+    setCity(''); setCitySearch(''); setSort(''); setDate(''); setSelectedCategories([]); setRating(null); setInstantBook(null); setRadius(1);
     onChange({});
     onClose();
   };
@@ -377,7 +378,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
             <div className="flex gap-3">
               <div className="flex-1">
                 <p className="text-[10px] text-gray-400 mb-1">Minimum</p>
-                <div className="flex items-center border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                <div className="flex items-center border border-gray-200 rounded-full px-3 py-2 text-sm">
                   <span className="text-gray-400 mr-1">$</span>
                   <input type="number" value={minInput} onChange={e => { setMinInput(e.target.value); const v = Number(e.target.value); if (!isNaN(v) && v >= 0) setPriceRange([v, priceRange[1]]); }}
                     className="w-full focus:outline-none text-gray-900" />
@@ -385,7 +386,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
               </div>
               <div className="flex-1">
                 <p className="text-[10px] text-gray-400 mb-1">Maximum</p>
-                <div className="flex items-center border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                <div className="flex items-center border border-gray-200 rounded-full px-3 py-2 text-sm">
                   <span className="text-gray-400 mr-1">$</span>
                   <input type="number" value={maxInput} onChange={e => { setMaxInput(e.target.value); const v = Number(e.target.value); if (!isNaN(v) && v >= 0) setPriceRange([priceRange[0], v]); }}
                     className="w-full focus:outline-none text-gray-900" />
@@ -399,32 +400,56 @@ function FilterPanel({ open, onClose, filters, onChange }) {
           {/* Location */}
           <section>
             <button onClick={() => toggleSection('city')} className="flex items-center justify-between mb-3 w-full">
-              <span className="font-semibold text-gray-900 text-sm">City</span>
+              <span className="font-semibold text-gray-900 text-sm">Location</span>
               <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.city ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
             </button>
             {expandedSections.city && (
-              <div className="relative" ref={cityDropdownRef}>
-                <input
-                  type="text"
-                  placeholder="e.g. Lahore"
-                  value={citySearch}
-                  onChange={e => { setCitySearch(e.target.value); setShowCityDropdown(true); }}
-                  onFocus={() => setShowCityDropdown(true)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#4AA7A7]"
-                />
-                {showCityDropdown && filteredCities.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {filteredCities.map(cityOption => (
-                      <button
-                        key={cityOption}
-                        onClick={() => selectCity(cityOption)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
-                      >
-                        {cityOption}
-                      </button>
-                    ))}
+              <div className="space-y-4">
+                <div className="relative" ref={cityDropdownRef}>
+                  <input
+                    type="text"
+                    placeholder="City or address"
+                    value={citySearch}
+                    onChange={e => { setCitySearch(e.target.value); setShowCityDropdown(true); }}
+                    onFocus={() => setShowCityDropdown(true)}
+                    className="w-full border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#4AA7A7]"
+                  />
+                  {showCityDropdown && filteredCities.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredCities.map(cityOption => (
+                        <button
+                          key={cityOption}
+                          onClick={() => selectCity(cityOption)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                        >
+                          {cityOption}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Radius slider */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Radius</span>
+                    <span className="text-sm font-semibold text-[#4AA7A7]">{radius} miles</span>
                   </div>
-                )}
+                  <div className="relative h-5">
+                    <input
+                      type="range"
+                      min={1}
+                      max={100}
+                      value={radius}
+                      onChange={e => setRadius(Number(e.target.value))}
+                      className="absolute w-full h-1 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:cursor-pointer"
+                    />
+                    <div className="absolute top-1/2 -translate-y-1/2 h-1 w-full rounded-full bg-gray-200 -z-10" />
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 h-1 rounded-full bg-gray-900 -z-10"
+                      style={{ left: 0, right: `${100 - ((radius - 1) / 99) * 100}%` }}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </section>
@@ -468,23 +493,6 @@ function FilterPanel({ open, onClose, filters, onChange }) {
                 )}
               </div>
             )}
-          </section>
-
-          <div className="border-t border-gray-100" />
-
-          {/* Sort */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-semibold text-gray-900 text-sm">Sort By</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {[['newest','Newest'],['oldest','Oldest'],['price-asc','Price: Low→High'],['price-desc','Price: High→Low']].map(([val, label]) => (
-                <button key={val} onClick={() => setSort(sort === val ? '' : val)}
-                  className={`py-2 px-3 rounded-lg border text-xs font-medium transition-colors ${sort === val ? 'bg-[#4AA7A7] text-white border-[#4AA7A7]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#4AA7A7]'}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
           </section>
 
           <div className="border-t border-gray-100" />
@@ -635,9 +643,9 @@ export default function UserExplorePage() {
 
     // Add additional filters if present
     if (date) filterParams.date = date;
-    if (categories && categories.length > 0) filterParams.type = categories.join(',');
+    if (categories && categories.length > 0) filterParams.type = categories.map(c => c.toLowerCase().replace(/\s+/g, '_')).join(',');
     if (rating != null) filterParams.rating = rating;
-    if (instantBook) filterParams.instantBook = instantBook;
+    if (instantBook && instantBook !== 'any') filterParams.instantBook = instantBook;
 
     dispatch(fetchBrowseListings(filterParams));
   }, [dispatch, currentPage, activeTab, appliedFilters, searchQuery]);

@@ -14,6 +14,7 @@ import {
   setActiveConversation,
   appendOptimisticMessage,
   markConversationRead,
+  markMessageRead,
   clearUnreadCount,
   selectConversations,
   selectConversationsStatus,
@@ -25,7 +26,6 @@ import {
 import { selectUser } from "@/store/slices/profileSlice";
 import { onForegroundMessage } from "@/lib/firebase";
 import AppFooter from "@/components/shared/AppFooter";
-
 const POLL_INTERVAL_MS = 3000;
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
@@ -72,6 +72,62 @@ const NoMsgIcon = () => (
     <line x1="46" y1="51" x2="46" y2="45" stroke="#8fa3b0" strokeWidth="2.5" strokeLinecap="round" />
   </svg>
 );
+
+/* ─── Read receipt ticks ──────────────────────────────────────────────────────── */
+const SingleTick = () => (
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+    <path d="M2 8l4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const DoubleTick = ({ blue }) => (
+  <svg width="16" height="12" viewBox="0 0 20 16" fill="none">
+    <path d="M1 8l4 4 8-8" stroke={blue ? "#4AA7A7" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6 8l4 4 8-8" stroke={blue ? "#4AA7A7" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/* ─── Message bubble with read receipt ───────────────────────────────────────── */
+function MessageBubble({ msg, isMe, isReadByOther, alreadyRead, conversationId, dispatch }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (isMe || alreadyRead || msg._optimistic) return;
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          dispatch(markMessageRead({ conversationId, messageId: msg.id }));
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.6 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [msg.id, alreadyRead, isMe, msg._optimistic, conversationId, dispatch]);
+
+  return (
+    <div ref={ref} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+      <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+        isMe
+          ? `bg-[var(--color-primary)] text-white rounded-tr-sm ${msg._optimistic ? "opacity-70" : ""}`
+          : "bg-gray-100 text-[var(--color-text)] rounded-tl-sm"
+      }`}>
+        {msg.text}
+      </div>
+      <div className="flex items-center gap-1 mt-1 px-1">
+        <span className="text-[10px] text-[var(--color-text-muted)]">{formatTime(msg.createdAt)}</span>
+        {isMe && !msg._optimistic && (
+          <span className={isReadByOther ? "text-[#4AA7A7]" : "text-gray-400"}>
+            {isReadByOther ? <DoubleTick blue /> : <SingleTick />}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────────── */
 function formatTime(isoString) {
@@ -300,6 +356,9 @@ function ChatWindow({ conv, onBack, showBackBtn, currentUserId }) {
   useEffect(() => {
     prevMessageCountRef.current = null;
     dispatch(fetchMessages({ conversationId: conv.id }));
+    // Mark conversation read immediately on open so the badge clears right away
+    dispatch(clearUnreadCount(conv.id));
+    dispatch(markConversationRead(conv));
 
     // Poll for new messages while this chat window is open.
     // Skip the poll for 4s after a send to avoid overwriting optimistic messages.
@@ -407,19 +466,19 @@ function ChatWindow({ conv, onBack, showBackBtn, currentUserId }) {
 
             {messages.map((msg) => {
               const isMe = msg.senderId === currentUserId;
+              const otherUserId = otherParticipant?.id;
+              const isReadByOther = Array.isArray(msg.readBy) && otherUserId && msg.readBy.includes(otherUserId);
+              const alreadyRead = !isMe && Array.isArray(msg.readBy) && currentUserId && msg.readBy.includes(currentUserId);
               return (
-                <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-                  <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                    isMe
-                      ? `bg-[var(--color-primary)] text-white rounded-tr-sm ${msg._optimistic ? "opacity-70" : ""}`
-                      : "bg-gray-100 text-[var(--color-text)] rounded-tl-sm"
-                  }`}>
-                    {msg.text}
-                  </div>
-                  <span className="text-[10px] text-[var(--color-text-muted)] mt-1 px-1">
-                    {formatTime(msg.createdAt)}
-                  </span>
-                </div>
+                <MessageBubble
+                  key={msg.id}
+                  msg={msg}
+                  isMe={isMe}
+                  isReadByOther={isReadByOther}
+                  alreadyRead={alreadyRead}
+                  conversationId={conv.id}
+                  dispatch={dispatch}
+                />
               );
             })}
           </>
@@ -566,57 +625,60 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      {/* Page header */}
-      <div className={`px-4 sm:px-6 lg:px-8 py-5 shrink-0 bg-white border-b border-gray-100 ${mobileView ? "hidden lg:flex" : "flex"} items-center gap-3`}>
-        <button
-          onClick={() => router.back()}
-          className="text-[var(--color-text)] hover:text-[var(--color-text-muted)] transition-colors"
-        >
-          <BackIcon />
-        </button>
-        <h1 className="text-xl font-extrabold text-[var(--color-text)]">Messages</h1>
-      </div>
+    <>
+      {/* Chat section — fixed height so footer sits naturally below */}
+      <div className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
+        {/* Page header */}
+        <div className={`px-4 sm:px-6 lg:px-8 py-5 shrink-0 bg-white border-b border-gray-100 ${mobileView ? "hidden lg:flex" : "flex"} items-center gap-3`}>
+          <button
+            onClick={() => router.back()}
+            className="text-[var(--color-text)] hover:text-[var(--color-text-muted)] transition-colors"
+          >
+            <BackIcon />
+          </button>
+          <h1 className="text-xl font-extrabold text-[var(--color-text)]">Messages</h1>
+        </div>
 
-      {/* Content area */}
-      <div className="flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-5 pb-4 sm:pb-6">
-        <div className="h-full bg-white rounded-3xl border border-[var(--color-border)] overflow-hidden flex">
+        {/* Content area */}
+        <div className="flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-5 pb-4 sm:pb-6 flex flex-col">
+          <div className="flex-1 min-h-0 bg-white rounded-3xl border border-[var(--color-border)] overflow-hidden flex">
 
-          {/* Contact list panel */}
-          <div className={`
-            flex-col border-r border-gray-100 bg-white
-            w-full lg:w-72 xl:w-80 lg:flex shrink-0
-            ${mobileView ? "hidden" : "flex"}
-            lg:flex
-          `}>
-            <ContactPanel
-              activeConvId={activeConvId}
-              onSelect={handleSelectConv}
-              currentUserId={currentUserId}
-            />
-          </div>
-
-          {/* Chat window */}
-          <div className={`
-            flex-1 min-w-0
-            ${mobileView ? "flex flex-col" : "hidden lg:flex lg:flex-col"}
-          `}>
-            {activeConv ? (
-              <ChatWindow
-                key={activeConv.id}
-                conv={activeConv}
-                onBack={handleBack}
-                showBackBtn={!!mobileView}
+            {/* Contact list panel */}
+            <div className={`
+              flex-col border-r border-gray-100 bg-white
+              w-full lg:w-72 xl:w-80 lg:flex shrink-0
+              ${mobileView ? "hidden" : "flex"}
+              lg:flex
+            `}>
+              <ContactPanel
+                activeConvId={activeConvId}
+                onSelect={handleSelectConv}
                 currentUserId={currentUserId}
               />
-            ) : (
-              <NoMessageSelected />
-            )}
-          </div>
+            </div>
 
+            {/* Chat window */}
+            <div className={`
+              flex-1 min-w-0
+              ${mobileView ? "flex flex-col" : "hidden lg:flex lg:flex-col"}
+            `}>
+              {activeConv ? (
+                <ChatWindow
+                  key={activeConv.id}
+                  conv={activeConv}
+                  onBack={handleBack}
+                  showBackBtn={!!mobileView}
+                  currentUserId={currentUserId}
+                />
+              ) : (
+                <NoMessageSelected />
+              )}
+            </div>
+
+          </div>
         </div>
       </div>
       <AppFooter />
-    </div>
+    </>
   );
 }

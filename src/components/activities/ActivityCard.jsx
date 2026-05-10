@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 
 function resolvePrice(price) {
@@ -68,11 +67,10 @@ export default function ActivityCard({ listing }) {
       {/* Image */}
       <div className="relative h-48 w-full overflow-hidden">
         {photo ? (
-          <Image
+          <img
             src={photo}
             alt={title}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           <div className="absolute inset-0 bg-linear-to-br from-[#4AA7A7] to-[#2d7a7a]" />

@@ -55,8 +55,8 @@ export default function BrowseByAdventure() {
   };
 
   return (
-    <section className="py-10 md:py-14 bg-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+    <section className="py-10 md:py-14 2xl:py-20 bg-white">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px]">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
@@ -85,26 +85,27 @@ export default function BrowseByAdventure() {
         </div>
 
         {/* Activity cards */}
+        {/* Mobile: scrollable row. lg+: grid that fills full width */}
         <div
           ref={scrollRef}
-          className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-smooth"
+          className="flex items-stretch gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-smooth lg:grid lg:grid-cols-4 lg:overflow-visible"
         >
           {tabs.map(tab =>
             <Link
               key={tab.id}
               href={tab.href}
-              className={`shrink-0 flex flex-col justify-between p-3 sm:p-4 rounded-2xl ${tab.bg} hover:opacity-90 transition-all duration-200 group w-40 h-[130px] sm:w-55 sm:h-40 lg:w-70 lg:h-45`}
+              className={`shrink-0 flex flex-col justify-between p-3 sm:p-4 lg:p-6 rounded-2xl ${tab.bg} hover:opacity-90 transition-all duration-200 group w-40 h-[130px] sm:w-55 sm:h-40 lg:w-auto lg:h-52 xl:h-56 2xl:h-64`}
             >
-              <div className="bg-white rounded-xl flex items-center justify-center w-12 h-12 sm:w-15 sm:h-15 lg:w-[70px] lg:h-[70px]">
+              <div className="bg-white rounded-xl flex items-center justify-center w-12 h-12 sm:w-15 sm:h-15 lg:w-16 lg:h-16 xl:w-[70px] xl:h-[70px]">
                 <div className="relative w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12">
                   <Image src={tab.icon} alt={tab.label} fill className="object-contain" />
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm lg:text-base font-semibold text-gray-800 group-hover:text-gray-900">
+                <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-semibold text-gray-800 group-hover:text-gray-900">
                   {tab.label}
                 </span>
-                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#4AA7A7] flex items-center justify-center shrink-0">
+                <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full bg-[#4AA7A7] flex items-center justify-center shrink-0">
                   <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 17L17 7M17 7H7M17 7v10" />
                   </svg>
