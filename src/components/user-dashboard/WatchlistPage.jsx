@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import AppFooter from "@/components/shared/AppFooter";
 
+const ITEMS_PER_PAGE = 8;
+
 const HeartIcon = ({ filled }) => (
   <svg className={`w-5 h-5 ${filled ? "fill-[#F5823A] text-[#F5823A]" : "text-gray-300"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" fill="none">
     <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -69,8 +71,6 @@ const MOCK_WATCHLIST = [
   },
 ];
 
-const TABS = ["All", "Places", "Equipment", "Activities"];
-
 function WatchlistCard({ item, onRemove }) {
   const router = useRouter();
 
@@ -98,7 +98,9 @@ function WatchlistCard({ item, onRemove }) {
           className="absolute top-3 right-3 w-8 h-8 bg-[#F5823A] hover:bg-[#e06d2a] rounded-full flex items-center justify-center transition-colors shadow"
           title="Remove from watchlist"
         >
-          <HeartIcon filled />
+          <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
         </button>
       </div>
 
@@ -142,23 +144,70 @@ const BackIcon = () => (
   </svg>
 );
 
+function Pagination({ currentPage, totalPages, onPageChange }) {
+  return (
+    <div className="flex items-center justify-center gap-1 mt-6">
+      <button
+        onClick={() => onPageChange(1)}
+        disabled={currentPage === 1}
+        className="w-8 h-8 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 text-xs font-bold"
+      >
+        {"<<"}
+      </button>
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="w-8 h-8 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 text-sm"
+      >
+        {"<"}
+      </button>
+      <div className="flex items-center gap-1.5 px-2">
+        <span className="w-8 h-8 flex items-center justify-center rounded-full bg-[#228E8A] text-white text-sm font-semibold">
+          {currentPage}
+        </span>
+        <span className="text-sm text-gray-500">of {totalPages}</span>
+      </div>
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="w-8 h-8 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 text-sm"
+      >
+        {">"}
+      </button>
+      <button
+        onClick={() => onPageChange(totalPages)}
+        disabled={currentPage === totalPages}
+        className="w-8 h-8 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 text-xs font-bold"
+      >
+        {">>"}
+      </button>
+    </div>
+  );
+}
+
 export default function WatchlistPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("All");
   const [items, setItems] = useState(MOCK_WATCHLIST);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+  const paginatedItems = items.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const handleRemove = (id) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    setItems((prev) => {
+      const next = prev.filter((i) => i.id !== id);
+      const newTotal = Math.max(1, Math.ceil(next.length / ITEMS_PER_PAGE));
+      if (currentPage > newTotal) setCurrentPage(newTotal);
+      return next;
+    });
   };
-
-  const filtered =
-    activeTab === "All"
-      ? items
-      : items.filter((i) => i.category === activeTab);
 
   return (
     <div className="flex-1 flex flex-col">
-      {/* Sticky header */}
+      {/* Header */}
       <div className="bg-white border-b border-gray-100 w-full">
         <div className="px-4 sm:px-6 lg:px-10 py-5 flex items-center gap-3">
           <button
@@ -167,35 +216,23 @@ export default function WatchlistPage() {
           >
             <BackIcon />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">My Wishlist</h1>
+          <h1 className="text-xl font-bold text-gray-900">Wishlist</h1>
         </div>
       </div>
 
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 py-6">
-
-        {/* Tab filter */}
-        <div className="flex items-center gap-2 mb-6 bg-[#EDF6F6] rounded-full p-1 w-fit">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                activeTab === tab
-                  ? "bg-white text-[#228E8A] shadow-sm font-semibold"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Grid */}
-        {filtered.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
-            {filtered.map((item) => (
-              <WatchlistCard key={item.id} item={item} onRemove={handleRemove} />
-            ))}
+        {paginatedItems.length > 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
+              {paginatedItems.map((item) => (
+                <WatchlistCard key={item.id} item={item} onRemove={handleRemove} />
+              ))}
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -217,11 +254,6 @@ export default function WatchlistPage() {
       </main>
 
       <AppFooter />
-
-      <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </div>
   );
 }

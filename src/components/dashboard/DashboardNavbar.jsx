@@ -301,9 +301,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
             className="text-white/90 hover:text-white transition-colors relative p-1"
           >
             <BellIcon />
-            <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-[var(--color-secondary)] rounded-full text-[9px] flex items-center justify-center text-white font-bold border border-[var(--color-primary)]">
-              3
-            </span>
+            <span className="absolute top-0 right-0 w-2 h-2 bg-[var(--color-secondary)] rounded-full border border-[var(--color-primary)]" />
           </button>
           {notifOpen &&
             <NotificationPopover onClose={() => setNotifOpen(false)} />}

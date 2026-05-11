@@ -43,6 +43,7 @@ const ChevronIcon = ({ open }) => (
 );
 
 const CATEGORIES = ["All Categories", "Equipment", "Activity", "Place"];
+const QUICK_CATEGORIES = ["All", "Activities", "Equipment", "Places"];
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
   { value: "oldest", label: "Oldest" },
@@ -237,6 +238,9 @@ export default function ListingsFilters({
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [catDropOpen, setCatDropOpen] = useState(false);
+  const [quickCat, setQuickCat] = useState("All");
+  const catDropRef = useRef(null);
   const searchRef = useRef(null);
 
   const tabs = [
@@ -249,6 +253,26 @@ export default function ListingsFilters({
   useEffect(() => {
     if (searchOpen && searchRef.current) searchRef.current.focus();
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (!filters.category || filters.category === "All Categories") {
+      setQuickCat("All");
+    } else if (filters.category === "Activity") {
+      setQuickCat("Activities");
+    } else if (filters.category === "Place") {
+      setQuickCat("Places");
+    } else {
+      setQuickCat(filters.category);
+    }
+  }, [filters.category]);
+
+  useEffect(() => {
+    function handleOutside(e) {
+      if (catDropRef.current && !catDropRef.current.contains(e.target)) setCatDropOpen(false);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
 
   const activeFilterCount = [
     filters.city && filters.city.trim(),
@@ -267,6 +291,7 @@ export default function ListingsFilters({
         onApply={(f) => {
           onFiltersChange(f);
           if (f.category !== category) onCategoryChange(f.category);
+          if (f.category === "All Categories") setQuickCat("All");
         }}
       />
 
@@ -332,19 +357,37 @@ export default function ListingsFilters({
               )}
             </div>
 
-            {/* Filter button */}
-            <button onClick={() => setDrawerOpen(true)}
-              className="relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-9 sm:h-10 bg-[#EDF6F6] rounded-full hover:text-[var(--color-primary)] transition-colors text-sm font-medium text-[#4A4A4A]">
-              <FilterIcon />
-              <span className="hidden sm:inline">
-                {filters.category && filters.category !== "All Categories" ? filters.category : "All Categories"}
-              </span>
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--color-primary)] text-white text-[9px] font-bold flex items-center justify-center">
-                  {activeFilterCount}
-                </span>
+            {/* Category dropdown */}
+            <div className="relative" ref={catDropRef}>
+              <button
+                onClick={() => setCatDropOpen(o => !o)}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-9 sm:h-10 bg-[#EDF6F6] rounded-full hover:text-[var(--color-primary)] transition-colors text-sm font-medium text-[#4A4A4A]"
+              >
+                <FilterIcon />
+                <span className="hidden sm:inline">{quickCat === "All" ? "All Categories" : quickCat}</span>
+                <ChevronIcon open={catDropOpen} />
+              </button>
+              {catDropOpen && (
+                <div className="absolute right-0 top-full mt-1.5 bg-white rounded-2xl shadow-lg border border-gray-100 py-1.5 z-50 min-w-[140px]">
+                  {QUICK_CATEGORIES.map(cat => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        setQuickCat(cat);
+                        setCatDropOpen(false);
+                        const mapped = cat === "All" ? "All Categories" : cat === "Activities" ? "Activity" : cat === "Places" ? "Place" : cat;
+                        onCategoryChange(mapped);
+                        onFiltersChange({ ...filters, category: mapped });
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm font-medium transition-colors ${quickCat === cat ? "text-[var(--color-primary)] bg-[var(--color-primary-light)]" : "text-gray-600 hover:bg-gray-50"}`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               )}
-            </button>
+            </div>
           </div>
         </div>
       </div>
