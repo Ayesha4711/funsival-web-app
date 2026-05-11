@@ -220,15 +220,15 @@ function DonutChart() {
   return (
     <div className="bg-white rounded-2xl border border-[var(--color-border)] flex flex-col h-full">
       <h2 className="text-[17px] sm:text-[18px] font-bold text-[var(--color-text)] px-4 sm:px-5 pt-4 sm:pt-5 pb-0">Listing Performance</h2>
-      <div className="flex-1 flex flex-col items-center justify-center px-2 py-3">
-        <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
-          <PieChart margin={{ top: 28, right: 28, bottom: 0, left: 28 }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-2 py-2">
+        <ResponsiveContainer width="100%" height={320} className="sm:!h-[380px]">
+          <PieChart margin={{ top: 32, right: 32, bottom: 0, left: 32 }}>
             <Pie
               data={performanceData}
               cx="50%"
               cy="50%"
-              innerRadius={58}
-              outerRadius={90}
+              innerRadius={72}
+              outerRadius={112}
               paddingAngle={4}
               dataKey="value"
               labelLine={false}
@@ -417,12 +417,6 @@ function EarningsChart() {
         >
           Earnings
         </h2>
-        <button
-          className="rounded-xl border border-[#CBD5E1] bg-white px-3 sm:px-5 py-2 sm:py-3 text-[13px] sm:text-[14px] leading-[20px] font-semibold text-[#344054] shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-colors hover:bg-[#F8FAFC]"
-          style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
-        >
-          View report
-        </button>
       </div>
       {/* Row 2: Period tabs — sits below the heading row */}
       <div className="mt-4 sm:mt-7 flex items-center gap-4 sm:gap-8 border-b border-[#E5E7EB] overflow-x-auto scrollbar-hide">
