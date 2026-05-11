@@ -187,7 +187,7 @@ function UserNavbar() {
           <div className="relative" ref={notifRef}>
             <button onClick={handleBellClick} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer">
               <BellIcon />
-              <span className="absolute top-1 right-1 w-3 h-3 bg-[#F5C842] rounded-full text-[8px] flex items-center justify-center text-gray-900 font-bold border border-[#228E8A]">3</span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F5C842] rounded-full border border-[#228E8A]" />
             </button>
             {notifOpen && <NotificationPopover viewAllHref="/user-dashboard/notifications" onClose={() => setNotifOpen(false)} />}
           </div>
@@ -223,7 +223,7 @@ function UserNavbar() {
                     <span className="text-gray-400"><BookingIcon /></span> My Reservations
                   </button>
                   <button onClick={() => navigate("/user-dashboard/watchlist")} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-                    <span className="text-gray-400"><WatchlistIcon /></span> My Watchlist
+                    <span className="text-gray-400"><WatchlistIcon /></span> My Wishlist
                   </button>
                   <button onClick={() => navigate("/user-dashboard/settings")} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
                     <span className="text-gray-400"><SettingsIcon /></span> Settings
@@ -243,7 +243,7 @@ function UserNavbar() {
         <div className="flex sm:hidden items-center gap-2">
           <button onClick={handleBellClick} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors">
             <BellIcon />
-            <span className="absolute top-1 right-1 w-3 h-3 bg-[#F5C842] rounded-full text-[8px] flex items-center justify-center text-gray-900 font-bold border border-[#228E8A]">3</span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F5C842] rounded-full border border-[#228E8A]" />
           </button>
           <button onClick={() => router.push("/user-dashboard/messages")} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors">
             <MessageIcon />
@@ -299,7 +299,7 @@ function UserNavbar() {
                 <span className="text-gray-400"><BookingIcon /></span> My Reservations
               </button>
               <button onClick={() => navigate("/user-dashboard/watchlist")} className="flex items-center gap-3 w-full text-left px-5 py-3.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                <span className="text-gray-400"><WatchlistIcon /></span> My Watchlist
+                <span className="text-gray-400"><WatchlistIcon /></span> My Wishlist
               </button>
               <button onClick={() => navigate("/user-dashboard/settings")} className="flex items-center gap-3 w-full text-left px-5 py-3.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                 <span className="text-gray-400"><SettingsIcon /></span> Settings

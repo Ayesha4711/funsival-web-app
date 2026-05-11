@@ -99,6 +99,7 @@ function StarRating({ rating }) {
 /* ─── Listing Card — matches design: image, title+tag row, rating, price pills, location ── */
 function ListingCard({ listing }) {
   const router = useRouter();
+  const [wishlisted, setWishlisted] = useState(false);
 
   const id = listing._id || listing.id;
   const info = listing.basicInformation ?? {};
@@ -148,12 +149,12 @@ function ListingCard({ listing }) {
           alt={title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        {/* Favorite — top right, orange bg */}
+        {/* Wishlist toggle — top right */}
         <button
-          onClick={e => e.stopPropagation()}
-          className="absolute top-3 right-3 w-8 h-8 bg-[#F5823A] hover:bg-[#e06d2a] rounded-full flex items-center justify-center transition-colors shadow"
+          onClick={e => { e.stopPropagation(); setWishlisted(w => !w); }}
+          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow ${wishlisted ? 'bg-[#F5823A]' : 'bg-white/80 hover:bg-white'}`}
         >
-          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-4 h-4 transition-colors ${wishlisted ? 'text-white fill-current' : 'text-[#F5823A] fill-none'}`} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
         </button>

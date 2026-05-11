@@ -3,31 +3,56 @@ import axiosInstance from "../axiosInstance";
 
 // ─── Async thunks ─────────────────────────────────────────────────────────────
 
+const CATEGORY_API_MAP = {
+  Equipment: "Equipment",
+  Activity: "Services",
+  Activities: "Services",
+  Place: "Place",
+  Places: "Place",
+};
+
 export const fetchListings = createAsyncThunk(
   "listings/fetchListings",
-  async ({ page = 1, limit = 10, category, search, city, minPrice, maxPrice, sort } = {}, { rejectWithValue }) => {
+  async (
+    {
+      page = 1,
+      limit = 10,
+      category,
+      search,
+      city,
+      minPrice,
+      maxPrice,
+      sort,
+    } = {},
+    { rejectWithValue },
+  ) => {
     try {
-      const hasFilter =
-        (category && category !== "All Categories") ||
-        (search && search.trim()) ||
-        (city && city.trim()) ||
-        minPrice != null ||
-        maxPrice != null ||
-        sort;
+      const apiCategory =
+        category && category !== "All Categories"
+          ? (CATEGORY_API_MAP[category] ?? category)
+          : null;
       const params = new URLSearchParams({ page, limit });
-      if (category && category !== "All Categories") params.set("category", category);
       if (search && search.trim()) params.set("search", search.trim());
       if (city && city.trim()) params.set("city", city.trim());
       if (minPrice != null) params.set("minPrice", minPrice);
       if (maxPrice != null) params.set("maxPrice", maxPrice);
       if (sort) params.set("sort", sort);
-      const endpoint = hasFilter ? `/listings/browse?${params.toString()}` : `/listings?${params.toString()}`;
-      const { data } = await axiosInstance.get(endpoint);
+
+      if (apiCategory) {
+        params.set("category", apiCategory);
+        const { data } = await axiosInstance.get(
+          `/listings/browse?${params.toString()}`,
+        );
+        return data;
+      }
+      const { data } = await axiosInstance.get(
+        `/listings?${params.toString()}`,
+      );
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
-  }
+  },
 );
 
 export const fetchListing = createAsyncThunk(
@@ -39,7 +64,7 @@ export const fetchListing = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
-  }
+  },
 );
 
 export const createListing = createAsyncThunk(
@@ -52,7 +77,7 @@ export const createListing = createAsyncThunk(
       // Preserve full response body so wizard can read errors object
       return rejectWithValue(err.response?.data ?? err.message);
     }
-  }
+  },
 );
 
 export const uploadListingImages = createAsyncThunk(
@@ -78,19 +103,22 @@ export const uploadListingImages = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.response?.data ?? err.message);
     }
-  }
+  },
 );
 
 export const updateListing = createAsyncThunk(
   "listings/updateListing",
   async ({ listingId, payload }, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.patch(`/listings/${listingId}`, payload);
+      const { data } = await axiosInstance.patch(
+        `/listings/${listingId}`,
+        payload,
+      );
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data ?? err.message);
     }
-  }
+  },
 );
 
 export const deleteListing = createAsyncThunk(
@@ -102,7 +130,7 @@ export const deleteListing = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
-  }
+  },
 );
 
 export const saveDraft = createAsyncThunk(
@@ -114,7 +142,7 @@ export const saveDraft = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
-  }
+  },
 );
 
 export const fetchDraft = createAsyncThunk(
@@ -126,7 +154,7 @@ export const fetchDraft = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
-  }
+  },
 );
 
 export const deleteDraft = createAsyncThunk(
@@ -137,7 +165,7 @@ export const deleteDraft = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
-  }
+  },
 );
 
 // ─── Slice ───────────────────────────────────────────────────────────────────
@@ -173,8 +201,12 @@ const listingsSlice = createSlice({
       .addCase(fetchListings.fulfilled, (state, action) => {
         state.status = "succeeded";
         const listData = action.payload?.data;
-        state.items = listData?.listings ?? (Array.isArray(listData) ? listData : []);
-        state.pagination = listData?.pagination ?? action.payload?.pagination ?? state.pagination;
+        state.items =
+          listData?.listings ?? (Array.isArray(listData) ? listData : []);
+        state.pagination =
+          listData?.pagination ??
+          action.payload?.pagination ??
+          state.pagination;
       })
       .addCase(fetchListings.rejected, (state, action) => {
         state.status = "failed";
@@ -196,11 +228,15 @@ const listingsSlice = createSlice({
 
       .addCase(createListing.fulfilled, (state, action) => {
         const newListing = action.payload?.data ?? action.payload;
-        if (newListing && Array.isArray(state.items)) state.items.unshift(newListing);
+        if (newListing && Array.isArray(state.items))
+          state.items.unshift(newListing);
       })
 
       .addCase(updateListing.fulfilled, (state, action) => {
-        const updated = action.payload?.data?.listing ?? action.payload?.data ?? action.payload;
+        const updated =
+          action.payload?.data?.listing ??
+          action.payload?.data ??
+          action.payload;
         if (Array.isArray(state.items)) {
           const idx = state.items.findIndex((l) => l._id === updated?._id);
           if (idx !== -1) state.items[idx] = updated;

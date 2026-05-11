@@ -44,7 +44,7 @@ export default function DashboardShell({ children }) {
         onClose={() => setSidebarOpen(false)}
         hideOnDesktop={hideSidebarDesktop}
       />
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0">
         <div className={`shrink-0 ${isWizard ? "lg:hidden" : ""}`}>
           <DashboardNavbar onMenuToggle={() => setSidebarOpen(o => !o)} noSidebar={hideSidebarDesktop} />
         </div>

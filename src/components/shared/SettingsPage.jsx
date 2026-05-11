@@ -772,7 +772,6 @@ function PreferencesTab() {
     <div className="space-y-6 2xl:min-h-[calc(100vh-400px)]">
       <div className="bg-white rounded-2xl border border-gray-100 px-6 py-6 2xl:min-h-[600px]">
         <SectionHeader emoji="🌍" title="Preferences" subtitle="Customize your experience" />
-        <SelectField label="Language" value={lang} onChange={setLang} options={languages} />
         <SelectField label="Currency" value={currency} onChange={setCurrency} options={currencies} />
         <SelectField label="Time zone" value={tz} onChange={setTz} options={timezones} />
       </div>
