@@ -2,15 +2,18 @@
 
 import React from 'react';
 import Image from 'next/image';
-import Img1 from '@/assets/images/img1.svg';
-import Img2 from '@/assets/images/img2.svg';
-import Img3 from '@/assets/images/img3.svg';
-import Img4 from '@/assets/images/img4.svg';
-import Img5 from '@/assets/images/img5.svg';
-import Img6 from '@/assets/images/img6.svg';
 import ProviderImg1 from '@/assets/images/1 1.svg';
 import ProviderImg2 from '@/assets/images/2 1.svg';
 import ProviderImg3 from '@/assets/images/3 1.svg';
+
+function OptImg({ name, alt }) {
+  return (
+    <>
+      <source srcSet={`/images/optimized/${name}.webp`} type="image/webp" />
+      <img src={`/images/optimized/${name}.jpg`} alt={alt} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+    </>
+  );
+}
 
 export default function PromotionalSections() {
   return (
@@ -77,24 +80,28 @@ export default function PromotionalSections() {
 
             {/* Scattered images + button */}
             <div className="mt-8 relative">
-              {/* Scattered image layout */}
-              <div className="relative h-44">
-                {/* Top-left: img4 (large, partially cut at left) */}
-                <div className="absolute -left-4 bottom-0 w-36 h-36 rounded-2xl overflow-hidden">
-                  <Image src={Img4} alt="Adventure 4" fill className="object-cover" />
-                </div>
-                {/* Center: img2 (tall, center) */}
-                <div className="absolute left-28 bottom-4 w-28 h-32 rounded-2xl overflow-hidden">
-                  <Image src={Img2} alt="Adventure 2" fill className="object-cover" />
-                </div>
-                {/* Top-right: img1 (medium, rotated slightly) */}
-                <div className="absolute right-24 top-0 w-32 h-24 rounded-2xl overflow-hidden rotate-2">
-                  <Image src={Img1} alt="Adventure 1" fill className="object-cover" />
-                </div>
-                {/* Far right: img3 (partially cut) */}
-                <div className="absolute -right-4 bottom-2 w-24 h-28 rounded-2xl overflow-hidden">
-                  <Image src={Img3} alt="Adventure 3" fill className="object-cover" />
-                </div>
+              {/* Scattered image collage */}
+              <div className="relative h-52">
+                {/* Top-left: jeep / offroad */}
+                <picture className="absolute -left-4 top-0 w-32 h-28 rounded-2xl overflow-hidden block">
+                  <OptImg name="img4" alt="Jeep adventure" />
+                </picture>
+                {/* Bottom-left: scuba diver */}
+                <picture className="absolute left-20 bottom-0 w-28 h-28 rounded-2xl overflow-hidden block">
+                  <OptImg name="img5" alt="Scuba diving" />
+                </picture>
+                {/* Center: ATV rider */}
+                <picture className="absolute left-[43%] -translate-x-1/2 top-4 w-28 h-32 rounded-2xl overflow-hidden block">
+                  <OptImg name="img2" alt="ATV adventure" />
+                </picture>
+                {/* Top-right: paragliding */}
+                <picture className="absolute right-20 top-0 w-32 h-24 rounded-2xl overflow-hidden block">
+                  <OptImg name="img1" alt="Paragliding" />
+                </picture>
+                {/* Far right: beach (partially cut) */}
+                <picture className="absolute -right-4 bottom-0 w-24 h-32 rounded-2xl overflow-hidden block">
+                  <OptImg name="img3" alt="Beach adventure" />
+                </picture>
               </div>
 
               <div className="mt-6 flex justify-end">
