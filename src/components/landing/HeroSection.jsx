@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import Image from "next/image";
-import heroImg from "@/assets/images/mmain-landing-img.svg";
 
 const cities = [
   "Denver",
@@ -191,13 +189,16 @@ export default function HeroSection() {
       {/* Hero image — height auto on mobile so content determines size, fixed on desktop */}
       <div className="relative w-full md:h-[560px] lg:h-[620px]">
         {/* Background image — absolute fills the whole container */}
-        <Image
-          src={heroImg}
-          alt="Hero background"
-          fill
-          className="object-cover object-center"
-          priority
-        />
+        <picture className="absolute inset-0 w-full h-full">
+          <source srcSet="/images/optimized/hero.webp" type="image/webp" />
+          <img
+            src="/images/optimized/hero.jpg"
+            alt="Hero background"
+            fetchPriority="high"
+            decoding="sync"
+            className="absolute inset-0 w-full h-full object-cover object-center"
+          />
+        </picture>
         <div className="absolute inset-0 bg-black/20" />
 
         {/* Mobile: stack btn + text + search card ON TOP of image */}

@@ -1,33 +1,12 @@
 'use client';
 
 import React, { useRef } from 'react';
-import Image from 'next/image';
-import Colorado from '@/assets/images/Colarado.svg';
-import Hawaii from '@/assets/images/Hawaii.svg';
-import LosAngeles from '@/assets/images/LosAngeles.svg';
-import NewYork from '@/assets/images/NewYork.svg';
 
 const destinations = [
-  {
-    id: 1,
-    name: 'Colorado',
-    image: Colorado,
-  },
-  {
-    id: 2,
-    name: 'Hawaii',
-    image: Hawaii,
-  },
-  {
-    id: 3,
-    name: 'Los Angeles',
-    image: LosAngeles,
-  },
-  {
-    id: 4,
-    name: 'New York',
-    image: NewYork,
-  }
+  { id: 1, name: 'Colorado', slug: 'colorado' },
+  { id: 2, name: 'Hawaii', slug: 'hawaii' },
+  { id: 3, name: 'Los Angeles', slug: 'losangeles' },
+  { id: 4, name: 'New York', slug: 'newyork' },
 ];
 
 export default function BrowseByDestination() {
@@ -92,12 +71,16 @@ export default function BrowseByDestination() {
                 className="relative flex-shrink-0 w-56 sm:w-72 md:w-80 lg:w-auto h-56 sm:h-80 lg:h-96 xl:h-[420px] 2xl:h-[480px] rounded-2xl overflow-hidden cursor-pointer group"
               >
                 {/* Destination Image */}
-                <Image
-                  src={destination.image}
-                  alt={destination.name}
-                  fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-110"
-                />
+                <picture className="absolute inset-0 w-full h-full">
+                  <source srcSet={`/images/optimized/${destination.slug}.webp`} type="image/webp" />
+                  <img
+                    src={`/images/optimized/${destination.slug}.jpg`}
+                    alt={destination.name}
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                </picture>
 
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

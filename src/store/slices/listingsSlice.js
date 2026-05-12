@@ -4,11 +4,11 @@ import axiosInstance from "../axiosInstance";
 // ─── Async thunks ─────────────────────────────────────────────────────────────
 
 const CATEGORY_API_MAP = {
-  Equipment: "Equipment",
-  Activity: "Services",
-  Activities: "Services",
-  Place: "Place",
-  Places: "Place",
+  Equipment: "equipment",
+  Activity: "activities",
+  Activities: "activities",
+  Place: "places",
+  Places: "places",
 };
 
 export const fetchListings = createAsyncThunk(

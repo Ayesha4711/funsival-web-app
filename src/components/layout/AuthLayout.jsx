@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/images/logo.svg";
-import balloonImg from "@/assets/images/BallonImg.svg";
 
 /**
  * AuthLayout
@@ -41,14 +40,16 @@ export default function AuthLayout({
         {showHero &&
           <div className="hidden lg:block lg:w-1/2 xl:w-[55%] shrink-0 py-6 px-6 xl:pt-10 xl:pb-22 xl:px-5 sticky top-0 h-screen">
             <div className="relative h-full w-full rounded-[2.5rem] overflow-hidden">
-              <Image
-                src={balloonImg}
-                alt="Hot air balloon illustration"
-                fill
-                className="object-cover object-center"
-                priority
-                unoptimized
-              />
+              <picture className="absolute inset-0 w-full h-full">
+                <source srcSet="/images/optimized/balloon.webp" type="image/webp" />
+                <img
+                  src="/images/optimized/balloon.jpg"
+                  alt="Hot air balloon illustration"
+                  fetchPriority="high"
+                  decoding="sync"
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+              </picture>
               {/* Dark gradient overlay for text legibility */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent rounded-[2.5rem]" />
               {/* Overlay text */}
@@ -83,13 +84,16 @@ export default function AuthLayout({
           {showHero &&
             <div className="hidden md:block lg:hidden px-6 pb-20 md:px-8 md:pb-24">
               <div className="relative w-full h-80 md:h-96 rounded-[2.5rem] overflow-hidden">
-                <Image
-                  src={balloonImg}
-                  alt="Hot air balloon illustration"
-                  fill
-                  className="object-cover object-center"
-                  unoptimized
-                />
+                <picture className="absolute inset-0 w-full h-full">
+                  <source srcSet="/images/optimized/balloon.webp" type="image/webp" />
+                  <img
+                    src="/images/optimized/balloon.jpg"
+                    alt="Hot air balloon illustration"
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                  />
+                </picture>
                 {/* Dark gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent rounded-[2.5rem]" />
                 {/* Overlay text */}
