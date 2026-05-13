@@ -76,9 +76,10 @@ function StatusDropdown({ status, onStatusChange }) {
   );
 }
 
-function ActionMenu({ item, onEdit, onDelete }) {
+function ActionMenu({ item, onEdit, onDelete, onResumeDraft }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const isDraft = item.status === "Draft";
 
   useEffect(() => {
     function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
@@ -95,27 +96,53 @@ function ActionMenu({ item, onEdit, onDelete }) {
         <MoreIcon />
       </button>
       {open && (
-        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-100 rounded-2xl py-1.5 min-w-[130px]">
-          <button
-            onClick={() => { setOpen(false); onEdit(item); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-            Edit
-          </button>
-          <button
-            onClick={() => { setOpen(false); onDelete(item); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-red-500 hover:bg-red-50 transition-colors"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-            </svg>
-            Delete
-          </button>
+        <div className="absolute right-0 top-8 z-30 bg-white border border-gray-100 rounded-2xl py-1.5 min-w-35">
+          {isDraft ? (
+            <>
+              <button
+                onClick={() => { setOpen(false); onResumeDraft(item); }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-primary hover:bg-primary-light transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                Resume Draft
+              </button>
+              <button
+                onClick={() => { setOpen(false); onDelete(item); }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+                Discard Draft
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => { setOpen(false); onEdit(item); }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-text hover:bg-gray-50 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Edit
+              </button>
+              <button
+                onClick={() => { setOpen(false); onDelete(item); }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+                Delete
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -130,6 +157,7 @@ export default function ListingsCards({
   onStatusChange,
   onEdit,
   onDelete,
+  onResumeDraft,
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -139,7 +167,7 @@ export default function ListingsCards({
       {data.map((item) => (
         <div key={item.id} className="bg-white rounded-[32px] p-5 border border-[var(--color-border)] relative">
           <div className="absolute top-5 right-5">
-            <ActionMenu item={item} onEdit={onEdit} onDelete={onDelete} />
+            <ActionMenu item={item} onEdit={onEdit} onDelete={onDelete} onResumeDraft={onResumeDraft} />
           </div>
 
           <div className="flex items-center gap-4 mb-5">
