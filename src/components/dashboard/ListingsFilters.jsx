@@ -314,12 +314,6 @@ export default function ListingsFilters({
               className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-[var(--color-secondary)] hover:opacity-90 rounded-full transition-opacity text-sm font-semibold text-[#4A4A4A]">
               <PlusIcon /><span>Add New Listing</span>
             </button>
-            {hasDraft && (
-              <button onClick={() => router.push("/dashboard/listings/add?mode=resume")}
-                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-white border border-[var(--color-primary)] text-[var(--color-primary)] rounded-full text-xs sm:text-sm font-bold transition-colors hover:bg-[var(--color-primary-light)]">
-                Resume Draft
-              </button>
-            )}
           </div>
         </div>
 

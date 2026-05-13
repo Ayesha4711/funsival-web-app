@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -63,6 +64,7 @@ function EmptyState({ hasFilters, onClearFilters }) {
 /* ─── Page ───────────────────────────────────────────────────────────────────── */
 export default function ListingsPage() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const listingsStatus = useSelector(selectListingsStatus);
 
   const [listings, setListings] = useState([]);
@@ -216,16 +218,22 @@ export default function ListingsPage() {
     if (!deletingListing) return;
     setDeleteLoading(true);
 
-    const result = await dispatch(deleteListing(deletingListing.id));
+    const isDraft = deletingListing.status === "Draft";
+    const result = await dispatch(isDraft ? deleteDraft() : deleteListing(deletingListing.id));
     setDeleteLoading(false);
 
-    if (deleteListing.fulfilled.match(result)) {
-      toast.success("Listing deleted.");
+    const action = isDraft ? deleteDraft : deleteListing;
+    if (action.fulfilled.match(result)) {
+      toast.success(isDraft ? "Draft discarded." : "Listing deleted.");
       setListings((prev) => prev.filter((item) => item.id !== deletingListing.id));
     } else {
-      toast.error(result.payload ?? "Failed to delete listing.");
+      toast.error(result.payload ?? (isDraft ? "Failed to discard draft." : "Failed to delete listing."));
     }
     setDeletingListing(null);
+  };
+
+  const handleResumeDraft = (item) => {
+    router.push(`/dashboard/listings/add?mode=resume`);
   };
 
   const countByStatus = (status) => listings.filter((item) => item.status?.toLowerCase() === status).length;
@@ -288,11 +296,13 @@ export default function ListingsPage() {
             <ListingsTable
               data={filtered} currentPage={page} totalPages={totalPages} onPageChange={setPage}
               onStatusChange={handleStatusChange} onEdit={setEditingListing} onDelete={setDeletingListing}
+              onResumeDraft={handleResumeDraft}
             />
           ) : (
             <ListingsCards
               data={filtered} currentPage={page} totalPages={totalPages} onPageChange={setPage}
               onStatusChange={handleStatusChange} onEdit={setEditingListing} onDelete={setDeletingListing}
+              onResumeDraft={handleResumeDraft}
             />
           )}
         </div>
@@ -323,9 +333,13 @@ export default function ListingsPage() {
                 </svg>
               </div>
             </div>
-            <h2 className="text-base font-extrabold text-[var(--color-text)] mb-1">Delete listing?</h2>
+            <h2 className="text-base font-extrabold text-[var(--color-text)] mb-1">
+              {deletingListing.status === "Draft" ? "Discard draft?" : "Delete listing?"}
+            </h2>
             <p className="text-sm text-gray-400 font-medium mb-6">
-              &ldquo;{deletingListing.name}&rdquo; will be permanently removed. This cannot be undone.
+              {deletingListing.status === "Draft"
+                ? `Your draft "${deletingListing.name}" will be permanently discarded. This cannot be undone.`
+                : `"${deletingListing.name}" will be permanently removed. This cannot be undone.`}
             </p>
             <div className="flex gap-3">
               <button onClick={() => setDeletingListing(null)}
@@ -334,7 +348,9 @@ export default function ListingsPage() {
               </button>
               <button onClick={handleDeleteConfirm} disabled={deleteLoading}
                 className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-60">
-                {deleteLoading ? "Deleting…" : "Delete"}
+                {deleteLoading
+                  ? (deletingListing.status === "Draft" ? "Discarding…" : "Deleting…")
+                  : (deletingListing.status === "Draft" ? "Discard" : "Delete")}
               </button>
             </div>
           </div>
