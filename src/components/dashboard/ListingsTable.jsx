@@ -694,9 +694,10 @@ function StatusDropdown({ status, onStatusChange }) {
 }
 
 /* ─── Action menu ────────────────────────────────────────────────────────────── */
-function ActionMenu({ item, onEdit, onDelete, isLast }) {
+function ActionMenu({ item, onEdit, onDelete, onResumeDraft, isLast }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const isDraft = item.status === "Draft";
 
   useEffect(() => {
     function handler(e) {
@@ -716,55 +717,72 @@ function ActionMenu({ item, onEdit, onDelete, isLast }) {
       </button>
       {open && (
         <div
-          className={`absolute right-0 z-30 bg-white border border-gray-100 rounded-2xl py-1.5 min-w-32 ${isLast ? "bottom-full mb-1" : "top-9"}`}
+          className={`absolute right-0 z-30 bg-white border border-gray-100 rounded-2xl py-1.5 min-w-36 ${isLast ? "bottom-full mb-1" : "top-9"}`}
         >
-          <button
-            onClick={() => {
-              setOpen(false);
-              onEdit(item);
-            }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-            Edit
-          </button>
-          <button
-            onClick={() => {
-              setOpen(false);
-              onDelete(item);
-            }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              <path d="M10 11v6" />
-              <path d="M14 11v6" />
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-            </svg>
-            Delete
-          </button>
+          {isDraft ? (
+            <>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onResumeDraft(item);
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                Resume Draft
+              </button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onDelete(item);
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+                Discard Draft
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onEdit(item);
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Edit
+              </button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onDelete(item);
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+                Delete
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -780,6 +798,7 @@ export default function ListingsTable({
   onStatusChange,
   onEdit,
   onDelete,
+  onResumeDraft,
 }) {
   const [previewItem, setPreviewItem] = useState(null);
 
@@ -935,6 +954,7 @@ export default function ListingsTable({
                       item={item}
                       onEdit={onEdit}
                       onDelete={onDelete}
+                      onResumeDraft={onResumeDraft}
                       isLast={idx === data.length - 1}
                     />
                   </td>
