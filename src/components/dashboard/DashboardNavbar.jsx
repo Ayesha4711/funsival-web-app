@@ -9,6 +9,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { selectUser } from "@/store/slices/profileSlice";
 import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
 import NotificationPopover from "@/components/shared/NotificationPopover";
+import axiosInstance from "@/store/axiosInstance";
+import { getStoredFcmToken } from "@/hooks/useFCM";
+import { firebaseAuth } from "@/lib/firebase";
 
 const UserIcon = () =>
   <svg
@@ -166,10 +169,10 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
     pathname?.startsWith("/user-dashboard") ? "user" : "provider"
   );
   const roleLabel = activeView === "user" ? "User" : "Provider";
-  const avatarLetter = profile?.email
-    ? profile.email[0].toUpperCase()
-    : (activeView === "user" ? "U" : "P");
-  const profileImage = profile?.profileImage ?? null;
+  const fallbackLetter = activeView === "user" ? "U" : "P";
+  const avatarLetter = (profile?.firstName?.[0] || profile?.lastName?.[0] || profile?.email?.[0] || fallbackLetter).toUpperCase();
+  // Provider profile picture lives in providerProfile.profileImage; user picture is at root
+  const profileImage = profile?.providerProfile?.profileImage ?? profile?.profileImage ?? null;
 
   useEffect(() => {
     dispatch(fetchConversations());
@@ -197,8 +200,15 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
+    const fcmToken = getStoredFcmToken();
+    if (fcmToken) {
+      await axiosInstance
+        .delete(`/notifications/device-tokens/${encodeURIComponent(fcmToken)}`)
+        .catch(() => {});
+    }
+    await firebaseAuth.signOut().catch(() => {});
     localStorage.removeItem("auth-token");
     router.push("/logout");
   };
@@ -333,9 +343,18 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
           {profileOpen &&
             <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl py-1.5 z-50 border border-gray-100">
               {profile && (
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-xs font-bold text-[var(--color-text)] truncate">{profile.email}</p>
-                  {profile.city && <p className="text-[10px] text-gray-400 mt-0.5">{profile.city}</p>}
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-xs shrink-0 overflow-hidden">
+                    {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
+                  </div>
+                  <div className="min-w-0">
+                    {(profile.providerProfile?.firstName || profile.providerProfile?.lastName || profile.firstName || profile.lastName) && (
+                      <p className="text-xs font-bold text-[var(--color-text)] truncate">
+                        {[profile.providerProfile?.firstName || profile.firstName, profile.providerProfile?.lastName || profile.lastName].filter(Boolean).join(" ")}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-gray-400 truncate">{profile.email}</p>
+                  </div>
                 </div>
               )}
               <button
@@ -388,8 +407,12 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
                   {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
                 </div>
                 <div>
-                  {profile?.email && <p className="text-xs font-semibold text-white truncate max-w-[160px]">{profile.email}</p>}
-                  {profile?.city && <p className="text-[11px] text-white/70">{profile.city}</p>}
+                  {(profile?.providerProfile?.firstName || profile?.providerProfile?.lastName || profile?.firstName || profile?.lastName) && (
+                    <p className="text-xs font-semibold text-white truncate max-w-40">
+                      {[profile.providerProfile?.firstName || profile.firstName, profile.providerProfile?.lastName || profile.lastName].filter(Boolean).join(" ")}
+                    </p>
+                  )}
+                  {profile?.email && <p className="text-[11px] text-white/70 truncate max-w-40">{profile.email}</p>}
                 </div>
               </div>
               <button onClick={() => setMobileOpen(false)} className="text-white/80 hover:text-white">

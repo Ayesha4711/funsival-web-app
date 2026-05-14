@@ -10,6 +10,9 @@ import { fetchProfile, selectUser, selectProfileStatus } from "@/store/slices/pr
 import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
 import NotificationPopover from "@/components/shared/NotificationPopover";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import axiosInstance from "@/store/axiosInstance";
+import { getStoredFcmToken } from "@/hooks/useFCM";
+import { firebaseAuth } from "@/lib/firebase";
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const BellIcon = () => (
@@ -111,8 +114,11 @@ function UserNavbar() {
     }, 400);
   };
 
-  const avatarLetter = profile?.email ? profile.email[0].toUpperCase() : "U";
-  const profileImage = profile?.profileImage ?? null;
+  const displayFirstName = profile?.firstName || profile?.providerProfile?.firstName || "";
+  const displayLastName  = profile?.lastName  || profile?.providerProfile?.lastName  || "";
+  const displayFullName  = [displayFirstName, displayLastName].filter(Boolean).join(" ");
+  const avatarLetter = (displayFirstName[0] || displayLastName[0] || profile?.email?.[0] || "U").toUpperCase();
+  const profileImage = profile?.profileImage ?? profile?.providerProfile?.profileImage ?? null;
 
   useEffect(() => {
     dispatch(fetchConversations());
@@ -137,9 +143,16 @@ function UserNavbar() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
     setMobileOpen(false);
+    const fcmToken = getStoredFcmToken();
+    if (fcmToken) {
+      await axiosInstance
+        .delete(`/notifications/device-tokens/${encodeURIComponent(fcmToken)}`)
+        .catch(() => {});
+    }
+    await firebaseAuth.signOut().catch(() => {});
     localStorage.removeItem("auth-token");
     router.push("/logout");
   };
@@ -208,11 +221,18 @@ function UserNavbar() {
               {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
             </button>
             {profileOpen && (
-              <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-2xl shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl py-1.5 z-50 border border-gray-100">
                 {profile && (
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{profile.email}</p>
-                    {profile.city && <p className="text-xs text-gray-400 mt-0.5">{profile.city}</p>}
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-xs shrink-0 overflow-hidden">
+                      {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
+                    </div>
+                    <div className="min-w-0">
+                      {displayFullName && (
+                        <p className="text-xs font-bold text-[var(--color-text)] truncate">{displayFullName}</p>
+                      )}
+                      <p className="text-[10px] text-gray-400 truncate">{profile.email}</p>
+                    </div>
                   </div>
                 )}
                 <div className="py-1">
@@ -273,8 +293,10 @@ function UserNavbar() {
                   {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
                 </div>
                 <div>
-                  {profile?.email && <p className="text-xs font-semibold text-white truncate max-w-[160px]">{profile.email}</p>}
-                  {profile?.city && <p className="text-[11px] text-white/70">{profile.city}</p>}
+                  {displayFullName && (
+                    <p className="text-xs font-semibold text-white truncate max-w-40">{displayFullName}</p>
+                  )}
+                  {profile?.email && <p className="text-[11px] text-white/70 truncate max-w-40">{profile.email}</p>}
                 </div>
               </div>
               <button onClick={() => setMobileOpen(false)} className="text-white/80 hover:text-white">

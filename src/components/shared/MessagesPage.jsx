@@ -206,13 +206,26 @@ function ChatMenu() {
 }
 
 /* ─── Contact List Item ──────────────────────────────────────────────────────── */
+function resolveDisplayName(participant) {
+  if (!participant) return "Unknown";
+  const { name, firstName, lastName, email } = participant;
+  // If name looks like an email, prefer firstName+lastName or extract from email
+  const isEmail = (s) => typeof s === "string" && s.includes("@");
+  if (name && !isEmail(name)) return name;
+  if (firstName || lastName) return [firstName, lastName].filter(Boolean).join(" ");
+  if (name) return name.split("@")[0]; // use part before @ as fallback
+  if (email) return email.split("@")[0];
+  return "Unknown";
+}
+
 function ConversationItem({ conv, isActive, onClick, currentUserId }) {
   const otherParticipant = Object.values(conv.participantInfo || {}).find(
     (p) => p.id !== currentUserId
   );
-  const name = otherParticipant?.name || "Unknown";
+  const name = resolveDisplayName(otherParticipant);
   const src = otherParticipant?.profileImage || null;
-  const preview = conv.lastMessage?.text || "No messages yet";
+  const lastMsg = conv.lastMessage;
+  const preview = lastMsg?.text && lastMsg.text.trim() ? lastMsg.text : lastMsg?.type === "image" ? "📷 Image" : "No messages yet";
   const time = formatConvTime(conv.lastMessageAt);
   const unread = currentUserId ? (conv.unreadCount?.[currentUserId] ?? 0) : 0;
 
@@ -253,7 +266,7 @@ function ContactPanel({ activeConvId, onSelect, currentUserId }) {
     const otherParticipant = Object.values(conv.participantInfo || {}).find(
       (p) => p.id !== currentUserId
     );
-    const name = otherParticipant?.name || "";
+    const name = resolveDisplayName(otherParticipant);
     const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
     if (activeTab === "Unread") {
       return matchesSearch && (conv.unreadCount?.[currentUserId] ?? 0) > 0;
@@ -350,7 +363,7 @@ function ChatWindow({ conv, onBack, showBackBtn, currentUserId }) {
   const otherParticipant = Object.values(conv.participantInfo || {}).find(
     (p) => p.id !== currentUserId
   );
-  const name = otherParticipant?.name || "Unknown";
+  const name = resolveDisplayName(otherParticipant);
   const src = otherParticipant?.profileImage || null;
 
   useEffect(() => {

@@ -8,7 +8,9 @@ import {
   fetchBrowseListing,
   selectSelectedActivity,
   selectSelectedActivityStatus,
+  selectHostCache,
 } from "@/store/slices/activitiesSlice";
+import { startOrGetConversation } from "@/store/slices/chatSlice";
 import AppFooter from "@/components/shared/AppFooter";
 import CustomCalendar from "@/components/shared/CustomCalendar";
 import { toast } from "sonner";
@@ -110,6 +112,52 @@ function extractPrice(priceObj, info) {
   );
 }
 
+function isObjectLike(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function findNestedId(node, seen = new Set()) {
+  if (!isObjectLike(node) || seen.has(node)) return null;
+  seen.add(node);
+
+  const directId =
+    node.id ||
+    node._id ||
+    node.userId ||
+    node.user_id ||
+    node.hostId ||
+    node.host_id ||
+    node.providerId ||
+    node.provider_id ||
+    node.ownerId ||
+    node.owner_id ||
+    node.createdById ||
+    node.created_by_id ||
+    node.postedById ||
+    node.posted_by_id ||
+    null;
+  if (directId) return directId;
+
+  const keys = Object.keys(node);
+  const looksLikePerson =
+    keys.some((key) => ["name", "firstName", "lastName", "email", "fullName", "profileImage", "avatar"].includes(key));
+
+  const values = Object.values(node);
+  if (looksLikePerson) {
+    for (const value of values) {
+      const nested = findNestedId(value, seen);
+      if (nested) return nested;
+    }
+  }
+
+  for (const value of values) {
+    const nested = findNestedId(value, seen);
+    if (nested) return nested;
+  }
+
+  return null;
+}
+
 function adaptApiListing(api, urlType) {
   const info = api.basicInformation ?? {};
   const loc = api.placeLocation ?? {};
@@ -134,16 +182,24 @@ function adaptApiListing(api, urlType) {
       : priceKeys.includes("daily") ? "per_day"
       : "per_hour");
 
-  const host = api.host ?? {};
-  const hostFirstName = host.firstName ?? "";
-  const hostLastName  = host.lastName  ?? "";
-  const hostFullName  = [hostFirstName, hostLastName].filter(Boolean).join(" ")
-    || host.name || host.fullName || host.email || "Host";
+  const isMongoId = (v) => typeof v === "string" && /^[a-f0-9]{24}$/i.test(v);
+  const rawHost = api.host ?? api.providerProfile ?? api.provider ?? api.owner ?? api.createdBy ?? api.postedBy ?? api.user;
+  const host = (rawHost && typeof rawHost === "object") ? rawHost : {};
+  const hostId =
+    host.id ||
+    host._id ||
+    (isMongoId(api.host) ? api.host : null) ||
+    (isMongoId(api.createdBy) ? api.createdBy : null) ||
+    findNestedId(host) ||
+    api.hostId || api.host_id || null;
+  const hostFullName  = host.name || host.fullName ||
+    [host.firstName, host.lastName].filter(Boolean).join(" ") ||
+    host.email || "Host";
+  const hostAgency    = host.agencyName || null;
   const hostAvatar    = host.profileImage || host.avatar || null;
   const hostCity      = host.city || host.location?.city || "";
   const hostCountry   = host.country || host.location?.country || "";
   const hostLocation  = [hostCity, hostCountry].filter(Boolean).join(", ")
-    || host.location
     || [loc.city, loc.country].filter(Boolean).join(", ")
     || "—";
   const hostRating    = toNum(host.rating) ?? null;
@@ -161,7 +217,7 @@ function adaptApiListing(api, urlType) {
     : durationRaw || "";
 
   return {
-    _id: api._id,
+    _id: api._id ?? api.id,
     type: category,
     bookingType,
     title,
@@ -170,7 +226,7 @@ function adaptApiListing(api, urlType) {
     reviews: api.reviewCount ?? "21K",
     price,
     images,
-    host: { name: hostFullName, avatar: hostAvatar, location: hostLocation, rating: hostRating, reviews: hostReviews },
+    host: { id: hostId, name: hostFullName, agency: hostAgency, avatar: hostAvatar, location: hostLocation, rating: hostRating, reviews: hostReviews },
     details: {
       activityTitle: title,
       location,
@@ -1109,9 +1165,30 @@ export default function ListingDetailPage({ params: paramsPromise }) {
   const rawId = params?.id;
   const urlType = searchParams.get("type");
 
-  const selectedActivity = useSelector(selectSelectedActivity);
+  const rawActivity = useSelector(selectSelectedActivity);
+  const hostCache = useSelector(selectHostCache);
   const selectedStatus = useSelector(selectSelectedActivityStatus);
+
+  // Merge cached host (from browse list) if single-listing endpoint returned incomplete host data
+  const selectedActivity = React.useMemo(() => {
+    if (!rawActivity) return rawActivity;
+    const id = rawActivity.id ?? rawActivity._id;
+    const cachedHost = id ? hostCache[id] : null;
+    const currentHost = rawActivity.host;
+    // Check if host data is complete (has profileImage and name differs from agencyName)
+    const hasCompleteHost = currentHost &&
+                            typeof currentHost === "object" &&
+                            currentHost.id &&
+                            currentHost.profileImage &&
+                            currentHost.name !== currentHost.agencyName;
+    // Use cached host if current is incomplete and cached has profileImage
+    if (!hasCompleteHost && cachedHost && cachedHost.profileImage) {
+      return { ...rawActivity, host: cachedHost };
+    }
+    return rawActivity;
+  }, [rawActivity, hostCache]);
   const [wishlisted, setWishlisted] = useState(false);
+  const [contactingHost, setContactingHost] = useState(false);
 
   useEffect(() => {
     if (rawId) dispatch(fetchBrowseListing(rawId));
@@ -1143,6 +1220,30 @@ export default function ListingDetailPage({ params: paramsPromise }) {
   }
 
   const listing = adaptApiListing(selectedActivity, urlType);
+  const handleContactHost = async () => {
+    const hostId = listing?.host?.id || findNestedId(selectedActivity?.host);
+    const listingId = listing?._id || rawId;
+    if (!hostId) {
+      toast.error("Host information is not available. Please try again later.");
+      return;
+    }
+
+    try {
+      setContactingHost(true);
+      await dispatch(
+        startOrGetConversation({
+          recipientId: hostId,
+          listingId,
+          initialMessage: `Hi, I'm interested in "${listing.title}".`,
+        })
+      ).unwrap();
+      router.push(`/user-dashboard/messages?startChat=${hostId}${listingId ? `&listingId=${listingId}` : ""}`);
+    } catch {
+      toast.error("Could not start a chat with the host. Please try again.");
+    } finally {
+      setContactingHost(false);
+    }
+  };
 
   return (
     <div className="flex flex-col bg-gray-50 min-h-screen">
@@ -1203,7 +1304,21 @@ export default function ListingDetailPage({ params: paramsPromise }) {
               )}
               <div>
                 <p className="text-xs font-medium text-[#F5C842]">Hosted By</p>
-                <p className="text-base font-bold text-gray-900">{listing.host.name}</p>
+                <div className="flex items-center gap-2">
+                  {listing.host.agency ? (
+                    <p className="text-base font-bold text-gray-900">{listing.host.agency}</p>
+                  ) : (
+                    <p className="text-base font-bold text-gray-900">{listing.host.name}</p>
+                  )}
+                  {selectedActivity?.host?.role && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#EBF6F6] text-[#4AA7A7] font-medium capitalize">
+                      {selectedActivity.host.role}
+                    </span>
+                  )}
+                </div>
+                {listing.host.agency && (
+                  <p className="text-xs text-gray-500">{listing.host.name}</p>
+                )}
                 {(listing.host.rating !== null || listing.host.reviews !== null) && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <svg className="w-3.5 h-3.5 text-[#F5C842] fill-current" viewBox="0 0 20 20">
@@ -1218,8 +1333,12 @@ export default function ListingDetailPage({ params: paramsPromise }) {
                 )}
               </div>
             </div>
-            <button className="rounded-full border border-[#4AA7A7] px-5 py-2.5 text-sm font-medium text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white transition-colors shrink-0">
-              Contact Host
+            <button
+              onClick={handleContactHost}
+              disabled={contactingHost}
+              className="rounded-full border border-[#4AA7A7] px-5 py-2.5 text-sm font-medium text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white transition-colors shrink-0 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {contactingHost ? "Connecting..." : "Contact Host"}
             </button>
           </div>
         </div>

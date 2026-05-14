@@ -5,6 +5,7 @@ import listingsReducer from "./slices/listingsSlice";
 import activitiesReducer from "./slices/activitiesSlice";
 import bookingsReducer from "./slices/bookingsSlice";
 import chatReducer from "./slices/chatSlice";
+import notificationsReducer from "./slices/notificationsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     activities: activitiesReducer,
     bookings: bookingsReducer,
     chat: chatReducer,
+    notifications: notificationsReducer,
   },
 });
 
