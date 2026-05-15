@@ -146,6 +146,7 @@ export default function ActivityCard({ listing }) {
             </span>
           </div>
         </div>
+
       </div>
     </Link>
   );

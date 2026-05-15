@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import AppFooter from "@/components/shared/AppFooter";
+import Pagination from "@/components/shared/Pagination";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -144,46 +145,6 @@ const BackIcon = () => (
   </svg>
 );
 
-function Pagination({ currentPage, totalPages, onPageChange }) {
-  return (
-    <div className="flex items-center justify-center gap-1 mt-6">
-      <button
-        onClick={() => onPageChange(1)}
-        disabled={currentPage === 1}
-        className="w-8 h-8 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 text-xs font-bold"
-      >
-        {"<<"}
-      </button>
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="w-8 h-8 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 text-sm"
-      >
-        {"<"}
-      </button>
-      <div className="flex items-center gap-1.5 px-2">
-        <span className="w-8 h-8 flex items-center justify-center rounded-full bg-[#228E8A] text-white text-sm font-semibold">
-          {currentPage}
-        </span>
-        <span className="text-sm text-gray-500">of {totalPages}</span>
-      </div>
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="w-8 h-8 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 text-sm"
-      >
-        {">"}
-      </button>
-      <button
-        onClick={() => onPageChange(totalPages)}
-        disabled={currentPage === totalPages}
-        className="w-8 h-8 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 disabled:opacity-30 text-xs font-bold"
-      >
-        {">>"}
-      </button>
-    </div>
-  );
-}
 
 export default function WatchlistPage() {
   const router = useRouter();

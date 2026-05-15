@@ -8,7 +8,11 @@ import logo from "@/assets/images/logo.svg";
 import { useSelector, useDispatch } from "react-redux";
 import { selectUser } from "@/store/slices/profileSlice";
 import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
+import { resetStore } from "@/store/store";
 import NotificationPopover from "@/components/shared/NotificationPopover";
+import axiosInstance from "@/store/axiosInstance";
+import { useFCM, getStoredFcmToken } from "@/hooks/useFCM";
+import { firebaseAuth } from "@/lib/firebase";
 
 const UserIcon = () =>
   <svg
@@ -160,20 +164,34 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
   const profile = useSelector(selectUser);
-  const totalUnread = useSelector(selectTotalUnreadCount);
+  const currentUserId = profile?.id || profile?._id || null;
+  const totalUnread = useSelector((state) => selectTotalUnreadCount(state, currentUserId));
+
+  // Start Firebase FCM listener so incoming messages update the badge in real-time
+  useFCM();
 
   const [activeView, setActiveView] = useState(
     pathname?.startsWith("/user-dashboard") ? "user" : "provider"
   );
   const roleLabel = activeView === "user" ? "User" : "Provider";
-  const avatarLetter = profile?.email
-    ? profile.email[0].toUpperCase()
-    : (activeView === "user" ? "U" : "P");
-  const profileImage = profile?.profileImage ?? null;
+  const fallbackLetter = activeView === "user" ? "U" : "P";
+  const avatarLetter = (profile?.firstName?.[0] || profile?.lastName?.[0] || profile?.email?.[0] || fallbackLetter).toUpperCase();
+  // Provider profile picture lives in providerProfile.profileImage; user picture is at root
+  const profileImage = profile?.providerProfile?.profileImage ?? profile?.profileImage ?? null;
 
   useEffect(() => {
+    // Wait for profile to load so selectTotalUnreadCount is scoped to the right user
+    if (!currentUserId) return;
+    // Skip polling while on the messages page — MessagesPage has its own poll
+    if (pathname?.includes("/messages")) return;
     dispatch(fetchConversations());
-  }, [dispatch]);
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden" && !pathname?.includes("/messages")) {
+        dispatch(fetchConversations());
+      }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [dispatch, pathname, currentUserId]);
 
   // Close popovers when clicking outside
   useEffect(() => {
@@ -197,10 +215,22 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
+    const fcmToken = getStoredFcmToken();
+    if (fcmToken) {
+      await axiosInstance
+        .delete(`/notifications/device-tokens/${encodeURIComponent(fcmToken)}`)
+        .catch(() => {});
+    }
+    await firebaseAuth.signOut().catch(() => {});
     localStorage.removeItem("auth-token");
-    router.push("/logout");
+    localStorage.removeItem("reservation_wishlists");
+    localStorage.removeItem("listing_draft_local");
+    sessionStorage.clear();
+    dispatch(resetStore());
+    // Hard navigate so the shell fully unmounts and Redux re-initialises cleanly
+    window.location.href = "/logout";
   };
 
   const handleMobileNav = (path) => {
@@ -333,9 +363,18 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
           {profileOpen &&
             <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl py-1.5 z-50 border border-gray-100">
               {profile && (
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-xs font-bold text-[var(--color-text)] truncate">{profile.email}</p>
-                  {profile.city && <p className="text-[10px] text-gray-400 mt-0.5">{profile.city}</p>}
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-xs shrink-0 overflow-hidden">
+                    {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
+                  </div>
+                  <div className="min-w-0">
+                    {(profile.providerProfile?.firstName || profile.providerProfile?.lastName || profile.firstName || profile.lastName) && (
+                      <p className="text-xs font-bold text-[var(--color-text)] truncate">
+                        {[profile.providerProfile?.firstName || profile.firstName, profile.providerProfile?.lastName || profile.lastName].filter(Boolean).join(" ")}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-gray-400 truncate">{profile.email}</p>
+                  </div>
                 </div>
               )}
               <button
@@ -388,8 +427,12 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
                   {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
                 </div>
                 <div>
-                  {profile?.email && <p className="text-xs font-semibold text-white truncate max-w-[160px]">{profile.email}</p>}
-                  {profile?.city && <p className="text-[11px] text-white/70">{profile.city}</p>}
+                  {(profile?.providerProfile?.firstName || profile?.providerProfile?.lastName || profile?.firstName || profile?.lastName) && (
+                    <p className="text-xs font-semibold text-white truncate max-w-40">
+                      {[profile.providerProfile?.firstName || profile.firstName, profile.providerProfile?.lastName || profile.lastName].filter(Boolean).join(" ")}
+                    </p>
+                  )}
+                  {profile?.email && <p className="text-[11px] text-white/70 truncate max-w-40">{profile.email}</p>}
                 </div>
               </div>
               <button onClick={() => setMobileOpen(false)} className="text-white/80 hover:text-white">
