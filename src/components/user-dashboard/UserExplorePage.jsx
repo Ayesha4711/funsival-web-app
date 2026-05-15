@@ -14,13 +14,14 @@ import AppFooter from '@/components/shared/AppFooter';
 import MapView from '@/components/user-dashboard/MapView';
 import Pagination from '@/components/shared/Pagination';
 import CustomCalendar from '@/components/shared/CustomCalendar';
+import { HeartFilledIcon, HeartIcon, LocationIcon, CloseIcon, ChevronDownIcon, SearchIcon, GridIcon, EmojiIcon, StarIcon, FilterIcon, ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from '@/icons';
 
 /* ─── Tab → API category mapping ────────────────────────────────────────────── */
 const TAB_TO_CATEGORY = {
   all: undefined,
-  places: 'Place',
-  equipment: 'Equipment',
-  activities: 'Services',
+  places: 'places',
+  equipment: 'equipment',
+  activities: 'activities',
 };
 
 /* ─── Tab Bar ────────────────────────────────────────────────────────────────── */
@@ -85,13 +86,11 @@ function StarRating({ rating }) {
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((star) => (
-        <svg
+        <StarIcon
           key={star}
-          className={`w-3.5 h-3.5 ${star <= Math.floor(rating) ? 'text-[#F5C842] fill-current' : 'text-gray-300 fill-current'}`}
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
+          size={14}
+          className={star <= Math.floor(rating) ? 'text-[#F5C842] fill-current' : 'text-gray-300 fill-current'}
+        />
       ))}
     </div>
   );
@@ -157,9 +156,7 @@ function ListingCard({ listing }) {
           onClick={e => { e.stopPropagation(); setWishlisted(w => !w); }}
           className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow ${wishlisted ? 'bg-[#F5823A]' : 'bg-white/80 hover:bg-white'}`}
         >
-          <svg className={`w-4 h-4 transition-colors ${wishlisted ? 'text-white fill-current' : 'text-[#F5823A] fill-none'}`} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
+          {wishlisted ? <HeartFilledIcon size={16} className="text-white" /> : <HeartIcon size={16} className="text-[#F5823A]" />}
         </button>
       </div>
 
@@ -176,9 +173,7 @@ function ListingCard({ listing }) {
         {/* Rating row */}
         <div className="flex items-center gap-1.5 mb-3">
           <span className="text-sm font-semibold text-gray-800">{typeof rating === 'number' ? rating.toFixed(1) : rating}</span>
-          <svg className="w-4 h-4 text-[#F5C842] fill-current" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
+          <StarIcon size={16} className="text-[#F5C842] fill-current" />
           <span className="text-xs text-gray-400">({reviews} Reviews)</span>
         </div>
 
@@ -222,9 +217,7 @@ function ListingCard({ listing }) {
 
         {/* Location — orange filled pin */}
         <div className="flex items-center gap-1.5">
-          <svg className="w-4 h-4 shrink-0 text-[#F5823A] fill-current" viewBox="0 0 24 24">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-          </svg>
+          <LocationIcon size={16} className="shrink-0 text-[#F5823A] fill-current" />
           <span className="text-xs text-gray-500">{locationStr}</span>
         </div>
       </div>
@@ -334,9 +327,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
         <div className="flex items-center justify-between px-5 py-4 bg-[#FEB538] shrink-0">
           <span className="text-base font-bold text-gray-900">Filters</span>
           <button onClick={onClose} className="text-gray-700 hover:text-gray-900">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <CloseIcon size={20} />
           </button>
         </div>
 
@@ -405,7 +396,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
           <section>
             <button onClick={() => toggleSection('city')} className="flex items-center justify-between mb-3 w-full">
               <span className="font-semibold text-gray-900 text-sm">Location</span>
-              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.city ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              <ChevronDownIcon size={16} className={`text-gray-400 transition-transform ${expandedSections.city ? 'rotate-180' : ''}`} />
             </button>
             {expandedSections.city && (
               <div className="space-y-4">
@@ -464,7 +455,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
           <section>
             <button onClick={() => toggleSection('availability')} className="flex items-center justify-between mb-3 w-full">
               <span className="font-semibold text-gray-900 text-sm">Availability</span>
-              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.availability ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              <ChevronDownIcon size={16} className={`text-gray-400 transition-transform ${expandedSections.availability ? 'rotate-180' : ''}`} />
             </button>
             {expandedSections.availability && (
               <div className="relative" ref={calendarRef}>
@@ -476,12 +467,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
                   <span className={date ? 'text-gray-900' : 'text-gray-400'}>
                     {date ? formatDisplayDate(date) : 'dd/mm/yyyy'}
                   </span>
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
+                  <CalendarIcon size={16} className="text-gray-400" />
                 </button>
                 {showCalendar && (
                   <div className="absolute z-[100] mt-2 left-0">
@@ -505,7 +491,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
           <section>
             <button onClick={() => toggleSection('category')} className="flex items-center justify-between mb-3 w-full">
               <span className="font-semibold text-gray-900 text-sm">Category</span>
-              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.category ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              <ChevronDownIcon size={16} className={`text-gray-400 transition-transform ${expandedSections.category ? 'rotate-180' : ''}`} />
             </button>
             {expandedSections.category && (<>
             {/* Category tabs */}
@@ -535,7 +521,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
           <section>
             <button onClick={() => toggleSection('rating')} className="flex items-center justify-between mb-3 w-full">
               <span className="font-semibold text-gray-900 text-sm">Rating</span>
-              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.rating ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              <ChevronDownIcon size={16} className={`text-gray-400 transition-transform ${expandedSections.rating ? 'rotate-180' : ''}`} />
             </button>
             {expandedSections.rating && (
             <div className="space-y-2.5">
@@ -546,9 +532,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
                   {r !== null ? (
                     <div className="flex items-center gap-1">
                       {[1,2,3,4,5].map(s => (
-                        <svg key={s} className={`w-3.5 h-3.5 ${s <= r ? 'text-[#F5C842] fill-current' : 'text-gray-300 fill-current'}`} viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
+                        <StarIcon key={s} size={14} className={s <= r ? 'text-[#F5C842] fill-current' : 'text-gray-300 fill-current'} />
                       ))}
                       <span className="text-xs text-gray-500 ml-1">&amp; up</span>
                     </div>
@@ -565,7 +549,7 @@ function FilterPanel({ open, onClose, filters, onChange }) {
           <section>
             <button onClick={() => toggleSection('instantBook')} className="flex items-center justify-between mb-3 w-full">
               <span className="font-semibold text-gray-900 text-sm">Instant Book</span>
-              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.instantBook ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              <ChevronDownIcon size={16} className={`text-gray-400 transition-transform ${expandedSections.instantBook ? 'rotate-180' : ''}`} />
             </button>
             {expandedSections.instantBook && (
             <div className="space-y-2.5">
@@ -722,16 +706,12 @@ export default function UserExplorePage() {
                 className="hidden sm:flex items-center gap-2 px-4 py-2 border border-[#4AA7A7] text-[#4AA7A7] rounded-full text-sm font-medium hover:bg-[#4AA7A7] hover:text-white transition-colors whitespace-nowrap"
               >
                 {viewMode === 'grid' ? 'Map View' : 'Grid View'}
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
+                <GridIcon size={16} />
               </button>
 
               {/* Filter icon button — always visible */}
               <button onClick={() => setFilterOpen(true)} className="flex items-center justify-center w-9 h-9 border border-[#4AA7A7] rounded-full text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
+                <FilterIcon size={16} />
               </button>
             </div>
           </div>
@@ -743,9 +723,7 @@ export default function UserExplorePage() {
                 onClick={() => scrollPills(-1)}
                 className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-[#228E8A] text-white hover:bg-[#1d7a77] transition-colors shadow-sm"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                </svg>
+                <ChevronLeftIcon size={16} />
               </button>
               <div ref={pillsScrollRef} className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1">
                 {subFilters.map((filter) => (
@@ -767,9 +745,7 @@ export default function UserExplorePage() {
                 onClick={() => scrollPills(1)}
                 className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-[#228E8A] text-white hover:bg-[#1d7a77] transition-colors shadow-sm"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
+                <ChevronRightIcon size={16} />
               </button>
             </div>
           )}
@@ -805,9 +781,7 @@ export default function UserExplorePage() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <EmojiIcon size={32} className="text-gray-400" />
               </div>
               <p className="text-lg font-semibold text-gray-700 mb-1">No listings found</p>
               <p className="text-sm text-gray-400">Try a different category or filter</p>

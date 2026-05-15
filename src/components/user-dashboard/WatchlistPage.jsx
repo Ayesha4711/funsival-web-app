@@ -7,23 +7,7 @@ import Pagination from "@/components/shared/Pagination";
 
 const ITEMS_PER_PAGE = 8;
 
-const HeartIcon = ({ filled }) => (
-  <svg className={`w-5 h-5 ${filled ? "fill-[#F5823A] text-[#F5823A]" : "text-gray-300"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" fill="none">
-    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-  </svg>
-);
-
-const LocationIcon = () => (
-  <svg className="w-4 h-4 shrink-0 text-[#F5823A] fill-current" viewBox="0 0 24 24">
-    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-  </svg>
-);
-
-const StarIcon = () => (
-  <svg className="w-4 h-4 text-[#F5C842] fill-current" viewBox="0 0 20 20">
-    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-  </svg>
-);
+import { HeartFilledIcon, HeartIcon, LocationIcon, StarIcon, ArrowLeftIcon as BackIcon } from "@/icons";
 
 const MOCK_WATCHLIST = [
   {
@@ -99,9 +83,7 @@ function WatchlistCard({ item, onRemove }) {
           className="absolute top-3 right-3 w-8 h-8 bg-[#F5823A] hover:bg-[#e06d2a] rounded-full flex items-center justify-center transition-colors shadow"
           title="Remove from watchlist"
         >
-          <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
+          <HeartFilledIcon size={16} className="text-white" />
         </button>
       </div>
 
@@ -118,7 +100,7 @@ function WatchlistCard({ item, onRemove }) {
         {/* Rating */}
         <div className="flex items-center gap-1.5 mb-3">
           <span className="text-sm font-semibold text-gray-800">{item.rating.toFixed(1)}</span>
-          <StarIcon />
+          <StarIcon size={16} className="text-[#F5C842] fill-current" />
           <span className="text-xs text-gray-400">({item.reviews} Reviews)</span>
         </div>
 
@@ -130,7 +112,7 @@ function WatchlistCard({ item, onRemove }) {
 
         {/* Location */}
         <div className="flex items-center gap-1.5">
-          <LocationIcon />
+          <LocationIcon size={16} className="shrink-0 text-[#F5823A] fill-current" />
           <span className="text-xs text-gray-500">{item.location}</span>
         </div>
       </div>
@@ -138,12 +120,6 @@ function WatchlistCard({ item, onRemove }) {
   );
 }
 
-const BackIcon = () => (
-  <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="19" y1="12" x2="5" y2="12" />
-    <polyline points="12 19 5 12 12 5" />
-  </svg>
-);
 
 
 export default function WatchlistPage() {
@@ -198,9 +174,7 @@ export default function WatchlistPage() {
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mb-5">
-              <svg className="w-10 h-10 text-[#F5823A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
+              <HeartIcon size={40} className="text-[#F5823A]" />
             </div>
             <p className="text-lg font-semibold text-gray-700 mb-1">Your wishlist is empty</p>
             <p className="text-sm text-gray-400 mb-6">Save listings you love and find them here anytime</p>
