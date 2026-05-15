@@ -74,6 +74,7 @@ const activitiesSlice = createSlice({
   name: "activities",
   initialState: {
     items: [],
+    hostCache: {},
     selectedActivity: null,
     selectedActivityStatus: "idle",
     filters: {},
@@ -104,8 +105,13 @@ const activitiesSlice = createSlice({
       })
       .addCase(fetchBrowseListings.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.items = action.payload?.data?.listings ?? [];
+        const listings = action.payload?.data?.listings ?? [];
+        state.items = listings;
         state.pagination = action.payload?.data?.pagination ?? state.pagination;
+        // Cache host data by listing id so detail page can use it on cold load
+        listings.forEach((l) => {
+          if (l.host && (l.id ?? l._id)) state.hostCache[l.id ?? l._id] = l.host;
+        });
       })
       .addCase(fetchBrowseListings.rejected, (state, action) => {
         state.status = "failed";
@@ -145,7 +151,30 @@ const activitiesSlice = createSlice({
       })
       .addCase(fetchBrowseListing.fulfilled, (state, action) => {
         state.selectedActivityStatus = "succeeded";
-        state.selectedActivity = action.payload?.data?.listing ?? action.payload?.data ?? action.payload;
+        const listing = action.payload?.data?.listing ?? action.payload?.data ?? action.payload;
+        // If the single-listing endpoint didn't populate complete host data (missing profileImage or name differs from agencyName),
+        // fall back to the cached host data from browse list
+        const currentHost = listing?.host;
+        const hasCompleteHost = currentHost &&
+                                typeof currentHost === "object" &&
+                                currentHost.id &&
+                                currentHost.profileImage &&
+                                currentHost.name !== currentHost.agencyName;
+
+        if (!hasCompleteHost) {
+          const id = listing?.id ?? listing?._id;
+          const cachedHost = state.hostCache[id];
+          // Only use cached host if it has profileImage (more complete data)
+          if (cachedHost && cachedHost.profileImage) {
+            listing.host = cachedHost;
+          }
+        }
+        // Cache this listing's host if it has complete data
+        if (listing?.host?.id && listing?.host?.profileImage) {
+          const id = listing.id ?? listing._id;
+          if (id) state.hostCache[id] = listing.host;
+        }
+        state.selectedActivity = listing;
       })
       .addCase(fetchBrowseListing.rejected, (state, action) => {
         state.selectedActivityStatus = "failed";
@@ -163,6 +192,7 @@ export const {
 
 // ─── Selectors ───────────────────────────────────────────────────────────────
 export const selectActivities = (state) => state.activities.items;
+export const selectHostCache = (state) => state.activities.hostCache;
 export const selectSelectedActivity = (state) => state.activities.selectedActivity;
 export const selectSelectedActivityStatus = (state) => state.activities.selectedActivityStatus;
 export const selectActivityFilters = (state) => state.activities.filters;

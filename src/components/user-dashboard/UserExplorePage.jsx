@@ -8,6 +8,7 @@ import {
   selectActivities,
   selectActivitiesPagination,
   selectActivitiesStatus,
+  setSelectedActivity,
 } from '@/store/slices/activitiesSlice';
 import AppFooter from '@/components/shared/AppFooter';
 import MapView from '@/components/user-dashboard/MapView';
@@ -99,6 +100,7 @@ function StarRating({ rating }) {
 /* ─── Listing Card — matches design: image, title+tag row, rating, price pills, location ── */
 function ListingCard({ listing }) {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [wishlisted, setWishlisted] = useState(false);
 
   const id = listing._id || listing.id;
@@ -134,6 +136,7 @@ function ListingCard({ listing }) {
     : category === 'places' ? 'Place' : category === 'equipment' ? 'Equipment' : 'Activity';
 
   const navigateToListing = () => {
+    dispatch(setSelectedActivity(listing));
     router.push(`/user-dashboard/listing/${id}?type=${category}`);
   };
 

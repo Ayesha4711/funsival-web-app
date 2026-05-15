@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import AppFooter from "@/components/shared/AppFooter";
 import { CalendarField } from "@/components/shared/FieldControls";
 import { changePassword, enable2FA, disable2FA, deleteAccount, clearAuth } from "@/store/slices/authSlice";
-import { selectUser, fetchProfile, setProfile, updateProviderProfile, uploadProfilePicture, clearProfile } from "@/store/slices/profileSlice";
+import { selectUser, fetchProfile, setProfile, updateUserProfile, updateProviderProfile, uploadProfilePicture, clearProfile } from "@/store/slices/profileSlice";
 import { PHONE_COUNTRY_CODES, parsePhoneNumber, formatPhoneNumber, stripPhoneNumber, validatePhoneNumber, countryToFlag } from "@/lib/phone";
 
 
@@ -1185,7 +1185,9 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
   const fileInputRef = React.useRef(null);
   const [profileImageFile, setProfileImageFile] = useState(null);
 
-  const REQUIRED_FIELDS = ["firstName", "lastName", "email", "phoneNumber", "bio", "profileImage", "addressLine1", "addressLine2", "dateOfBirth", "state", "country", "postalCode", "businessName", "businessType"];
+  const REQUIRED_FIELDS = role === "user"
+    ? ["firstName", "lastName", "phoneNumber", "bio", "addressLine1", "addressLine2", "state", "country", "postalCode"]
+    : ["firstName", "lastName", "email", "phoneNumber", "bio", "profileImage", "addressLine1", "addressLine2", "dateOfBirth", "state", "country", "postalCode", "businessName", "businessType"];
 
   useEffect(() => {
     if (!profile) {
@@ -1328,50 +1330,74 @@ function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
         profileImage = uploadResult.payload;
       }
 
-      const payload = {
-        ...form,
-        phoneNumber: formatPhoneNumber(phoneCountryCode, form.phoneNumber),
+      const apiPayload = {
+        firstName:    form.firstName,
+        lastName:     form.lastName,
+        phoneNumber:  formatPhoneNumber(phoneCountryCode, form.phoneNumber),
+        dateOfBirth:  form.dateOfBirth,
+        bio:          form.bio,
         profileImage,
+        addressLine1: form.addressLine1,
+        addressLine2: form.addressLine2,
+        city:         form.city,
+        state:        form.state,
+        postalCode:   form.postalCode,
+        country:      form.country,
+        ...(role !== "user" && {
+          businessName: form.businessName,
+          businessType: form.businessType,
+        }),
       };
 
-      const result = await dispatch(updateProviderProfile(payload));
+      const isUser = role === "user";
+      const thunk  = isUser ? updateUserProfile : updateProviderProfile;
+      const result = await dispatch(thunk(apiPayload));
 
-      if (updateProviderProfile.fulfilled.match(result)) {
+      const succeeded = isUser
+        ? updateUserProfile.fulfilled.match(result)
+        : updateProviderProfile.fulfilled.match(result);
+
+      if (succeeded) {
         const updatedUser = result.payload;
         const provider = updatedUser?.providerProfile ?? updatedUser;
         const location = provider?.location ?? updatedUser?.location ?? {};
         const savedPhone = parsePhoneNumber(provider?.phoneNumber ?? updatedUser?.phoneNumber ?? updatedUser?.phone ?? "");
+        const resolvedImage = updatedUser?.profileImage ?? provider?.profileImage ?? profileImage;
         setForm((prev) => ({
           ...prev,
-          firstName:    provider?.firstName    ?? prev.firstName,
-          lastName:     provider?.lastName     ?? prev.lastName,
-          email:        updatedUser?.email     ?? prev.email,
-          phoneNumber:  savedPhone.number || prev.phoneNumber,
-          dateOfBirth:  provider?.dateOfBirth  ?? updatedUser?.dateOfBirth ?? prev.dateOfBirth,
-          bio:          provider?.bio          ?? prev.bio,
-          profileImage: provider?.profileImage ?? profileImage ?? prev.profileImage,
-          addressLine1: location?.addressLine1 ?? prev.addressLine1,
-          addressLine2: location?.addressLine2 ?? prev.addressLine2,
-          city:         location?.city         ?? updatedUser?.city ?? prev.city,
-          state:        location?.state        ?? updatedUser?.state ?? prev.state,
-          postalCode:   location?.postalCode   ?? updatedUser?.postalCode ?? prev.postalCode,
-          country:      location?.country      ?? updatedUser?.country ?? prev.country,
-          businessName: provider?.businessName ?? prev.businessName,
-          businessType: provider?.businessType ?? prev.businessType,
+          firstName:    updatedUser?.firstName   ?? provider?.firstName    ?? prev.firstName,
+          lastName:     updatedUser?.lastName    ?? provider?.lastName     ?? prev.lastName,
+          email:        updatedUser?.email       ?? prev.email,
+          phoneNumber:  savedPhone.number        || prev.phoneNumber,
+          dateOfBirth:  updatedUser?.dateOfBirth ?? provider?.dateOfBirth  ?? prev.dateOfBirth,
+          bio:          updatedUser?.bio         ?? provider?.bio          ?? prev.bio,
+          profileImage: resolvedImage            ?? prev.profileImage,
+          addressLine1: updatedUser?.addressLine1 ?? location?.addressLine1 ?? prev.addressLine1,
+          addressLine2: updatedUser?.addressLine2 ?? location?.addressLine2 ?? prev.addressLine2,
+          city:         updatedUser?.city        ?? location?.city         ?? prev.city,
+          state:        updatedUser?.state       ?? location?.state        ?? prev.state,
+          postalCode:   updatedUser?.postalCode  ?? location?.postalCode   ?? prev.postalCode,
+          country:      updatedUser?.country     ?? location?.country      ?? prev.country,
+          businessName: provider?.businessName   ?? prev.businessName,
+          businessType: provider?.businessType   ?? prev.businessType,
         }));
+        // Force Redux state to have the latest profileImage regardless of API response shape
+        if (resolvedImage) {
+          dispatch(setProfile({ ...profile, ...updatedUser, profileImage: resolvedImage }));
+        }
         setProfileImageFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
         setPhoneCountryCode(savedPhone.countryCode || phoneCountryCode || "+92");
         toast.success("Profile updated successfully.");
         setFieldErrors({});
       } else {
-        const payload = result.payload;
-        if (payload?.errors && typeof payload.errors === "object") {
-          setFieldErrors(payload.errors);
-          const firstMsg = Object.values(payload.errors)[0];
-          toast.error(firstMsg || payload.message || "Validation failed.");
+        const errPayload = result.payload;
+        if (errPayload?.errors && typeof errPayload.errors === "object") {
+          setFieldErrors(errPayload.errors);
+          const firstMsg = Object.values(errPayload.errors)[0];
+          toast.error(firstMsg || errPayload.message || "Validation failed.");
         } else {
-          toast.error(payload?.message ?? (typeof payload === "string" ? payload : "Failed to update profile."));
+          toast.error(errPayload?.message ?? (typeof errPayload === "string" ? errPayload : "Failed to update profile."));
         }
       }
     } catch (err) {

@@ -31,6 +31,19 @@ export const updateProfile = createAsyncThunk(
   }
 );
 
+export const updateUserProfile = createAsyncThunk(
+  "profile/updateUserProfile",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.patch("/users/profile", payload);
+      return data?.data?.user ?? data?.data ?? null;
+    } catch (err) {
+      const res = err.response?.data;
+      return rejectWithValue(res ?? err.message);
+    }
+  }
+);
+
 export const updateProviderProfile = createAsyncThunk(
   "profile/updateProviderProfile",
   async (payload, { rejectWithValue }) => {
@@ -138,6 +151,19 @@ const profileSlice = createSlice({
         state.user = action.payload;
       })
       .addCase(updateProfile.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
+
+      .addCase(updateUserProfile.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        if (action.payload) state.user = { ...state.user, ...action.payload };
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
       })

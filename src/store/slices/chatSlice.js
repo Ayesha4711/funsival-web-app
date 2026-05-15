@@ -20,22 +20,31 @@ export const markConversationRead = createAsyncThunk(
   "chat/markConversationRead",
   async (conv, { rejectWithValue }) => {
     try {
-      // The API needs the MongoDB _id, not the compound participant string id.
-      // Try _id first, then strip the compound id to extract a 24-char hex ObjectId,
-      // then fall back to the raw id field.
-      let routeId = conv._id ?? conv.mongoId ?? null;
-      if (!routeId) {
-        // compound id looks like "aaa_bbb__ccc" — pick the last 24-char hex segment
-        const parts = (conv.id ?? "").split(/[_]+/);
-        const objectId = parts.find((p) => /^[a-f0-9]{24}$/i.test(p));
-        routeId = objectId ?? conv.id;
+      const BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL ||
+        "https://funsival-backend-twvuq.ondigitalocean.app/api/v1";
+      let token = null;
+      if (typeof window !== "undefined") {
+        token = localStorage.getItem("auth-token");
+        if (!token) {
+          const match = document.cookie.match(/(^|;)\s*auth-token\s*=\s*([^;]+)/);
+          token = match ? match[2] : null;
+        }
       }
-      await axiosInstance.patch(`/chats/conversations/${routeId}/read`);
+      const res = await fetch(`${BASE_URL}/chats/conversations/${conv.id}/read`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok && res.status !== 404) {
+        const body = await res.json().catch(() => ({}));
+        return rejectWithValue(body?.message ?? `HTTP ${res.status}`);
+      }
       return conv.id;
     } catch (err) {
-      // Silently swallow 404s — message was already read or conversation id format mismatch
-      if (err.response?.status === 404) return conv.id;
-      return rejectWithValue(err.response?.data?.message ?? err.message);
+      return rejectWithValue(err.message);
     }
   }
 );
@@ -114,6 +123,8 @@ const chatSlice = createSlice({
     messagesStatus: "idle",
     sendStatus: "idle",
     error: null,
+    // Track conversations whose unread count was cleared locally but not yet confirmed by backend
+    clearedUnreadIds: [],
   },
   reducers: {
     setActiveConversation(state, action) {
@@ -133,6 +144,10 @@ const chatSlice = createSlice({
       const conversationId = action.payload;
       const conv = state.conversations.find((c) => c.id === conversationId);
       if (conv) conv.unreadCount = {};
+      // Remember this was cleared so polling doesn't restore the old count
+      if (!state.clearedUnreadIds.includes(conversationId)) {
+        state.clearedUnreadIds.push(conversationId);
+      }
     },
     // Merge incoming messages from polling/FCM without losing optimistic messages
     receiveIncomingMessages(state, action) {
@@ -170,7 +185,20 @@ const chatSlice = createSlice({
       })
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.conversationsStatus = "succeeded";
-        state.conversations = action.payload?.data?.conversations ?? [];
+        const incoming = action.payload?.data?.conversations ?? [];
+        const cleared = new Set(state.clearedUnreadIds);
+        state.conversations = incoming.map((conv) => {
+          if (!cleared.has(conv.id)) return conv;
+          // Server returned a non-zero count — a new message arrived after we read,
+          // so remove from cleared set and show the real count
+          const serverTotal = Object.values(conv.unreadCount ?? {}).reduce((s, n) => s + (n || 0), 0);
+          if (serverTotal > 0) {
+            state.clearedUnreadIds = state.clearedUnreadIds.filter((id) => id !== conv.id);
+            return conv;
+          }
+          // Server still shows 0 (or hasn't caught up yet) — keep suppressed
+          return { ...conv, unreadCount: {} };
+        });
         state.conversationsPagination =
           action.payload?.data?.pagination ?? state.conversationsPagination;
       })
@@ -245,8 +273,13 @@ const chatSlice = createSlice({
         });
       })
       .addCase(markConversationRead.fulfilled, (state, action) => {
-        const conv = state.conversations.find((c) => c.id === action.payload);
+        const convId = action.payload;
+        const conv = state.conversations.find((c) => c.id === convId);
         if (conv) conv.unreadCount = {};
+        // Keep it in clearedUnreadIds so future polls don't restore stale counts
+        if (!state.clearedUnreadIds.includes(convId)) {
+          state.clearedUnreadIds.push(convId);
+        }
       })
       .addCase(markMessageRead.fulfilled, (state, action) => {
         const { conversationId, message } = action.payload;

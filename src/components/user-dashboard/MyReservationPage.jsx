@@ -17,6 +17,7 @@ import {
 } from "@/store/slices/bookingsSlice";
 import { startOrGetConversation } from "@/store/slices/chatSlice";
 import AppFooter from "@/components/shared/AppFooter";
+import SharedPagination from "@/components/shared/Pagination";
 
 /* ─── Data helpers ───────────────────────────────────────────────────────────── */
 function getTitle(b) {
@@ -684,25 +685,6 @@ function EmptyState({ onStartBooking }) {
   );
 }
 
-/* ─── Pagination ─────────────────────────────────────────────────────────────── */
-function Pagination({ pagination, onPageChange }) {
-  const { page = 1, totalPages = 1 } = pagination;
-  return (
-    <div className="flex items-center justify-center gap-1.5 py-4">
-      <button onClick={() => onPageChange(1)} disabled={page <= 1}
-        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-gray-400 disabled:opacity-40 text-xs font-medium">«</button>
-      <button onClick={() => onPageChange(page - 1)} disabled={page <= 1}
-        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-gray-400 disabled:opacity-40 text-xs font-medium">‹</button>
-      <div className="px-3 py-1 border border-gray-200 rounded-full text-sm text-gray-500 min-w-[80px] text-center">
-        {page} of {totalPages || 1}
-      </div>
-      <button onClick={() => onPageChange(page + 1)} disabled={page >= totalPages}
-        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-gray-400 disabled:opacity-40 text-xs font-medium">›</button>
-      <button onClick={() => onPageChange(totalPages)} disabled={page >= totalPages}
-        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-gray-400 disabled:opacity-40 text-xs font-medium">»</button>
-    </div>
-  );
-}
 
 /* ─── Tab filter ─────────────────────────────────────────────────────────────── */
 const TABS = [
@@ -896,9 +878,12 @@ export default function MyReservationPage() {
                   onShare={() => handleShare(b)}
                 />
               ))}
-              {pagination.totalPages > 1 && (
-                <Pagination pagination={pagination} onPageChange={(p) => setCurrentPage(p)} />
-              )}
+              <SharedPagination
+                currentPage={pagination.page ?? 1}
+                totalPages={pagination.totalPages ?? 1}
+                onPageChange={(p) => setCurrentPage(p)}
+                className="py-4"
+              />
             </div>
           )
         )}
