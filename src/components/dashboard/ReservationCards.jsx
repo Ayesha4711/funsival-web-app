@@ -4,36 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
 import Pagination from "@/components/shared/Pagination";
-
-/* ─── Icons ─────────────────────────────────────────────────────────────────── */
-const MoreIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="1" />
-    <circle cx="12" cy="5" r="1" />
-    <circle cx="12" cy="19" r="1" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-);
-
-const RefundIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="15" y1="9" x2="9" y2="15" />
-    <line x1="9" y1="9" x2="15" y2="15" />
-  </svg>
-);
+import { MoreVertIcon, CheckIcon, ClockIcon, RefundIcon } from "@/icons";
 
 /* ─── Action Dropdown ────────────────────────────────────────────────────────── */
 function ActionMenu({ item, onViewDetails, onCancel }) {
@@ -52,7 +23,7 @@ function ActionMenu({ item, onViewDetails, onCancel }) {
         onClick={() => setOpen((v) => !v)}
         className="text-gray-400 hover:text-[var(--color-text)] transition-colors p-1 rounded-lg hover:bg-gray-100"
       >
-        <MoreIcon />
+        <MoreVertIcon size={20} />
       </button>
 
       {open && (

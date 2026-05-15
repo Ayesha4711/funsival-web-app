@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { SpinnerIcon, MapPinIcon, CompassIcon } from "@/icons";
 
 export function LocationMap({ coords, searchValue, onSearchChange, onSelect, onUseCurrentLocation, searchLoading, suggestions }) {
   const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.05}%2C${coords.lat - 0.05}%2C${coords.lon + 0.05}%2C${coords.lat + 0.05}&layer=mapnik&marker=${coords.lat}%2C${coords.lon}`;
@@ -29,14 +30,9 @@ export function LocationMap({ coords, searchValue, onSearchChange, onSelect, onU
           <div className="flex items-center gap-2 bg-white rounded-full px-4 py-3 border border-gray-200 transition-all focus-within:ring-2 focus-within:ring-[var(--color-primary)]">
             {/* Location pin icon */}
             {searchLoading ? (
-              <svg className="animate-spin h-4 w-4 text-[var(--color-primary)] shrink-0" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
+              <SpinnerIcon size={16} className="text-[var(--color-primary)] shrink-0" />
             ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-              </svg>
+              <MapPinIcon size={18} className="shrink-0 text-[var(--color-primary)]" />
             )}
             <input
               type="text"
@@ -54,9 +50,7 @@ export function LocationMap({ coords, searchValue, onSearchChange, onSelect, onU
               className="shrink-0 flex items-center gap-2 text-sm text-[var(--color-primary)] font-medium hover:opacity-80 transition-opacity whitespace-nowrap"
             >
               <span className="hidden sm:inline">Use my current location</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" strokeDasharray="2 2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
-              </svg>
+              <CompassIcon size={18} className="text-[var(--color-primary)]" />
             </button>
           </div>
 

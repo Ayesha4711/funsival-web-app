@@ -2,45 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
-
-const FilterIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-  </svg>
-);
-
-const TableIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="9" x2="9" y2="21" />
-  </svg>
-);
-
-const GridIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-    <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
-const ChevronIcon = ({ open }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-    className={`transition-transform ${open ? "rotate-180" : ""}`}>
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
+import { SearchIcon, FilterIcon, TableIcon, GridIcon, PlusIcon, ChevronDownIcon } from "@/icons";
 
 const CATEGORIES = ["All Categories", "Equipment", "Activity", "Place"];
 const QUICK_CATEGORIES = ["All", "Activities", "Equipment", "Places"];
@@ -117,7 +79,7 @@ function Section({ title, children, defaultOpen = false }) {
     <div className="border-b border-gray-100 last:border-0">
       <button type="button" onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between py-4 text-sm font-bold text-gray-800">
-        {title}<ChevronIcon open={open} />
+        {title}<ChevronDownIcon size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && <div className="pb-4">{children}</div>}
     </div>
@@ -359,7 +321,7 @@ export default function ListingsFilters({
               >
                 <FilterIcon />
                 <span className="hidden sm:inline">{quickCat === "All" ? "All Categories" : quickCat}</span>
-                <ChevronIcon open={catDropOpen} />
+                <ChevronDownIcon size={14} className={`transition-transform ${catDropOpen ? "rotate-180" : ""}`} />
               </button>
               {catDropOpen && (
                 <div className="absolute right-0 top-full mt-1.5 bg-white rounded-2xl shadow-lg border border-gray-100 py-1.5 z-50 min-w-[140px]">

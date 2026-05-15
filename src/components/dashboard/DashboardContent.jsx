@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/icons";
 import heroImg from "@/assets/images/HeroImg.jpg";
 import { fetchHostBookings, selectHostBookings, selectHostBookingsStatus } from "@/store/slices/bookingsSlice";
 import {
@@ -141,9 +142,7 @@ function RecentReservations() {
               aria-label="Previous reservation"
               className="w-8 h-8 rounded-lg border border-[var(--color-border)] flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
+              <ChevronLeftIcon size={16} />
             </button>
             <button
               type="button"
@@ -151,9 +150,7 @@ function RecentReservations() {
               aria-label="Next reservation"
               className="w-8 h-8 rounded-lg border border-[var(--color-border)] flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
+              <ChevronRightIcon size={16} />
             </button>
           </div>
         )}

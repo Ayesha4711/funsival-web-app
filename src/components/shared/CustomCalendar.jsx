@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "@/icons";
 
 const DAYS   = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTHS = [
@@ -33,9 +34,7 @@ function InlineSelect({ value, options, onChange, width = 110 }) {
         className="flex items-center justify-between gap-1 rounded-xl border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 hover:border-gray-300 transition-colors"
       >
         <span className="truncate">{selected?.label ?? value}</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={open ? "rotate-180 transition-transform" : "transition-transform"}>
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <ChevronDownIcon size={10} className={open ? "rotate-180 transition-transform" : "transition-transform"} />
       </button>
 
       {open && (
@@ -138,9 +137,7 @@ export default function CustomCalendar({ value, onChange, onClose }) {
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
           type="button"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <ChevronLeftIcon size={16} />
         </button>
 
         <div className="flex items-center gap-2">
@@ -163,9 +160,7 @@ export default function CustomCalendar({ value, onChange, onClose }) {
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
           type="button"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <ChevronRightIcon size={16} />
         </button>
       </div>
 

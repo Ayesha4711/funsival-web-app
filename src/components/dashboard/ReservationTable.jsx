@@ -3,43 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
-
-/* ─── Icons ─────────────────────────────────────────────────────────────────── */
-const MoreIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="5" cy="12" r="2" />
-    <circle cx="12" cy="12" r="2" />
-    <circle cx="19" cy="12" r="2" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="9 12 11 14 15 10" />
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-);
-
-const RefundIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="15" y1="9" x2="9" y2="15" />
-    <line x1="9" y1="9" x2="15" y2="15" />
-  </svg>
-);
-
-const PinIcon = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-  </svg>
-);
+import { MoreHorizIcon, CheckCircleIcon, ClockIcon, RefundIcon, MapPinIcon } from "@/icons";
 
 /* ─── Action Dropdown ─────────────────────────────────────────────────────────
    Opens above when the row index is in the last 2 rows of the visible set.     */
@@ -66,7 +30,7 @@ function ActionMenu({ item, onViewDetails, onCancel, isNearBottom, totalRows }) 
         onClick={() => setOpen((v) => !v)}
         className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
       >
-        <MoreIcon />
+        <MoreHorizIcon />
       </button>
 
       {open && (
@@ -117,9 +81,9 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
 
   const getInvoiceIcon = (status) => {
     switch (status) {
-      case "Paid":     return <CheckIcon />;
-      case "Overdue":  return <ClockIcon />;
-      case "Refunded": return <RefundIcon />;
+      case "Paid":     return <CheckCircleIcon size={13} />;
+      case "Overdue":  return <ClockIcon size={13} />;
+      case "Refunded": return <RefundIcon size={13} />;
       default:         return null;
     }
   };
@@ -177,7 +141,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                           {item.name}
                         </p>
                         <p className="text-[11px] text-[var(--color-text-muted)] whitespace-nowrap flex items-center gap-1 mt-0.5">
-                          <PinIcon />
+                          <MapPinIcon size={10} className="shrink-0" />
                           {item.location}
                         </p>
                       </div>
