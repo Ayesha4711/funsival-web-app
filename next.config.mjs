@@ -14,6 +14,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'funsival-storage-bucket.nyc3.digitaloceanspaces.com' },
     ],
   },
   async redirects() {

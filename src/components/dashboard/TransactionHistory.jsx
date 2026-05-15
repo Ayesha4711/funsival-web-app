@@ -2,49 +2,7 @@
 
 import React from "react";
 import Pagination from "@/components/shared/Pagination";
-
-/* ─── Toolbar icons ──────────────────────────────────────────────────────────── */
-const SearchIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
-
-const FilterIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-  </svg>
-);
-
-const ExportIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-  </svg>
-);
-
-/* ─── Circle status icons (used in both Activity Name and Status columns) ──────── */
-const CircleCheckIcon = ({ size = 16, color = "#22c55e" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="11" stroke={color} strokeWidth="2" />
-    <polyline points="7 12 10.5 15.5 17 9" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const CircleClockIcon = ({ size = 16, color = "#f97316" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="11" stroke={color} strokeWidth="2" />
-    <polyline points="12 7 12 12 15.5 14" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const CircleAlertIcon = ({ size = 16, color = "#ef4444" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="11" stroke={color} strokeWidth="2" />
-    <line x1="12" y1="8" x2="12" y2="13" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
-    <circle cx="12" cy="16.5" r="1.1" fill={color} />
-  </svg>
-);
+import { SearchIcon, FilterIcon, ExportIcon, CircleCheckIcon, CircleClockIcon, CircleAlertIcon } from "@/icons";
 
 /* ─── Data ───────────────────────────────────────────────────────────────────── */
 const transactions = [
