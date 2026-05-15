@@ -186,11 +186,19 @@ const chatSlice = createSlice({
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.conversationsStatus = "succeeded";
         const incoming = action.payload?.data?.conversations ?? [];
-        // Preserve locally-cleared unread counts — don't let the server restore stale badges
         const cleared = new Set(state.clearedUnreadIds);
-        state.conversations = incoming.map((conv) =>
-          cleared.has(conv.id) ? { ...conv, unreadCount: {} } : conv
-        );
+        state.conversations = incoming.map((conv) => {
+          if (!cleared.has(conv.id)) return conv;
+          // Server returned a non-zero count — a new message arrived after we read,
+          // so remove from cleared set and show the real count
+          const serverTotal = Object.values(conv.unreadCount ?? {}).reduce((s, n) => s + (n || 0), 0);
+          if (serverTotal > 0) {
+            state.clearedUnreadIds = state.clearedUnreadIds.filter((id) => id !== conv.id);
+            return conv;
+          }
+          // Server still shows 0 (or hasn't caught up yet) — keep suppressed
+          return { ...conv, unreadCount: {} };
+        });
         state.conversationsPagination =
           action.payload?.data?.pagination ?? state.conversationsPagination;
       })

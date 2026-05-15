@@ -1295,11 +1295,11 @@ export default function ListingDetailPage({ params: paramsPromise }) {
         <div className="mt-4 sm:mt-6 rounded-2xl sm:rounded-[22px] border border-gray-200 bg-white p-4 sm:p-6">
           <div className="flex items-center justify-between gap-3 sm:gap-4 flex-wrap">
             <div className="flex items-center gap-3 sm:gap-4">
-              {listing.host.avatar ? (
+              {listing.host.avatar && listing.host.avatar.trim() !== "" ? (
                 <img src={listing.host.avatar} alt={listing.host.name} className="h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover shrink-0" />
               ) : (
                 <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-[#228E8A] flex items-center justify-center shrink-0 text-white font-bold text-lg">
-                  {listing.host.name?.[0]?.toUpperCase() ?? "H"}
+                  {listing.host.agency?.[0]?.toUpperCase() || listing.host.name?.[0]?.toUpperCase() || "H"}
                 </div>
               )}
               <div>
@@ -1316,7 +1316,7 @@ export default function ListingDetailPage({ params: paramsPromise }) {
                     </span>
                   )}
                 </div>
-                {listing.host.agency && (
+                {listing.host.agency && listing.host.name !== listing.host.agency && (
                   <p className="text-xs text-gray-500">{listing.host.name}</p>
                 )}
                 {(listing.host.rating !== null || listing.host.reviews !== null) && (

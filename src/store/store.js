@@ -1,4 +1,4 @@
-import { configureStore } from "@reduxjs/toolkit";
+import { configureStore, createAction } from "@reduxjs/toolkit";
 import authReducer from "./slices/authSlice";
 import profileReducer from "./slices/profileSlice";
 import listingsReducer from "./slices/listingsSlice";
@@ -7,15 +7,25 @@ import bookingsReducer from "./slices/bookingsSlice";
 import chatReducer from "./slices/chatSlice";
 import notificationsReducer from "./slices/notificationsSlice";
 
+export const resetStore = createAction("store/reset");
+
+// Wraps every slice reducer so that dispatching resetStore returns it to its initial state
+function withReset(reducer) {
+  return (state, action) => {
+    if (action.type === resetStore.type) return reducer(undefined, action);
+    return reducer(state, action);
+  };
+}
+
 export const store = configureStore({
   reducer: {
-    auth: authReducer,
-    profile: profileReducer,
-    listings: listingsReducer,
-    activities: activitiesReducer,
-    bookings: bookingsReducer,
-    chat: chatReducer,
-    notifications: notificationsReducer,
+    auth:          withReset(authReducer),
+    profile:       withReset(profileReducer),
+    listings:      withReset(listingsReducer),
+    activities:    withReset(activitiesReducer),
+    bookings:      withReset(bookingsReducer),
+    chat:          withReset(chatReducer),
+    notifications: withReset(notificationsReducer),
   },
 });
 

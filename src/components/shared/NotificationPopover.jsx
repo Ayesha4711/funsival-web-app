@@ -10,6 +10,8 @@ import {
   selectNotifications,
   selectNotificationsStatus,
   selectUnreadCount,
+  selectHasNextPage,
+  selectCurrentPage,
 } from "@/store/slices/notificationsSlice";
 
 function shortId(id) {
@@ -89,17 +91,23 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
   const allNotifications = useSelector(selectNotifications);
   const status = useSelector(selectNotificationsStatus);
   const unreadCount = useSelector(selectUnreadCount);
+  const hasNextPage = useSelector(selectHasNextPage);
+  const currentPage = useSelector(selectCurrentPage);
 
   useEffect(() => {
-    // Only fetch if we haven't loaded yet
     if (status === "idle") {
       dispatch(fetchNotifications({ page: 1 }));
     }
   }, [dispatch, status]);
 
-  // Show latest 5 in the popover
-  const preview = allNotifications.slice(0, 5);
   const isLoading = status === "loading" && allNotifications.length === 0;
+  const isLoadingMore = status === "loading" && allNotifications.length > 0;
+
+  const handleLoadMore = () => {
+    if (status !== "loading") {
+      dispatch(fetchNotifications({ page: currentPage + 1 }));
+    }
+  };
 
   const handleMarkAllRead = () => {
     dispatch(markAllNotificationsRead());
@@ -112,7 +120,7 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
 
   return (
     <div
-      className="absolute bg-white rounded-2xl border border-gray-100 overflow-hidden z-[60] shadow-xl"
+      className="absolute bg-white rounded-2xl border border-gray-100 overflow-hidden z-60 shadow-xl"
       style={{ width: 517, top: "calc(100% + 12px)", right: 0 }}
     >
       <div className="flex flex-col">
@@ -137,7 +145,7 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
         </div>
 
         {/* List */}
-        <div className="max-h-90 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto">
           {isLoading && (
             <div className="flex flex-col divide-y divide-gray-50">
               {[1, 2, 3].map((i) => (
@@ -152,13 +160,13 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
             </div>
           )}
 
-          {!isLoading && preview.length === 0 && (
+          {!isLoading && allNotifications.length === 0 && (
             <div className="px-6 py-10 text-center text-sm text-gray-400">
               No notifications yet
             </div>
           )}
 
-          {preview.map((n, i) => {
+          {allNotifications.map((n, i) => {
             const isNew = !n.isRead && !n.read;
             const title = n.title ?? "Notification";
             const text = n.message ?? n.body ?? n.text ?? "";
@@ -167,7 +175,7 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
               <div
                 key={n._id ?? n.id}
                 onClick={() => handleItemClick(n)}
-                className={`px-6 py-5 hover:bg-gray-50 transition-colors cursor-pointer ${i < preview.length - 1 ? "border-b border-gray-100" : ""} ${isNew ? "bg-[#FFF8EE]" : ""}`}
+                className={`px-6 py-5 hover:bg-gray-50 transition-colors cursor-pointer ${i < allNotifications.length - 1 ? "border-b border-gray-100" : ""} ${isNew ? "bg-[#FFF8EE]" : ""}`}
               >
                 <div className="flex items-start gap-3">
                   {isNew ? (
@@ -189,6 +197,19 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
               </div>
             );
           })}
+
+          {/* Load more */}
+          {hasNextPage && (
+            <div className="px-6 py-3 border-t border-gray-100">
+              <button
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="w-full py-2.5 text-sm font-semibold text-secondary border border-secondary rounded-xl hover:bg-secondary/5 transition-colors disabled:opacity-50"
+              >
+                {isLoadingMore ? "Loading..." : "View More"}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

@@ -8,9 +8,10 @@ import logo from "@/assets/images/logo.svg";
 import { useSelector, useDispatch } from "react-redux";
 import { selectUser } from "@/store/slices/profileSlice";
 import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
+import { resetStore } from "@/store/store";
 import NotificationPopover from "@/components/shared/NotificationPopover";
 import axiosInstance from "@/store/axiosInstance";
-import { getStoredFcmToken } from "@/hooks/useFCM";
+import { useFCM, getStoredFcmToken } from "@/hooks/useFCM";
 import { firebaseAuth } from "@/lib/firebase";
 
 const UserIcon = () =>
@@ -163,7 +164,11 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
   const profile = useSelector(selectUser);
-  const totalUnread = useSelector(selectTotalUnreadCount);
+  const currentUserId = profile?.id || profile?._id || null;
+  const totalUnread = useSelector((state) => selectTotalUnreadCount(state, currentUserId));
+
+  // Start Firebase FCM listener so incoming messages update the badge in real-time
+  useFCM();
 
   const [activeView, setActiveView] = useState(
     pathname?.startsWith("/user-dashboard") ? "user" : "provider"
@@ -175,8 +180,18 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
   const profileImage = profile?.providerProfile?.profileImage ?? profile?.profileImage ?? null;
 
   useEffect(() => {
+    // Wait for profile to load so selectTotalUnreadCount is scoped to the right user
+    if (!currentUserId) return;
+    // Skip polling while on the messages page — MessagesPage has its own poll
+    if (pathname?.includes("/messages")) return;
     dispatch(fetchConversations());
-  }, [dispatch]);
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden" && !pathname?.includes("/messages")) {
+        dispatch(fetchConversations());
+      }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [dispatch, pathname, currentUserId]);
 
   // Close popovers when clicking outside
   useEffect(() => {
@@ -210,7 +225,12 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
     }
     await firebaseAuth.signOut().catch(() => {});
     localStorage.removeItem("auth-token");
-    router.push("/logout");
+    localStorage.removeItem("reservation_wishlists");
+    localStorage.removeItem("listing_draft_local");
+    sessionStorage.clear();
+    dispatch(resetStore());
+    // Hard navigate so the shell fully unmounts and Redux re-initialises cleanly
+    window.location.href = "/logout";
   };
 
   const handleMobileNav = (path) => {

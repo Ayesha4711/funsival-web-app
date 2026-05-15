@@ -10,62 +10,57 @@ export default function Pagination({
 }) {
   const goTo = (page) => {
     const next = Math.min(totalPages, Math.max(1, page));
-    onPageChange(next);
+    if (next !== currentPage) onPageChange(next);
   };
-
-  // Build page numbers to show: always show up to 5 pages around current
-  const getPages = () => {
-    const pages = [];
-    const delta = 2;
-    const left = Math.max(1, currentPage - delta);
-    const right = Math.min(totalPages, currentPage + delta);
-    for (let i = left; i <= right; i++) pages.push(i);
-    return pages;
-  };
-
-  const pages = getPages();
 
   return (
-    <div className={`flex items-center justify-center gap-1.5 ${className}`}>
-      {/* Previous */}
+    <div className={`flex items-center justify-center gap-1 ${className}`}>
+      {/* First */}
+      <button
+        onClick={() => goTo(1)}
+        disabled={currentPage === 1}
+        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 text-xs hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        aria-label="First page"
+      >
+        «
+      </button>
+
+      {/* Prev */}
       <button
         onClick={() => goTo(currentPage - 1)}
         disabled={currentPage === 1}
-        className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-900 hover:text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 text-xs hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        aria-label="Previous page"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-        Previous
+        ‹
       </button>
 
-      {/* Page numbers */}
-      <div className="flex items-center gap-1">
-        {pages.map((page) => (
-          <button
-            key={page}
-            onClick={() => goTo(page)}
-            className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${
-              page === currentPage
-                ? "bg-[#4AA7A7] text-white"
-                : "text-gray-900 hover:bg-gray-100"
-            }`}
-          >
-            {page}
-          </button>
-        ))}
+      {/* Current page indicator */}
+      <div className="flex items-center gap-1.5 mx-1">
+        <div className="w-8 h-8 flex items-center justify-center rounded-full border-2 border-[#F5C842] text-sm font-bold text-gray-800">
+          {currentPage}
+        </div>
+        <span className="text-sm text-gray-500 font-medium">of {totalPages}</span>
       </div>
 
       {/* Next */}
       <button
         onClick={() => goTo(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-900 hover:text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 text-xs hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        aria-label="Next page"
       >
-        Next
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        ›
+      </button>
+
+      {/* Last */}
+      <button
+        onClick={() => goTo(totalPages)}
+        disabled={currentPage === totalPages}
+        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 text-xs hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        aria-label="Last page"
+      >
+        »
       </button>
     </div>
   );

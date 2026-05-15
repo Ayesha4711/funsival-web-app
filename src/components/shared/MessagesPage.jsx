@@ -26,7 +26,7 @@ import {
 import { selectUser } from "@/store/slices/profileSlice";
 import { onForegroundMessage } from "@/lib/firebase";
 import AppFooter from "@/components/shared/AppFooter";
-const POLL_INTERVAL_MS = 3000;
+const POLL_INTERVAL_MS = 8000;
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const BackIcon = () => (
@@ -169,41 +169,41 @@ function Avatar({ name = "?", src, size = 10 }) {
 }
 
 /* ─── 3-dot dropdown ─────────────────────────────────────────────────────────── */
-function ChatMenu() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  const router = useRouter();
-  const pathname = usePathname();
-
-  useEffect(() => {
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  const handleViewProfile = () => {
-    setOpen(false);
-    const base = pathname?.startsWith("/user-dashboard") ? "/user-dashboard" : "/dashboard";
-    router.push(`${base}/settings?tab=profile`);
-  };
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="p-2 rounded-lg text-[var(--color-text-muted)] hover:bg-gray-100 transition-colors"
-      >
-        <MoreIcon />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-10 z-30 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[160px]">
-          <button onClick={handleViewProfile} className="w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50">View Profile</button>
-          <button onClick={() => setOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">Report</button>
-        </div>
-      )}
-    </div>
-  );
-}
+// function ChatMenu() {
+//   const [open, setOpen] = useState(false);
+//   const ref = useRef(null);
+//   const router = useRouter();
+//   const pathname = usePathname();
+//
+//   useEffect(() => {
+//     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+//     document.addEventListener("mousedown", h);
+//     return () => document.removeEventListener("mousedown", h);
+//   }, []);
+//
+//   const handleViewProfile = () => {
+//     setOpen(false);
+//     const base = pathname?.startsWith("/user-dashboard") ? "/user-dashboard" : "/dashboard";
+//     router.push(`${base}/settings?tab=profile`);
+//   };
+//
+//   return (
+//     <div className="relative" ref={ref}>
+//       <button
+//         onClick={() => setOpen((v) => !v)}
+//         className="p-2 rounded-lg text-[var(--color-text-muted)] hover:bg-gray-100 transition-colors"
+//       >
+//         <MoreIcon />
+//       </button>
+//       {open && (
+//         <div className="absolute right-0 top-10 z-30 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[160px]">
+//           <button onClick={handleViewProfile} className="w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50">View Profile</button>
+//           <button onClick={() => setOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">Report</button>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
 
 /* ─── Contact List Item ──────────────────────────────────────────────────────── */
 function resolveDisplayName(participant) {
@@ -454,7 +454,7 @@ function ChatWindow({ conv, onBack, showBackBtn, currentUserId }) {
             <p className="text-xs text-gray-400 capitalize">{otherParticipant.role}</p>
           )}
         </div>
-        <ChatMenu />
+        {/* <ChatMenu /> */}
       </div>
 
       {/* Messages */}
@@ -575,21 +575,28 @@ export default function MessagesPage() {
 
   const currentUserId = profile?.id || profile?._id || null;
 
-  // Fetch all conversations on mount
+  // Clear active conversation on unmount so the badge isn't auto-cleared next visit
   useEffect(() => {
-    dispatch(fetchConversations());
+    return () => { dispatch(setActiveConversation(null)); };
   }, [dispatch]);
 
-  // When a chat FCM message arrives while the app is open, refresh conversations
-  // and pull new messages for the active conversation immediately
+  // Fetch conversations on mount and poll every 15s to keep sidebar list fresh
+  useEffect(() => {
+    dispatch(fetchConversations());
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden") dispatch(fetchConversations());
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [dispatch]);
+
+  // When a chat FCM message arrives while the app is open, pull new messages
+  // for the active conversation immediately (conversations are handled by navbar FCM)
   useEffect(() => {
     let unsubscribe;
     onForegroundMessage((payload) => {
       dispatch(fetchConversations());
       const convId = payload?.data?.conversationId ?? activeConvId;
-      if (convId) {
-        dispatch(fetchMessages({ conversationId: convId }));
-      }
+      if (convId) dispatch(fetchMessages({ conversationId: convId }));
     }).then((unsub) => { unsubscribe = unsub; });
     return () => { if (typeof unsubscribe === "function") unsubscribe(); };
   }, [dispatch, activeConvId]);

@@ -22,6 +22,7 @@ import {
   fetchNotifications,
   prependNotification,
 } from "@/store/slices/notificationsSlice";
+import { fetchConversations } from "@/store/slices/chatSlice";
 
 // Stores the FCM token so logout can unregister it
 let _fcmToken = null;
@@ -66,8 +67,9 @@ export function useFCM() {
           );
           unsubscribeRef.current = onSnapshot(q, (snap) => {
             if (cancelled) return;
-            // Re-fetch from REST API so Redux state stays in sync with server shape
             dispatch(fetchNotifications({ page: 1 }));
+            // Refresh conversations so the message badge updates immediately
+            dispatch(fetchConversations());
           }, () => {
             // Firestore permission error (unauthenticated) — silently ignore
           });
@@ -82,7 +84,7 @@ export function useFCM() {
             description: body ?? "",
             duration: 5000,
           });
-          // Optimistically prepend so badge updates instantly
+          // Optimistically prepend so notification badge updates instantly
           dispatch(prependNotification({
             id: data.notificationId ?? `_fcm_${Date.now()}`,
             title: title ?? "",
@@ -93,6 +95,11 @@ export function useFCM() {
             createdAt: new Date().toISOString(),
             data,
           }));
+          // If this is a chat message, refresh conversations so the message
+          // badge increments immediately without waiting for the next poll
+          if (data.type === "chat_message" || data.conversationId) {
+            dispatch(fetchConversations());
+          }
         });
       } catch {
         // Silently ignore — user may have denied permission or be offline
