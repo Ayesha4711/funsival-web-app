@@ -28,7 +28,7 @@ import { onForegroundMessage } from "@/lib/firebase";
 import AppFooter from "@/components/shared/AppFooter";
 const POLL_INTERVAL_MS = 8000;
 
-import { ArrowLeftIcon as BackIcon, SearchIcon, EmojiIcon, SendIcon } from "@/icons";
+import { ArrowLeftIcon as BackIcon, SearchIcon, EmojiIcon, SendIcon, PaperclipIcon } from "@/icons";
 
 const NoMsgIcon = () => (
   <svg width="80" height="80" viewBox="0 0 100 100" fill="none">
@@ -321,6 +321,7 @@ function ChatWindow({ conv, onBack, showBackBtn, currentUserId }) {
   const prevMessageCountRef = useRef(null);
   const emojiRef = useRef(null);
   const lastSentAtRef = useRef(0);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const h = (e) => { if (emojiRef.current && !emojiRef.current.contains(e.target)) setEmojiOpen(false); };
@@ -497,6 +498,25 @@ function ChatWindow({ conv, onBack, showBackBtn, currentUserId }) {
             >
               <EmojiIcon />
             </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors shrink-0"
+              title="Attach photo or video"
+            >
+              <PaperclipIcon />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) toast.info(`Selected: ${file.name}`);
+                e.target.value = "";
+              }}
+            />
             <input
               type="text"
               placeholder="Type a message"
@@ -596,6 +616,16 @@ export default function MessagesPage() {
       if (conv) setMobileView(conv);
     }
   }, [activeConvId, conversations]);
+
+  // Auto-select first conversation on load if none is active (desktop only)
+  useEffect(() => {
+    if (!activeConvId && conversations.length > 0) {
+      const first = conversations[0];
+      dispatch(setActiveConversation(first.id));
+      dispatch(clearUnreadCount(first.id));
+      dispatch(markConversationRead(first));
+    }
+  }, [conversations, activeConvId, dispatch]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId) ?? null;
 

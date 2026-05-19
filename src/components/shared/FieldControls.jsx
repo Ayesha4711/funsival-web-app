@@ -3,7 +3,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CustomCalendar from "@/components/shared/CustomCalendar";
-export { ChevronDownIcon, CalendarIcon } from "@/icons";
+import { ChevronDownIcon, CalendarIcon } from "@/icons";
+export { ChevronDownIcon, CalendarIcon };
 
 function useOutsideClose(onClose) {
   const ref = useRef(null);
