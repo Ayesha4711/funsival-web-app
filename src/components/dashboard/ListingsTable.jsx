@@ -464,6 +464,15 @@ function StatusDropdown({ status, onStatusChange }) {
     dot: "bg-gray-400",
   };
 
+  if (status === "Draft") {
+    return (
+      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[10px] font-bold whitespace-nowrap ${styles.pill}`}>
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${styles.dot}`} />
+        {status}
+      </div>
+    );
+  }
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -477,7 +486,9 @@ function StatusDropdown({ status, onStatusChange }) {
 
       {open && (
         <div className="absolute left-0 top-9 z-30 bg-white rounded-xl border border-gray-100 py-1 min-w-[110px]">
-          {STATUS_OPTIONS.map((opt) => {
+          {STATUS_OPTIONS.filter((opt) =>
+            status === "Draft" ? opt === "Draft" : opt !== "Draft"
+          ).map((opt) => {
             const s = STATUS_STYLES[opt];
             return (
               <button
@@ -675,14 +686,12 @@ export default function ListingsTable({
               data.map((item, idx) => (
                 <tr
                   key={item.id}
-                  className={`transition-colors hover:bg-[#F8FFFA] ${idx !== data.length - 1 ? "border-b border-gray-50" : ""}`}
+                  onClick={() => setPreviewItem(item)}
+                  className={`transition-colors hover:bg-[#F8FFFA] cursor-pointer ${idx !== data.length - 1 ? "border-b border-gray-50" : ""}`}
                 >
-                  {/* Activity — click thumbnail/name to open preview */}
+                  {/* Activity — click row to open preview */}
                   <td className="px-5 py-3.5 min-w-[200px] max-w-[260px]">
-                    <button
-                      onClick={() => setPreviewItem(item)}
-                      className="flex items-center gap-3 text-left w-full"
-                    >
+                    <div className="flex items-center gap-3 text-left w-full">
                       <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 bg-gray-100 border border-gray-100">
                         {item.image &&
                         (item.image.startsWith("http") ||
@@ -722,7 +731,7 @@ export default function ListingsTable({
                           <span className="truncate">{item.location}</span>
                         </p>
                       </div>
-                    </button>
+                    </div>
                   </td>
 
                   {/* Category */}
@@ -751,7 +760,7 @@ export default function ListingsTable({
                   </td>
 
                   {/* Status */}
-                  <td className="px-5 py-3.5 whitespace-nowrap">
+                  <td className="px-5 py-3.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <StatusDropdown
                       status={item.status}
                       onStatusChange={(newStatus) =>
@@ -761,7 +770,7 @@ export default function ListingsTable({
                   </td>
 
                   {/* Actions */}
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
                     <ActionMenu
                       item={item}
                       onEdit={onEdit}
