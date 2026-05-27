@@ -112,6 +112,27 @@ export const sendMessage = createAsyncThunk(
   }
 );
 
+export const sendImageMessage = createAsyncThunk(
+  "chat/sendImageMessage",
+  async ({ conversationId, file }, { rejectWithValue }) => {
+    try {
+      const isVideo = file.type.startsWith("video/");
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", isVideo ? "video" : "image");
+      formData.append("text", isVideo ? "📹 Video" : "📷 Image");
+      const { data } = await axiosInstance.post(
+        `/chats/conversations/${conversationId}/messages`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      return { ...data, conversationId };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
 const chatSlice = createSlice({
   name: "chat",
   initialState: {
@@ -266,6 +287,37 @@ const chatSlice = createSlice({
         state.sendStatus = "idle";
         state.error = action.payload;
         // Remove optimistic messages on failure
+        Object.keys(state.messagesByConversation).forEach((id) => {
+          state.messagesByConversation[id] = state.messagesByConversation[id].filter(
+            (m) => !m._optimistic
+          );
+        });
+      })
+      .addCase(sendImageMessage.pending, (state) => {
+        state.sendStatus = "loading";
+      })
+      .addCase(sendImageMessage.fulfilled, (state, action) => {
+        state.sendStatus = "idle";
+        const convId = action.payload?.conversationId;
+        const msg = action.payload?.data?.message ?? action.payload?.data;
+        if (convId && msg) {
+          if (!state.messagesByConversation[convId]) {
+            state.messagesByConversation[convId] = [];
+          }
+          const withoutOptimistic = state.messagesByConversation[convId].filter(
+            (m) => !m._optimistic && m.id !== msg.id
+          );
+          state.messagesByConversation[convId] = [...withoutOptimistic, msg];
+        }
+        const conv = state.conversations.find((c) => c.id === convId);
+        if (conv && msg) {
+          conv.lastMessage = { text: msg.text, senderId: msg.senderId, type: msg.type, createdAt: msg.createdAt };
+          conv.lastMessageAt = msg.createdAt;
+        }
+      })
+      .addCase(sendImageMessage.rejected, (state, action) => {
+        state.sendStatus = "idle";
+        state.error = action.payload;
         Object.keys(state.messagesByConversation).forEach((id) => {
           state.messagesByConversation[id] = state.messagesByConversation[id].filter(
             (m) => !m._optimistic

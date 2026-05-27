@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
+import { ChevronLeftIcon, ChevronRightIcon } from '@/icons';
 
 const destinations = [
   { id: 1, name: 'Colorado', slug: 'colorado' },
@@ -42,18 +43,14 @@ export default function BrowseByDestination() {
               className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 hover:border-[#4AA7A7] hover:text-[#4AA7A7] flex items-center justify-center transition-all duration-200"
               aria-label="Scroll left"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <ChevronLeftIcon size={20} />
             </button>
             <button
               onClick={() => scroll('right')}
               className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 hover:border-[#4AA7A7] hover:text-[#4AA7A7] flex items-center justify-center transition-all duration-200"
               aria-label="Scroll right"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <ChevronRightIcon size={20} />
             </button>
           </div>
         </div>
@@ -92,9 +89,7 @@ export default function BrowseByDestination() {
                       {destination.name}
                     </h3>
                     <div className="w-10 h-10 bg-[#F5C842] rounded-full flex items-center justify-center">
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <ChevronRightIcon size={20} className="text-white" />
                     </div>
                   </div>
                 </div>
@@ -111,11 +106,6 @@ export default function BrowseByDestination() {
         </div>
       </div>
 
-      <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </section>
   );
 }

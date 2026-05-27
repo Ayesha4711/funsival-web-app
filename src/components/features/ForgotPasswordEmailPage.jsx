@@ -9,21 +9,7 @@ import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
 import { forgotPasswordAction, resendVerificationAction } from "@/app/forgot-password/actions";
-
-/* ─── Icons ─────────────────────────────────────────────────────────────────── */
-const MailIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M14.167 17.0827H5.83366C3.33366 17.0827 1.66699 15.8327 1.66699 12.916V7.08268C1.66699 4.16602 3.33366 2.91602 5.83366 2.91602H14.167C16.667 2.91602 18.3337 4.16602 18.3337 7.08268V12.916C18.3337 15.8327 16.667 17.0827 14.167 17.0827Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M14.1663 7.5L11.558 9.58333C10.6997 10.2667 9.29134 10.2667 8.433 9.58333L5.83301 7.5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const ArrowRightIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="5" y1="12" x2="19" y2="12" />
-    <polyline points="12 5 19 12 12 19" />
-  </svg>
-);
+import { MailIcon, ArrowRightIcon } from "@/icons";
 
 /* ─── Resend button with cooldown ─────────────────────────────────────────────── */
 function ResendButton({ email }) {
@@ -43,7 +29,8 @@ function ResendButton({ email }) {
     if (!resendState) return;
     if (resendState.success) {
       toast.success("Email resent", { description: resendState.message });
-      setSeconds(COOLDOWN);
+      const id = setTimeout(() => setSeconds(COOLDOWN), 0);
+      return () => clearTimeout(id);
     } else if (resendState.error) {
       toast.error("Resend failed", { description: resendState.error });
     }
@@ -79,7 +66,7 @@ function CheckEmailConfirmation({ email }) {
       </p>
 
       <p className="text-sm text-text-muted mb-7 text-center flex items-center justify-center gap-1">
-        Didn't receive the email?{" "}
+        Didn&apos;t receive the email?{" "}
         <ResendButton email={email} />
       </p>
 
@@ -134,7 +121,7 @@ function ForgotPasswordForm() {
         Forgot Password?
       </h1>
       <p className="text-[#A1A1A1] mb-8 leading-relaxed text-center">
-        Enter the email address associated with your account and we'll send you
+        Enter the email address associated with your account and we&apos;ll send you
         a link to reset your password.
       </p>
 

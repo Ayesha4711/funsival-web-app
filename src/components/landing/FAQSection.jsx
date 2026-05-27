@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { PlusIcon, MinusIcon } from '@/icons';
 
 const faqs = [
   {
@@ -74,13 +75,9 @@ export default function FAQSection() {
                   aria-label={openId === faq.id ? 'Collapse' : 'Expand'}
                 >
                   {openId === faq.id ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 12H4" />
-                    </svg>
+                    <MinusIcon size={16} />
                   ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                    </svg>
+                    <PlusIcon size={16} />
                   )}
                 </button>
               </div>

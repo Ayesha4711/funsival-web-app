@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { getPriceMode, normalizeListingPrice } from "./listingPrice";
+import { ClockIcon, CalendarIcon, TruckIcon, InfoIcon } from "@/icons";
 
 function FieldHint({ children }) {
   return <p className="text-[11px] sm:text-xs text-[#62748E] leading-relaxed mt-1.5">{children}</p>;
@@ -46,33 +47,6 @@ function CurrencyInput({ value, onChange, suffix, placeholder = "0.00" }) {
   );
 }
 
-const ClockIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-  </svg>
-);
-
-const CalendarIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="4" width="18" height="18" rx="2" />
-    <line x1="16" y1="2" x2="16" y2="6" />
-    <line x1="8" y1="2" x2="8" y2="6" />
-    <line x1="3" y1="10" x2="21" y2="10" />
-  </svg>
-);
-
-const TruckIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#50627A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 7h13l3 4v6H3z" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" />
-  </svg>
-);
-
-const InfoIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4263EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-  </svg>
-);
-
 export default function StepPrice({ category, price, onChange, onNext, onBack }) {
   const mode = getPriceMode(category);
   const [form, setForm] = useState(() => normalizeListingPrice(category, price));
@@ -115,7 +89,7 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
         <div className="w-full max-w-md space-y-5">
           <div className="space-y-2">
             <p className="text-sm font-bold text-gray-700 flex items-center gap-2">
-              <ClockIcon /> Per Person
+              <ClockIcon size={18} className="text-[#F5A623]" /> Per Person
             </p>
             <CurrencyInput
               value={form.perPerson}
@@ -140,7 +114,7 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
           {/* Hourly Rate */}
           <div className="space-y-2">
             <p className="text-sm font-bold text-gray-700 flex items-center gap-2">
-              <ClockIcon /> Hourly Rate
+              <ClockIcon size={18} className="text-[#F5A623]" /> Hourly Rate
             </p>
             <CurrencyInput
               value={form.hourly}
@@ -153,7 +127,7 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
           {/* Daily Rate */}
           <div className="space-y-2">
             <p className="text-sm font-bold text-gray-700 flex items-center gap-2">
-              <CalendarIcon /> Daily Rate
+              <CalendarIcon size={18} className="text-[#F5A623]" /> Daily Rate
             </p>
             <CurrencyInput
               value={form.daily}
@@ -167,7 +141,7 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
           <div className="rounded-2xl bg-[#EAF4F4] border border-[#C7E4E2] p-5 sm:p-6 space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0">
-                <TruckIcon />
+                <TruckIcon size={20} className="text-[#50627A]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-[var(--color-text)]">Delivery &amp; Pickup Option</p>
@@ -195,7 +169,7 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
           <hr className="border-gray-200" />
 
           <div className="flex items-start gap-2.5">
-            <span className="shrink-0 mt-0.5"><InfoIcon /></span>
+            <span className="shrink-0 mt-0.5"><InfoIcon size={18} className="text-[#4263EB]" /></span>
             <p className="text-sm text-gray-400 leading-relaxed">
               You can set one or both pricing options. Your clients will see all rates you configure.
             </p>
@@ -208,7 +182,7 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
         <div className="w-full max-w-md space-y-5">
           <div className="space-y-2">
             <p className="text-sm font-bold text-gray-700 flex items-center gap-2">
-              <ClockIcon /> Hourly Rate
+              <ClockIcon size={18} className="text-[#F5A623]" /> Hourly Rate
             </p>
             <CurrencyInput
               value={form.hourly}
@@ -221,7 +195,7 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
           <hr className="border-gray-200" />
 
           <div className="flex items-start gap-2.5">
-            <span className="shrink-0 mt-0.5"><InfoIcon /></span>
+            <span className="shrink-0 mt-0.5"><InfoIcon size={18} className="text-[#4263EB]" /></span>
             <p className="text-sm text-gray-400 leading-relaxed">
               You can set one or both pricing options. Your clients will see all rates you configure.
             </p>

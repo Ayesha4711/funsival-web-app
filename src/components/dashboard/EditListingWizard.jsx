@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Country, State } from "country-state-city";
 import StepCategory from "./listings/StepCategory";
@@ -9,47 +10,223 @@ import StepType from "./listings/StepType";
 import StepDetails from "./listings/StepDetails";
 import StepPrice from "./listings/StepPrice";
 import StepReview from "./listings/StepReview";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { fetchListing, updateListing } from "@/store/slices/listingsSlice";
+import { selectUser } from "@/store/slices/profileSlice";
 import AppFooter from "@/components/shared/AppFooter";
 import { buildListingPricePayload, createEmptyPrice, formatListingPrice, normalizeListingPrice } from "./listings/listingPrice";
+import { normalizeDateValue } from "@/components/shared/dateUtils";
+import axiosInstance from "@/store/axiosInstance";
+import { resetStore } from "@/store/store";
+import { getStoredFcmToken, useFCM } from "@/hooks/useFCM";
+import { firebaseAuth } from "@/lib/firebase";
 import logo from "@/assets/images/logo.svg";
+import { SearchIcon, ChevronDownIcon, BellIcon, MessageIcon, CheckIcon, SpinnerIcon, ArrowLeftIcon, UserIcon, SettingsIcon, LogoutIcon } from "@/icons";
+import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
+import NotificationPopover from "@/components/shared/NotificationPopover";
 
 /* ─── Wizard Navbar ────────────────────────────────────────────────────────── */
 function WizardNavbar() {
+  const router   = useRouter();
+  const pathname = usePathname();
+  const dispatch = useDispatch();
+  const profile  = useSelector(selectUser);
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notifOpen,    setNotifOpen]    = useState(false);
+  const [profileOpen,  setProfileOpen]  = useState(false);
+
+  const notifRef   = useRef(null);
+  const profileRef = useRef(null);
+
+  const currentUserId = profile?.id || profile?._id || null;
+  const totalUnread   = useSelector((state) => selectTotalUnreadCount(state, currentUserId));
+
+  const displayFirstName = profile?.firstName || profile?.providerProfile?.firstName || "";
+  const displayLastName  = profile?.lastName  || profile?.providerProfile?.lastName  || "";
+  const avatarLetter   = (displayFirstName[0] || displayLastName[0] || profile?.email?.[0] || "P").toUpperCase();
+  const profileImage   = profile?.providerProfile?.profileImage ?? profile?.profileImage ?? null;
+  const displayFullName = [displayFirstName, displayLastName].filter(Boolean).join(" ");
+
+  // Live unread-message badge
+  useFCM();
+  useEffect(() => {
+    if (!currentUserId) return;
+    if (pathname?.includes("/messages")) return;
+    dispatch(fetchConversations());
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden" && !pathname?.includes("/messages")) {
+        dispatch(fetchConversations());
+      }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [dispatch, pathname, currentUserId]);
+
+  // Close popovers on outside click
+  useEffect(() => {
+    function handle(e) {
+      if (notifRef.current   && !notifRef.current.contains(e.target))   setNotifOpen(false);
+      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  const handleNotifClick = () => {
+    if (window.innerWidth < 1024) {
+      router.push("/dashboard/notifications");
+    } else {
+      setNotifOpen(v => !v);
+    }
+  };
+
+  const handleLogout = async () => {
+    setProfileOpen(false);
+    const fcmToken = getStoredFcmToken();
+    if (fcmToken) {
+      await axiosInstance
+        .delete(`/notifications/device-tokens/${encodeURIComponent(fcmToken)}`)
+        .catch(() => {});
+    }
+    await firebaseAuth.signOut().catch(() => {});
+    localStorage.removeItem("auth-token");
+    localStorage.removeItem("reservation_wishlists");
+    localStorage.removeItem("listing_draft_local");
+    sessionStorage.clear();
+    dispatch(resetStore());
+    window.location.href = "/logout";
+  };
+
   return (
-    <header className="h-16 bg-[var(--color-primary)] flex items-center px-8 gap-4 shrink-0 sticky top-0 z-20">
-      <Image src={logo} alt="Funsival" width={120} height={36} className="h-9 w-auto object-contain shrink-0" />
-      <div className="flex-1 flex justify-center">
-        <div className="relative w-full max-w-sm">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+    <header className="h-16 bg-[#228E8A] flex items-center justify-between px-8 gap-4 shrink-0 sticky top-0 z-50">
+      {/* Logo */}
+      <Image src={logo} alt="Funsival" width={110} height={32} className="h-8 w-auto object-contain shrink-0" />
+
+      {/* Search */}
+      <div className="flex-1 flex justify-center px-4">
+        <div className="relative w-full max-w-xs">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <SearchIcon size={16} />
           </span>
-          <input type="text" placeholder="Search here" className="w-full h-9 pl-10 pr-4 rounded-full bg-white text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none" />
+          <input
+            type="text"
+            placeholder="Search here"
+            className="w-full h-9 pl-10 pr-4 rounded-full bg-white text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50"
+          />
         </div>
       </div>
+
+      {/* Right controls */}
       <div className="flex items-center gap-4 shrink-0">
-        <span className="flex items-center gap-1 text-white text-sm font-medium">
-          Provider
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </span>
-        <button className="text-white/90 hover:text-white p-1 relative">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
+
+        {/* Provider / User switcher */}
+        <div className="relative">
+          <button
+            onClick={() => setDropdownOpen(v => !v)}
+            className="flex items-center gap-1.5 text-white text-sm font-medium hover:text-white/80 transition-colors"
+          >
+            Provider <ChevronDownIcon size={14} />
+          </button>
+          {dropdownOpen && (
+            <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl py-1 z-50 shadow-lg">
+              <button
+                onClick={() => { setDropdownOpen(false); router.push("/dashboard"); }}
+                className="block w-full text-left px-4 py-2 text-sm font-semibold text-[#228E8A] bg-[#EBF6F6] hover:bg-[#d5efee] transition-colors"
+              >
+                Provider
+              </button>
+              <button
+                onClick={() => { setDropdownOpen(false); router.push("/user-dashboard/explore"); }}
+                className="block w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                User
+              </button>
+            </div>
+          )}
+        </div>
+
+        <span className="w-px h-5 bg-white/40 shrink-0" />
+
+        {/* Notification bell */}
+        <div className="relative" ref={notifRef}>
+          <button
+            onClick={handleNotifClick}
+            className="text-white/90 hover:text-white transition-colors relative p-1"
+            aria-label="Notifications"
+          >
+            <BellIcon size={20} />
+            <span className="absolute top-0 right-0 w-2 h-2 bg-[#FEB538] rounded-full border border-[#228E8A]" />
+          </button>
+          {notifOpen && <NotificationPopover onClose={() => setNotifOpen(false)} />}
+        </div>
+
+        {/* Messages */}
+        <button
+          onClick={() => router.push("/dashboard/messages")}
+          className="relative text-white/90 hover:text-white transition-colors p-1"
+          aria-label="Messages"
+        >
+          <MessageIcon size={20} />
+          {totalUnread > 0 && (
+            <span className="absolute top-0 right-0 min-w-3.5 h-3.5 bg-[#FEB538] rounded-full text-[8px] flex items-center justify-center text-white font-bold border border-[#228E8A] px-0.5">
+              {totalUnread > 9 ? "9+" : totalUnread}
+            </span>
+          )}
         </button>
-        <button className="text-white/90 hover:text-white p-1">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-        </button>
-        <div className="w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white font-bold text-sm border-2 border-white/30">
-          P
+
+        {/* Avatar + profile dropdown */}
+        <div className="relative" ref={profileRef}>
+          <button
+            type="button"
+            onClick={() => setProfileOpen(v => !v)}
+            className="w-9 h-9 rounded-full bg-[#FEB538] flex items-center justify-center text-white font-bold text-sm border-2 border-white/30 overflow-hidden hover:border-white/60 transition-colors"
+            aria-label="Profile menu"
+          >
+            {profileImage
+              ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" />
+              : avatarLetter}
+          </button>
+          {profileOpen && (
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl py-1.5 z-50 border border-gray-100 shadow-lg">
+              {profile && (
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-[#FEB538] flex items-center justify-center text-white font-bold text-xs shrink-0 overflow-hidden">
+                    {profileImage
+                      ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" />
+                      : avatarLetter}
+                  </div>
+                  <div className="min-w-0">
+                    {displayFullName && (
+                      <p className="text-xs font-bold text-gray-900 truncate">{displayFullName}</p>
+                    )}
+                    <p className="text-[10px] text-gray-400 truncate">{profile.email}</p>
+                  </div>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => { setProfileOpen(false); router.push("/dashboard/settings?tab=profile"); }}
+                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-gray-400"><UserIcon /></span> My Profile
+              </button>
+              <button
+                type="button"
+                onClick={() => { setProfileOpen(false); router.push("/dashboard/settings"); }}
+                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-gray-400"><SettingsIcon /></span> Settings
+              </button>
+              <div className="my-1 border-t border-gray-100" />
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <LogoutIcon /> Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -90,9 +267,7 @@ function Stepper({ current, onStepClick }) {
                 ].join(" ")}
               >
                 {done
-                  ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                  ? <CheckIcon size={12} />
                   : String(step.id).padStart(2, "0")}
               </div>
               <span
@@ -148,7 +323,7 @@ function apiToWizardData(raw) {
     : [];
 
   const slots = Array.isArray(raw.availability) && raw.availability.length > 0
-    ? raw.availability.map(s => ({ day: s.date || s.day || "", startTime: s.startTime || "", endTime: s.endTime || "" }))
+    ? raw.availability.map(s => ({ day: normalizeDateValue(s.date || s.day || ""), startTime: s.startTime || "", endTime: s.endTime || "" }))
     : [{ day: "", startTime: "", endTime: "" }];
 
   // Filter out blob URLs from photos (they won't work after refresh)
@@ -382,9 +557,7 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.45)" }}>
         <div className="bg-white rounded-3xl p-10 flex flex-col items-center gap-3">
-          <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5">
-            <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
-          </svg>
+          <SpinnerIcon size={32} color="var(--color-primary)" />
           <p className="text-sm font-medium text-gray-500">Loading listing...</p>
         </div>
       </div>
@@ -406,10 +579,7 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
               onClick={onClose}
               className="text-[#212121] hover:opacity-70 transition-opacity shrink-0"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
+              <ArrowLeftIcon size={22} />
             </button>
             <div className="flex-1">
               <h1 className="text-xl font-bold text-[var(--color-text)] leading-tight">

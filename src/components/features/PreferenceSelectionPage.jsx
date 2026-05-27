@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { savePreferences, selectProfileStatus } from "@/store/slices/profileSlice";
-import logo from "@/assets/images/logo.svg";
+import logo from "@/assets/images/Logo.jpg";
+import { CloseIcon } from "@/icons";
 
 /* ─── Data ─────────────────────────────────────────────────────────────────── */
 const CATEGORIES = {
@@ -23,13 +24,6 @@ const CATEGORIES = {
     "Paragliding", "Jetski", "Boating", "Fishing", "Bungee", "Zipline"
   ]
 };
-
-/* ─── Components ───────────────────────────────────────────────────────────── */
-const CloseIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
 
 const Tag = ({ label, isSelected, onClick }) => (
   <button

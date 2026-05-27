@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { MapPinIcon, SearchIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "@/icons";
+import CalendarMonth from "@/components/shared/CalendarMonth";
 
 const cities = [
   "Denver",
@@ -10,105 +12,15 @@ const cities = [
   "Aurora",
   "Boulder",
   "Asper",
-  "Pearl City"
+  "Pearl City",
 ];
+
 const activities = [
   { name: "Sky Diving", icon: "🪂" },
   { name: "Jet Skiing", icon: "🚤" },
   { name: "Scuba Diving", icon: "🤿" },
-  { name: "Jeep Rally", icon: "🚙" }
+  { name: "Jeep Rally", icon: "🚙" },
 ];
-
-function getDaysInMonth(year, month) {
-  return new Date(year, month + 1, 0).getDate();
-}
-function getFirstDayOfMonth(year, month) {
-  return new Date(year, month, 1).getDay();
-}
-
-function CalendarMonth({
-  year,
-  month,
-  selectedStart,
-  selectedEnd,
-  onSelectDate,
-  hovered,
-  onHover
-}) {
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
-  ];
-  const days = getDaysInMonth(year, month);
-  let firstDay = getFirstDayOfMonth(year, month);
-  firstDay = firstDay === 0 ? 6 : firstDay - 1;
-  const cells = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= days; d++) cells.push(new Date(year, month, d));
-
-  return (
-    <div className="flex-1 min-w-[220px]">
-      <p className="text-center text-sm font-semibold text-gray-800 mb-3">
-        {monthNames[month]} {year}
-      </p>
-      <div className="grid grid-cols-7 gap-0 mb-1">
-        {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map(d =>
-          <div
-            key={d}
-            className="text-center text-[10px] text-gray-400 font-medium py-1"
-          >
-            {d}
-          </div>
-        )}
-      </div>
-      <div className="grid grid-cols-7 gap-0">
-        {cells.map((date, i) => {
-          if (!date) return <div key={i} />;
-          const ts = date.getTime();
-          const isStart = selectedStart && selectedStart.getTime() === ts;
-          const isEnd = selectedEnd && selectedEnd.getTime() === ts;
-          const isToday = new Date().toDateString() === date.toDateString();
-          const endOrHovered = selectedEnd || hovered;
-          const inRange =
-            selectedStart &&
-            endOrHovered &&
-            ts > selectedStart.getTime() &&
-            ts < endOrHovered.getTime();
-          return (
-            <button
-              key={i}
-              onMouseEnter={() => onHover(date)}
-              onMouseLeave={() => onHover(null)}
-              onClick={() => onSelectDate(date)}
-              className={`text-[11px] h-8 w-full flex items-center justify-center rounded-full transition-colors
-                ${isStart || isEnd ? "bg-[#4AA7A7] text-white font-bold" : ""}
-                ${isToday && !isStart && !isEnd
-                  ? "border border-[#4AA7A7] text-[#4AA7A7] font-semibold"
-                  : ""}
-                ${inRange ? "bg-[#4AA7A7]/15 text-[#4AA7A7]" : ""}
-                ${!isStart && !isEnd && !inRange && !isToday
-                  ? "text-gray-700 hover:bg-gray-100"
-                  : ""}
-              `}
-            >
-              {date.getDate()}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 export default function HeroSection() {
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -226,10 +138,7 @@ export default function HeroSection() {
                 className={`w-full flex items-center gap-3 px-4 py-4 transition-all ${openDropdown === "city" ? "bg-gray-50" : ""}`}
                 onClick={() => setOpenDropdown(openDropdown === "city" ? null : "city")}
               >
-                <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                <MapPinIcon size={20} className="text-gray-400 shrink-0" />
                 <span className={`text-sm ${searchData.location ? "text-gray-900 font-medium" : "text-gray-400"}`}>
                   {searchData.location || "Where are you going?"}
                 </span>
@@ -238,10 +147,7 @@ export default function HeroSection() {
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl border border-gray-100 z-50 overflow-hidden">
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
-                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                      <MapPinIcon size={16} className="text-gray-400 shrink-0" />
                       <input autoFocus type="text" placeholder="Select City" className="flex-1 text-sm bg-transparent focus:outline-none text-gray-700"
                         value={searchData.location} onChange={e => setSearchData({ ...searchData, location: e.target.value })} />
                     </div>
@@ -264,9 +170,7 @@ export default function HeroSection() {
                 className={`w-full flex items-center gap-3 px-4 py-4 transition-all ${openDropdown === "activity" ? "bg-gray-50" : ""}`}
                 onClick={() => setOpenDropdown(openDropdown === "activity" ? null : "activity")}
               >
-                <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="8" strokeWidth={2} /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
-                </svg>
+                <SearchIcon size={20} className="text-gray-400 shrink-0" />
                 <span className={`text-sm ${searchData.activity ? "text-gray-900 font-medium" : "text-gray-400"}`}>
                   {searchData.activity || "Activity type"}
                 </span>
@@ -292,9 +196,7 @@ export default function HeroSection() {
                 onClick={() => setOpenDropdown(openDropdown === "date" ? null : "date")}
               >
                 <div className="flex items-center gap-3 flex-1">
-                  <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                  <CalendarIcon size={20} className="text-gray-400 shrink-0" />
                   <span className={`text-sm ${selectedStart ? "text-gray-900 font-medium" : "text-gray-400"}`}>
                     {selectedStart
                       ? `${String(selectedStart.getMonth()+1).padStart(2,"0")}/${String(selectedStart.getDate()).padStart(2,"0")}/${selectedStart.getFullYear()}`
@@ -303,9 +205,7 @@ export default function HeroSection() {
                 </div>
                 <div className="w-px h-6 bg-gray-200 mx-3 shrink-0" />
                 <div className="flex items-center gap-3 flex-1">
-                  <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                  <CalendarIcon size={20} className="text-gray-400 shrink-0" />
                   <span className={`text-sm ${selectedEnd ? "text-gray-900 font-medium" : "text-gray-400"}`}>
                     {selectedEnd
                       ? `${String(selectedEnd.getMonth()+1).padStart(2,"0")}/${String(selectedEnd.getDate()).padStart(2,"0")}/${selectedEnd.getFullYear()}`
@@ -319,18 +219,14 @@ export default function HeroSection() {
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl border border-gray-100 z-50 p-4">
                     <div className="flex items-center justify-between mb-4">
                       <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
+                        <ChevronLeftIcon size={16} className="text-gray-500" />
                       </button>
                       <div className="flex gap-4 flex-1 justify-around">
                         <CalendarMonth year={calYear} month={calMonth} selectedStart={selectedStart} selectedEnd={selectedEnd}
                           onSelectDate={handleDateSelect} hovered={hovered} onHover={setHovered} />
                       </div>
                       <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <ChevronRightIcon size={16} className="text-gray-500" />
                       </button>
                     </div>
                     <div className="flex items-center justify-between border-t border-gray-100 pt-3 gap-3">
@@ -381,10 +277,7 @@ export default function HeroSection() {
                 className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${openDropdown === "city" ? "bg-gray-50 ring-2 ring-[#4AA7A7]" : ""}`}
                 onClick={() => setOpenDropdown(openDropdown === "city" ? null : "city")}
               >
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                <MapPinIcon size={16} className="text-gray-400 shrink-0" />
                 <div className="text-left min-w-0">
                   <p className="text-[10px] text-gray-400 font-medium">Where?</p>
                   <p className="text-sm font-semibold text-gray-800 truncate">{searchData.location || "Add location, state"}</p>
@@ -416,9 +309,7 @@ export default function HeroSection() {
                 className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${openDropdown === "activity" ? "bg-gray-50 ring-2 ring-[#4AA7A7]" : ""}`}
                 onClick={() => setOpenDropdown(openDropdown === "activity" ? null : "activity")}
               >
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+                <SearchIcon size={16} className="text-gray-400 shrink-0" />
                 <div className="text-left min-w-0">
                   <p className="text-[10px] text-gray-400 font-medium">Activity Type</p>
                   <p className="text-sm font-semibold text-gray-800 truncate">{searchData.activity || "Skydiving, jet skiing"}</p>
@@ -444,9 +335,7 @@ export default function HeroSection() {
                 className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${openDropdown === "date" ? "bg-gray-50 ring-2 ring-[#4AA7A7]" : ""}`}
                 onClick={() => setOpenDropdown(openDropdown === "date" ? null : "date")}
               >
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+                <CalendarIcon size={16} className="text-gray-400 shrink-0" />
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="text-left">
                     <p className="text-[10px] text-gray-400 font-medium">From</p>
@@ -473,9 +362,7 @@ export default function HeroSection() {
                   <div className="absolute top-full right-0 left-auto mt-2 bg-white rounded-2xl border border-gray-100 z-50 p-4 w-[340px] lg:w-[520px]">
                     <div className="flex items-center justify-between mb-4">
                       <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
+                        <ChevronLeftIcon size={16} className="text-gray-500" />
                       </button>
                       <div className="flex gap-4 lg:gap-8 flex-1 justify-around">
                         <CalendarMonth year={calYear} month={calMonth} selectedStart={selectedStart} selectedEnd={selectedEnd}
@@ -486,9 +373,7 @@ export default function HeroSection() {
                         </div>
                       </div>
                       <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <ChevronRightIcon size={16} className="text-gray-500" />
                       </button>
                     </div>
                     <div className="flex items-center justify-between border-t border-gray-100 pt-3 gap-3">
@@ -509,9 +394,7 @@ export default function HeroSection() {
               onClick={() => console.log("Search", searchData)}
               className="w-12 h-12 bg-[#4AA7A7] hover:bg-[#3d8f8f] text-white rounded-full flex items-center justify-center transition-colors ml-1 shrink-0"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <SearchIcon size={20} />
             </button>
           </div>{/* end desktop pill */}
         </div>{/* end searchRef wrapper */}

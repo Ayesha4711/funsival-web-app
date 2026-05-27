@@ -109,8 +109,8 @@ function UserNavbar() {
     localStorage.removeItem("listing_draft_local");
     sessionStorage.clear();
     dispatch(resetStore());
-    // Hard navigate so the shell fully unmounts and Redux re-initialises cleanly
-    window.location.href = "/logout";
+    // replace() removes the current protected route from history so back never returns to it
+    window.location.replace("/logout");
   };
 
   const navigate = (path) => {
@@ -318,6 +318,7 @@ export default function UserDashboardShell({ children }) {
   }, [dispatch, status]);
 
   if (status === "idle" || status === "loading") return <FullPageLoader />;
+  if (status === "failed") { window.location.replace("/"); return null; }
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">

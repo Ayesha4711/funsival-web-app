@@ -7,22 +7,7 @@ import { toast } from "sonner";
 import { createBooking, selectBookingsStatus } from "@/store/slices/bookingsSlice";
 import AppFooter from "@/components/shared/AppFooter";
 
-import { ArrowLeftIcon as BackIcon, EditIcon, HeartIcon, ShareIcon, ChevronDownIcon, ChevronUpIcon, DollarIcon as DollarCircleIcon, CreditCardIcon as CardIcon, UserIcon, PlusIcon, CalendarIcon, ShieldIcon, CheckIcon } from "@/icons";
-
-/* ─── Brand card icons — kept local (unique brand graphics) ─────────────────── */
-const VisaIcon = () => (
-  <svg className="w-10 h-6" viewBox="0 0 60 20" fill="none">
-    <text x="0" y="16" fontSize="16" fontWeight="bold" fill="#1A1F71" fontFamily="Arial">VISA</text>
-  </svg>
-);
-
-const MastercardIcon = () => (
-  <svg className="w-8 h-5" viewBox="0 0 50 30" fill="none">
-    <circle cx="18" cy="15" r="13" fill="#EB001B" />
-    <circle cx="32" cy="15" r="13" fill="#F79E1B" />
-    <path d="M25 5.8A13 13 0 0132 15a13 13 0 01-7 9.2A13 13 0 0118 15a13 13 0 017-9.2z" fill="#FF5F00" />
-  </svg>
-);
+import { ArrowLeftIcon as BackIcon, EditIcon, HeartIcon, ShareIcon, ChevronDownIcon, ChevronUpIcon, DollarIcon as DollarCircleIcon, CreditCardIcon as CardIcon, UserIcon, PlusIcon, CalendarIcon, ShieldIcon, CheckIcon, VisaIcon, MastercardIcon } from "@/icons";
 
 /* ─── Toast ──────────────────────────────────────────────────────────────────── */
 /* ─── Saved Cards (mock) ─────────────────────────────────────────────────────── */

@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { toast } from "sonner";
 import { SimpleMap } from "@/components/shared/MapControls";
 import { describeListingPrice, formatListingPrice, getPriceMode } from "./listingPrice";
+import { MapPinIcon, DollarIcon, ClockIcon, UsersIcon, CalendarIcon, InfoIcon, SpinnerIcon } from "@/icons";
 
 function cap(str) {
   if (!str) return "—";
@@ -76,55 +77,6 @@ function PhotoStrip({ photos }) {
   );
 }
 
-/* ── Icons ─────────────────────────────────────────────────────────────────── */
-function PinIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-      <circle cx="12" cy="9" r="2.5"/>
-    </svg>
-  );
-}
-
-function DollarIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-      <line x1="12" y1="1" x2="12" y2="23"/>
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-      <circle cx="12" cy="12" r="10"/>
-      <polyline points="12 6 12 12 16 14"/>
-    </svg>
-  );
-}
-
-function PeopleIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-      <rect x="3" y="4" width="18" height="18" rx="2"/>
-      <line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="8" y1="2" x2="8" y2="6"/>
-      <line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  );
-}
 
 /* ── Main component ─────────────────────────────────────────────────────────── */
 export default function StepReview({
@@ -192,9 +144,7 @@ export default function StepReview({
       <div className="text-center mb-8 pt-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] inline-flex items-center gap-2">
           Review Details
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
+          <InfoIcon size={20} className="text-[var(--color-secondary)]" />
         </h2>
         <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-xl mx-auto leading-relaxed">
           In this step, we&apos;ll ask you which type of property you have and if guests will book the entire place or just a room. Then let us know the location and how many guests can stay.
@@ -213,14 +163,14 @@ export default function StepReview({
           <div>
             <FieldLabel>Location</FieldLabel>
             <FieldValue className="flex items-start gap-1">
-              <PinIcon />
+              <MapPinIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
               {location}
             </FieldValue>
           </div>
           <div>
             <FieldLabel>{priceMode === "activities" ? "Price per Person" : priceMode === "equipment" ? "Equipment Price" : "Place Price"}</FieldLabel>
             <FieldValue className="flex items-start gap-1">
-              <DollarIcon />
+              <DollarIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
               {displayPrice}
             </FieldValue>
           </div>
@@ -249,14 +199,14 @@ export default function StepReview({
           <div>
             <FieldLabel>Duration</FieldLabel>
             <FieldValue className="flex items-center gap-1.5">
-              <ClockIcon />
+              <ClockIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
               {cap(duration)}
             </FieldValue>
           </div>
           <div>
             <FieldLabel>Max Participants</FieldLabel>
             <FieldValue className="flex items-center gap-1.5">
-              <PeopleIcon />
+              <UsersIcon size={15} className="shrink-0 mt-0.5 text-gray-400" />
               {maxParticipants}
             </FieldValue>
           </div>
@@ -319,14 +269,14 @@ export default function StepReview({
               <div>
                 <FieldLabel>Select Date</FieldLabel>
                 <FieldValue className="flex items-center gap-1.5">
-                  <CalendarIcon />
+                  <CalendarIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
                   {slot.day || "—"}
                 </FieldValue>
               </div>
               <div>
                 <FieldLabel>Select Time</FieldLabel>
                 <FieldValue className="flex items-center gap-1.5">
-                  <ClockIcon />
+                  <ClockIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
                   {slot.startTime && slot.endTime
                     ? `${slot.startTime} – ${slot.endTime}`
                     : slot.startTime || slot.endTime || "—"}
@@ -360,11 +310,7 @@ export default function StepReview({
             disabled={submitting}
             className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {submitting && (
-              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
-              </svg>
-            )}
+            {submitting && <SpinnerIcon size={14} />}
             {submitting ? "Submitting..." : submitLabel}
           </button>
         </div>
