@@ -2,53 +2,51 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useActionState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
-import { forgotPasswordAction, resendVerificationAction } from "@/app/forgot-password/actions";
+import { forgotPassword, resendVerificationCode, selectAuthStatus } from "@/store/slices/authSlice";
 import { MailIcon, ArrowRightIcon } from "@/icons";
 
 /* ─── Resend button with cooldown ─────────────────────────────────────────────── */
 function ResendButton({ email }) {
   const COOLDOWN = 30;
   const [seconds, setSeconds] = useState(0);
-  const [resendState, resendAction, isResending] = useActionState(resendVerificationAction, null);
+  const [isResending, setIsResending] = useState(false);
+  const dispatch = useDispatch();
 
-  // Countdown tick
   useEffect(() => {
     if (seconds <= 0) return;
     const id = setTimeout(() => setSeconds(s => s - 1), 1000);
     return () => clearTimeout(id);
   }, [seconds]);
 
-  // Toast on result
-  useEffect(() => {
-    if (!resendState) return;
-    if (resendState.success) {
-      toast.success("Email resent", { description: resendState.message });
-      const id = setTimeout(() => setSeconds(COOLDOWN), 0);
-      return () => clearTimeout(id);
-    } else if (resendState.error) {
-      toast.error("Resend failed", { description: resendState.error });
+  const handleResend = async () => {
+    setIsResending(true);
+    const result = await dispatch(resendVerificationCode(email));
+    setIsResending(false);
+    if (resendVerificationCode.rejected.match(result)) {
+      toast.error("Resend failed", { description: result.payload });
+    } else {
+      toast.success("Email resent", { description: result.payload?.message ?? "Verification code resent successfully." });
+      setSeconds(COOLDOWN);
     }
-  }, [resendState]);
+  };
 
   const disabled = isResending || seconds > 0;
 
   return (
-    <form action={resendAction} className="inline">
-      <input type="hidden" name="email" value={email} />
-      <button
-        type="submit"
-        disabled={disabled}
-        className="text-primary font-bold underline hover:no-underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
-      >
-        {isResending ? "Sending…" : seconds > 0 ? `Resend in ${seconds}s` : "Resend"}
-      </button>
-    </form>
+    <button
+      type="button"
+      onClick={handleResend}
+      disabled={disabled}
+      className="text-primary font-bold underline hover:no-underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+    >
+      {isResending ? "Sending…" : seconds > 0 ? `Resend in ${seconds}s` : "Resend"}
+    </button>
   );
 }
 
@@ -73,7 +71,7 @@ function CheckEmailConfirmation({ email }) {
       <Button
         variant="accent"
         size="lg"
-        className="w-full min-h-[4rem] h-auto text-lg"
+        className="w-full min-h-16 h-auto text-lg"
         iconRight={<ArrowRightIcon />}
         onClick={() => window.location.href = "mailto:"}
       >
@@ -92,27 +90,25 @@ function CheckEmailConfirmation({ email }) {
 
 /* ─── Forgot-password form view ──────────────────────────────────────────────── */
 function ForgotPasswordForm() {
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const authStatus = useSelector(selectAuthStatus);
+  const isPending = authStatus === "loading";
   const [email, setEmail] = useState("");
   const [clientError, setClientError] = useState("");
-  const [serverState, submitAction, isPending] = useActionState(forgotPasswordAction, null);
 
-  useEffect(() => {
-    if (serverState?.error) {
-      toast.error("Request failed", { description: serverState.error });
-    }
-  }, [serverState]);
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (!email.trim()) { setClientError("Email is required"); return; }
+    if (!email.includes("@")) { setClientError("Please enter a valid email address."); return; }
 
-  const handleSubmit = e => {
-    if (!email.trim()) {
-      e.preventDefault();
-      setClientError("Email is required");
+    const result = await dispatch(forgotPassword(email));
+    if (forgotPassword.rejected.match(result)) {
+      toast.error("Request failed", { description: result.payload });
       return;
     }
-
-    if (!email.includes("@")) {
-      e.preventDefault();
-      setClientError("Please enter a valid email address.");
-    }
+    const { message, email: confirmedEmail } = result.payload;
+    router.push(`/forgot-password/check-email?email=${encodeURIComponent(confirmedEmail)}&msg=${encodeURIComponent(message)}`);
   };
 
   return (
@@ -125,7 +121,7 @@ function ForgotPasswordForm() {
         a link to reset your password.
       </p>
 
-      <form className="flex flex-col gap-5 w-full" action={submitAction} onSubmit={handleSubmit}>
+      <form className="flex flex-col gap-5 w-full" onSubmit={handleSubmit}>
         <Input
           id="email"
           name="email"
@@ -141,7 +137,7 @@ function ForgotPasswordForm() {
           type="submit"
           variant="accent"
           size="lg"
-          className="w-full min-h-[4rem] h-auto text-lg"
+          className="w-full min-h-16 h-auto text-lg"
           iconRight={<ArrowRightIcon />}
           disabled={isPending}
         >

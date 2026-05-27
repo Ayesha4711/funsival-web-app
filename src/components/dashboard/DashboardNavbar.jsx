@@ -155,7 +155,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
           <SearchIcon />
         </button>
 
-        {/* Hamburger — mobile only */}
+        {/* Hamburger — mobile only (< 640px) */}
         <button
           onClick={() => setMobileOpen(v => !v)}
           className="sm:hidden text-white/90 hover:text-white transition-colors p-1"
@@ -289,8 +289,19 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
               </button>
             </div>}
         </div>
+
+        {/* Hamburger — tablet (640px–1023px) opens the sidebar drawer */}
+        <button
+          onClick={onMenuToggle}
+          className="hidden sm:flex lg:hidden text-white/90 hover:text-white transition-colors p-1"
+          aria-label="Toggle sidebar"
+        >
+          <MenuIcon />
+        </button>
       </div>
     </header>
+
+    
 
       {/* Mobile drawer */}
       {mobileOpen && (
@@ -357,6 +368,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
               </button>
             </div>
           </div>
+          
         </div>
       )}
     </>

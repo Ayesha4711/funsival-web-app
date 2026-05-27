@@ -1,38 +1,30 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useActionState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
-import { resetPasswordAction } from "@/app/forgot-password/actions";
+import { resetPassword, selectAuthStatus } from "@/store/slices/authSlice";
 import { LockIcon, EyeIcon, EyeOffIcon, ArrowRightIcon } from "@/icons";
 
 
 /* ─── Component ─────────────────────────────────────────────────────────────── */
 export default function ResetPasswordPage({ initialToken = "" } = {}) {
+  const dispatch = useDispatch();
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token") ?? initialToken;
+  const authStatus = useSelector(selectAuthStatus);
+  const isPending = authStatus === "loading";
 
   const [form, setForm] = useState({ password: "", confirmPassword: "" });
   const [clientErrors, setClientErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [serverState, submitAction, isPending] = useActionState(resetPasswordAction, null);
-
-  useEffect(() => {
-    if (!serverState) return;
-    if (serverState.success) {
-      toast.success("Password reset!", { description: serverState.message ?? "You can now sign in with your new password." });
-      router.push("/login");
-    } else if (serverState.error) {
-      toast.error("Reset failed", { description: serverState.error });
-    }
-  }, [serverState, router]);
 
   const validatePassword = (password) => {
     if (!password) return "Password is required.";
@@ -57,21 +49,22 @@ export default function ResetPasswordPage({ initialToken = "" } = {}) {
     if (clientErrors[name]) setClientErrors(prev => ({ ...prev, [name]: "" }));
   };
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
+    e.preventDefault();
     const errs = {};
     const passwordError = validatePassword(form.password);
     if (passwordError) errs.password = passwordError;
+    if (!form.confirmPassword) errs.confirmPassword = "Confirm password is required.";
+    else if (form.confirmPassword !== form.password) errs.confirmPassword = "Passwords do not match.";
+    if (Object.keys(errs).length > 0) { setClientErrors(errs); return; }
 
-    if (!form.confirmPassword) {
-      errs.confirmPassword = "Confirm password is required.";
-    } else if (form.confirmPassword !== form.password) {
-      errs.confirmPassword = "Passwords do not match.";
+    const result = await dispatch(resetPassword({ token, password: form.password, confirmPassword: form.confirmPassword }));
+    if (resetPassword.rejected.match(result)) {
+      toast.error("Reset failed", { description: result.payload });
+      return;
     }
-
-    if (Object.keys(errs).length > 0) {
-      e.preventDefault();
-      setClientErrors(errs);
-    }
+    toast.success("Password reset!", { description: result.payload?.message ?? "You can now sign in with your new password." });
+    router.push("/login");
   };
 
   return (
@@ -84,9 +77,7 @@ export default function ResetPasswordPage({ initialToken = "" } = {}) {
         condimentum ullamcorper massa nec
       </p>
 
-      <form className="flex flex-col gap-6 w-full" action={submitAction} onSubmit={handleSubmit}>
-        {/* Pass token as hidden field so the server action can read it */}
-        <input type="hidden" name="token" value={token} />
+      <form className="flex flex-col gap-6 w-full" onSubmit={handleSubmit}>
 
         <Input
           id="password"
