@@ -217,6 +217,34 @@ export const verify2FALogin = createAsyncThunk(
   }
 );
 
+export const forgotPassword = createAsyncThunk(
+  "auth/forgotPassword",
+  async (email, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/auth/forgot-password", { email });
+      return { message: data?.message ?? "Password reset link sent.", email };
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message ?? err.response?.data?.error ?? "Something went wrong. Please try again."
+      );
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async ({ token, password, confirmPassword }, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post(`/auth/reset-password/${token}`, { password, confirmPassword });
+      return { message: data?.message ?? "Password reset successfully." };
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message ?? err.response?.data?.error ?? "Failed to reset password. The link may have expired."
+      );
+    }
+  }
+);
+
 export const deleteAccount = createAsyncThunk(
   "auth/deleteAccount",
   async ({ password }, { rejectWithValue }) => {
@@ -336,6 +364,14 @@ const authSlice = createSlice({
         state.token = action.payload?.token ?? null;
       })
       .addCase(verify2FALogin.rejected, setFailed)
+
+      .addCase(forgotPassword.pending, setLoading)
+      .addCase(forgotPassword.fulfilled, (state) => { state.status = "succeeded"; })
+      .addCase(forgotPassword.rejected, setFailed)
+
+      .addCase(resetPassword.pending, setLoading)
+      .addCase(resetPassword.fulfilled, (state) => { state.status = "succeeded"; })
+      .addCase(resetPassword.rejected, setFailed)
 
       .addCase(deleteAccount.pending, setLoading)
       .addCase(deleteAccount.fulfilled, (state) => {
