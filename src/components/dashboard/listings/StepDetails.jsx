@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { useDispatch } from "react-redux";
 import { Country, State, City } from "country-state-city";
-import informationIcon from "@/assets/icons/informationicon.svg";
 import {
   CalendarField,
   DropdownField,
@@ -14,6 +13,7 @@ import {
 } from "@/components/shared/FieldControls";
 import { LocationMap } from "@/components/shared/MapControls";
 import { uploadListingImages } from "@/store/slices/listingsSlice";
+import { MoreVertIcon, TrashIcon, PlusIcon, UploadIcon, UsersIcon, ChevronUpIcon, ChevronDownIcon, InfoIcon } from "@/icons";
 
 /* Match a raw city name from Nominatim against the country-state-city library */
 function resolveCity(rawCity, countryCode, stateCode) {
@@ -249,11 +249,7 @@ function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isUploading }) {
                 onClick={(e) => { e.stopPropagation(); setOpenMenuIndex(openMenuIndex === i ? null : i); }}
                 className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white flex items-center justify-center transition-colors"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="12" cy="5" r="1" />
-                  <circle cx="12" cy="19" r="1" />
-                </svg>
+                <MoreVertIcon size={16} />
               </button>
 
               {/* Dropdown menu */}
@@ -265,12 +261,7 @@ function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isUploading }) {
                     disabled={isUploading}
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                      <path d="M10 11v6"/>
-                      <path d="M14 11v6"/>
-                    </svg>
+                    <TrashIcon size={14} />
                     Delete
                   </button>
                 </div>
@@ -285,7 +276,7 @@ function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isUploading }) {
           disabled={isUploading}
           className="flex flex-col items-center justify-center w-32 h-24 sm:w-40 sm:h-28 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <PlusIcon size={20} className="text-gray-400" />
         </button>
       </div>
 
@@ -299,7 +290,7 @@ function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isUploading }) {
         onDragOver={(e) => e.preventDefault()}
         className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors select-none"
       >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <UploadIcon size={28} className="text-gray-400" />
         <p className="text-sm font-bold text-gray-700 mt-2">Upload & Drag Images Here</p>
         <p className="text-xs text-gray-400 mt-0.5">JPEG or PNG files only</p>
         <p className="text-xs text-gray-400">Max size: 5MB</p>
@@ -377,9 +368,7 @@ function AvailabilitySlot({ slot, index, onChange, onRemove, canRemove }) {
               className="flex items-center justify-center w-8 h-8 rounded-full text-red-400 hover:text-red-500 hover:bg-red-50 transition-colors"
               aria-label="Remove slot"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-              </svg>
+              <TrashIcon size={14} />
             </button>
           </div>
         )}
@@ -433,9 +422,7 @@ function AvailabilitySlot({ slot, index, onChange, onRemove, canRemove }) {
               className="flex items-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-500 transition-colors"
               aria-label="Remove slot"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-              </svg>
+              <TrashIcon size={12} />
               Remove
             </button>
           </div>
@@ -906,30 +893,6 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               <TextInput placeholder="Give your activity a clear name so guests instantly understand what you offer" value={form.title} error={!!fe.activityTitle} onChange={(e) => setWithClear("title", e.target.value, "activityTitle")} />
               <FieldError msg={fe.activityTitle} />
             </div>
-            {/* <div data-field="location">
-              <Label required>Location (City &amp; State)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-                    <circle cx="12" cy="9" r="2.5"/>
-                  </svg>
-                </span>
-                <input
-                  type="text"
-                  placeholder="Shown publicly to help guests find your activity"
-                  value={form.location}
-                  onChange={(e) => setWithClear("location", e.target.value, "location")}
-                  className={[
-                    "w-full pl-9 pr-3 py-2.5 rounded-xl border bg-[#F5F5F5] text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:bg-white transition-colors",
-                    fe.location
-                      ? "border-red-400 focus:ring-red-200 focus:border-red-500"
-                      : "border-transparent focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
-                  ].join(" ")}
-                />
-              </div>
-              <FieldError msg={fe.location} />
-            </div> */}
             <div className="sm:col-span-2">
               <Label required>Description</Label>
               <Textarea placeholder="Tell guests what your experience includes and why it's unique" value={form.description} error={!!fe.description} onChange={(e) => setWithClear("description", e.target.value, "description")} maxLength={DESCRIPTION_MAX} rows={4} />
@@ -981,24 +944,15 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               <Label>Max Participants</Label>
               <div className="flex items-center h-[42px] rounded-xl border border-transparent bg-[#F5F5F5] overflow-hidden">
                 <div className="flex items-center gap-2 flex-1 px-3">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
+                  <UsersIcon size={14} className="shrink-0 text-gray-400" />
                   <span className="text-sm font-bold text-gray-700">{form.maxParticipants}</span>
                 </div>
                 <div className="flex flex-col h-full border-l border-gray-200">
                   <button type="button" onClick={() => set("maxParticipants", form.maxParticipants + 1)} className="flex-1 w-8 flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 transition-colors border-b border-gray-200">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="18 15 12 9 6 15"/>
-                    </svg>
+                    <ChevronUpIcon size={10} />
                   </button>
                   <button type="button" onClick={() => set("maxParticipants", Math.max(1, form.maxParticipants - 1))} className="flex-1 w-8 flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 transition-colors">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="6 9 12 15 18 9"/>
-                    </svg>
+                    <ChevronDownIcon size={10} />
                   </button>
                 </div>
               </div>
@@ -1029,7 +983,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
                   />
                 </div>
                 <button type="button" className="shrink-0" title="Learn about cancellation policies">
-                  <Image src={informationIcon} alt="info" width={28} height={28} />
+                  <InfoIcon size={28} className="text-gray-400" />
                 </button>
               </div>
               <FieldError msg={fe.cancellationPolicy} />
@@ -1187,7 +1141,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               onClick={addSlot}
               className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-primary)] hover:underline shrink-0"
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <PlusIcon size={11} />
               Add Another Slot
             </button>
           </div>

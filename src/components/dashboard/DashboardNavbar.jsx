@@ -106,8 +106,8 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
     localStorage.removeItem("listing_draft_local");
     sessionStorage.clear();
     dispatch(resetStore());
-    // Hard navigate so the shell fully unmounts and Redux re-initialises cleanly
-    window.location.href = "/logout";
+    // replace() removes the current protected route from history so back never returns to it
+    window.location.replace("/logout");
   };
 
   const handleMobileNav = (path) => {

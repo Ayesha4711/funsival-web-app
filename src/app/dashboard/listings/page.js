@@ -12,6 +12,7 @@ import {
   selectListingsStatus,
 } from "@/store/slices/listingsSlice";
 import { BASE_URL } from "@/lib/api";
+import { NoListingIcon, NoListingFilteredIcon, SpinnerIcon, TrashIcon } from "@/icons";
 import ListingsStats from "@/components/dashboard/ListingsStats";
 import ListingsFilters, { DEFAULT_FILTERS } from "@/components/dashboard/ListingsFilters";
 import ListingsTable from "@/components/dashboard/ListingsTable";
@@ -28,18 +29,9 @@ function EmptyState({ hasFilters, onClearFilters }) {
         <div className="w-36 h-36 rounded-full bg-gray-100 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
         <div className="relative w-24 h-24 rounded-full bg-[#e8f4f0] flex items-center justify-center z-10">
           {hasFilters ? (
-            <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-              <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" fill="#2a9d8f" opacity="0.15" stroke="#2a9d8f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="4" y1="4" x2="20" y2="20" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
+            <NoListingFilteredIcon size={42} />
           ) : (
-            <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-              <rect x="4" y="2" width="12" height="18" rx="2" fill="#2a9d8f" opacity="0.15"/>
-              <rect x="4" y="2" width="12" height="18" rx="2" stroke="#2a9d8f" strokeWidth="1.5"/>
-              <path d="M8 7h5M8 11h5M8 15h3" stroke="#2a9d8f" strokeWidth="1.5" strokeLinecap="round"/>
-              <rect x="12" y="13" width="8" height="8" rx="2" fill="#2a9d8f"/>
-              <path d="M16 15.5v3M14.5 17h3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
+            <NoListingIcon size={42} />
           )}
         </div>
       </div>
@@ -286,9 +278,7 @@ export default function ListingsPage() {
         <div className="flex flex-col flex-1">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5">
-                <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
-              </svg>
+              <SpinnerIcon size={24} className="text-gray-400" />
             </div>
           ) : isEmpty ? (
             <EmptyState hasFilters={!!hasActiveFilters} onClearFilters={handleClearFilters} />
@@ -326,11 +316,8 @@ export default function ListingsPage() {
         >
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 sm:p-8">
             <div className="flex justify-center mb-4">
-              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                  <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                </svg>
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-500">
+                <TrashIcon size={26} />
               </div>
             </div>
             <h2 className="text-base font-extrabold text-[var(--color-text)] mb-1">

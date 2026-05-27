@@ -3,6 +3,7 @@
 import React, { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ChevronLeftIcon, ChevronRightIcon, ArrowUpRightIcon } from "@/icons";
 import skydivingImg from "@/assets/icons/skydivingicon.svg";
 import scubaDivingImg from "@/assets/icons/scubadivingicon.svg";
 import jeepRallyImg from "@/assets/icons/jeeprallyicon.svg";
@@ -68,18 +69,14 @@ export default function BrowseByAdventure() {
               className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center hover:border-[#4AA7A7] transition-colors disabled:opacity-40"
               disabled={activeIndex === 0}
             >
-              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <ChevronLeftIcon size={16} className="text-gray-500" />
             </button>
             <button
               onClick={() => scrollTo("next")}
               className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center hover:border-[#4AA7A7] transition-colors disabled:opacity-40"
               disabled={activeIndex === tabs.length - 1}
             >
-              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <ChevronRightIcon size={16} className="text-gray-500" />
             </button>
           </div>
         </div>
@@ -106,9 +103,7 @@ export default function BrowseByAdventure() {
                   {tab.label}
                 </span>
                 <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full bg-[#4AA7A7] flex items-center justify-center shrink-0">
-                  <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 17L17 7M17 7H7M17 7v10" />
-                  </svg>
+                  <ArrowUpRightIcon size={14} className="text-white" />
                 </div>
               </div>
             </Link>
@@ -126,10 +121,6 @@ export default function BrowseByAdventure() {
         </div>
       </div>
 
-      <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </section>
   );
 }

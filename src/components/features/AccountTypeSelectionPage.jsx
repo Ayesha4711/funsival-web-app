@@ -1,27 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Button from "@/components/common/Button";
 import AuthLayout from "@/components/layout/AuthLayout";
 import hostIllustration from "@/assets/icons/Host.jpg";
 import userIllustration from "@/assets/icons/User.jpg";
-
-/* ─── Icons ────────────────────────────────────────────────────────────────── */
-const CheckIcon = () =>
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="white"
-    strokeWidth="4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="20 6 9 17 4 12" />
-  </svg>;
+import { CheckIcon } from "@/icons";
 
 /* ─── Role Card Component ──────────────────────────────────────────────────── */
 const RoleCard = ({ type, title, illustration, isSelected, onSelect }) => {
@@ -60,6 +46,11 @@ const RoleCard = ({ type, title, illustration, isSelected, onSelect }) => {
 export default function AccountTypeSelectionPage() {
   const router = useRouter();
   const [selectedRole, setSelectedRole] = useState("host");
+
+  useEffect(() => {
+    window.history.replaceState(null, "", "/");
+    window.history.pushState(null, "", "/signup/role-selection");
+  }, []);
 
   return (
     <AuthLayout maxWidthClass="max-w-2xl">

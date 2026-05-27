@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { toast } from "sonner";
+import { PlusIcon, UploadIcon, TrashIcon, SearchIcon } from "@/icons";
 import {
   CalendarField,
   DropdownField,
@@ -64,16 +65,12 @@ function PhotoUpload({ photos, onAdd }) {
           </div>
         ))}
         <label className="flex flex-col items-center justify-center w-20 h-16 sm:w-24 sm:h-20 rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors shrink-0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
+          <PlusIcon size={20} className="text-gray-400" />
           <input type="file" accept="image/*" className="sr-only" onChange={onAdd} multiple />
         </label>
       </div>
       <label className="flex flex-col items-center justify-center w-full py-6 rounded-2xl border-2 border-dashed border-gray-200 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
+        <UploadIcon size={28} className="text-gray-400" />
         <p className="text-xs font-semibold text-gray-500 mt-2">Upload & Drag Images Here</p>
         <p className="text-[10px] text-gray-300 mt-0.5">JPEG or PNG files only</p>
         <p className="text-[10px] text-gray-300">Max size 5mb</p>
@@ -130,9 +127,7 @@ function AvailabilitySlot({ slot, index, onChange, onRemove, showDelete }) {
           onClick={() => onRemove(index)}
           className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-xs font-semibold hover:bg-red-50 transition-colors"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-          </svg>
+          <TrashIcon size={12} />
           Delete
         </button>
       )}
@@ -303,9 +298,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
                   onChange={e => set("location", e.target.value)}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
+                  <SearchIcon size={14} />
                 </span>
               </div>
               <FieldError msg={fe.location} />
@@ -425,9 +418,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
             onClick={addSlot}
             className="mt-4 flex items-center gap-2 text-xs font-bold text-[var(--color-primary)] hover:underline"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
+            <PlusIcon size={12} />
             Add Another Slot
           </button>
         </section>

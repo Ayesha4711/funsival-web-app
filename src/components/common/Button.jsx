@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowRightIcon } from '@/icons';
 
 const variants = {
   primary:
@@ -18,21 +19,6 @@ const sizes = {
   md: 'px-5 h-11 text-sm',
   lg: 'w-full max-w-[450px] h-[58px] text-lg',
 };
-
-const ArrowIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="var(--color-primary)"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M5 12h14M13 5l7 7-7 7" />
-  </svg>
-);
 
 export default function Button({
   children,
@@ -74,9 +60,9 @@ export default function Button({
       {(iconRight || showArrow) && (
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white transition-transform group-hover:translate-x-1">
           {showArrow ? (
-            <ArrowIcon />
+            <ArrowRightIcon size={20} className="text-primary" />
           ) : (
-            <span className="text-[var(--color-primary)]">{iconRight}</span>
+            <span className="text-primary">{iconRight}</span>
           )}
         </div>
       )}
