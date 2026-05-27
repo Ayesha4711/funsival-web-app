@@ -32,6 +32,7 @@ export default function DashboardShell({ children }) {
   );
 
   if (status === "idle" || status === "loading") return <FullPageLoader />;
+  if (status === "failed") { window.location.replace("/"); return null; }
 
   const isWizard = pathname === "/dashboard/listings/add";
   const hideSidebarDesktop = isWizard || SIDEBAR_HIDDEN_PATHS.includes(pathname);

@@ -1,4 +1,5 @@
 import React from 'react';
+import { CircleAlertIcon } from "@/icons";
 
 export default function Input({
   id,
@@ -57,11 +58,7 @@ export default function Input({
       )}
       {error && (
         <div className="flex items-center gap-1.5 ml-4 mt-0.5 text-red-500">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
+          <CircleAlertIcon size={14} color="#ef4444" />
           <p className="text-xs font-medium">{error}</p>
         </div>
       )}

@@ -101,6 +101,12 @@ export const PlusIcon = ({ size = 16, className }) => (
   </svg>
 );
 
+export const MinusIcon = ({ size = 16, className }) => (
+  <svg {...svgProps(size, className)}>
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
 export const ExportIcon = ({ size = 16, className }) => (
   <svg {...svgProps(size, className)}>
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -688,5 +694,230 @@ export const LayersIcon = ({ size = 16, className }) => (
     <polygon points="12 2 2 7 12 12 22 7 12 2" />
     <polyline points="2 17 12 22 22 17" />
     <polyline points="2 12 12 17 22 12" />
+  </svg>
+);
+
+// ─── Social ───────────────────────────────────────────────────────────────────
+
+export const InstagramIcon = ({ size = 18, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect x="2" y="2" width="20" height="20" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
+  </svg>
+);
+
+export const XTwitterIcon = ({ size = 18, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L2.126 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+export const YoutubeIcon = ({ size = 18, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+  </svg>
+);
+
+// ─── Form / Input ─────────────────────────────────────────────────────────────
+
+export const CityIcon = ({ size = 20, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+    <circle cx="12" cy="9" r="2.5" />
+  </svg>
+);
+
+export const TruckIcon = ({ size = 20, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 7h13l3 4v6H3z" />
+    <circle cx="7" cy="17" r="2" />
+    <circle cx="17" cy="17" r="2" />
+  </svg>
+);
+
+// ─── Messaging ────────────────────────────────────────────────────────────────
+
+export const SingleTickIcon = ({ size = 12, className }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+    <path d="M2 8l4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const DoubleTickIcon = ({ size = 16, blue = false, className }) => (
+  <svg width={size} height={Math.round(size * 0.75)} viewBox="0 0 20 16" fill="none" className={className}>
+    <path d="M1 8l4 4 8-8" stroke={blue ? "#4AA7A7" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6 8l4 4 8-8" stroke={blue ? "#4AA7A7" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const NoMessagesIcon = ({ size = 80, className }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" fill="none" className={className}>
+    <ellipse cx="50" cy="45" rx="34" ry="28" fill="#e8edf0" />
+    <ellipse cx="32" cy="60" rx="20" ry="16" fill="#d4dde3" />
+    <circle cx="50" cy="55" r="16" fill="#8fa3b0" />
+    <circle cx="50" cy="55" r="9" fill="white" />
+    <line x1="46" y1="51" x2="54" y2="59" stroke="#8fa3b0" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="46" y1="51" x2="46" y2="45" stroke="#8fa3b0" strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
+// ─── Misc / Diagonal arrow ────────────────────────────────────────────────────
+
+export const ArrowUpRightIcon = ({ size = 16, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M7 17L17 7M17 7H7M17 7v10" />
+  </svg>
+);
+
+// ─── Empty state icons ────────────────────────────────────────────────────────
+
+export const NoListingIcon = ({ size = 42, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+    <rect x="4" y="2" width="12" height="18" rx="2" fill="#2a9d8f" opacity="0.15"/>
+    <rect x="4" y="2" width="12" height="18" rx="2" stroke="#2a9d8f" strokeWidth="1.5"/>
+    <path d="M8 7h5M8 11h5M8 15h3" stroke="#2a9d8f" strokeWidth="1.5" strokeLinecap="round"/>
+    <rect x="12" y="13" width="8" height="8" rx="2" fill="#2a9d8f"/>
+    <path d="M16 15.5v3M14.5 17h3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+
+export const NoListingFilteredIcon = ({ size = 42, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" fill="#2a9d8f" opacity="0.15" stroke="#2a9d8f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <line x1="4" y1="4" x2="20" y2="20" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+export const PlayIcon = ({ size = 16, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+);
+
+// ─── Activity-type tab icons ──────────────────────────────────────────────────
+// All accept size + className so callers can control active/inactive colour.
+
+export const SkydivingIcon = ({ size = 20, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="5" r="2" />
+    <path d="M12 7v5M7 10c1.5 1 3 1.5 5 1.5S16.5 11 18 10" />
+    <path d="M9 20l3-8 3 8" />
+    <path d="M7 20h10" />
+  </svg>
+);
+
+export const JetSkiingIcon = ({ size = 20, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 17c2-2 4-3 6-3s4 2 6 2 4-1 6-3" />
+    <path d="M5 14l3-5h4l3 3" />
+    <circle cx="9" cy="9" r="1" fill="currentColor" />
+  </svg>
+);
+
+export const ScubaDivingIcon = ({ size = 20, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M9 12a3 3 0 0 0 3 3" />
+    <path d="M7 8c-1 1-2 3-2 4s1 3 2 4" />
+    <path d="M17 8c1 1 2 3 2 4s-1 3-2 4" />
+    <path d="M12 5v2M12 17v2" />
+    <rect x="14" y="3" width="3" height="6" rx="1" />
+  </svg>
+);
+
+export const JeepRallyIcon = ({ size = 20, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect x="2" y="8" width="20" height="9" rx="2" />
+    <path d="M5 8V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2" />
+    <circle cx="7" cy="19" r="2" />
+    <circle cx="17" cy="19" r="2" />
+    <path d="M9 8h6" />
+  </svg>
+);
+
+// ─── Location pin (teal-accent variant used in ActivityCard) ──────────────────
+export const LocationPinIcon = ({ size = 14, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+    <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+// ─── Filters / sort icon (ActivityFilters filter button) ──────────────────────
+export const SortFilterIcon = ({ size = 16, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 4h18M6 8h12M9 12h6M11 16h2" />
+  </svg>
+);
+
+// ─── Brand payment icons ──────────────────────────────────────────────────────
+
+export const VisaIcon = ({ className }) => (
+  <svg className={`w-10 h-6 ${className ?? ""}`} viewBox="0 0 60 20" fill="none">
+    <text x="0" y="16" fontSize="16" fontWeight="bold" fill="#1A1F71" fontFamily="Arial">VISA</text>
+  </svg>
+);
+
+export const MastercardIcon = ({ className }) => (
+  <svg className={`w-8 h-5 ${className ?? ""}`} viewBox="0 0 50 30" fill="none">
+    <circle cx="18" cy="15" r="13" fill="#EB001B" />
+    <circle cx="32" cy="15" r="13" fill="#F79E1B" />
+    <path d="M25 5.8A13 13 0 0132 15a13 13 0 01-7 9.2A13 13 0 0118 15a13 13 0 017-9.2z" fill="#FF5F00" />
+  </svg>
+);
+
+// ─── Celebration illustration ─────────────────────────────────────────────────
+
+export const CelebrationIllustration = ({ className }) => (
+  <svg
+    width="180"
+    height="220"
+    viewBox="0 0 180 220"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={`mx-auto${className ? ` ${className}` : ""}`}
+  >
+    {/* Confetti pieces */}
+    <circle cx="30" cy="40" r="5" fill="#F5C842" opacity="0.9"/>
+    <circle cx="150" cy="30" r="4" fill="#4DB6AC" opacity="0.9"/>
+    <rect x="140" y="55" width="8" height="8" rx="2" fill="#F5C842" transform="rotate(30 144 59)"/>
+    <rect x="20" y="70" width="7" height="7" rx="1.5" fill="#4DB6AC" transform="rotate(-20 23 73)"/>
+    <circle cx="160" cy="80" r="3.5" fill="#EF5350" opacity="0.8"/>
+    <circle cx="18" cy="105" r="3" fill="#7C4DFF" opacity="0.8"/>
+    <rect x="155" y="100" width="6" height="6" rx="1.5" fill="#F5C842" transform="rotate(15 158 103)"/>
+    <rect x="10" y="130" width="5" height="9" rx="1" fill="#4DB6AC" transform="rotate(-10 12 134)"/>
+    <circle cx="165" cy="130" r="4" fill="#F5C842" opacity="0.9"/>
+    <rect x="25" y="155" width="7" height="7" rx="2" fill="#EF5350" transform="rotate(25 28 158)"/>
+    <circle cx="155" cy="160" r="3" fill="#4DB6AC" opacity="0.8"/>
+    {/* Arms raised — left */}
+    <path d="M72 110 C60 100 48 88 42 78" stroke="#5C3D1E" strokeWidth="10" strokeLinecap="round"/>
+    {/* Arms raised — right */}
+    <path d="M108 110 C120 100 132 88 138 78" stroke="#5C3D1E" strokeWidth="10" strokeLinecap="round"/>
+    {/* Body — yellow coat */}
+    <path d="M72 130 L70 185 Q90 195 110 185 L108 130 Q90 122 72 130Z" fill="#F5C842"/>
+    {/* Coat lapels / collar */}
+    <path d="M85 130 L90 145 L95 130" stroke="#E0A800" strokeWidth="2" fill="none" strokeLinejoin="round"/>
+    {/* Legs — purple */}
+    <rect x="76" y="183" width="14" height="30" rx="7" fill="#5C35B5"/>
+    <rect x="90" y="183" width="14" height="30" rx="7" fill="#5C35B5"/>
+    {/* Shoes */}
+    <ellipse cx="83" cy="213" rx="10" ry="6" fill="#3D2080"/>
+    <ellipse cx="97" cy="213" rx="10" ry="6" fill="#3D2080"/>
+    {/* Neck */}
+    <rect x="84" y="115" width="12" height="16" rx="6" fill="#D4956A"/>
+    {/* Head */}
+    <circle cx="90" cy="98" r="22" fill="#D4956A"/>
+    {/* Eyes — happy closed curves */}
+    <path d="M82 95 Q85 91 88 95" stroke="#3D2080" strokeWidth="2" strokeLinecap="round" fill="none"/>
+    <path d="M92 95 Q95 91 98 95" stroke="#3D2080" strokeWidth="2" strokeLinecap="round" fill="none"/>
+    {/* Smile */}
+    <path d="M83 103 Q90 110 97 103" stroke="#3D2080" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+    {/* Hair / hat brim */}
+    <ellipse cx="90" cy="77" rx="23" ry="8" fill="#3D2080"/>
+    {/* Hat body */}
+    <rect x="74" y="57" width="32" height="22" rx="6" fill="#5C35B5"/>
+    {/* Hat decoration star */}
+    <circle cx="90" cy="68" r="4" fill="#F5C842"/>
   </svg>
 );

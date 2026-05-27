@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { UserIcon } from '@/icons';
 import ProviderImg1 from '@/assets/images/1 1.svg';
 import ProviderImg2 from '@/assets/images/2 1.svg';
 import ProviderImg3 from '@/assets/images/3 1.svg';
@@ -35,9 +36,7 @@ export default function PromotionalSections() {
                 {/* App header */}
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-6 h-6 bg-[#4AA7A7] rounded-full flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
+                    <UserIcon size={12} className="text-white" />
                   </div>
                   <span className="text-xs font-semibold text-gray-700">funsival</span>
                 </div>

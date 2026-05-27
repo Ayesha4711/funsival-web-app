@@ -10,6 +10,7 @@ import {
   selectHostBookingsStatus,
   selectHostBookingsError,
 } from "@/store/slices/bookingsSlice";
+import { NoListingIcon } from "@/icons";
 import ReservationStats from "@/components/dashboard/ReservationStats";
 import ReservationFilters from "@/components/dashboard/ReservationFilters";
 import ReservationTable from "@/components/dashboard/ReservationTable";
@@ -26,13 +27,7 @@ function EmptyState() {
         <div className="w-52 h-52 rounded-full bg-gray-50 absolute top-0 left-0" />
         <div className="w-36 h-36 rounded-full bg-gray-100 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
         <div className="relative w-24 h-24 rounded-full bg-[#e8f4f0] flex items-center justify-center z-10">
-          <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-            <rect x="4" y="2" width="12" height="18" rx="2" fill="#2a9d8f" opacity="0.15" />
-            <rect x="4" y="2" width="12" height="18" rx="2" stroke="#2a9d8f" strokeWidth="1.5" />
-            <path d="M8 7h5M8 11h5M8 15h3" stroke="#2a9d8f" strokeWidth="1.5" strokeLinecap="round" />
-            <rect x="12" y="13" width="8" height="8" rx="2" fill="#2a9d8f" />
-            <path d="M16 15.5v3M14.5 17h3" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          <NoListingIcon size={42} />
         </div>
       </div>
       <p

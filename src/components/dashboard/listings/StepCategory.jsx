@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import { CheckIcon, InfoIcon } from "@/icons";
 import placesImg from "@/assets/images/placesImg.svg";
 import equipmentImg from "@/assets/images/equipmntImg.svg";
 import activitiesImg from "@/assets/images/activitiesImg.svg";
@@ -40,20 +41,7 @@ export default function StepCategory({ selected, onSelect, onNext }) {
       <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] mb-2 text-center">
         Select One Of The Following
         <span className="inline-flex ml-2 text-[#E95764] align-middle">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
+          <InfoIcon size={18} />
         </span>
       </h2>
 
@@ -76,10 +64,8 @@ export default function StepCategory({ selected, onSelect, onNext }) {
             ].join(" ")}
           >
             {selected === id && (
-              <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[var(--color-secondary)] flex items-center justify-center">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+              <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white">
+                <CheckIcon size={10} />
               </span>
             )}
             <Image

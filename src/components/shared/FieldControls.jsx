@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CustomCalendar from "@/components/shared/CustomCalendar";
-import { ChevronDownIcon, CalendarIcon } from "@/icons";
+import { ChevronDownIcon, CalendarIcon, PlusIcon } from "@/icons";
 export { ChevronDownIcon, CalendarIcon };
 
 function useOutsideClose(onClose) {
@@ -16,8 +16,16 @@ function useOutsideClose(onClose) {
       }
     }
 
+    function handleScroll() {
+      onClose();
+    }
+
     document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
   }, [onClose]);
 
   return ref;
@@ -261,10 +269,7 @@ export function TagInputField({ tags, placeholder, onAdd, onRemove, error = fals
           className="px-3 py-2.5 rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)] text-sm font-bold hover:bg-[var(--color-primary)] hover:text-white transition-colors"
           aria-label="Add item"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          <PlusIcon size={14} />
         </button>
       </div>
 
@@ -292,33 +297,53 @@ export function TagInputField({ tags, placeholder, onAdd, onRemove, error = fals
   );
 }
 
+/* ─── usePopupAnchor — writes position directly to DOM, no React state re-renders ── */
+function usePopupAnchor(triggerRef, popupRef, open, { popupWidth = 300, gap = 6, margin = 8 } = {}) {
+  const rafRef = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const sync = () => {
+      const trigger = triggerRef.current;
+      const popup   = popupRef.current;
+      if (!trigger || !popup) { rafRef.current = requestAnimationFrame(sync); return; }
+      const rect = trigger.getBoundingClientRect();
+      popup.style.position = "fixed";
+      popup.style.top      = `${rect.bottom + gap}px`;
+      popup.style.left     = `${Math.max(margin, Math.min(rect.left, window.innerWidth - popupWidth - margin))}px`;
+      popup.style.width    = `${popupWidth}px`;
+      popup.style.zIndex   = "9999";
+      rafRef.current = requestAnimationFrame(sync);
+    };
+    rafRef.current = requestAnimationFrame(sync);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [open, triggerRef, popupRef, popupWidth, gap, margin]);
+}
+
 export function CalendarField({ value, placeholder = "Select date", onChange }) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  const triggerRef = useRef(null);
+  const triggerRef  = useRef(null);
   const calendarRef = useRef(null);
+
+  usePopupAnchor(triggerRef, calendarRef, open, { popupWidth: 300 });
 
   useEffect(() => {
     if (!open) return;
     function handleMouseDown(e) {
       if (
-        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        triggerRef.current  && !triggerRef.current.contains(e.target) &&
         calendarRef.current && !calendarRef.current.contains(e.target)
-      ) {
-        setOpen(false);
-      }
+      ) setOpen(false);
+    }
+    function handleScroll() {
+      setOpen(false);
     }
     document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
   }, [open]);
-
-  const openCalendar = () => {
-    if (triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + window.scrollY + 8, left: rect.left + window.scrollX });
-    }
-    setOpen(true);
-  };
 
   return (
     <div ref={triggerRef} className="relative w-full">
@@ -328,13 +353,13 @@ export function CalendarField({ value, placeholder = "Select date", onChange }) 
           value={value ?? ""}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
-          onFocus={openCalendar}
+          onFocus={() => setOpen(true)}
           readOnly
           className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 cursor-pointer"
         />
         <button
           type="button"
-          onClick={() => open ? setOpen(false) : openCalendar()}
+          onClick={() => setOpen(o => !o)}
           className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-[var(--color-primary)] hover:bg-gray-50"
           aria-label="Open calendar"
         >
@@ -345,14 +370,11 @@ export function CalendarField({ value, placeholder = "Select date", onChange }) 
       {open && typeof document !== "undefined" && createPortal(
         <div
           ref={calendarRef}
-          style={{ position: "absolute", top: pos.top, left: pos.left, zIndex: 9999 }}
+          style={{ position: "fixed", top: -9999, left: -9999, zIndex: 9999 }}
         >
           <CustomCalendar
             value={value}
-            onChange={(nextValue) => {
-              onChange(nextValue);
-              setOpen(false);
-            }}
+            onChange={(nextValue) => { onChange(nextValue); setOpen(false); }}
             onClose={() => setOpen(false)}
           />
         </div>,
