@@ -1,5 +1,3 @@
-// Background message handler — must live at /public/firebase-messaging-sw.js
-// so the browser can register it at the root scope (/firebase-messaging-sw.js)
 importScripts(
   "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js",
 );
@@ -7,8 +5,6 @@ importScripts(
   "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js",
 );
 
-// These values are duplicated here because service workers cannot access
-// Next.js env vars — replace with your actual values before deploying.
 firebase.initializeApp({
   apiKey: "AIzaSyCB2zskpU2qWhVmMHnUGCUutN0i5RNZYKQ",
   authDomain: "funsival-dev.firebaseapp.com",
