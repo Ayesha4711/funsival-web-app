@@ -426,7 +426,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
 
       {/* Nav buttons */}
       <div className="flex items-center justify-center gap-4 mt-10">
-        <button onClick={onBack} className="px-10 py-3 rounded-full font-bold text-sm border-2 border-gray-300 text-gray-600 hover:border-gray-400 transition-colors">
+        <button onClick={onBack} className="w-[244px] h-[58px] rounded-[100px] font-bold text-sm border border-gray-300 text-gray-600 hover:border-gray-400 transition-colors">
           Go Back
         </button>
         <button
@@ -448,7 +448,7 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
             onChange(form);
             onNext();
           }}
-          className="px-10 py-3 rounded-full font-bold text-sm bg-[var(--color-secondary)] text-white hover:bg-[var(--color-secondary-dark)] transition-colors"
+          className="w-[244px] h-[58px] rounded-[100px] font-bold text-sm bg-[var(--color-secondary)] text-[#2D2D2D] hover:opacity-90 transition-colors"
         >
           Next
         </button>

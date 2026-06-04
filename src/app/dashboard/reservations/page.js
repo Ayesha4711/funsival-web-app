@@ -64,7 +64,7 @@ function mapBookingToRow(b) {
         ? "Refunded"
         : "Overdue";
 
-  const statusMap = { confirmed: "Upcoming", completed: "Completed", cancelled: "Cancelled" };
+  const statusMap = { confirmed: "Upcoming", completed: "Completed", cancelled: "Cancelled", pending: "Pending" };
   const status = statusMap[b.status] ?? "Upcoming";
 
   const startDate = b.startDate
@@ -153,7 +153,7 @@ export default function ReservationsPage() {
       acc[key] = (acc[key] ?? 0) + 1;
       return acc;
     },
-    { upcoming: 0, completed: 0, cancelled: 0 }
+    { upcoming: 0, completed: 0, cancelled: 0, pending: 0 }
   );
 
   const filteredRows = rows.filter((r) => {
@@ -178,6 +178,11 @@ export default function ReservationsPage() {
   const handleViewDetails = (item) => setPanelItem(item);
   const handleClosePanel  = ()     => setPanelItem(null);
 
+  const handleApprove = (item) => {
+    setRows?.((prev) => prev?.map((r) => r.id === item.id ? { ...r, status: "Completed" } : r));
+    dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
+  };
+
   /* Opens cancel modal (from table action or from panel) */
   const handleRequestCancel = (item) => {
     setCancelTarget(item);
@@ -200,7 +205,7 @@ export default function ReservationsPage() {
   const totalPages = pagination?.totalPages ?? 1;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 w-full flex-1 flex flex-col gap-4">
+    <div className="p-3 xs:p-4 sm:p-6 w-full flex-1 flex flex-col gap-4 sm:gap-5">
       <ReservationStats />
 
       <div
@@ -238,8 +243,10 @@ export default function ReservationsPage() {
             <div className="hidden md:block h-full">
               <ReservationTable
                 data={filteredRows}
+                activeTab={activeTab}
                 onViewDetails={handleViewDetails}
                 onCancel={handleRequestCancel}
+                onApprove={handleApprove}
               />
             </div>
             {/* Cards: mobile only */}

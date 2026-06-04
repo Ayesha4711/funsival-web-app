@@ -143,9 +143,12 @@ function UserNavbar() {
               User <ChevronDownIcon size={14} />
             </button>
             {roleOpen && (
-              <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl py-1 z-50 shadow-lg">
-                <button onClick={() => { setRoleOpen(false); router.push("/dashboard"); }} className="block w-full text-left px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 cursor-pointer transition-colors">Provider</button>
-                <button onClick={() => { setRoleOpen(false); router.push("/user-dashboard/explore"); }} className="block w-full text-left px-4 py-2 text-sm font-semibold text-[#228E8A] bg-gray-50 cursor-pointer">User</button>
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl py-3 z-50 shadow-lg border border-gray-100">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-4">Switch role</p>
+                <div className="flex flex-col gap-1 px-2">
+                  <button onClick={() => { setRoleOpen(false); router.push("/dashboard"); }} className="w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">Provider</button>
+                  <button onClick={() => { setRoleOpen(false); router.push("/user-dashboard/explore"); }} className="w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold bg-[#2FA39F] text-white cursor-pointer">User</button>
+                </div>
               </div>
             )}
           </div>
@@ -177,36 +180,36 @@ function UserNavbar() {
               {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
             </button>
             {profileOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl py-1.5 z-50 border border-gray-100">
+              <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl z-50 shadow-lg border border-gray-100 overflow-hidden">
                 {profile && (
-                  <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-xs shrink-0 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-base shrink-0 overflow-hidden">
                       {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
                     </div>
                     <div className="min-w-0">
                       {displayFullName && (
-                        <p className="text-xs font-bold text-[var(--color-text)] truncate">{displayFullName}</p>
+                        <p className="text-sm font-bold text-[var(--color-text)] truncate">{displayFullName}</p>
                       )}
-                      <p className="text-[10px] text-gray-400 truncate">{profile.email}</p>
+                      <p className="text-xs text-gray-400 truncate">{profile.email}</p>
                     </div>
                   </div>
                 )}
-                <div className="py-1">
-                  <button onClick={() => navigate("/user-dashboard/settings?tab=profile")} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+                <div className="py-2">
+                  <button onClick={() => navigate("/user-dashboard/settings?tab=profile")} className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
                     <span className="text-gray-400"><UserIcon /></span> My Profile
                   </button>
-                  <button onClick={() => navigate("/user-dashboard/bookings")} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <button onClick={() => navigate("/user-dashboard/bookings")} className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
                     <span className="text-gray-400"><BookingIcon /></span> My Reservations
                   </button>
-                  <button onClick={() => navigate("/user-dashboard/watchlist")} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <button onClick={() => navigate("/user-dashboard/watchlist")} className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
                     <span className="text-gray-400"><WatchlistIcon /></span> My Wishlist
                   </button>
-                  <button onClick={() => navigate("/user-dashboard/settings")} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <button onClick={() => navigate("/user-dashboard/settings")} className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
                     <span className="text-gray-400"><SettingsIcon /></span> Settings
                   </button>
                 </div>
                 <div className="border-t border-gray-100">
-                  <button type="button" onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
+                  <button type="button" onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
                     <LogoutIcon size={18} /> Logout
                   </button>
                 </div>

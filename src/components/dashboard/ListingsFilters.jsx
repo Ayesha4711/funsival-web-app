@@ -78,9 +78,9 @@ export default function ListingsFilters({
         }}
       />
 
-      <div className="flex flex-col gap-4 mb-6">
+      <div className="flex flex-col gap-4">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-gray-100">
           <h1 className="text-xl font-bold text-text">Listings</h1>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="hidden sm:flex items-center gap-1 bg-[#EDF6F6] p-1 rounded-xl">

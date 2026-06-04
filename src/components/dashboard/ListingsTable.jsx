@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Pagination from "@/components/shared/Pagination";
 import { formatListingPrice } from "./listings/listingPrice";
 import { LocationIcon, ImageIcon } from "@/icons";
 import AvailabilityCell      from "./listings/AvailabilityCell";
-import ListingPreviewModal   from "./listings/ListingPreviewModal";
 import ListingStatusDropdown from "./listings/ListingStatusDropdown";
 import ListingActionMenu     from "./listings/ListingActionMenu";
 
@@ -63,23 +62,14 @@ export default function ListingsTable({
   onEdit,
   onDelete,
   onResumeDraft,
+  onViewDetails,
 }) {
-  const [previewItem, setPreviewItem] = useState(null);
-
   return (
     <div className="flex flex-col flex-1 justify-between">
-      {previewItem && (
-        <ListingPreviewModal
-          item={previewItem}
-          onClose={() => setPreviewItem(null)}
-          onEdit={(item) => { setPreviewItem(null); onEdit(item); }}
-        />
-      )}
-
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-2xl" style={{ border: "1px solid rgba(224,224,224,1)" }}>
         <table className="w-full text-left border-collapse min-w-[700px]">
           <thead>
-            <tr className="border-b-2 border-gray-100 bg-[#F8F9FA]">
+            <tr className="bg-[#F8F9FA]" style={{ borderBottom: "2px solid rgba(224,224,224,1)" }}>
               {["Activity", "Category", "Type", "Price", "Availability", "Status", "Actions"].map((h) => (
                 <th key={h} className="px-5 py-3.5 uppercase whitespace-nowrap" style={thStyle}>
                   {h}
@@ -99,10 +89,8 @@ export default function ListingsTable({
               data.map((item, idx) => (
                 <tr
                   key={item.id}
-                  onClick={() => setPreviewItem(item)}
-                  className={`transition-colors hover:bg-[#F8FFFA] cursor-pointer ${
-                    idx !== data.length - 1 ? "border-b border-gray-50" : ""
-                  }`}
+                  className="transition-colors hover:bg-gray-50/60"
+                  style={idx !== data.length - 1 ? { borderBottom: "1px solid rgba(224,224,224,1)" } : undefined}
                 >
                   {/* Activity */}
                   <td className="px-5 py-3.5 min-w-[200px] max-w-[260px]">
@@ -166,6 +154,7 @@ export default function ListingsTable({
                       onEdit={onEdit}
                       onDelete={onDelete}
                       onResumeDraft={onResumeDraft}
+                      onViewDetails={onViewDetails}
                       isLast={idx === data.length - 1}
                     />
                   </td>

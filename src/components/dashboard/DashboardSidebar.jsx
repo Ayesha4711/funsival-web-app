@@ -44,7 +44,7 @@ export default function DashboardSidebar({ isOpen, onClose, hideOnDesktop = fals
         </div>
 
         {/* Nav area — lighter teal */}
-        <div className="flex-1 flex flex-col bg-[#2FAE9E] overflow-hidden">
+        <div className="flex-1 flex flex-col bg-[#2FA39F] overflow-hidden">
 
         {/* Nav items */}
         <nav className="flex-1 flex flex-col gap-1 px-3 pt-8">

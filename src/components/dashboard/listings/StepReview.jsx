@@ -301,14 +301,14 @@ export default function StepReview({
           <button
             onClick={onBack}
             disabled={submitting}
-            className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors disabled:opacity-50"
+            className="flex-1 sm:flex-none sm:w-[244px] h-[58px] rounded-[100px] font-semibold text-sm border border-gray-300 text-gray-700 hover:border-gray-400 transition-colors disabled:opacity-50"
           >
             Go Back
           </button>
           <button
             onClick={onNext}
             disabled={submitting}
-            className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none sm:w-[244px] h-[58px] rounded-[100px] font-semibold text-sm bg-[var(--color-secondary)] text-[#2D2D2D] hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {submitting && <SpinnerIcon size={14} />}
             {submitting ? "Submitting..." : submitLabel}

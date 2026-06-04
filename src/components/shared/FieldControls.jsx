@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import CustomCalendar from "@/components/shared/CustomCalendar";
 import { ChevronDownIcon, CalendarIcon, PlusIcon } from "@/icons";
@@ -8,27 +8,26 @@ export { ChevronDownIcon, CalendarIcon };
 
 function useOutsideClose(onClose) {
   const ref = useRef(null);
-
   useEffect(() => {
     function handleMouseDown(event) {
-      if (ref.current && !ref.current.contains(event.target)) {
-        onClose();
-      }
+      if (ref.current && !ref.current.contains(event.target)) onClose();
     }
-
-    function handleScroll() {
-      onClose();
-    }
-
     document.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
+    return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [onClose]);
-
   return ref;
+}
+
+function useLockBodyScroll(open) {
+  useEffect(() => {
+    if (!open) return;
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
 }
 
 export function DropdownField({
@@ -43,14 +42,46 @@ export function DropdownField({
   splitDisplay = false,
   teal = false,
   iconLeft = null,
+  allowTyping = false,
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useOutsideClose(() => setOpen(false));
+  const [typedValue, setTypedValue] = useState("");
+  const triggerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useLockBodyScroll(open);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleMouseDown(event) {
+      const inTrigger = triggerRef.current?.contains(event.target);
+      if (!inTrigger) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (open && allowTyping) setTimeout(() => inputRef.current?.focus(), 0);
+  }, [open, allowTyping]);
 
   const selected = options.find((option) => option.value === value);
+  const filteredOptions = allowTyping && typedValue
+    ? options.filter(o => o.label.toLowerCase().includes(typedValue.toLowerCase()))
+    : options;
+
+  const handleTypedChange = (e) => {
+    setTypedValue(e.target.value);
+    onChange(e.target.value);
+  };
+
+  const toggle = () => setOpen(current => {
+    if (!current && allowTyping) setTypedValue(value || "");
+    return !current;
+  });
 
   return (
-    <div ref={ref} className={`relative ${className}`} style={{ zIndex: open ? 50 : "auto" }}>
+    <div ref={triggerRef} className={`relative ${className}`}>
       <div className={[
         "flex items-stretch rounded-xl border overflow-hidden transition-colors",
         teal ? "bg-white" : "bg-[#F5F5F5]",
@@ -62,28 +93,39 @@ export function DropdownField({
               ? "border-[#CEE6E5] focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15"
               : "border-transparent focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15",
       ].join(" ")}>
+        {open && allowTyping ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={typedValue}
+            onChange={handleTypedChange}
+            placeholder={placeholder}
+            className="flex-1 min-w-0 px-3 py-2.5 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent"
+          />
+        ) : (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={toggle}
+            className="flex-1 min-w-0 px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60 flex items-center gap-2"
+          >
+            {iconLeft && <span className="shrink-0 text-gray-400">{iconLeft}</span>}
+            {splitDisplay && selected ? (
+              <span className="flex-1 flex items-center justify-between min-w-0">
+                <span className="text-gray-400 text-sm truncate hidden sm:inline">{placeholder}</span>
+                <span className="font-bold text-gray-800 text-sm shrink-0">{selected.label}</span>
+              </span>
+            ) : (
+              <span className={selected ? "font-medium text-gray-700" : "text-gray-400"}>
+                {selected?.label || value || placeholder}
+              </span>
+            )}
+          </button>
+        )}
         <button
           type="button"
           disabled={disabled}
-          onClick={() => setOpen((current) => !current)}
-          className="flex-1 min-w-0 px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60 flex items-center gap-2"
-        >
-          {iconLeft && <span className="shrink-0 text-gray-400">{iconLeft}</span>}
-          {splitDisplay && selected ? (
-            <span className="flex-1 flex items-center justify-between min-w-0">
-              <span className="text-gray-400 text-sm truncate hidden sm:inline">{placeholder}</span>
-              <span className="font-bold text-gray-800 text-sm shrink-0">{selected.label}</span>
-            </span>
-          ) : (
-            <span className={selected ? "font-medium text-gray-700" : "text-gray-400"}>
-              {selected?.label || placeholder}
-            </span>
-          )}
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => setOpen((current) => !current)}
+          onClick={toggle}
           className="shrink-0 px-3 text-gray-400 hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
           aria-label={`Toggle ${placeholder}`}
         >
@@ -91,22 +133,26 @@ export function DropdownField({
         </button>
       </div>
 
-      {open && !disabled && (
-        <div
-          className={`absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-gray-100 bg-white  overflow-hidden ${menuClassName}`}
-        >
-          <div className="max-h-60 overflow-y-auto py-1">
-            {options.map((option) => {
-              const active = option.value === value;
+      {open && !disabled && typeof document !== "undefined" && createPortal(
+        <button
+          type="button"
+          aria-label="Close dropdown"
+          className="fixed inset-0 z-[9998] cursor-default bg-transparent"
+          onMouseDown={() => setOpen(false)}
+        />,
+        document.body
+      )}
 
+      {open && !disabled && (
+        <div className={`absolute left-0 right-0 top-full mt-2 z-[9999] rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden ${menuClassName}`}>
+          <div className="max-h-60 overflow-y-auto py-1">
+            {filteredOptions.map((option) => {
+              const active = option.value === value;
               return (
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
+                  onClick={() => { onChange(option.value); setTypedValue(option.label); setOpen(false); }}
                   className={[
                     "w-full px-4 py-2.5 text-left text-sm transition-colors",
                     active
@@ -137,10 +183,9 @@ export function ComboboxField({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
-  const ref = useOutsideClose(() => { setOpen(false); setQuery(""); });
+  const ref = useOutsideClose(useCallback(() => { setOpen(false); setQuery(""); }, []));
 
   const selected = options.find((o) => o.value === value);
-
   const filtered = query.trim()
     ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
     : options;
@@ -152,11 +197,7 @@ export function ComboboxField({
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  const selectOption = (opt) => {
-    onChange(opt.value);
-    setOpen(false);
-    setQuery("");
-  };
+  const selectOption = (opt) => { onChange(opt.value); setOpen(false); setQuery(""); };
 
   return (
     <div ref={ref} className={`relative ${className}`} style={{ zIndex: open ? 50 : "auto" }}>
@@ -202,7 +243,7 @@ export function ComboboxField({
       )}
 
       {open && !disabled && (
-        <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-gray-100 bg-white  overflow-hidden">
+        <div className="absolute left-0 right-0 top-full mt-2 z-[200] rounded-2xl border border-gray-100 bg-white overflow-hidden">
           <div className="max-h-56 overflow-y-auto py-1">
             {filtered.length === 0 ? (
               <p className="px-4 py-3 text-xs text-gray-400 text-center">No results found</p>
@@ -250,10 +291,7 @@ export function TagInputField({ tags, placeholder, onAdd, onRemove, error = fals
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              addTag();
-            }
+            if (event.key === "Enter") { event.preventDefault(); addTag(); }
           }}
           placeholder={placeholder}
           className={[
@@ -297,52 +335,20 @@ export function TagInputField({ tags, placeholder, onAdd, onRemove, error = fals
   );
 }
 
-/* ─── usePopupAnchor — writes position directly to DOM, no React state re-renders ── */
-function usePopupAnchor(triggerRef, popupRef, open, { popupWidth = 300, gap = 6, margin = 8 } = {}) {
-  const rafRef = useRef(null);
-  useEffect(() => {
-    if (!open) return;
-    const sync = () => {
-      const trigger = triggerRef.current;
-      const popup   = popupRef.current;
-      if (!trigger || !popup) { rafRef.current = requestAnimationFrame(sync); return; }
-      const rect = trigger.getBoundingClientRect();
-      popup.style.position = "fixed";
-      popup.style.top      = `${rect.bottom + gap}px`;
-      popup.style.left     = `${Math.max(margin, Math.min(rect.left, window.innerWidth - popupWidth - margin))}px`;
-      popup.style.width    = `${popupWidth}px`;
-      popup.style.zIndex   = "9999";
-      rafRef.current = requestAnimationFrame(sync);
-    };
-    rafRef.current = requestAnimationFrame(sync);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [open, triggerRef, popupRef, popupWidth, gap, margin]);
-}
-
-export function CalendarField({ value, placeholder = "Select date", onChange }) {
+export function CalendarField({ value, placeholder = "Select date", onChange, align = "left" }) {
   const [open, setOpen] = useState(false);
-  const triggerRef  = useRef(null);
-  const calendarRef = useRef(null);
+  const triggerRef = useRef(null);
 
-  usePopupAnchor(triggerRef, calendarRef, open, { popupWidth: 300 });
+  useLockBodyScroll(open);
 
   useEffect(() => {
     if (!open) return;
     function handleMouseDown(e) {
-      if (
-        triggerRef.current  && !triggerRef.current.contains(e.target) &&
-        calendarRef.current && !calendarRef.current.contains(e.target)
-      ) setOpen(false);
-    }
-    function handleScroll() {
-      setOpen(false);
+      const inTrigger = triggerRef.current?.contains(e.target);
+      if (!inTrigger) setOpen(false);
     }
     document.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
+    return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [open]);
 
   return (
@@ -354,12 +360,11 @@ export function CalendarField({ value, placeholder = "Select date", onChange }) 
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
           onFocus={() => setOpen(true)}
-          readOnly
-          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 cursor-pointer"
+          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
         />
         <button
           type="button"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => setOpen((o) => !o)}
           className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-[var(--color-primary)] hover:bg-gray-50"
           aria-label="Open calendar"
         >
@@ -368,17 +373,23 @@ export function CalendarField({ value, placeholder = "Select date", onChange }) 
       </div>
 
       {open && typeof document !== "undefined" && createPortal(
-        <div
-          ref={calendarRef}
-          style={{ position: "fixed", top: -9999, left: -9999, zIndex: 9999 }}
-        >
+        <button
+          type="button"
+          aria-label="Close calendar"
+          className="fixed inset-0 z-[9998] cursor-default bg-transparent"
+          onMouseDown={() => setOpen(false)}
+        />,
+        document.body
+      )}
+
+      {open && (
+        <div className={`absolute top-full mt-2 z-[9999] ${align === "right" ? "right-0" : "left-0"}`}>
           <CustomCalendar
             value={value}
             onChange={(nextValue) => { onChange(nextValue); setOpen(false); }}
             onClose={() => setOpen(false)}
           />
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   );

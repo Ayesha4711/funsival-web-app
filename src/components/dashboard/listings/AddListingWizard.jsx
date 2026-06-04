@@ -678,7 +678,7 @@ export default function AddListingWizard() {
                 )}
                 <button
                   onClick={handleDiscard}
-                  className="text-[11px] font-semibold text-red-400 hover:text-red-500 border border-red-100 hover:border-red-200 rounded-full px-3 py-1 transition-colors"
+                  className="text-sm font-semibold text-white bg-red-400 hover:bg-red-500 rounded-full px-5 py-2 transition-colors shadow-sm"
                 >
                   Discard
                 </button>

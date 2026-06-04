@@ -20,6 +20,7 @@ export default function ReservationFilters({
     { id: "upcoming",  label: "Upcoming" },
     { id: "completed", label: "Completed" },
     { id: "cancelled", label: "Cancelled" },
+    { id: "pending",   label: "Pending Requests" },
   ];
 
   const [searchOpen, setSearchOpen] = useState(false);

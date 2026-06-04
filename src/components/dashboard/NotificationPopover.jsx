@@ -101,7 +101,7 @@ export default function NotificationPopover({ onClose }) {
   return (
     <div className="absolute right-0 top-full mt-3 w-[320px] bg-white rounded-2xl border border-gray-100 overflow-hidden z-60">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
         <h3 className="text-base font-extrabold text-text">
           Notifications
           {unreadCount > 0 && (
@@ -125,7 +125,7 @@ export default function NotificationPopover({ onClose }) {
         {isLoading && (
           <div className="flex flex-col">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="p-4 border-b border-gray-50 animate-pulse flex gap-3">
+              <div key={i} className="px-4 py-3 border-b border-gray-50 animate-pulse flex gap-3">
                 <div className="w-2 h-2 rounded-full bg-gray-200 mt-1.5 shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-3 bg-gray-200 rounded w-3/4" />
@@ -149,7 +149,7 @@ export default function NotificationPopover({ onClose }) {
             <div
               key={n._id ?? n.id}
               onClick={() => handleItemClick(n)}
-              className={`p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${isNew ? "bg-[#FFF8EE]" : ""}`}
+              className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${isNew ? "bg-[#FFF8EE]" : ""}`}
             >
               <div className="flex gap-3">
                 {isNew && <span className="w-2 h-2 bg-secondary rounded-full mt-1.5 shrink-0" />}
@@ -173,7 +173,7 @@ export default function NotificationPopover({ onClose }) {
       <Link
         href="/dashboard/notifications"
         onClick={onClose}
-        className="block p-4 text-center text-xs font-bold text-secondary hover:bg-gray-50 border-t border-gray-50 transition-colors"
+        className="block px-4 py-3 text-center text-xs font-bold text-secondary hover:bg-gray-50 border-t border-gray-50 transition-colors"
       >
         View All
       </Link>

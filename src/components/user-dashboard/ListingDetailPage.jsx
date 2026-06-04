@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -249,73 +248,28 @@ const TIME_OPTIONS = (() => {
   return opts;
 })();
 
-/* ─── usePopupAnchor
- *  Writes position directly to the popup DOM node (no React state → no re-renders).
- *  Uses a rAF loop so it follows the trigger perfectly during scroll/resize.
- * ─────────────────────────────────────────────────────────────────────────────── */
-function usePopupAnchor(triggerRef, popupRef, open, { popupWidth = 280, gap = 6, margin = 8 } = {}) {
-  const rafRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const sync = () => {
-      const trigger = triggerRef.current;
-      const popup   = popupRef.current;
-      if (!trigger || !popup) { rafRef.current = requestAnimationFrame(sync); return; }
-
-      const rect  = trigger.getBoundingClientRect();
-      const top   = rect.bottom + gap;
-      const rawL  = rect.left;
-      const left  = Math.max(margin, Math.min(rawL, window.innerWidth - popupWidth - margin));
-
-      popup.style.position = "fixed";
-      popup.style.top      = `${top}px`;
-      popup.style.left     = `${left}px`;
-      popup.style.width    = `${popupWidth}px`;
-      popup.style.zIndex   = "9999";
-
-      rafRef.current = requestAnimationFrame(sync);
-    };
-
-    rafRef.current = requestAnimationFrame(sync);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [open, triggerRef, popupRef, popupWidth, gap, margin]);
-}
-
 /* ─── Custom Time Dropdown ───────────────────────────────────────────────────── */
 function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef(null);
-  const popupRef   = useRef(null);
-
-  usePopupAnchor(triggerRef, popupRef, open, { popupWidth: 176 });
+  const containerRef = useRef(null);
+  const listRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e) {
-      if (triggerRef.current && !triggerRef.current.contains(e.target) &&
-          popupRef.current   && !popupRef.current.contains(e.target)) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
         setOpen(false);
       }
     }
-    function handleScroll() {
-      setOpen(false);
-    }
     document.addEventListener("mousedown", handleClick);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  // Scroll selected item into view when list opens
   useEffect(() => {
-    if (open && value && popupRef.current) {
+    if (open && value && listRef.current) {
       const idx = TIME_OPTIONS.findIndex(t => t.value === value);
       if (idx >= 0) {
-        const el = popupRef.current.children[idx];
+        const el = listRef.current.children[idx];
         if (el) el.scrollIntoView({ block: "center" });
       }
     }
@@ -324,7 +278,7 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
   const selected = TIME_OPTIONS.find(t => t.value === value);
 
   return (
-    <div ref={triggerRef} className="relative w-full">
+    <div ref={containerRef} className="relative w-full" style={open ? { zIndex: 10 } : undefined}>
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -336,63 +290,49 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
         <span className="shrink-0"><ChevronDown /></span>
       </button>
 
-      {open && typeof document !== "undefined" && createPortal(
-        <div
-          ref={popupRef}
-          className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-y-auto"
-          style={{ maxHeight: 280, position: "fixed", top: -9999, left: -9999, zIndex: 9999 }}
-        >
-          {TIME_OPTIONS.map(t => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => { onChange(t.value); setOpen(false); }}
-              className={[
-                "w-full text-left px-5 py-3 text-sm transition-colors",
-                t.value === value
-                  ? "bg-[#EBF6F6] text-[#4AA7A7] font-bold border-r-4 border-[#F5C842]"
-                  : "text-gray-700 hover:bg-gray-50",
-              ].join(" ")}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>,
-        document.body
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-200 bg-white rounded-2xl border border-gray-200 shadow-xl overflow-y-auto" style={{ maxHeight: 280 }}>
+          <div ref={listRef}>
+            {TIME_OPTIONS.map(t => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => { onChange(t.value); setOpen(false); }}
+                className={[
+                  "w-full text-left px-5 py-3 text-sm transition-colors",
+                  t.value === value
+                    ? "bg-[#EBF6F6] text-[#4AA7A7] font-bold border-r-4 border-[#F5C842]"
+                    : "text-gray-700 hover:bg-gray-50",
+                ].join(" ")}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
-/* ─── Calendar Dropdown — portal-based so it escapes overflow clipping ──────── */
-function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy" }) {
+/* ─── Calendar Dropdown ──────────────────────────────────────────────────────── */
+function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy", align = "left" }) {
   const [open, setOpen] = useState(false);
-  const triggerRef  = useRef(null);
-  const calendarRef = useRef(null);
-
-  usePopupAnchor(triggerRef, calendarRef, open, { popupWidth: 300 });
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e) {
-      if (
-        triggerRef.current  && !triggerRef.current.contains(e.target) &&
-        calendarRef.current && !calendarRef.current.contains(e.target)
-      ) setOpen(false);
-    }
-    function handleScroll() {
-      setOpen(false);
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClick);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
   return (
-    <div ref={triggerRef} className="relative w-full">
+    <div ref={containerRef} className="relative w-full">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -403,18 +343,14 @@ function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy" }) {
         </span>
       </button>
 
-      {open && typeof document !== "undefined" && createPortal(
-        <div
-          ref={calendarRef}
-          style={{ position: "fixed", top: -9999, left: -9999, zIndex: 9999 }}
-        >
+      {open && (
+        <div className={`absolute top-full mt-1 z-[200] ${align === "right" ? "right-0" : "left-0"}`}>
           <CustomCalendar
             value={value}
             onChange={(v) => { onChange(v); setOpen(false); }}
             onClose={() => setOpen(false)}
           />
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   );
@@ -483,7 +419,7 @@ function DateRangeField({ checkIn, setCheckIn, checkOut, setCheckOut, checkInErr
         <p className="text-xs text-gray-500 font-medium mb-1 pl-1">Check-out</p>
         <div className={`flex items-center gap-2 rounded-full border bg-white px-3 py-2.5 ${checkOutError ? "border-red-400" : "border-gray-200"}`}>
           <span className="shrink-0"><CalendarIcon /></span>
-          <CalendarDropdown value={checkOut} onChange={setCheckOut} placeholder="mm/dd/yyyy" />
+          <CalendarDropdown value={checkOut} onChange={setCheckOut} placeholder="mm/dd/yyyy" align="right" />
         </div>
         {checkOutError && <p className="text-[10px] text-red-500 mt-1 pl-1">Check-out required</p>}
       </div>
@@ -547,7 +483,7 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
       </div>
 
       {/* Scrollable middle content */}
-      <div className="flex flex-col gap-5 xl:flex-1 xl:overflow-y-auto xl:pr-1 xl:-mr-1">
+      <div className="flex flex-col gap-5 xl:flex-1">
         {children}
       </div>
 

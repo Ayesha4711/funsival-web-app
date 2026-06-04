@@ -131,14 +131,14 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
       <div className="flex items-center gap-3 w-full sm:w-auto px-0 sm:px-0">
         <button
           onClick={onBack}
-          className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm border-2 border-[#2D2D2D] text-gray-700 hover:border-gray-400 transition-colors"
+          className="flex-1 sm:flex-none sm:w-[244px] h-[58px] rounded-[100px] font-semibold text-sm border border-[#2D2D2D] text-gray-700 hover:border-gray-400 transition-colors"
         >
           Go Back
         </button>
         <button
           onClick={onNext}
           disabled={!selected}
-          className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-[#2D2D2D] hover:opacity-90 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+          className="flex-1 sm:flex-none sm:w-[244px] h-[58px] rounded-[100px] font-semibold text-sm bg-[var(--color-secondary)] text-[#2D2D2D] hover:opacity-90 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
         >
           Next
         </button>

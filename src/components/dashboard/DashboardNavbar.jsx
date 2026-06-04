@@ -164,38 +164,50 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
           {mobileOpen ? <CloseIcon /> : <MenuIcon />}
         </button>
 
-        {/* Provider dropdown — sm and up only */}
+        {/* Provider/User dropdown — sm and up only */}
         <div className="relative hidden sm:block">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-1.5 text-white text-sm font-medium hover:text-white/80 transition-colors"
+            className="flex items-center gap-1.5 text-white text-sm font-semibold hover:text-white/80 transition-colors"
           >
             {roleLabel}
             <ChevronDownIcon />
           </button>
-          {dropdownOpen &&
-            <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl py-1 z-50">
-              <button
-                onClick={() => {
-                  setDropdownOpen(false);
-                  setActiveView("provider");
-                  router.push("/dashboard");
-                }}
-                className={`block w-full text-left px-4 py-2 text-sm font-medium hover:bg-[var(--color-primary-light)] transition-colors ${activeView === "provider" ? "text-[#228E8A] font-semibold bg-[var(--color-primary-light)]" : "text-[var(--color-text)]"}`}
-              >
-                Provider
-              </button>
-              <button
-                onClick={() => {
-                  setDropdownOpen(false);
-                  setActiveView("user");
-                  router.push("/user-dashboard/explore");
-                }}
-                className={`block w-full text-left px-4 py-2 text-sm font-medium hover:bg-[var(--color-primary-light)] transition-colors ${activeView === "user" ? "text-[#228E8A] font-semibold bg-[var(--color-primary-light)]" : "text-[var(--color-text)]"}`}
-              >
-                User
-              </button>
-            </div>}
+          {dropdownOpen && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl py-3 z-50 shadow-lg border border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-4">Switch role</p>
+              <div className="flex flex-col gap-1 px-2">
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setActiveView("provider");
+                    router.push("/dashboard");
+                  }}
+                  className={`w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold transition-colors ${
+                    activeView === "provider"
+                      ? "bg-[#2FA39F] text-white"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  Provider
+                </button>
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setActiveView("user");
+                    router.push("/user-dashboard/explore");
+                  }}
+                  className={`w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold transition-colors ${
+                    activeView === "user"
+                      ? "bg-[#2FA39F] text-white"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  User
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Vertical divider */}
@@ -238,55 +250,48 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
             {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
           </button>
           {profileOpen &&
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl py-1.5 z-50 border border-gray-100">
+            <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl z-50 shadow-lg border border-gray-100 overflow-hidden">
               {profile && (
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-xs shrink-0 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-base shrink-0 overflow-hidden">
                     {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
                   </div>
                   <div className="min-w-0">
                     {(profile.providerProfile?.firstName || profile.providerProfile?.lastName || profile.firstName || profile.lastName) && (
-                      <p className="text-xs font-bold text-[var(--color-text)] truncate">
+                      <p className="text-sm font-bold text-[var(--color-text)] truncate">
                         {[profile.providerProfile?.firstName || profile.firstName, profile.providerProfile?.lastName || profile.lastName].filter(Boolean).join(" ")}
                       </p>
                     )}
-                    <p className="text-[10px] text-gray-400 truncate">{profile.email}</p>
+                    <p className="text-xs text-gray-400 truncate">{profile.email}</p>
                   </div>
                 </div>
               )}
-              <button
-                onClick={() => {
-                  setProfileOpen(false);
-                  router.push("/dashboard/settings?tab=profile");
-                }}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-gray-500">
-                  <UserIcon />
-                </span>
-                My Profile
-              </button>
-              <button
-                onClick={() => {
-                  setProfileOpen(false);
-                  router.push("/dashboard/settings");
-                }}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-[var(--color-text)] hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-gray-500">
-                  <SettingsIcon />
-                </span>
-                Settings
-              </button>
-              <div className="my-1 border-t border-gray-100" />
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
-              >
-                <LogoutIcon />
-                Logout
-              </button>
+              <div className="py-2">
+                <button
+                  onClick={() => { setProfileOpen(false); router.push("/dashboard/settings?tab=profile"); }}
+                  className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-[var(--color-text)] hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-gray-400"><UserIcon /></span>
+                  My Profile
+                </button>
+                <button
+                  onClick={() => { setProfileOpen(false); router.push("/dashboard/settings"); }}
+                  className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-[var(--color-text)] hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-gray-400"><SettingsIcon /></span>
+                  Settings
+                </button>
+              </div>
+              <div className="border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                >
+                  <LogoutIcon />
+                  Logout
+                </button>
+              </div>
             </div>}
         </div>
 

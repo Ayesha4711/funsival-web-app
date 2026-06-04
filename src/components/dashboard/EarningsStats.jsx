@@ -7,7 +7,7 @@ import { CreditCardIcon as WalletIcon } from "@/icons";
 export default function EarningsStats() {
   const router = useRouter();
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
       {/* Available Funds */}
       <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 border border-[var(--color-border)] flex flex-col gap-2 sm:gap-3">
         <div>

@@ -70,7 +70,6 @@ export default function CustomCalendar({ value, onChange, onClose }) {
 
   const [viewYear,  setViewYear]  = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
-  const [selected,  setSelected]  = useState(value || null);
 
   const currentYear = today.getFullYear();
   const yearStart = Math.min(currentYear - 100, initial.getFullYear());
@@ -96,14 +95,13 @@ export default function CustomCalendar({ value, onChange, onClose }) {
   const handleSelect = (day) => {
     const d = new Date(viewYear, viewMonth, day);
     const formatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    setSelected(formatted);
     onChange?.(formatted);
     onClose?.();
   };
 
   const isSelected = (day) => {
-    if (!selected) return false;
-    const [m, d, y] = selected.split("/").map(Number);
+    if (!value) return false;
+    const [y, m, d] = value.split("-").map(Number);
     return y === viewYear && m - 1 === viewMonth && d === day;
   };
 

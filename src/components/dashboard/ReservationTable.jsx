@@ -7,7 +7,7 @@ import { MoreHorizIcon, CheckCircleIcon, ClockIcon, RefundIcon, MapPinIcon } fro
 
 /* ─── Action Dropdown ─────────────────────────────────────────────────────────
    Opens above when the row index is in the last 2 rows of the visible set.     */
-function ActionMenu({ item, onViewDetails, onCancel, isNearBottom, totalRows }) {
+function ActionMenu({ item, onViewDetails, onCancel, onApprove, isNearBottom, totalRows }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -35,8 +35,17 @@ function ActionMenu({ item, onViewDetails, onCancel, isNearBottom, totalRows }) 
 
       {open && (
         <div
-          className={`absolute right-0 z-40 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[148px] shadow-lg ${popupPositionClass}`}
+          className={`absolute right-0 z-40 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[160px] shadow-lg ${popupPositionClass}`}
         >
+          {(item.status === "Upcoming" || item.status === "Pending") && (
+            <button
+              onClick={() => { setOpen(false); onApprove?.(item); }}
+              style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+              className="w-full text-left px-4 py-2.5 text-sm font-medium text-text hover:bg-gray-50 transition-colors"
+            >
+              Approve
+            </button>
+          )}
           <button
             onClick={() => { setOpen(false); onViewDetails(item); }}
             style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
@@ -60,12 +69,13 @@ function ActionMenu({ item, onViewDetails, onCancel, isNearBottom, totalRows }) 
 }
 
 /* ─── Table ──────────────────────────────────────────────────────────────────── */
-export default function ReservationTable({ data, onViewDetails, onCancel }) {
+export default function ReservationTable({ data, onViewDetails, onCancel, onApprove, activeTab = "all" }) {
   const getStatusStyle = (status) => {
     switch (status) {
       case "Upcoming":  return "bg-[#CFEDEC] text-[#168F8D]";
       case "Completed": return "bg-[#DDFBE7] text-[#12A84A]";
       case "Cancelled": return "bg-[#FFE0DE] text-[#FF1F1F]";
+      case "Pending":   return "bg-[#FFF3CD] text-[#D97706]";
       default:          return "bg-gray-100 text-gray-500";
     }
   };
@@ -89,6 +99,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
   };
 
   const totalRows = data.length;
+  const headers = ["Reservation", "Category", "Invoice", "Reserved By", "Date & Time", "Status", "Actions"];
 
   return (
     <div className="h-full overflow-hidden rounded-2xl border border-[#E0E0E0] bg-white">
@@ -100,7 +111,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
           {/* ── Thead ── */}
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-[#E0E0E0] bg-[#FBFCFD]">
-              {["Reservation", "Category", "Invoice", "Reserved By", "Date & Time", "Status", "Actions"].map((h) => (
+              {headers.map((h) => (
                 <th
                   key={h}
                   style={{
@@ -209,6 +220,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                         item={item}
                         onViewDetails={onViewDetails}
                         onCancel={onCancel}
+                        onApprove={onApprove}
                         isNearBottom={isNearBottom}
                         totalRows={totalRows}
                       />
