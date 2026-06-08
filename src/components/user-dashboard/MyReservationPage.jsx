@@ -9,11 +9,15 @@ import reservationImg from "@/assets/images/reservationImg.png";
 import {
   fetchBookings,
   cancelBooking,
+  submitRefundRequest,
+  withdrawRefundRequest,
+  fetchRefundRequest,
   selectBookings,
   selectBookingsPagination,
   selectBookingsStatus,
   selectBookingsCancelStatus,
   selectBookingsError,
+  selectRefundRequestStatus,
 } from "@/store/slices/bookingsSlice";
 import { startOrGetConversation } from "@/store/slices/chatSlice";
 import AppFooter from "@/components/shared/AppFooter";
@@ -277,8 +281,126 @@ function DotsMenu({ onReportListing, onContactHost }) {
   );
 }
 
+/* ─── Refund helpers ─────────────────────────────────────────────────────────── */
+function canRequestRefund(booking) {
+  if (booking.paymentStatus !== "held") return false;
+  if (!booking.payoutEligibleAt) return false;
+  if (booking.activeRefundRequest) return false;
+  return new Date() < new Date(booking.payoutEligibleAt);
+}
+
+function RefundStatusBadge({ request }) {
+  if (!request) return null;
+  const cfg = {
+    pending:   { label: "Refund Pending",  bg: "bg-yellow-100 text-yellow-700" },
+    approved:  { label: "Refund Approved", bg: "bg-green-100 text-green-700" },
+    rejected:  { label: "Refund Rejected", bg: "bg-red-100 text-red-700" },
+    withdrawn: { label: "Refund Withdrawn", bg: "bg-gray-100 text-gray-500" },
+    expired:   { label: "Refund Expired",  bg: "bg-gray-100 text-gray-500" },
+  };
+  const c = cfg[request.status] ?? cfg.pending;
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${c.bg}`}>
+      {c.label}
+    </span>
+  );
+}
+
+function RefundRequestModal({ booking, onClose, onSubmitted }) {
+  const dispatch = useDispatch();
+  const [reason, setReason] = useState("");
+  const refundStatus = useSelector(selectRefundRequestStatus);
+  const loading = refundStatus === "loading";
+
+  const handleSubmit = async () => {
+    if (!reason.trim()) return;
+    try {
+      await dispatch(submitRefundRequest({ bookingId: booking.id, reason: reason.trim() })).unwrap();
+      toast.success("Refund request submitted.");
+      onSubmitted?.();
+      onClose();
+    } catch (err) {
+      toast.error(typeof err === "string" ? err : "Failed to submit refund request.");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
+      <div className="bg-white rounded-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900">Request a Refund</h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500">
+            <CloseIcon />
+          </button>
+        </div>
+        <div className="px-6 py-5 flex flex-col gap-4">
+          <p className="text-xs text-gray-400">
+            You can request a refund within 7 days of payment. Provide a reason below and our team will review it.
+          </p>
+          <div>
+            <label className="text-sm font-semibold text-gray-700 mb-1 block">Reason for refund</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. Provider didn't show up"
+              rows={4}
+              className="w-full px-4 py-3 text-sm text-gray-700 placeholder:text-gray-300 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4AA7A7] resize-none"
+            />
+          </div>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="flex-1 py-3 border border-gray-200 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50">
+              Cancel
+            </button>
+            <button onClick={handleSubmit} disabled={loading || !reason.trim()}
+              className="flex-1 py-3 bg-[#4AA7A7] text-white font-semibold rounded-full text-sm hover:opacity-90 disabled:opacity-50 transition-opacity">
+              {loading ? "Submitting…" : "Submit Request"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WithdrawRefundModal({ booking, onClose, onWithdrawn }) {
+  const dispatch = useDispatch();
+  const refundStatus = useSelector(selectRefundRequestStatus);
+  const loading = refundStatus === "loading";
+
+  const handleWithdraw = async () => {
+    try {
+      await dispatch(withdrawRefundRequest(booking.id)).unwrap();
+      toast.success("Refund request withdrawn.");
+      onWithdrawn?.();
+      onClose();
+    } catch (err) {
+      toast.error(typeof err === "string" ? err : "Failed to withdraw request.");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
+      <div className="bg-white rounded-2xl w-full max-w-sm">
+        <div className="px-6 py-5 flex flex-col gap-4">
+          <h2 className="text-lg font-bold text-gray-900">Withdraw Refund Request</h2>
+          <p className="text-sm text-gray-500">Are you sure you want to withdraw your refund request? This cannot be undone.</p>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="flex-1 py-3 border border-gray-200 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50">
+              Keep Request
+            </button>
+            <button onClick={handleWithdraw} disabled={loading}
+              className="flex-1 py-3 bg-gray-800 text-white font-semibold rounded-full text-sm hover:opacity-90 disabled:opacity-50 transition-opacity">
+              {loading ? "Withdrawing…" : "Withdraw"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Booking card row ───────────────────────────────────────────────────────── */
-function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportListing, onContactHost, wishlisted, onToggleWishlist, onShare }) {
+function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportListing, onContactHost, onRequestRefund, onWithdrawRefund, wishlisted, onToggleWishlist, onShare, refundRequest }) {
   const statusKey = getStatusKey(booking);
   const guests = booking.numberOfGuests ? `${booking.numberOfGuests} Adult${booking.numberOfGuests > 1 ? "s" : ""}` : null;
 
@@ -348,8 +470,18 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
           </div>
         </div>
 
-        {/* Action button — bottom right */}
-        <div className="flex justify-end mt-auto" onClick={(e) => e.stopPropagation()}>
+        {/* Refund badge */}
+        {refundRequest && (
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <RefundStatusBadge request={refundRequest} />
+            {refundRequest.status === "rejected" && refundRequest.note && (
+              <span className="text-xs text-gray-400 truncate max-w-xs">"{refundRequest.note}"</span>
+            )}
+          </div>
+        )}
+
+        {/* Action buttons — bottom right */}
+        <div className="flex flex-wrap items-center justify-end gap-2 mt-auto" onClick={(e) => e.stopPropagation()}>
           {canReview(booking) && (
             <button
               onClick={() => onLeaveReview(booking)}
@@ -367,6 +499,22 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
               className="px-6 py-2.5 border-2 border-[#FEB538] text-gray-800 font-semibold rounded-full text-sm hover:bg-[#FEB538]/10 transition-colors whitespace-nowrap"
             >
               Cancel Reservation
+            </button>
+          )}
+          {canRequestRefund(booking) && !refundRequest && (
+            <button
+              onClick={() => onRequestRefund(booking)}
+              className="px-5 py-2.5 border-2 border-[#4AA7A7] text-[#4AA7A7] font-semibold rounded-full text-sm hover:bg-[#4AA7A7]/10 transition-colors whitespace-nowrap"
+            >
+              Request Refund
+            </button>
+          )}
+          {refundRequest?.status === "pending" && (
+            <button
+              onClick={() => onWithdrawRefund(booking)}
+              className="px-5 py-2.5 border-2 border-gray-300 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50 transition-colors whitespace-nowrap"
+            >
+              Withdraw Request
             </button>
           )}
         </div>
@@ -668,6 +816,8 @@ export default function MyReservationPage() {
   const [activeBooking, setActiveBooking] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("all");
+  // refundRequests: { [bookingId]: refundRequestObject | null }
+  const [refundRequestMap, setRefundRequestMap] = useState({});
   const [wishlistIds, setWishlistIds] = useState(() => {
     try { return JSON.parse(localStorage.getItem("reservation_wishlists") || "[]"); } catch { return []; }
   });
@@ -675,6 +825,22 @@ export default function MyReservationPage() {
   useEffect(() => {
     dispatch(fetchBookings({ page: currentPage, limit: 10 }));
   }, [dispatch, currentPage]);
+
+  // Fetch refund requests for bookings that have one pending
+  useEffect(() => {
+    if (!bookings.length) return;
+    bookings.forEach((b) => {
+      if (b.activeRefundRequest && !refundRequestMap[b.id]) {
+        dispatch(fetchRefundRequest(b.id))
+          .unwrap()
+          .then((res) => {
+            const req = res?.data?.refundRequest ?? res?.data ?? null;
+            setRefundRequestMap((prev) => ({ ...prev, [b.id]: req }));
+          })
+          .catch(() => {});
+      }
+    });
+  }, [bookings, dispatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleWishlist = (id) => {
     setWishlistIds(prev => {
@@ -827,6 +993,9 @@ export default function MyReservationPage() {
                   onLeaveReview={(bk) => openModal("review", bk)}
                   onReportListing={() => openModal("report-listing", b)}
                   onContactHost={() => handleContactHost(b)}
+                  onRequestRefund={(bk) => openModal("refund-request", bk)}
+                  onWithdrawRefund={(bk) => openModal("withdraw-refund", bk)}
+                  refundRequest={refundRequestMap[b.id] ?? null}
                   wishlisted={wishlistIds.includes(b.id)}
                   onToggleWishlist={() => toggleWishlist(b.id)}
                   onShare={() => handleShare(b)}
@@ -858,6 +1027,31 @@ export default function MyReservationPage() {
       )}
       {modal === "report-listing" && (
         <ReportListingModal onClose={closeModal} />
+      )}
+      {modal === "withdraw-refund" && activeBooking && (
+        <WithdrawRefundModal
+          booking={activeBooking}
+          onClose={closeModal}
+          onWithdrawn={() => {
+            setRefundRequestMap((prev) => ({ ...prev, [activeBooking.id]: null }));
+            dispatch(fetchBookings({ page: currentPage, limit: 10 }));
+          }}
+        />
+      )}
+      {modal === "refund-request" && activeBooking && (
+        <RefundRequestModal
+          booking={activeBooking}
+          onClose={closeModal}
+          onSubmitted={() => {
+            dispatch(fetchRefundRequest(activeBooking.id))
+              .unwrap()
+              .then((res) => {
+                const req = res?.data?.refundRequest ?? res?.data ?? null;
+                setRefundRequestMap((prev) => ({ ...prev, [activeBooking.id]: req }));
+              })
+              .catch(() => {});
+          }}
+        />
       )}
     </div>
   );

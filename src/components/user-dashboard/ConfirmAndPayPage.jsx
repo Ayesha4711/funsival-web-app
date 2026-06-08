@@ -221,9 +221,6 @@ export default function ConfirmAndPayPage() {
   const [agreed, setAgreed] = useState(false);
 
   const isSubmitting = bookingStatus === "loading";
-  // Static testing: only require checkbox agreement (no real payment validation)
-  // Uncomment the selectedCard check when real payment is wired up:
-  // const canPay = agreed && selectedCard != null && !isSubmitting;
   const canPay = agreed && !isSubmitting;
 
   const handleSelectSavedCard = (card) => {
@@ -233,24 +230,23 @@ export default function ConfirmAndPayPage() {
 
   const handleConfirmAndPay = async () => {
     const payload = buildBookingPayload(params);
+    if (!payload.listingId) return;
     try {
-      if (payload.listingId) {
-        const result = await dispatch(createBooking(payload)).unwrap();
-        if (result?.success === false) {
-          toast.error(result.message || "Booking failed. Please try again.");
-          return;
-        }
-        toast.success(result?.message || "Booking created successfully.");
+      const result = await dispatch(createBooking(payload)).unwrap();
+      const checkoutUrl = result?.data?.checkout?.url;
+      if (!checkoutUrl) {
+        toast.error(result?.message || "Could not start payment. Please try again.");
+        return;
       }
       // Clear the form's sessionStorage key so the next booking starts fresh
       const skey = params.get("_skey");
       if (skey) sessionStorage.removeItem(skey);
-      router.push("/user-dashboard/booking-success");
+      // Redirect to Stripe Checkout
+      window.location.href = checkoutUrl;
     } catch (err) {
       const fieldErrors = err?.errors;
       if (fieldErrors && typeof fieldErrors === "object") {
-        const messages = Object.values(fieldErrors);
-        messages.forEach((msg) => toast.error(msg));
+        Object.values(fieldErrors).forEach((msg) => toast.error(msg));
       } else {
         const message = typeof err === "string" ? err : (err?.message || "Booking failed. Please try again.");
         toast.error(message);
@@ -423,7 +419,7 @@ export default function ConfirmAndPayPage() {
                 disabled={!canPay}
                 className={`px-10 py-3.5 rounded-full text-sm font-bold transition-all ${canPay ? "bg-[#FEB538] text-gray-900 hover:opacity-90" : "bg-[#F5C842]/40 text-gray-400 cursor-not-allowed"}`}
               >
-                {isSubmitting ? "Processing..." : "Confirm & Pay"}
+                {isSubmitting ? "Redirecting to payment…" : "Confirm & Pay"}
               </button>
             </div>
           </div>

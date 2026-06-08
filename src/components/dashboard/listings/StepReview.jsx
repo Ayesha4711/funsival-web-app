@@ -144,7 +144,7 @@ export default function StepReview({
       <div className="text-center mb-8 pt-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] inline-flex items-center gap-2">
           Review Details
-          <InfoIcon size={20} className="text-[var(--color-secondary)]" />
+          {/* <InfoIcon size={20} className="text-[var(--color-secondary)]" /> */}
         </h2>
         <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-xl mx-auto leading-relaxed">
           In this step, we&apos;ll ask you which type of property you have and if guests will book the entire place or just a room. Then let us know the location and how many guests can stay.

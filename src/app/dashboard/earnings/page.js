@@ -8,7 +8,7 @@ import TransactionHistory from "@/components/dashboard/TransactionHistory";
 export default function EarningsPage() {
   return (
     <div className="p-3 xs:p-4 sm:p-6 w-full flex flex-col gap-4 sm:gap-5 bg-[#F3F4F6] flex-1">
-      {/* Row 1 — Stats */}
+      {/* Row 1 — Stats (includes Stripe onboarding banner when not connected) */}
       <EarningsStats />
 
       {/* Row 2 — Charts: mobile/iPad stacked (Revenue on top), lg+ side-by-side */}

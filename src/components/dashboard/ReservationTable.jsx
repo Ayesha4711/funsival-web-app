@@ -98,6 +98,28 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAppr
     }
   };
 
+  const getPaymentStatusStyle = (ps) => {
+    switch (ps) {
+      case "held":              return "bg-blue-50 text-blue-600";
+      case "released":          return "bg-green-50 text-green-600";
+      case "refunded":          return "bg-red-50 text-red-500";
+      case "processing":        return "bg-yellow-50 text-yellow-600";
+      case "requires_payment":  return "bg-gray-100 text-gray-500";
+      default:                  return "bg-gray-100 text-gray-400";
+    }
+  };
+
+  const paymentStatusLabel = (ps) => {
+    switch (ps) {
+      case "held":              return "Held";
+      case "released":          return "Released";
+      case "refunded":          return "Refunded";
+      case "processing":        return "Processing";
+      case "requires_payment":  return "Unpaid";
+      default:                  return ps ?? "—";
+    }
+  };
+
   const totalRows = data.length;
   const headers = ["Reservation", "Category", "Invoice", "Reserved By", "Date & Time", "Status", "Actions"];
 
@@ -169,13 +191,25 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAppr
                     </span>
                   </td>
 
-                  {/* Invoice */}
+                  {/* Invoice / Payment Status */}
                   <td className="px-5 py-3">
-                    <div className={`flex items-center gap-1.5 text-[12px] font-semibold ${getInvoiceStyle(item.invoice)}`}
-                      style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
-                    >
-                      {getInvoiceIcon(item.invoice)}
-                      <span>{item.invoice}</span>
+                    <div className="flex flex-col gap-1">
+                      <div className={`flex items-center gap-1.5 text-[12px] font-semibold ${getInvoiceStyle(item.invoice)}`}
+                        style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+                      >
+                        {getInvoiceIcon(item.invoice)}
+                        <span>{item.invoice}</span>
+                      </div>
+                      {item.paymentStatus && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit ${getPaymentStatusStyle(item.paymentStatus)}`}>
+                          {paymentStatusLabel(item.paymentStatus)}
+                        </span>
+                      )}
+                      {item.activeRefundRequest && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-50 text-yellow-700 w-fit">
+                          Refund Pending
+                        </span>
+                      )}
                     </div>
                   </td>
 

@@ -14,7 +14,7 @@ const CloseIcon = () => (
 
 function DetailRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between py-[14px] border-b border-gray-100 last:border-0">
+    <div className="flex items-center justify-between py-3.5 border-b border-gray-100 last:border-0">
       <span style={{ fontFamily: FONT, fontWeight: 500, fontSize: 14, color: "#374151" }}>
         {label}
       </span>
@@ -42,6 +42,15 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
   const isCancelled  = reservation.status === "Cancelled";
   const cancelledBy  = reservation._cancelledBy || reservation.reservedBy;
   const cancelReason = reservation._cancelReason;
+
+  const PAYMENT_STATUS_CFG = {
+    requires_payment: { label: "Awaiting Payment", bg: "bg-gray-100",   text: "text-gray-600" },
+    processing:       { label: "Processing",        bg: "bg-blue-100",   text: "text-blue-700" },
+    held:             { label: "Payment Held",      bg: "bg-green-100",  text: "text-green-700" },
+    released:         { label: "Released",          bg: "bg-teal-100",   text: "text-teal-700" },
+    refunded:         { label: "Refunded",          bg: "bg-purple-100", text: "text-purple-700" },
+  };
+  const psCfg = PAYMENT_STATUS_CFG[reservation.paymentStatus] ?? null;
 
   const rawPhoto    = reservation._raw?.listing?.photos?.[0];
   const hasRealPhoto = rawPhoto && !rawPhoto.startsWith("blob:");
@@ -99,6 +108,30 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
             <DetailRow label="Reserved By" value={reservation.reservedBy} />
             <DetailRow label="Date"        value={reservation.dateRange || reservation.date} />
             <DetailRow label="Location"    value={reservation.location} />
+
+            {/* Payment status */}
+            {psCfg && (
+              <div className="flex items-center justify-between py-3.5 border-b border-gray-100">
+                <span style={{ fontFamily: FONT, fontWeight: 500, fontSize: 14, color: "#374151" }}>
+                  Payment Status
+                </span>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${psCfg.bg} ${psCfg.text}`}>
+                  {psCfg.label}
+                </span>
+              </div>
+            )}
+
+            {/* Active refund request */}
+            {reservation.activeRefundRequest && (
+              <div className="flex items-center justify-between py-3.5 border-b border-gray-100 last:border-0">
+                <span style={{ fontFamily: FONT, fontWeight: 500, fontSize: 14, color: "#374151" }}>
+                  Refund Request
+                </span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                  Pending Review
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Cancelled banner */}

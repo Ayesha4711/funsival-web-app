@@ -67,6 +67,57 @@ export const cancelBooking = createAsyncThunk(
   }
 );
 
+// Re-create a Stripe Checkout session for an existing booking
+export const recreateCheckout = createAsyncThunk(
+  "bookings/recreateCheckout",
+  async (bookingId, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post(`/payments/bookings/${bookingId}/checkout`);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+// ─── Refund request thunks ────────────────────────────────────────────────────
+
+export const submitRefundRequest = createAsyncThunk(
+  "bookings/submitRefundRequest",
+  async ({ bookingId, reason }, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post(`/bookings/${bookingId}/refund-request`, { reason });
+      return { bookingId, ...data };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const fetchRefundRequest = createAsyncThunk(
+  "bookings/fetchRefundRequest",
+  async (bookingId, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.get(`/bookings/${bookingId}/refund-request`);
+      return { bookingId, ...data };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const withdrawRefundRequest = createAsyncThunk(
+  "bookings/withdrawRefundRequest",
+  async (bookingId, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.delete(`/bookings/${bookingId}/refund-request`);
+      return { bookingId, ...data };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
 // ─── Slice ───────────────────────────────────────────────────────────────────
 
 const bookingsSlice = createSlice({
@@ -85,6 +136,9 @@ const bookingsSlice = createSlice({
     cancelStatus: "idle",
     error: null,
     hostError: null,
+    // refund requests keyed by bookingId
+    refundRequests: {},
+    refundRequestStatus: "idle",
   },
   reducers: {
     setSelectedBooking(state, action) {
@@ -141,10 +195,11 @@ const bookingsSlice = createSlice({
         state.status = "failed";
         state.error = action.payload;
       })
-      // createBooking
+      // createBooking — response now includes { booking, checkout }
       .addCase(createBooking.fulfilled, (state, action) => {
-        const booking = action.payload?.data ?? action.payload;
-        if (booking) state.items.unshift(booking);
+        const d = action.payload?.data;
+        const booking = d?.booking ?? action.payload?.data ?? action.payload;
+        if (booking?.id) state.items.unshift(booking);
       })
       // cancelBooking — update in both lists
       .addCase(cancelBooking.pending, (state) => {
@@ -165,12 +220,51 @@ const bookingsSlice = createSlice({
       .addCase(cancelBooking.rejected, (state, action) => {
         state.cancelStatus = "idle";
         state.error = action.payload;
+      })
+
+      // submitRefundRequest
+      .addCase(submitRefundRequest.pending, (state) => {
+        state.refundRequestStatus = "loading";
+      })
+      .addCase(submitRefundRequest.fulfilled, (state, action) => {
+        state.refundRequestStatus = "idle";
+        const { bookingId } = action.payload;
+        const req = action.payload?.data?.refundRequest ?? null;
+        if (bookingId && req) state.refundRequests[bookingId] = req;
+      })
+      .addCase(submitRefundRequest.rejected, (state) => {
+        state.refundRequestStatus = "idle";
+      })
+
+      // fetchRefundRequest
+      .addCase(fetchRefundRequest.fulfilled, (state, action) => {
+        const { bookingId } = action.payload;
+        const req = action.payload?.data?.refundRequest ?? action.payload?.data ?? null;
+        if (bookingId) state.refundRequests[bookingId] = req;
+      })
+
+      // withdrawRefundRequest
+      .addCase(withdrawRefundRequest.pending, (state) => {
+        state.refundRequestStatus = "loading";
+      })
+      .addCase(withdrawRefundRequest.fulfilled, (state, action) => {
+        state.refundRequestStatus = "idle";
+        const { bookingId } = action.payload;
+        const req = action.payload?.data?.refundRequest ?? null;
+        if (bookingId) state.refundRequests[bookingId] = req;
+      })
+      .addCase(withdrawRefundRequest.rejected, (state) => {
+        state.refundRequestStatus = "idle";
       });
   },
 });
 
 export const { setSelectedBooking, clearSelectedBooking, clearBookingsError } =
   bookingsSlice.actions;
+
+export const selectRefundRequest = (bookingId) => (state) =>
+  state.bookings.refundRequests[bookingId] ?? null;
+export const selectRefundRequestStatus = (state) => state.bookings.refundRequestStatus;
 
 // ─── Selectors ───────────────────────────────────────────────────────────────
 export const selectBookings = (state) => state.bookings.items;

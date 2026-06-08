@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchNotifications,
@@ -22,7 +23,11 @@ const TYPE_STYLES = {
   booking_confirmed:  { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700"  },
   booking_cancelled:  { bg: "bg-red-50",    border: "border-red-200",    text: "text-red-700"    },
   booking_pending:    { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-700" },
+  booking_new:        { bg: "bg-teal-50",   border: "border-teal-200",   text: "text-teal-700"   },
   review:             { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+  refund_requested:   { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700" },
+  refund_approved:    { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700"  },
+  refund_rejected:    { bg: "bg-red-50",    border: "border-red-200",    text: "text-red-700"    },
 };
 
 function typeLabel(type) {
@@ -80,6 +85,7 @@ function formatRelativeTime(isoString) {
 
 export default function NotificationPopover({ onClose }) {
   const dispatch = useDispatch();
+  const router = useRouter();
   const allNotifications = useSelector(selectNotifications);
   const status = useSelector(selectNotificationsStatus);
   const unreadCount = useSelector(selectUnreadCount);
@@ -96,6 +102,23 @@ export default function NotificationPopover({ onClose }) {
   const handleItemClick = (n) => {
     const id = n._id ?? n.id;
     if (!n.isRead && !n.read) dispatch(markNotificationRead(id));
+    const data = n.data ?? n.metadata ?? {};
+    const type = n.type ?? "";
+    // Navigate to the relevant page based on notification type
+    if (type === "refund_requested") {
+      if (data.refundRequestId) router.push(`/admin/refund-requests/${data.refundRequestId}`);
+      else router.push("/admin/refund-requests");
+      onClose?.();
+    } else if (type === "refund_approved" || type === "refund_rejected") {
+      if (data.bookingId) router.push(`/user-dashboard/bookings`);
+      onClose?.();
+    } else if (type === "booking_new") {
+      if (data.bookingId) router.push(`/dashboard/reservations`);
+      onClose?.();
+    } else if (type === "booking_cancelled") {
+      router.push("/dashboard/reservations");
+      onClose?.();
+    }
   };
 
   return (

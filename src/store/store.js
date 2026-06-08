@@ -6,6 +6,7 @@ import activitiesReducer from "./slices/activitiesSlice";
 import bookingsReducer from "./slices/bookingsSlice";
 import chatReducer from "./slices/chatSlice";
 import notificationsReducer from "./slices/notificationsSlice";
+import paymentsReducer from "./slices/paymentsSlice";
 
 export const resetStore = createAction("store/reset");
 
@@ -26,6 +27,7 @@ export const store = configureStore({
     bookings:      withReset(bookingsReducer),
     chat:          withReset(chatReducer),
     notifications: withReset(notificationsReducer),
+    payments:      withReset(paymentsReducer),
   },
 });
 

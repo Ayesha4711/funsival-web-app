@@ -89,9 +89,9 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
     <div className="flex flex-col items-center">
       <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[var(--color-text)] mb-2 text-center flex items-center gap-2">
         Which Of These Best Describes Your Service?
-        <span className="inline-flex text-[#E95764] align-middle">
+        {/* <span className="inline-flex text-[#E95764] align-middle">
           <InfoIcon size={18} />
-        </span>
+        </span> */}
       </h2>
 
       <p className="text-[#475467] text-[13px] sm:text-[14px] leading-[20px] sm:leading-[22px] text-center max-w-[260px] sm:max-w-md mb-8 font-normal font-sofia">

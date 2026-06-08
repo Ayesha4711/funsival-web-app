@@ -57,10 +57,11 @@ function mapBookingToRow(b) {
     ? b.listing.category.charAt(0).toUpperCase() + b.listing.category.slice(1)
     : "—";
 
-  const paymentStatus =
-    b.paymentStatus === "paid"
+  // Legacy invoice label for the text column
+  const invoiceLabel =
+    b.paymentStatus === "held" || b.paymentStatus === "released"
       ? "Paid"
-      : b.status === "cancelled"
+      : b.paymentStatus === "refunded" || b.status === "cancelled"
         ? "Refunded"
         : "Overdue";
 
@@ -90,7 +91,9 @@ function mapBookingToRow(b) {
     name,
     location,
     category,
-    invoice: paymentStatus,
+    invoice: invoiceLabel,
+    paymentStatus: b.paymentStatus ?? null,
+    activeRefundRequest: b.activeRefundRequest ?? null,
     reservedBy,
     date: startDate,
     dateRange,
