@@ -7,7 +7,7 @@ import { MoreHorizIcon, CheckCircleIcon, ClockIcon, RefundIcon, MapPinIcon } fro
 
 /* ─── Action Dropdown ─────────────────────────────────────────────────────────
    Opens above when the row index is in the last 2 rows of the visible set.     */
-function ActionMenu({ item, onViewDetails, onCancel, isNearBottom, totalRows }) {
+function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline, isNearBottom, totalRows }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -19,10 +19,12 @@ function ActionMenu({ item, onViewDetails, onCancel, isNearBottom, totalRows }) 
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* Open upward only when near the bottom AND enough rows fill the scroll area */
   const popupPositionClass = (isNearBottom && totalRows >= 6)
     ? "bottom-full mb-1"
     : "top-full mt-1";
+
+  const isActionNeeded = item.status === "Action Needed";
+  const isUpcoming     = item.status === "Upcoming";
 
   return (
     <div className="relative" ref={ref}>
@@ -35,8 +37,26 @@ function ActionMenu({ item, onViewDetails, onCancel, isNearBottom, totalRows }) 
 
       {open && (
         <div
-          className={`absolute right-0 z-40 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[148px] shadow-lg ${popupPositionClass}`}
+          className={`absolute right-0 z-40 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[180px] shadow-lg ${popupPositionClass}`}
         >
+          {isActionNeeded && (
+            <>
+              <button
+                onClick={() => { setOpen(false); onAccept?.(item); }}
+                style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+                className="w-full text-left px-4 py-2.5 text-sm font-semibold text-green-600 hover:bg-green-50 transition-colors"
+              >
+                ✓ Accept Booking
+              </button>
+              <button
+                onClick={() => { setOpen(false); onDecline?.(item); }}
+                style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+                className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+              >
+                ✕ Decline
+              </button>
+            </>
+          )}
           <button
             onClick={() => { setOpen(false); onViewDetails(item); }}
             style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
@@ -44,7 +64,7 @@ function ActionMenu({ item, onViewDetails, onCancel, isNearBottom, totalRows }) 
           >
             View Details
           </button>
-          {item.status === "Upcoming" && (
+          {(isUpcoming || isActionNeeded) && (
             <button
               onClick={() => { setOpen(false); onCancel(item); }}
               style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
@@ -60,13 +80,16 @@ function ActionMenu({ item, onViewDetails, onCancel, isNearBottom, totalRows }) 
 }
 
 /* ─── Table ──────────────────────────────────────────────────────────────────── */
-export default function ReservationTable({ data, onViewDetails, onCancel }) {
+export default function ReservationTable({ data, onViewDetails, onCancel, onAccept, onDecline, activeTab = "all" }) {
   const getStatusStyle = (status) => {
     switch (status) {
-      case "Upcoming":  return "bg-[#CFEDEC] text-[#168F8D]";
-      case "Completed": return "bg-[#DDFBE7] text-[#12A84A]";
-      case "Cancelled": return "bg-[#FFE0DE] text-[#FF1F1F]";
-      default:          return "bg-gray-100 text-gray-500";
+      case "Upcoming":      return "bg-[#CFEDEC] text-[#168F8D]";
+      case "Completed":     return "bg-[#DDFBE7] text-[#12A84A]";
+      case "Cancelled":     return "bg-[#FFE0DE] text-[#FF1F1F]";
+      case "Declined":      return "bg-[#FFE0DE] text-[#FF1F1F]";
+      case "Action Needed": return "bg-amber-100 text-amber-700";
+      case "Pending":       return "bg-[#FFF3CD] text-[#D97706]";
+      default:              return "bg-gray-100 text-gray-500";
     }
   };
 
@@ -89,6 +112,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
   };
 
   const totalRows = data.length;
+  const headers = ["Reservation", "Category", "Invoice", "Reserved By", "Date & Time", "Status", "Actions"];
 
   return (
     <div className="h-full overflow-hidden rounded-2xl border border-[#E0E0E0] bg-white">
@@ -100,7 +124,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
           {/* ── Thead ── */}
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-[#E0E0E0] bg-[#FBFCFD]">
-              {["Reservation", "Category", "Invoice", "Reserved By", "Date & Time", "Status", "Actions"].map((h) => (
+              {headers.map((h) => (
                 <th
                   key={h}
                   style={{
@@ -158,13 +182,20 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                     </span>
                   </td>
 
-                  {/* Invoice */}
+                  {/* Invoice / Payment Status */}
                   <td className="px-5 py-3">
-                    <div className={`flex items-center gap-1.5 text-[12px] font-semibold ${getInvoiceStyle(item.invoice)}`}
-                      style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
-                    >
-                      {getInvoiceIcon(item.invoice)}
-                      <span>{item.invoice}</span>
+                    <div className="flex flex-col gap-1">
+                      <div className={`flex items-center gap-1.5 text-[12px] font-semibold ${getInvoiceStyle(item.invoice)}`}
+                        style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+                      >
+                        {getInvoiceIcon(item.invoice)}
+                        <span>{item.invoice}</span>
+                      </div>
+                      {item.activeRefundRequest && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-50 text-yellow-700 w-fit">
+                          Refund Pending
+                        </span>
+                      )}
                     </div>
                   </td>
 
@@ -177,19 +208,21 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                   </td>
 
                   {/* Date & Time */}
-                  <td className="px-5 py-3 whitespace-nowrap">
+                  <td className="px-5 py-3">
                     <div
-                      className="text-[12px] text-[var(--color-text)]"
-                      style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif", fontWeight: 600 }}
-                    >
-                      {item.date}
-                    </div>
-                    <div
-                      className="text-[11px] text-[var(--color-text-muted)] mt-0.5"
+                      className="text-[12px] text-[var(--color-text)] font-semibold whitespace-nowrap"
                       style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
                     >
-                      {item.time}
+                      {item.dateRange}
                     </div>
+                    {item.time && item.time !== "—" && (
+                      <div
+                        className="text-[11px] text-[var(--color-text-muted)] whitespace-nowrap mt-0.5"
+                        style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+                      >
+                        {item.time}
+                      </div>
+                    )}
                   </td>
 
                   {/* Status */}
@@ -209,6 +242,8 @@ export default function ReservationTable({ data, onViewDetails, onCancel }) {
                         item={item}
                         onViewDetails={onViewDetails}
                         onCancel={onCancel}
+                        onAccept={onAccept}
+                        onDecline={onDecline}
                         isNearBottom={isNearBottom}
                         totalRows={totalRows}
                       />

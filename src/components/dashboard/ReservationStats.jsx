@@ -14,7 +14,7 @@ function StatCard({ label, value, sub, subColor = "text-green-500" }) {
 
 export default function ReservationStats() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <StatCard 
         label="Total Reservations" 
         value="66" 

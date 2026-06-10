@@ -316,7 +316,7 @@ function AvailabilitySlot({ slot, index, onChange, onRemove, canRemove }) {
   }
 
   return (
-    <div className="rounded-2xl border border-[#CEE6E5] bg-[#f0faf9] overflow-visible">
+    <div className="rounded-2xl border border-[#CEE6E5] bg-[#f0faf9]">
       {/* ── Desktop (lg+): date left | vertical divider | Select Time label + dropdowns right ── */}
       <div className="hidden lg:flex items-stretch">
         {/* Date section */}
@@ -545,6 +545,12 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
     requirementsList: [],
     photos: [],
     slots: [{ day: "", startTime: "", endTime: "" }],
+    availabilityType: "",
+    recurringSlots: {
+      Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [], Saturday: [], Sunday: [],
+    },
+    recurringStartDate: "",
+    recurringEndDate: "",
     addressLine1: "",
     addressLine2: "",
     placeCity: "",
@@ -1125,32 +1131,251 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 overflow-visible" data-field="availability">
           <SectionTitle num="5">Availability</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">Choose when this activity is available for booking</p>
-          <div className="flex flex-col gap-3">
-            {form.slots.map((slot, i) => (
-              <div key={i} style={{ position: "relative", zIndex: form.slots.length - i }}>
-                <AvailabilitySlot slot={slot} index={i} onChange={updateSlot} onRemove={removeSlot} canRemove={form.slots.length > 1} />
+
+          {/* Activity type selector */}
+          <div className="mb-5">
+            <p className="text-xs font-semibold text-gray-600 mb-2">Select Activity Type:</p>
+            <div className="w-48">
+              <DropdownField
+                value={form.availabilityType}
+                placeholder="choose type"
+                options={[
+                  { value: "one_time", label: "One Time" },
+                  { value: "recurring", label: "Recurring" },
+                ]}
+                onChange={(value) => {
+                  set("availabilityType", value);
+                  if (activeErrors.availability || activeErrors.slots) {
+                    setActiveErrors(prev => { const n = { ...prev }; delete n.availability; delete n.slots; return n; });
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          {/* One Time UI */}
+          {form.availabilityType === "one_time" && (
+            <div className="flex flex-col gap-3">
+              <div className="rounded-2xl border border-[#CEE6E5] bg-[#f0faf9] p-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Select Date</p>
+                    <CalendarField
+                      value={form.slots[0]?.day || ""}
+                      placeholder="Pick a date"
+                      onChange={(value) => updateSlot(0, "day", value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Select Time</p>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <DropdownField
+                          value={form.slots[0]?.startTime || ""}
+                          placeholder="When the activity begins"
+                          options={(() => {
+                            const opts = [];
+                            for (let h = 0; h < 24; h++) for (let m = 0; m < 60; m += 30) {
+                              const val = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+                              const ampm = h < 12 ? "AM" : "PM";
+                              const hr = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                              opts.push({ value: val, label: `${String(hr).padStart(2,"0")}:${String(m).padStart(2,"0")} ${ampm}` });
+                            }
+                            return opts;
+                          })()}
+                          onChange={(value) => updateSlot(0, "startTime", value)}
+                          splitDisplay
+                          teal
+                          allowTyping
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <DropdownField
+                          value={form.slots[0]?.endTime || ""}
+                          placeholder="When the activity ends"
+                          options={(() => {
+                            const opts = [];
+                            for (let h = 0; h < 24; h++) for (let m = 0; m < 60; m += 30) {
+                              const val = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+                              const ampm = h < 12 ? "AM" : "PM";
+                              const hr = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                              opts.push({ value: val, label: `${String(hr).padStart(2,"0")}:${String(m).padStart(2,"0")} ${ampm}` });
+                            }
+                            return opts;
+                          })()}
+                          onChange={(value) => updateSlot(0, "endTime", value)}
+                          splitDisplay
+                          teal
+                          allowTyping
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="mt-4 flex items-center justify-between gap-3">
-            {(fe.availability || fe.slots) ? (
-              <p className="text-xs text-red-500 font-medium">{fe.availability || fe.slots}</p>
-            ) : <span />}
-            <button
-              type="button"
-              onClick={addSlot}
-              className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-primary)] hover:underline shrink-0"
-            >
-              <PlusIcon size={11} />
-              Add Another Slot
-            </button>
-          </div>
+              {(fe.availability || fe.slots) && (
+                <p className="text-xs text-red-500 font-medium">{fe.availability || fe.slots}</p>
+              )}
+            </div>
+          )}
+
+          {/* Recurring UI */}
+          {form.availabilityType === "recurring" && (() => {
+            const ALL_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+            // JS day index: 0=Sun,1=Mon,...,6=Sat
+            const DAY_JS_INDEX = { Sunday:0, Monday:1, Tuesday:2, Wednesday:3, Thursday:4, Friday:5, Saturday:6 };
+
+            // Compute the set of day-names present in the [startDate, endDate] range
+            const getActiveDays = (start, end) => {
+              if (!start || !end) return new Set();
+              const s = new Date(start); const e = new Date(end);
+              if (isNaN(s) || isNaN(e) || s > e) return new Set();
+              // If range spans 7+ days every day is active
+              const diffDays = Math.round((e - s) / 86400000) + 1;
+              if (diffDays >= 7) return new Set(ALL_DAYS);
+              const active = new Set();
+              for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                const jsDay = d.getDay(); // 0=Sun
+                const name = ALL_DAYS.find(n => DAY_JS_INDEX[n] === jsDay);
+                if (name) active.add(name);
+              }
+              return active;
+            };
+
+            const activeDays = getActiveDays(form.recurringStartDate, form.recurringEndDate);
+            const hasRange = !!(form.recurringStartDate && form.recurringEndDate);
+
+            const timeOptions = [];
+            for (let h = 0; h < 24; h++) for (let m = 0; m < 60; m += 30) {
+              const val = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+              const ampm = h < 12 ? "AM" : "PM";
+              const hr = h === 0 ? 12 : h > 12 ? h - 12 : h;
+              timeOptions.push({ value: val, label: `${String(hr).padStart(2,"0")}:${String(m).padStart(2,"0")} ${ampm}` });
+            }
+
+            return (
+              <div className="flex flex-col gap-4">
+                {/* Date range */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Start Date</p>
+                    <CalendarField
+                      value={form.recurringStartDate || ""}
+                      placeholder="September 25, 2025"
+                      onChange={(value) => set("recurringStartDate", value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-semibold text-gray-500 mb-1.5">End Date</p>
+                    <CalendarField
+                      value={form.recurringEndDate || ""}
+                      placeholder="September 30, 2025"
+                      onChange={(value) => set("recurringEndDate", value)}
+                      align="right"
+                    />
+                  </div>
+                </div>
+
+                {/* Day-by-day slots — only shown once both dates are picked */}
+                {hasRange && (
+                  <div className="flex flex-col gap-2">
+                    {ALL_DAYS.map((day) => {
+                      const isActive = activeDays.has(day);
+                      const daySlots = form.recurringSlots?.[day] || [];
+                      return (
+                        <div key={day}>
+                          <p className="text-xs font-semibold text-gray-600 mb-1.5">{day}:</p>
+                          {!isActive ? (
+                            <div className="w-full flex items-center justify-center h-10 rounded-xl bg-[#FFF3E0] text-xs font-semibold text-[#E65100]">
+                              Unavailable
+                            </div>
+                          ) : daySlots.length === 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                set("recurringSlots", { ...form.recurringSlots, [day]: [{ startTime: "", endTime: "" }] });
+                              }}
+                              className="w-full flex items-center justify-center gap-1.5 h-10 rounded-xl border-2 border-dashed border-[#CEE6E5] bg-[#f0faf9] text-xs font-semibold text-[var(--color-primary)] hover:bg-[#e0f5f4] transition-colors"
+                            >
+                              <PlusIcon size={12} /> Add time slot
+                            </button>
+                          ) : (
+                            <div className="flex flex-col gap-2">
+                              {daySlots.map((slot, si) => (
+                                <div key={si} className="flex items-center gap-2">
+                                  <div className="flex-1">
+                                    <DropdownField
+                                      value={slot.startTime || ""}
+                                      placeholder="When the activity begins"
+                                      options={timeOptions}
+                                      onChange={(value) => {
+                                        const next = [...daySlots];
+                                        next[si] = { ...next[si], startTime: value };
+                                        set("recurringSlots", { ...form.recurringSlots, [day]: next });
+                                      }}
+                                      splitDisplay
+                                      teal
+                                      allowTyping
+                                    />
+                                  </div>
+                                  <div className="flex-1">
+                                    <DropdownField
+                                      value={slot.endTime || ""}
+                                      placeholder="When the activity ends"
+                                      options={timeOptions}
+                                      onChange={(value) => {
+                                        const next = [...daySlots];
+                                        next[si] = { ...next[si], endTime: value };
+                                        set("recurringSlots", { ...form.recurringSlots, [day]: next });
+                                      }}
+                                      splitDisplay
+                                      teal
+                                      allowTyping
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = daySlots.filter((_, i) => i !== si);
+                                      set("recurringSlots", { ...form.recurringSlots, [day]: next });
+                                    }}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors shrink-0"
+                                  >
+                                    <TrashIcon size={14} />
+                                  </button>
+                                </div>
+                              ))}
+                              <div className="flex justify-end mt-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    set("recurringSlots", { ...form.recurringSlots, [day]: [...daySlots, { startTime: "", endTime: "" }] });
+                                  }}
+                                  className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-primary)] hover:underline"
+                                >
+                                  <PlusIcon size={11} /> Add Another Slot
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {(fe.availability || fe.slots) && (
+                  <p className="text-xs text-red-500 font-medium">{fe.availability || fe.slots}</p>
+                )}
+              </div>
+            );
+          })()}
         </section>
       </div>
 
       {/* Nav buttons — full-width on mobile */}
-      <div className="flex items-center gap-3 mt-8 sm:mt-10 sm:justify-center">
-        <button onClick={onBack} className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors">Go Back</button>
+      <div className="flex items-center gap-4 mt-8 sm:mt-10 sm:justify-center">
+        <button onClick={onBack} className="flex-1 sm:flex-none sm:w-[244px] h-[58px] rounded-[100px] font-semibold text-sm border border-gray-300 text-gray-700 hover:border-gray-400 transition-colors">Go Back</button>
         <button
           disabled={isUploadingPhotos}
           onClick={() => {
@@ -1176,13 +1401,27 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             if (!form.placeCity?.trim()) errs.placeCity = "City is required";
 
             // Availability validation
-            if (form.slots.some(s => !s.day || !s.startTime || !s.endTime)) {
-              errs.availability = "Please complete all availability slots (date, start time, and end time).";
+            if (!form.availabilityType) {
+              errs.availability = "Please select an activity type (One Time or Recurring).";
+            } else if (form.availabilityType === "one_time") {
+              const s = form.slots[0];
+              if (!s?.day || !s?.startTime || !s?.endTime) {
+                errs.availability = "Please complete the date and time for the one-time slot.";
+              }
+            } else if (form.availabilityType === "recurring") {
+              const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+              const hasAnySlot = days.some(d => (form.recurringSlots?.[d] || []).length > 0);
+              if (!form.recurringStartDate || !form.recurringEndDate) {
+                errs.availability = "Please select a start and end date for the recurring schedule.";
+              } else if (!hasAnySlot) {
+                errs.availability = "Please add at least one time slot to a day.";
+              } else {
+                const incomplete = days.some(d =>
+                  (form.recurringSlots?.[d] || []).some(s => !s.startTime || !s.endTime)
+                );
+                if (incomplete) errs.availability = "Please complete all recurring time slots.";
+              }
             }
-            // Duplicate slot check
-            const slotKeys = form.slots.map(s => `${s.day}|${s.startTime}|${s.endTime}`);
-            const hasDuplicateSlot = slotKeys.some((key, i) => key !== "||" && slotKeys.indexOf(key) !== i);
-            if (hasDuplicateSlot) errs.slots = "You have duplicate availability slots with the same date and time.";
 
             if (Object.keys(errs).length > 0) {
               setActiveErrors(errs);
@@ -1200,7 +1439,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             onChange({ ...form, mapLat: hasAddress ? mapCoords.lat : undefined, mapLng: hasAddress ? mapCoords.lon : undefined });
             onNext();
           }}
-          className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          className="flex-1 sm:flex-none sm:w-[244px] h-[58px] rounded-[100px] font-semibold text-sm bg-[var(--color-secondary)] text-[#2D2D2D] hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
         >
           Next
         </button>

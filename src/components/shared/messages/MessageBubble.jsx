@@ -42,7 +42,9 @@ export default function MessageBubble({
 
   const isImage = msg.type === "image";
   const isVideo = msg.type === "video";
-  const mediaSrc = msg.mediaUrl || msg.imageUrl || msg.fileUrl || msg.url || msg.text;
+  const isDeleted = msg.deleted;
+  const mediaSrc = msg.mediaUrl || msg.imageUrl || msg.fileUrl || msg.url;
+  const posterSrc = msg.thumbnailUrl || undefined;
 
   return (
     <div ref={ref} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
@@ -53,11 +55,13 @@ export default function MessageBubble({
             : "bg-gray-100 text-[var(--color-text)] rounded-tl-sm"
         } ${isImage || isVideo ? "" : "px-4 py-2.5"}`}
       >
-        {isImage ? (
+        {isDeleted ? (
+          <span className="px-4 py-2.5 block italic text-gray-400">This message was deleted</span>
+        ) : isImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={mediaSrc} alt="img" className="max-w-full max-h-60 object-cover rounded-2xl" />
         ) : isVideo ? (
-          <video src={mediaSrc} controls className="max-w-full max-h-60 rounded-2xl" />
+          <video src={mediaSrc} poster={posterSrc} controls className="max-w-full max-h-60 rounded-2xl" />
         ) : (
           <span className="px-4 py-2.5 block">{msg.text}</span>
         )}

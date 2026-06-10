@@ -18,6 +18,7 @@ import ListingsFilters, { DEFAULT_FILTERS } from "@/components/dashboard/Listing
 import ListingsTable from "@/components/dashboard/ListingsTable";
 import ListingsCards from "@/components/dashboard/ListingsCards";
 import EditListingWizard from "@/components/dashboard/EditListingWizard";
+import ListingDetailsPanel from "@/components/dashboard/listings/ListingDetailsPanel";
 import { describeListingPrice, formatListingPrice } from "@/components/dashboard/listings/listingPrice";
 
 /* ─── Empty state ────────────────────────────────────────────────────────────── */
@@ -76,6 +77,7 @@ export default function ListingsPage() {
   const [editingListing, setEditingListing] = useState(null);
   const [deletingListing, setDeletingListing] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [detailsItem, setDetailsItem] = useState(null);
 
   const loading = listingsStatus === "loading";
 
@@ -256,10 +258,10 @@ export default function ListingsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 w-full flex flex-col gap-4 flex-1">
+    <div className="p-3 xs:p-4 sm:p-6 w-full flex flex-col gap-4 sm:gap-5 flex-1">
       <ListingsStats />
 
-      <div className="bg-white flex flex-col flex-1" style={{ width: "100%", gap: 16, borderRadius: 24, border: "1px solid var(--color-border)", padding: 20 }}>
+      <div className="bg-white flex flex-col flex-1" style={{ width: "100%", gap: 20, borderRadius: 24, border: "1px solid var(--color-border)", padding: 24 }}>
         <ListingsFilters
           activeTab={activeTab}
           onTabChange={handleTabChange}
@@ -286,17 +288,25 @@ export default function ListingsPage() {
             <ListingsTable
               data={filtered} currentPage={page} totalPages={totalPages} onPageChange={setPage}
               onStatusChange={handleStatusChange} onEdit={setEditingListing} onDelete={setDeletingListing}
-              onResumeDraft={handleResumeDraft}
+              onResumeDraft={handleResumeDraft} onViewDetails={setDetailsItem}
             />
           ) : (
             <ListingsCards
               data={filtered} currentPage={page} totalPages={totalPages} onPageChange={setPage}
               onStatusChange={handleStatusChange} onEdit={setEditingListing} onDelete={setDeletingListing}
-              onResumeDraft={handleResumeDraft}
+              onResumeDraft={handleResumeDraft} onViewDetails={setDetailsItem}
             />
           )}
         </div>
       </div>
+
+      {detailsItem && (
+        <ListingDetailsPanel
+          item={detailsItem}
+          onClose={() => setDetailsItem(null)}
+          onEdit={(item) => { setDetailsItem(null); setEditingListing(item); }}
+        />
+      )}
 
       {editingListing && (
         <EditListingWizard

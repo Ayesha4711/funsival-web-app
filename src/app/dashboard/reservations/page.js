@@ -5,11 +5,14 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   fetchHostBookings,
   cancelBooking,
+  acceptBooking,
+  declineBooking,
   selectHostBookings,
   selectHostBookingsPagination,
   selectHostBookingsStatus,
   selectHostBookingsError,
 } from "@/store/slices/bookingsSlice";
+import { toast } from "sonner";
 import { NoListingIcon } from "@/icons";
 import ReservationStats from "@/components/dashboard/ReservationStats";
 import ReservationFilters from "@/components/dashboard/ReservationFilters";
@@ -40,6 +43,15 @@ function EmptyState() {
   );
 }
 
+function fmt12(t) {
+  if (!t) return "";
+  if (t.includes("AM") || t.includes("PM")) return t;
+  const [h, m] = t.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) return t;
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${hr}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
 /* ─── Map API booking → row shape ─────────────────────────────────────────── */
 function mapBookingToRow(b) {
   const info = b.listing?.basicInformation ?? {};
@@ -57,25 +69,56 @@ function mapBookingToRow(b) {
     ? b.listing.category.charAt(0).toUpperCase() + b.listing.category.slice(1)
     : "—";
 
-  const paymentStatus =
-    b.paymentStatus === "paid"
-      ? "Paid"
-      : b.status === "cancelled"
-        ? "Refunded"
-        : "Overdue";
+  const invoiceLabel =
+    b.paymentStatus === "held"     || b.paymentStatus === "released"  ? "Paid"
+    : b.paymentStatus === "refunded"                                  ? "Refunded"
+    : b.paymentStatus === "authorized"                                ? "Authorized"
+    : b.paymentStatus === "auth_released" || b.status === "declined"  ? "Refunded"
+    : b.status === "cancelled"                                        ? "Refunded"
+    : "Overdue";
 
-  const statusMap = { confirmed: "Upcoming", completed: "Completed", cancelled: "Cancelled" };
+  const statusMap = {
+    confirmed:               "Upcoming",
+    awaiting_host_approval:  "Action Needed",
+    completed:               "Completed",
+    cancelled:               "Cancelled",
+    declined:                "Declined",
+    pending:                 "Pending",
+  };
   const status = statusMap[b.status] ?? "Upcoming";
 
-  const startDate = b.startDate
-    ? new Date(b.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : "—";
-  const endDate = b.endDate
-    ? new Date(b.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  const rawStart = b.startDate ? new Date(b.startDate) : null;
+  const rawEnd   = b.endDate   ? new Date(b.endDate)   : null;
+
+  const fmtDate = (d) => d
+    ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : null;
 
-  const timeRange = b.startTime && b.endTime ? `${b.startTime} to ${b.endTime}` : "—";
-  const dateRange = endDate ? `${startDate} to ${endDate}` : startDate;
+  const startDate = fmtDate(rawStart) ?? "—";
+  const endDate   = fmtDate(rawEnd);
+
+  // day count for daily bookings
+  const dayCount = rawStart && rawEnd
+    ? Math.round((rawEnd.getTime() - rawStart.getTime()) / 86400000) + 1
+    : null;
+
+  const isDaily = b.pricingMode === "daily" || (rawEnd && rawStart && rawEnd > rawStart);
+
+  // Time from top-level fields or availability array
+  const avail0 = b.availability?.[0];
+  const rawStartTime = b.startTime || avail0?.startTime || "";
+  const rawEndTime   = b.endTime   || avail0?.endTime   || "";
+
+  const timeRange = rawStartTime && rawEndTime && rawStartTime !== rawEndTime
+    ? `${fmt12(rawStartTime)} – ${fmt12(rawEndTime)}`
+    : rawStartTime
+      ? fmt12(rawStartTime)
+      : "—";
+
+  // Date range: "Jun 22, 2026 – Jun 24, 2026 (3 days)" for daily, just start for hourly
+  const dateRange = endDate && endDate !== startDate
+    ? `${startDate} – ${endDate}${isDaily && dayCount ? ` (${dayCount} day${dayCount > 1 ? "s" : ""})` : ""}`
+    : startDate;
 
   const bookedBy   = b.bookedBy;
   const reservedBy =
@@ -90,7 +133,9 @@ function mapBookingToRow(b) {
     name,
     location,
     category,
-    invoice: paymentStatus,
+    invoice: invoiceLabel,
+    paymentStatus: b.paymentStatus ?? null,
+    activeRefundRequest: b.activeRefundRequest ?? null,
     reservedBy,
     date: startDate,
     dateRange,
@@ -141,6 +186,11 @@ export default function ReservationsPage() {
   /* cancel modal */
   const [cancelTarget, setCancelTarget] = useState(null);
 
+  /* accept / decline */
+  const [acceptTarget,  setAcceptTarget]  = useState(null);
+  const [declineTarget, setDeclineTarget] = useState(null);
+  const [declineReason, setDeclineReason] = useState("");
+
   useEffect(() => {
     dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
   }, [dispatch, currentPage]);
@@ -153,7 +203,7 @@ export default function ReservationsPage() {
       acc[key] = (acc[key] ?? 0) + 1;
       return acc;
     },
-    { upcoming: 0, completed: 0, cancelled: 0 }
+    { upcoming: 0, completed: 0, cancelled: 0, pending: 0 }
   );
 
   const filteredRows = rows.filter((r) => {
@@ -178,17 +228,49 @@ export default function ReservationsPage() {
   const handleViewDetails = (item) => setPanelItem(item);
   const handleClosePanel  = ()     => setPanelItem(null);
 
-  /* Opens cancel modal (from table action or from panel) */
-  const handleRequestCancel = (item) => {
-    setCancelTarget(item);
+  /* Accept booking */
+  const handleRequestAccept = (item) => setAcceptTarget(item);
+
+  const handleConfirmAccept = async () => {
+    if (!acceptTarget?.id) return;
+    try {
+      await dispatch(acceptBooking(acceptTarget.id)).unwrap();
+      toast.success("Booking accepted. Guest's card has been charged.");
+      dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
+      setPanelItem((prev) => prev?.id === acceptTarget.id ? { ...prev, status: "Upcoming", paymentStatus: "held" } : prev);
+    } catch (err) {
+      toast.error(typeof err === "string" ? err : "Could not accept booking. Please try again.");
+    } finally {
+      setAcceptTarget(null);
+    }
   };
+
+  /* Decline booking */
+  const handleRequestDecline = (item) => { setDeclineTarget(item); setDeclineReason(""); };
+
+  const handleConfirmDecline = async () => {
+    if (!declineTarget?.id) return;
+    try {
+      await dispatch(declineBooking({ bookingId: declineTarget.id, reason: declineReason || undefined })).unwrap();
+      toast.success("Booking declined. Authorization has been voided.");
+      dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
+      setPanelItem((prev) => prev?.id === declineTarget.id ? { ...prev, status: "Declined", paymentStatus: "auth_released" } : prev);
+    } catch (err) {
+      toast.error(typeof err === "string" ? err : "Could not decline booking. Please try again.");
+    } finally {
+      setDeclineTarget(null);
+      setDeclineReason("");
+    }
+  };
+
+  /* Opens cancel modal (from table action or from panel) */
+  const handleRequestCancel = (item) => setCancelTarget(item);
 
   /* Called after reason is selected in modal */
   const handleConfirmCancel = async (reason) => {
     if (!cancelTarget?.id) return;
     await dispatch(cancelBooking(cancelTarget.id));
     dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
-    /* update panel item to show cancelled state */
     setPanelItem((prev) =>
       prev?.id === cancelTarget.id
         ? { ...prev, status: "Cancelled", invoice: "Refunded", _cancelReason: reason, _cancelledBy: prev.reservedBy }
@@ -200,7 +282,7 @@ export default function ReservationsPage() {
   const totalPages = pagination?.totalPages ?? 1;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 w-full flex-1 flex flex-col gap-4">
+    <div className="p-3 xs:p-4 sm:p-6 w-full flex-1 flex flex-col gap-4 sm:gap-5">
       <ReservationStats />
 
       <div
@@ -238,8 +320,11 @@ export default function ReservationsPage() {
             <div className="hidden md:block h-full">
               <ReservationTable
                 data={filteredRows}
+                activeTab={activeTab}
                 onViewDetails={handleViewDetails}
                 onCancel={handleRequestCancel}
+                onAccept={handleRequestAccept}
+                onDecline={handleRequestDecline}
               />
             </div>
             {/* Cards: mobile only */}
@@ -270,6 +355,8 @@ export default function ReservationsPage() {
           reservation={panelItem}
           onClose={handleClosePanel}
           onCancel={handleRequestCancel}
+          onAccept={handleRequestAccept}
+          onDecline={handleRequestDecline}
         />
       )}
 
@@ -279,6 +366,57 @@ export default function ReservationsPage() {
           onClose={() => setCancelTarget(null)}
           onConfirm={handleConfirmCancel}
         />
+      )}
+
+      {/* ── Accept confirmation modal ── */}
+      {acceptTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="px-6 py-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Accept Booking</h2>
+            </div>
+            <div className="px-6 py-5 flex flex-col gap-4">
+              <p className="text-sm text-gray-500">
+                Accept <strong>{acceptTarget.name}</strong> from <strong>{acceptTarget.reservedBy}</strong>?<br />
+                The guest's card will be charged <strong>${acceptTarget.totalAmount}</strong> immediately.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setAcceptTarget(null)} className="flex-1 py-3 border border-gray-200 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50">Cancel</button>
+                <button onClick={handleConfirmAccept} className="flex-1 py-3 bg-green-600 text-white font-bold rounded-full text-sm hover:opacity-90 transition-opacity">Accept &amp; Charge</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Decline modal ── */}
+      {declineTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="px-6 py-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Decline Booking</h2>
+            </div>
+            <div className="px-6 py-5 flex flex-col gap-4">
+              <p className="text-sm text-gray-500">
+                The authorization hold will be voided and the guest will not be charged.
+              </p>
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-1 block">Reason <span className="text-gray-400 font-normal">(optional)</span></label>
+                <textarea
+                  value={declineReason}
+                  onChange={(e) => setDeclineReason(e.target.value)}
+                  placeholder="e.g. Already booked offline."
+                  rows={3}
+                  className="w-full px-4 py-3 text-sm text-gray-700 placeholder:text-gray-300 border border-gray-200 rounded-xl focus:outline-none focus:border-red-400 resize-none"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setDeclineTarget(null)} className="flex-1 py-3 border border-gray-200 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50">Cancel</button>
+                <button onClick={handleConfirmDecline} className="flex-1 py-3 bg-red-600 text-white font-bold rounded-full text-sm hover:opacity-90 transition-opacity">Decline Booking</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

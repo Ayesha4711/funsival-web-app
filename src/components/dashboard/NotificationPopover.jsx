@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchNotifications,
@@ -22,7 +23,11 @@ const TYPE_STYLES = {
   booking_confirmed:  { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700"  },
   booking_cancelled:  { bg: "bg-red-50",    border: "border-red-200",    text: "text-red-700"    },
   booking_pending:    { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-700" },
+  booking_new:        { bg: "bg-teal-50",   border: "border-teal-200",   text: "text-teal-700"   },
   review:             { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+  refund_requested:   { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700" },
+  refund_approved:    { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700"  },
+  refund_rejected:    { bg: "bg-red-50",    border: "border-red-200",    text: "text-red-700"    },
 };
 
 function typeLabel(type) {
@@ -80,6 +85,7 @@ function formatRelativeTime(isoString) {
 
 export default function NotificationPopover({ onClose }) {
   const dispatch = useDispatch();
+  const router = useRouter();
   const allNotifications = useSelector(selectNotifications);
   const status = useSelector(selectNotificationsStatus);
   const unreadCount = useSelector(selectUnreadCount);
@@ -96,12 +102,29 @@ export default function NotificationPopover({ onClose }) {
   const handleItemClick = (n) => {
     const id = n._id ?? n.id;
     if (!n.isRead && !n.read) dispatch(markNotificationRead(id));
+    const data = n.data ?? n.metadata ?? {};
+    const type = n.type ?? "";
+    // Navigate to the relevant page based on notification type
+    if (type === "refund_requested") {
+      if (data.refundRequestId) router.push(`/admin/refund-requests/${data.refundRequestId}`);
+      else router.push("/admin/refund-requests");
+      onClose?.();
+    } else if (type === "refund_approved" || type === "refund_rejected") {
+      if (data.bookingId) router.push(`/user-dashboard/bookings`);
+      onClose?.();
+    } else if (type === "booking_new") {
+      if (data.bookingId) router.push(`/dashboard/reservations`);
+      onClose?.();
+    } else if (type === "booking_cancelled") {
+      router.push("/dashboard/reservations");
+      onClose?.();
+    }
   };
 
   return (
     <div className="absolute right-0 top-full mt-3 w-[320px] bg-white rounded-2xl border border-gray-100 overflow-hidden z-60">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
         <h3 className="text-base font-extrabold text-text">
           Notifications
           {unreadCount > 0 && (
@@ -125,7 +148,7 @@ export default function NotificationPopover({ onClose }) {
         {isLoading && (
           <div className="flex flex-col">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="p-4 border-b border-gray-50 animate-pulse flex gap-3">
+              <div key={i} className="px-4 py-3 border-b border-gray-50 animate-pulse flex gap-3">
                 <div className="w-2 h-2 rounded-full bg-gray-200 mt-1.5 shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-3 bg-gray-200 rounded w-3/4" />
@@ -149,7 +172,7 @@ export default function NotificationPopover({ onClose }) {
             <div
               key={n._id ?? n.id}
               onClick={() => handleItemClick(n)}
-              className={`p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${isNew ? "bg-[#FFF8EE]" : ""}`}
+              className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${isNew ? "bg-[#FFF8EE]" : ""}`}
             >
               <div className="flex gap-3">
                 {isNew && <span className="w-2 h-2 bg-secondary rounded-full mt-1.5 shrink-0" />}
@@ -173,7 +196,7 @@ export default function NotificationPopover({ onClose }) {
       <Link
         href="/dashboard/notifications"
         onClick={onClose}
-        className="block p-4 text-center text-xs font-bold text-secondary hover:bg-gray-50 border-t border-gray-50 transition-colors"
+        className="block px-4 py-3 text-center text-xs font-bold text-secondary hover:bg-gray-50 border-t border-gray-50 transition-colors"
       >
         View All
       </Link>

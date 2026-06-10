@@ -49,7 +49,8 @@ function LoginForm() {
     const data = result.payload?.data;
     toast.success("Signed in successfully", { description: "Welcome back!" });
     const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "user";
-    router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
+    if (role === "admin") router.push("/admin/refund-requests");
+    else router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
   };
 
   const handleChange = (e) => {
@@ -86,7 +87,8 @@ function LoginForm() {
 
     toast.success("Signed in successfully", { description: data?.message ?? "Welcome back! You're signed in." });
     const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "user";
-    router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
+    if (role === "admin") router.push("/admin/refund-requests");
+    else router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
   };
 
   if (navigatingBack) {
@@ -146,6 +148,7 @@ function LoginForm() {
           Don&apos;t have an account?{" "}
           <Link href="/signup/role-selection" className="text-primary font-bold underline hover:underline">Sign up</Link>
         </p>
+
 
         <div className="my-1"><Divider label="OR" /></div>
 

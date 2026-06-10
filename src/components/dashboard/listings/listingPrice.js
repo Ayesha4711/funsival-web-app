@@ -36,9 +36,9 @@ export function createEmptyPrice(category = "") {
   if (mode === "places") {
     return {
       currency: USD,
-      billingType: "hourly",
       hourly: "",
       daily: "",
+      delivery: { enabled: false, fee: "" },
     };
   }
   return {
@@ -65,13 +65,14 @@ export function normalizeListingPrice(category = "", rawPrice) {
   }
 
   if (mode === "places") {
-    const hourly = toNumber(source.hourly ?? fallbackAmount);
-    const daily = toNumber(source.daily);
     return {
       currency: source.currency ?? USD,
-      billingType: source.billingType ?? (daily !== "" && hourly === "" ? "daily" : "hourly"),
-      hourly,
-      daily,
+      hourly: toNumber(source.hourly ?? fallbackAmount),
+      daily: toNumber(source.daily),
+      delivery: {
+        enabled: Boolean(source.delivery?.enabled),
+        fee: toNumber(source.delivery?.fee),
+      },
     };
   }
 
@@ -105,12 +106,15 @@ export function buildListingPricePayload(category = "", price) {
   }
 
   if (mode === "places") {
-    const billingType = normalized.billingType === "daily" ? "daily" : "hourly";
-    if (billingType === "daily") {
-      pushIfNumber(payload, "daily", normalized.daily || normalized.hourly);
-    } else {
-      pushIfNumber(payload, "hourly", normalized.hourly || normalized.daily);
+    pushIfNumber(payload, "hourly", normalized.hourly);
+    pushIfNumber(payload, "daily", normalized.daily);
+
+    const placeFee = toNumber(normalized.delivery?.fee);
+    if (normalized.delivery?.enabled || placeFee !== "") {
+      payload.delivery = { enabled: Boolean(normalized.delivery?.enabled) };
+      if (placeFee !== "") payload.delivery.fee = placeFee;
     }
+
     return payload;
   }
 
@@ -133,10 +137,10 @@ export function formatListingPrice(category = "", rawPrice) {
   }
 
   if (mode === "places") {
-    if (price.billingType === "daily") {
-      return price.daily !== "" ? `$${formatMoney(price.daily)} / day` : "—";
-    }
-    return price.hourly !== "" ? `$${formatMoney(price.hourly)} / hr` : "—";
+    const parts = [];
+    if (price.hourly !== "") parts.push(`$${formatMoney(price.hourly)} / hr`);
+    if (price.daily  !== "") parts.push(`$${formatMoney(price.daily)} / day`);
+    return parts.length ? parts.join(" · ") : "—";
   }
 
   return price.perPerson !== "" ? `$${formatMoney(price.perPerson)} / person` : "—";
@@ -158,10 +162,10 @@ export function describeListingPrice(category = "", rawPrice) {
   }
 
   if (mode === "places") {
-    const summary = price.billingType === "daily"
-      ? price.daily !== "" ? `$${formatMoney(price.daily)} / day` : null
-      : price.hourly !== "" ? `$${formatMoney(price.hourly)} / hr` : null;
-    return summary ? [summary] : [];
+    const parts = [];
+    if (price.hourly !== "") parts.push(`$${formatMoney(price.hourly)} / hr`);
+    if (price.daily  !== "") parts.push(`$${formatMoney(price.daily)} / day`);
+    return parts;
   }
 
   return price.perPerson !== "" ? [`$${formatMoney(price.perPerson)} / person`] : [];

@@ -61,7 +61,7 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
 
   const canProceed = useMemo(() => {
     if (mode === "equipment") return form.hourly !== "" || form.daily !== "" || form.delivery?.fee !== "";
-    if (mode === "places") return form.hourly !== "";
+    if (mode === "places") return form.hourly !== "" || form.daily !== "";
     return form.perPerson !== "";
   }, [form, mode]);
 
@@ -177,9 +177,10 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
         </div>
       )}
 
-      {/* ── Places: Per Hour ── */}
+      {/* ── Places: Hourly + Daily ── */}
       {mode === "places" && (
-        <div className="w-full max-w-md space-y-5">
+        <div className="w-[384px] flex flex-col gap-7.5">
+          {/* Hourly Rate */}
           <div className="space-y-2">
             <p className="text-sm font-bold text-gray-700 flex items-center gap-2">
               <ClockIcon size={18} className="text-[#F5A623]" /> Hourly Rate
@@ -190,6 +191,48 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
               suffix="/hr"
             />
             <FieldHint>Enter the rate you want to charge per hour</FieldHint>
+          </div>
+
+          {/* Daily Rate */}
+          <div className="space-y-2">
+            <p className="text-sm font-bold text-gray-700 flex items-center gap-2">
+              <CalendarIcon size={18} className="text-[#F5A623]" /> Daily Rate
+            </p>
+            <CurrencyInput
+              value={form.daily}
+              onChange={(v) => update("daily", v)}
+              suffix="/day"
+            />
+            <FieldHint>Enter the rate you want to charge per day</FieldHint>
+          </div>
+
+          {/* Delivery & Pickup */}
+          <div className="rounded-2xl bg-[#EAF4F4] border border-[#C7E4E2] p-5 sm:p-6 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0">
+                <TruckIcon size={20} className="text-[#50627A]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-text">Delivery &amp; Pickup Option</p>
+                <p className="text-xs text-gray-500">Add delivery &amp; pickup fee</p>
+              </div>
+              <Toggle
+                checked={Boolean(form.delivery?.enabled)}
+                onChange={(v) => updateDelivery("enabled", v)}
+              />
+            </div>
+
+            {form.delivery?.enabled && (
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-gray-600">Price</p>
+                <CurrencyInput
+                  value={form.delivery?.fee}
+                  onChange={(v) => updateDelivery("fee", v)}
+                  placeholder="0.00"
+                />
+                <FieldHint>One-time fee for delivery and pickup</FieldHint>
+              </div>
+            )}
           </div>
 
           <hr className="border-gray-200" />

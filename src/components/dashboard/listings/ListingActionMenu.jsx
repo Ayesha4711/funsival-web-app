@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { MoreVertIcon, EditIcon, TrashIcon, PlayIcon } from "@/icons";
+import { MoreVertIcon, EditIcon, TrashIcon, PlayIcon, EyeIcon } from "@/icons";
 
 /**
  * Three-dot action menu for a listing row / card.
@@ -13,7 +13,7 @@ import { MoreVertIcon, EditIcon, TrashIcon, PlayIcon } from "@/icons";
  *   onResumeDraft — called with item (only when status === "Draft")
  *   isLast        — when true the menu opens upward (table last-row helper)
  */
-export default function ListingActionMenu({ item, onEdit, onDelete, onResumeDraft, isLast }) {
+export default function ListingActionMenu({ item, onEdit, onDelete, onResumeDraft, onViewDetails, isLast }) {
   const [open, setOpen] = useState(false);
   const ref    = useRef(null);
   const isDraft = item.status === "Draft";
@@ -58,6 +58,12 @@ export default function ListingActionMenu({ item, onEdit, onDelete, onResumeDraf
             </>
           ) : (
             <>
+              <button
+                onClick={() => { setOpen(false); onViewDetails?.(item); }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"
+              >
+                <EyeIcon size={13} /> View Details
+              </button>
               <button
                 onClick={() => { setOpen(false); onEdit(item); }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text)] hover:bg-gray-50 transition-colors"
