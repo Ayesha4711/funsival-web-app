@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import CustomCalendar from "@/components/shared/CustomCalendar";
 import { ChevronDownIcon, CalendarIcon, PlusIcon } from "@/icons";
@@ -8,27 +8,77 @@ export { ChevronDownIcon, CalendarIcon };
 
 function useOutsideClose(onClose) {
   const ref = useRef(null);
-
   useEffect(() => {
     function handleMouseDown(event) {
-      if (ref.current && !ref.current.contains(event.target)) {
-        onClose();
-      }
+      if (ref.current && !ref.current.contains(event.target)) onClose();
     }
-
-    function handleScroll() {
-      onClose();
-    }
-
     document.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
+    return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [onClose]);
-
   return ref;
+}
+
+function useLockBodyScroll(open) {
+  useEffect(() => {
+    if (!open) return;
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+}
+
+/**
+ * Parse a freeform time string typed by the user into "HH:MM" 24-hour format.
+ * Accepts: "2:30 PM", "14:30", "2PM", "02:30PM", "2:30pm", "930", etc.
+ * Returns "" if unparseable.
+ */
+function normalizeTimeInput(raw) {
+  if (!raw) return "";
+  const s = raw.trim().toUpperCase();
+
+  // Already HH:MM — return as-is
+  if (/^\d{2}:\d{2}$/.test(s)) return s;
+
+  // Detect AM/PM
+  const hasAM = s.includes("AM");
+  const hasPM = s.includes("PM");
+  const digits = s.replace(/[^0-9:]/g, "");
+
+  let h, m;
+  if (digits.includes(":")) {
+    [h, m] = digits.split(":").map(Number);
+  } else if (digits.length <= 2) {
+    h = Number(digits); m = 0;
+  } else if (digits.length === 3) {
+    h = Number(digits.slice(0, 1)); m = Number(digits.slice(1));
+  } else {
+    h = Number(digits.slice(0, 2)); m = Number(digits.slice(2, 4));
+  }
+
+  if (isNaN(h) || isNaN(m) || m < 0 || m > 59) return "";
+
+  if (hasAM) {
+    if (h === 12) h = 0;
+  } else if (hasPM) {
+    if (h !== 12) h += 12;
+  }
+
+  if (h < 0 || h > 23) return "";
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Format HH:MM value for display: "02:30" → "02:30 AM", "14:00" → "02:00 PM" */
+function formatTimeDisplay(val) {
+  if (!val) return "";
+  const match = val.match(/^(\d{2}):(\d{2})$/);
+  if (!match) return val;
+  const h = Number(match[1]), m = Number(match[2]);
+  const ampm = h < 12 ? "AM" : "PM";
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
 export function DropdownField({
@@ -43,14 +93,70 @@ export function DropdownField({
   splitDisplay = false,
   teal = false,
   iconLeft = null,
+  allowTyping = false,
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useOutsideClose(() => setOpen(false));
+  const [typedValue, setTypedValue] = useState("");
+  const triggerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useLockBodyScroll(open);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleMouseDown(event) {
+      const inTrigger = triggerRef.current?.contains(event.target);
+      if (!inTrigger) closeDropdown();
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (open && allowTyping) setTimeout(() => inputRef.current?.focus(), 0);
+  }, [open, allowTyping]);
 
   const selected = options.find((option) => option.value === value);
 
+  // For split display: resolve what to show on the right side
+  // — from options list OR from a normalized typed HH:MM value
+  const displayLabel = selected?.label || (value ? formatTimeDisplay(value) : "");
+
+  const filteredOptions = allowTyping && typedValue
+    ? options.filter(o => o.label.toLowerCase().includes(typedValue.toLowerCase()))
+    : options;
+
+  // When closing with a typed value: normalize to HH:MM and commit
+  const closeDropdown = () => {
+    if (allowTyping && typedValue) {
+      const normalized = normalizeTimeInput(typedValue);
+      if (normalized && normalized !== value) onChange(normalized);
+      else if (!normalized && typedValue) {
+        // Try matching a label from the list
+        const match = options.find(o => o.label.toLowerCase() === typedValue.toLowerCase());
+        if (match) onChange(match.value);
+      }
+    }
+    setOpen(false);
+  };
+
+  const handleTypedChange = (e) => {
+    setTypedValue(e.target.value);
+  };
+
+  const handleTypedKeyDown = (e) => {
+    if (e.key === "Enter") { e.preventDefault(); closeDropdown(); }
+    if (e.key === "Escape") { setTypedValue(""); setOpen(false); }
+  };
+
+  const toggle = () => {
+    if (open) { closeDropdown(); return; }
+    if (allowTyping) setTypedValue(displayLabel || "");
+    setOpen(true);
+  };
+
   return (
-    <div ref={ref} className={`relative ${className}`} style={{ zIndex: open ? 50 : "auto" }}>
+    <div ref={triggerRef} className={`relative ${className}`}>
       <div className={[
         "flex items-stretch rounded-xl border overflow-hidden transition-colors",
         teal ? "bg-white" : "bg-[#F5F5F5]",
@@ -62,28 +168,49 @@ export function DropdownField({
               ? "border-[#CEE6E5] focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15"
               : "border-transparent focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/15",
       ].join(" ")}>
+        {open && allowTyping ? (
+          /* Typing mode: input on left, placeholder label on right */
+          <div className="flex-1 min-w-0 flex items-center px-3 py-2.5 gap-2">
+            {splitDisplay && (
+              <span className="text-gray-400 text-sm truncate hidden sm:inline shrink-0">{placeholder}</span>
+            )}
+            <input
+              ref={inputRef}
+              type="text"
+              value={typedValue}
+              onChange={handleTypedChange}
+              onKeyDown={handleTypedKeyDown}
+              onBlur={closeDropdown}
+              placeholder={splitDisplay ? "e.g. 2:30 PM" : placeholder}
+              className="flex-1 min-w-0 text-sm font-bold text-gray-800 placeholder:text-gray-400 placeholder:font-normal focus:outline-none bg-transparent text-right"
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={toggle}
+            className="flex-1 min-w-0 px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60 flex items-center gap-2"
+          >
+            {iconLeft && <span className="shrink-0 text-gray-400">{iconLeft}</span>}
+            {splitDisplay ? (
+              <span className="flex-1 flex items-center justify-between min-w-0">
+                <span className="text-gray-400 text-sm truncate hidden sm:inline">{placeholder}</span>
+                <span className={`text-sm shrink-0 ${displayLabel ? "font-bold text-gray-800" : "text-gray-400"}`}>
+                  {displayLabel || "—"}
+                </span>
+              </span>
+            ) : (
+              <span className={selected || value ? "font-medium text-gray-700" : "text-gray-400"}>
+                {displayLabel || placeholder}
+              </span>
+            )}
+          </button>
+        )}
         <button
           type="button"
           disabled={disabled}
-          onClick={() => setOpen((current) => !current)}
-          className="flex-1 min-w-0 px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60 flex items-center gap-2"
-        >
-          {iconLeft && <span className="shrink-0 text-gray-400">{iconLeft}</span>}
-          {splitDisplay && selected ? (
-            <span className="flex-1 flex items-center justify-between min-w-0">
-              <span className="text-gray-400 text-sm truncate hidden sm:inline">{placeholder}</span>
-              <span className="font-bold text-gray-800 text-sm shrink-0">{selected.label}</span>
-            </span>
-          ) : (
-            <span className={selected ? "font-medium text-gray-700" : "text-gray-400"}>
-              {selected?.label || placeholder}
-            </span>
-          )}
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => setOpen((current) => !current)}
+          onClick={toggle}
           className="shrink-0 px-3 text-gray-400 hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
           aria-label={`Toggle ${placeholder}`}
         >
@@ -91,20 +218,29 @@ export function DropdownField({
         </button>
       </div>
 
-      {open && !disabled && (
-        <div
-          className={`absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-gray-100 bg-white  overflow-hidden ${menuClassName}`}
-        >
-          <div className="max-h-60 overflow-y-auto py-1">
-            {options.map((option) => {
-              const active = option.value === value;
+      {open && !disabled && typeof document !== "undefined" && createPortal(
+        <button
+          type="button"
+          aria-label="Close dropdown"
+          className="fixed inset-0 z-[9998] cursor-default bg-transparent"
+          onMouseDown={(e) => { e.preventDefault(); closeDropdown(); }}
+        />,
+        document.body
+      )}
 
+      {open && !disabled && (
+        <div className={`absolute left-0 right-0 top-full mt-2 z-[9999] rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden ${menuClassName}`}>
+          <div className="max-h-60 overflow-y-auto py-1">
+            {filteredOptions.length > 0 ? filteredOptions.map((option) => {
+              const active = option.value === value;
               return (
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => {
+                  onMouseDown={(e) => {
+                    e.preventDefault();
                     onChange(option.value);
+                    setTypedValue(option.label);
                     setOpen(false);
                   }}
                   className={[
@@ -117,7 +253,9 @@ export function DropdownField({
                   {option.label}
                 </button>
               );
-            })}
+            }) : (
+              <p className="px-4 py-3 text-sm text-gray-400">No options found</p>
+            )}
           </div>
         </div>
       )}
@@ -137,10 +275,9 @@ export function ComboboxField({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
-  const ref = useOutsideClose(() => { setOpen(false); setQuery(""); });
+  const ref = useOutsideClose(useCallback(() => { setOpen(false); setQuery(""); }, []));
 
   const selected = options.find((o) => o.value === value);
-
   const filtered = query.trim()
     ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
     : options;
@@ -152,11 +289,7 @@ export function ComboboxField({
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  const selectOption = (opt) => {
-    onChange(opt.value);
-    setOpen(false);
-    setQuery("");
-  };
+  const selectOption = (opt) => { onChange(opt.value); setOpen(false); setQuery(""); };
 
   return (
     <div ref={ref} className={`relative ${className}`} style={{ zIndex: open ? 50 : "auto" }}>
@@ -202,7 +335,7 @@ export function ComboboxField({
       )}
 
       {open && !disabled && (
-        <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border border-gray-100 bg-white  overflow-hidden">
+        <div className="absolute left-0 right-0 top-full mt-2 z-[200] rounded-2xl border border-gray-100 bg-white overflow-hidden">
           <div className="max-h-56 overflow-y-auto py-1">
             {filtered.length === 0 ? (
               <p className="px-4 py-3 text-xs text-gray-400 text-center">No results found</p>
@@ -250,10 +383,7 @@ export function TagInputField({ tags, placeholder, onAdd, onRemove, error = fals
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              addTag();
-            }
+            if (event.key === "Enter") { event.preventDefault(); addTag(); }
           }}
           placeholder={placeholder}
           className={[
@@ -297,69 +427,84 @@ export function TagInputField({ tags, placeholder, onAdd, onRemove, error = fals
   );
 }
 
-/* ─── usePopupAnchor — writes position directly to DOM, no React state re-renders ── */
-function usePopupAnchor(triggerRef, popupRef, open, { popupWidth = 300, gap = 6, margin = 8 } = {}) {
-  const rafRef = useRef(null);
-  useEffect(() => {
-    if (!open) return;
-    const sync = () => {
-      const trigger = triggerRef.current;
-      const popup   = popupRef.current;
-      if (!trigger || !popup) { rafRef.current = requestAnimationFrame(sync); return; }
-      const rect = trigger.getBoundingClientRect();
-      popup.style.position = "fixed";
-      popup.style.top      = `${rect.bottom + gap}px`;
-      popup.style.left     = `${Math.max(margin, Math.min(rect.left, window.innerWidth - popupWidth - margin))}px`;
-      popup.style.width    = `${popupWidth}px`;
-      popup.style.zIndex   = "9999";
-      rafRef.current = requestAnimationFrame(sync);
-    };
-    rafRef.current = requestAnimationFrame(sync);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [open, triggerRef, popupRef, popupWidth, gap, margin]);
+/**
+ * Convert any date value to mm/dd/yyyy for display in the text input.
+ * CustomCalendar internally uses yyyy-mm-dd, so we keep two representations:
+ *   - displayValue (mm/dd/yyyy) shown in the <input>
+ *   - isoValue     (yyyy-mm-dd) passed to CustomCalendar and stored upstream
+ */
+function toDisplayDate(val) {
+  if (!val) return "";
+  const s = String(val).trim().split("T")[0];
+  // Already mm/dd/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+  // ISO yyyy-mm-dd → mm/dd/yyyy
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split("-");
+    return `${m}/${d}/${y}`;
+  }
+  return s;
 }
 
-export function CalendarField({ value, placeholder = "Select date", onChange }) {
+function toIsoDate(val) {
+  if (!val) return "";
+  const s = String(val).trim().split("T")[0];
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // mm/dd/yyyy → yyyy-mm-dd
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [m, d, y] = s.split("/");
+    return `${y}-${m}-${d}`;
+  }
+  return s;
+}
+
+export function CalendarField({ value, placeholder = "Select date", onChange, align = "left" }) {
   const [open, setOpen] = useState(false);
-  const triggerRef  = useRef(null);
-  const calendarRef = useRef(null);
+  const containerRef = useRef(null);
 
-  usePopupAnchor(triggerRef, calendarRef, open, { popupWidth: 300 });
+  useLockBodyScroll(open);
 
+  // Close on outside click — but only if the click is outside the whole container
   useEffect(() => {
     if (!open) return;
     function handleMouseDown(e) {
-      if (
-        triggerRef.current  && !triggerRef.current.contains(e.target) &&
-        calendarRef.current && !calendarRef.current.contains(e.target)
-      ) setOpen(false);
-    }
-    function handleScroll() {
-      setOpen(false);
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
+    return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [open]);
 
+  const displayValue = toDisplayDate(value);
+  const isoValue = toIsoDate(value);
+
+  const handleCalendarChange = (isoDate) => {
+    // Store as mm/dd/yyyy upstream (consistent with form state)
+    onChange(toDisplayDate(isoDate));
+    setOpen(false);
+  };
+
+  const handleInputChange = (e) => {
+    // Let user type freely — pass raw value upstream
+    onChange(e.target.value);
+  };
+
   return (
-    <div ref={triggerRef} className="relative w-full">
+    <div ref={containerRef} className="relative w-full">
       <div className="flex items-center gap-2 w-full">
         <input
           type="text"
-          value={value ?? ""}
+          value={displayValue}
           placeholder={placeholder}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={handleInputChange}
           onFocus={() => setOpen(true)}
-          readOnly
-          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 cursor-pointer"
+          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
         />
         <button
           type="button"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => setOpen((o) => !o)}
           className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-[var(--color-primary)] hover:bg-gray-50"
           aria-label="Open calendar"
         >
@@ -367,18 +512,14 @@ export function CalendarField({ value, placeholder = "Select date", onChange }) 
         </button>
       </div>
 
-      {open && typeof document !== "undefined" && createPortal(
-        <div
-          ref={calendarRef}
-          style={{ position: "fixed", top: -9999, left: -9999, zIndex: 9999 }}
-        >
+      {open && (
+        <div className={`absolute top-full mt-2 z-[9999] ${align === "right" ? "right-0" : "left-0"}`}>
           <CustomCalendar
-            value={value}
-            onChange={(nextValue) => { onChange(nextValue); setOpen(false); }}
+            value={isoValue}
+            onChange={handleCalendarChange}
             onClose={() => setOpen(false)}
           />
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   );

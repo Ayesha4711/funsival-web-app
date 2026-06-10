@@ -80,16 +80,55 @@ export function useFCM() {
           if (cancelled) return;
           const { title, body } = payload.notification ?? {};
           const data = payload.data ?? {};
-          toast(title ?? "New notification", {
-            description: body ?? "",
-            duration: 5000,
-          });
+          const type = data.type;
+
+          // Payment / refund toasts
+          if (type === "refund_approved") {
+            toast.success(title ?? "Refund approved", {
+              description: body ?? "Your refund has been approved.",
+              duration: 7000,
+              action: data.bookingId
+                ? { label: "View Booking", onClick: () => { if (typeof window !== "undefined") window.location.href = `/user-dashboard/bookings`; } }
+                : undefined,
+            });
+          } else if (type === "refund_rejected") {
+            toast.error(title ?? "Refund declined", {
+              description: body ?? "",
+              duration: 7000,
+              action: data.bookingId
+                ? { label: "View Booking", onClick: () => { if (typeof window !== "undefined") window.location.href = `/user-dashboard/bookings`; } }
+                : undefined,
+            });
+          } else if (type === "refund_requested") {
+            toast(title ?? "New refund request", {
+              description: body ?? "A guest has requested a refund.",
+              duration: 6000,
+              action: { label: "Review", onClick: () => { if (typeof window !== "undefined") window.location.href = `/admin/refund-requests`; } },
+            });
+          } else if (type === "booking_new") {
+            toast.success(title ?? "New booking", {
+              description: body ?? "You have a new booking.",
+              duration: 5000,
+            });
+          } else if (type === "booking_cancelled") {
+            toast(title ?? "Booking cancelled", {
+              description: body ?? "A booking has been cancelled.",
+              duration: 5000,
+            });
+          } else {
+            toast(title ?? "New notification", {
+              description: body ?? "",
+              duration: 5000,
+            });
+          }
+
           // Optimistically prepend so notification badge updates instantly
           dispatch(prependNotification({
             id: data.notificationId ?? `_fcm_${Date.now()}`,
             title: title ?? "",
             body: body ?? "",
             message: body ?? "",
+            type,
             read: false,
             isRead: false,
             createdAt: new Date().toISOString(),
@@ -97,7 +136,7 @@ export function useFCM() {
           }));
           // If this is a chat message, refresh conversations so the message
           // badge increments immediately without waiting for the next poll
-          if (data.type === "chat_message" || data.conversationId) {
+          if (type === "chat_message" || data.conversationId) {
             dispatch(fetchConversations());
           }
         });

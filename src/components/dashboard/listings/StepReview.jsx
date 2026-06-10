@@ -6,6 +6,15 @@ import { SimpleMap } from "@/components/shared/MapControls";
 import { describeListingPrice, formatListingPrice, getPriceMode } from "./listingPrice";
 import { MapPinIcon, DollarIcon, ClockIcon, UsersIcon, CalendarIcon, InfoIcon, SpinnerIcon } from "@/icons";
 
+function fmt12(timeStr) {
+  if (!timeStr) return "";
+  if (timeStr.includes("AM") || timeStr.includes("PM")) return timeStr;
+  const [h, m] = timeStr.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) return timeStr;
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
 function cap(str) {
   if (!str) return "—";
   return str.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -144,7 +153,7 @@ export default function StepReview({
       <div className="text-center mb-8 pt-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] inline-flex items-center gap-2">
           Review Details
-          <InfoIcon size={20} className="text-[var(--color-secondary)]" />
+          {/* <InfoIcon size={20} className="text-[var(--color-secondary)]" /> */}
         </h2>
         <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-xl mx-auto leading-relaxed">
           In this step, we&apos;ll ask you which type of property you have and if guests will book the entire place or just a room. Then let us know the location and how many guests can stay.
@@ -262,7 +271,7 @@ export default function StepReview({
 
         <Divider />
 
-        {/* Availability slots */}
+        {/* Availability slots — two-column Date / Time */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {slots.map((slot, i) => (
             <React.Fragment key={i}>
@@ -278,8 +287,8 @@ export default function StepReview({
                 <FieldValue className="flex items-center gap-1.5">
                   <ClockIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
                   {slot.startTime && slot.endTime
-                    ? `${slot.startTime} – ${slot.endTime}`
-                    : slot.startTime || slot.endTime || "—"}
+                    ? `${fmt12(slot.startTime)} – ${fmt12(slot.endTime)}`
+                    : fmt12(slot.startTime || slot.endTime) || "—"}
                 </FieldValue>
               </div>
             </React.Fragment>
@@ -301,14 +310,14 @@ export default function StepReview({
           <button
             onClick={onBack}
             disabled={submitting}
-            className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:border-gray-400 transition-colors disabled:opacity-50"
+            className="flex-1 sm:flex-none sm:w-[244px] h-[58px] rounded-[100px] font-semibold text-sm border border-gray-300 text-gray-700 hover:border-gray-400 transition-colors disabled:opacity-50"
           >
             Go Back
           </button>
           <button
             onClick={onNext}
             disabled={submitting}
-            className="flex-1 sm:flex-none sm:px-14 py-3 sm:py-3.5 rounded-full font-semibold text-sm bg-[var(--color-secondary)] text-white hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none sm:w-[244px] h-[58px] rounded-[100px] font-semibold text-sm bg-[var(--color-secondary)] text-[#2D2D2D] hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {submitting && <SpinnerIcon size={14} />}
             {submitting ? "Submitting..." : submitLabel}

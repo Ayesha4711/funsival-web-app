@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -136,6 +135,11 @@ function adaptApiListing(api, urlType) {
 
   const priceObj = typeof api.price === "object" && api.price !== null ? api.price : null;
   const price = extractPrice(priceObj, info);
+  // Only set hourlyPrice/dailyPrice when those keys actually exist in the API response.
+  // Falling back to `price` would make both truthy even when only one is configured,
+  // causing the Daily mode pill to appear and the backend to reject with "no daily price".
+  const hourlyPrice = toNum(priceObj?.hourly) ?? toNum(info?.pricePerHour) ?? null;
+  const dailyPrice  = toNum(priceObj?.daily)  ?? toNum(info?.dailyRate)    ?? null;
 
   const priceKeys = priceObj ? Object.keys(priceObj).filter(k => k !== "currency") : [];
   const bookingType = api.bookingType
@@ -187,6 +191,8 @@ function adaptApiListing(api, urlType) {
     rating: api.rating ?? 4.4,
     reviews: api.reviewCount ?? "21K",
     price,
+    hourlyPrice,
+    dailyPrice,
     images,
     host: { id: hostId, name: hostFullName, agency: hostAgency, avatar: hostAvatar, location: hostLocation, rating: hostRating, reviews: hostReviews },
     details: {
@@ -203,6 +209,7 @@ function adaptApiListing(api, urlType) {
     requirements,
     cancellationPolicy,
     description,
+    availability: api.availability || [],
     mapLat: toNum(loc.latitude) ?? null,
     mapLng: toNum(loc.longitude) ?? null,
     reviews_list: api.reviews ?? [],
@@ -249,82 +256,39 @@ const TIME_OPTIONS = (() => {
   return opts;
 })();
 
-/* ─── usePopupAnchor
- *  Writes position directly to the popup DOM node (no React state → no re-renders).
- *  Uses a rAF loop so it follows the trigger perfectly during scroll/resize.
- * ─────────────────────────────────────────────────────────────────────────────── */
-function usePopupAnchor(triggerRef, popupRef, open, { popupWidth = 280, gap = 6, margin = 8 } = {}) {
-  const rafRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const sync = () => {
-      const trigger = triggerRef.current;
-      const popup   = popupRef.current;
-      if (!trigger || !popup) { rafRef.current = requestAnimationFrame(sync); return; }
-
-      const rect  = trigger.getBoundingClientRect();
-      const top   = rect.bottom + gap;
-      const rawL  = rect.left;
-      const left  = Math.max(margin, Math.min(rawL, window.innerWidth - popupWidth - margin));
-
-      popup.style.position = "fixed";
-      popup.style.top      = `${top}px`;
-      popup.style.left     = `${left}px`;
-      popup.style.width    = `${popupWidth}px`;
-      popup.style.zIndex   = "9999";
-
-      rafRef.current = requestAnimationFrame(sync);
-    };
-
-    rafRef.current = requestAnimationFrame(sync);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [open, triggerRef, popupRef, popupWidth, gap, margin]);
-}
-
 /* ─── Custom Time Dropdown ───────────────────────────────────────────────────── */
-function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
+function TimeDropdown({ value, onChange, placeholder = "Select time", options }) {
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef(null);
-  const popupRef   = useRef(null);
+  const containerRef = useRef(null);
+  const listRef = useRef(null);
 
-  usePopupAnchor(triggerRef, popupRef, open, { popupWidth: 176 });
+  const finalOptions = options || TIME_OPTIONS;
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e) {
-      if (triggerRef.current && !triggerRef.current.contains(e.target) &&
-          popupRef.current   && !popupRef.current.contains(e.target)) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
         setOpen(false);
       }
     }
-    function handleScroll() {
-      setOpen(false);
-    }
     document.addEventListener("mousedown", handleClick);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  // Scroll selected item into view when list opens
   useEffect(() => {
-    if (open && value && popupRef.current) {
-      const idx = TIME_OPTIONS.findIndex(t => t.value === value);
+    if (open && value && listRef.current) {
+      const idx = finalOptions.findIndex(t => t.value === value);
       if (idx >= 0) {
-        const el = popupRef.current.children[idx];
+        const el = listRef.current.children[idx];
         if (el) el.scrollIntoView({ block: "center" });
       }
     }
-  }, [open, value]);
+  }, [open, value, finalOptions]);
 
-  const selected = TIME_OPTIONS.find(t => t.value === value);
+  const selected = finalOptions.find(t => t.value === value);
 
   return (
-    <div ref={triggerRef} className="relative w-full">
+    <div ref={containerRef} className="relative w-full" style={open ? { zIndex: 10 } : undefined}>
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -336,63 +300,54 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
         <span className="shrink-0"><ChevronDown /></span>
       </button>
 
-      {open && typeof document !== "undefined" && createPortal(
-        <div
-          ref={popupRef}
-          className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-y-auto"
-          style={{ maxHeight: 280, position: "fixed", top: -9999, left: -9999, zIndex: 9999 }}
-        >
-          {TIME_OPTIONS.map(t => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => { onChange(t.value); setOpen(false); }}
-              className={[
-                "w-full text-left px-5 py-3 text-sm transition-colors",
-                t.value === value
-                  ? "bg-[#EBF6F6] text-[#4AA7A7] font-bold border-r-4 border-[#F5C842]"
-                  : "text-gray-700 hover:bg-gray-50",
-              ].join(" ")}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>,
-        document.body
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-[200] bg-white rounded-2xl border border-gray-200 shadow-xl overflow-y-auto w-full min-w-[120px]" style={{ maxHeight: 280 }}>
+          <div ref={listRef}>
+            {finalOptions.length > 0 ? (
+              finalOptions.map(t => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => { onChange(t.value); setOpen(false); }}
+                  className={[
+                    "w-full text-left px-5 py-3 text-sm transition-colors",
+                    t.value === value
+                      ? "bg-[#EBF6F6] text-[#4AA7A7] font-bold border-r-4 border-[#F5C842]"
+                      : "text-gray-700 hover:bg-gray-50",
+                  ].join(" ")}
+                >
+                  {t.label}
+                </button>
+              ))
+            ) : (
+              <p className="px-5 py-3 text-xs text-gray-400">No times available</p>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
-/* ─── Calendar Dropdown — portal-based so it escapes overflow clipping ──────── */
-function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy" }) {
-  const [open, setOpen] = useState(false);
-  const triggerRef  = useRef(null);
-  const calendarRef = useRef(null);
 
-  usePopupAnchor(triggerRef, calendarRef, open, { popupWidth: 300 });
+/* ─── Calendar Dropdown ──────────────────────────────────────────────────────── */
+function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy", align = "left", availableDates }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e) {
-      if (
-        triggerRef.current  && !triggerRef.current.contains(e.target) &&
-        calendarRef.current && !calendarRef.current.contains(e.target)
-      ) setOpen(false);
-    }
-    function handleScroll() {
-      setOpen(false);
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClick);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
   return (
-    <div ref={triggerRef} className="relative w-full">
+    <div ref={containerRef} className="relative w-full">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -403,22 +358,20 @@ function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy" }) {
         </span>
       </button>
 
-      {open && typeof document !== "undefined" && createPortal(
-        <div
-          ref={calendarRef}
-          style={{ position: "fixed", top: -9999, left: -9999, zIndex: 9999 }}
-        >
+      {open && (
+        <div className={`absolute top-full mt-1 z-[200] ${align === "right" ? "right-0" : "left-0"}`}>
           <CustomCalendar
             value={value}
             onChange={(v) => { onChange(v); setOpen(false); }}
             onClose={() => setOpen(false)}
+            availableDates={availableDates}
           />
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   );
 }
+
 
 /* ─── Booking field (no label) ───────────────────────────────────────────────── */
 function BookingField({ icon, children, error, errorMessage, onClick }) {
@@ -434,7 +387,7 @@ function BookingField({ icon, children, error, errorMessage, onClick }) {
 }
 
 /* ─── Split time field (Start time | End time in one row) ────────────────────── */
-function TimeRangeField({ startTime, setStartTime, endTime, setEndTime, startError, endError }) {
+function TimeRangeField({ startTime, setStartTime, endTime, setEndTime, startError, endError, startOptions, endOptions }) {
   return (
     <div>
       <div className={`flex items-center gap-0 rounded-full border bg-white overflow-visible ${(startError || endError) ? "border-red-400" : "border-gray-200"}`}>
@@ -443,7 +396,7 @@ function TimeRangeField({ startTime, setStartTime, endTime, setEndTime, startErr
           <span className="hidden sm:block shrink-0"><ClockIcon /></span>
           <span className="text-[9px] sm:text-xs text-gray-400 shrink-0 whitespace-nowrap">Start</span>
           <div className="flex-1 min-w-0">
-            <TimeDropdown value={startTime} onChange={setStartTime} placeholder="09:41 AM" />
+            <TimeDropdown value={startTime} onChange={setStartTime} placeholder="09:41 AM" options={startOptions} />
           </div>
         </div>
         <div className="w-px h-8 bg-gray-200 shrink-0" />
@@ -451,7 +404,7 @@ function TimeRangeField({ startTime, setStartTime, endTime, setEndTime, startErr
         <div className="flex items-center gap-1 sm:gap-2 flex-1 px-2 sm:px-4 py-2.5 sm:py-3.5 min-w-0">
           <span className="text-[9px] sm:text-xs text-gray-400 shrink-0 whitespace-nowrap">End</span>
           <div className="flex-1 min-w-0">
-            <TimeDropdown value={endTime} onChange={setEndTime} placeholder="09:41 AM" />
+            <TimeDropdown value={endTime} onChange={setEndTime} placeholder="09:41 AM" options={endOptions} />
           </div>
         </div>
       </div>
@@ -483,7 +436,7 @@ function DateRangeField({ checkIn, setCheckIn, checkOut, setCheckOut, checkInErr
         <p className="text-xs text-gray-500 font-medium mb-1 pl-1">Check-out</p>
         <div className={`flex items-center gap-2 rounded-full border bg-white px-3 py-2.5 ${checkOutError ? "border-red-400" : "border-gray-200"}`}>
           <span className="shrink-0"><CalendarIcon /></span>
-          <CalendarDropdown value={checkOut} onChange={setCheckOut} placeholder="mm/dd/yyyy" />
+          <CalendarDropdown value={checkOut} onChange={setCheckOut} placeholder="mm/dd/yyyy" align="right" />
         </div>
         {checkOutError && <p className="text-[10px] text-red-500 mt-1 pl-1">Check-out required</p>}
       </div>
@@ -547,7 +500,7 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
       </div>
 
       {/* Scrollable middle content */}
-      <div className="flex flex-col gap-5 xl:flex-1 xl:overflow-y-auto xl:pr-1 xl:-mr-1">
+      <div className="flex flex-col gap-5 xl:flex-1">
         {children}
       </div>
 
@@ -563,12 +516,15 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
 function useNavigateToConfirm(listing, listingId) {
   const router = useRouter();
   return (fields, sessionKey) => {
+    const categoryMap = { activities: "activity", places: "place", equipment: "equipment" };
+    const listingType = categoryMap[listing.type] ?? listing.type ?? "";
     const p = new URLSearchParams({
       listingId,
       title: listing.title,
       description: listing.details.description || "",
       image: listing.images[0] || "",
       bookingType: listing.bookingType,
+      listingType,
       pricePerUnit: String(listing.price),
       funsivalFee: "8",
       ...(sessionKey ? { _skey: sessionKey } : {}),
@@ -582,24 +538,39 @@ function useNavigateToConfirm(listing, listingId) {
 function ActivityBookingCard({ listing, listingId }) {
   const SKEY = `booking_activity_${listingId}`;
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
-  const [checkIn, setCheckIn] = useState(saved.checkIn || "");
-  const [checkOut, setCheckOut] = useState(saved.checkOut || "");
+  const [date, setDate] = useState(saved.date || "");
   const [startTime, setStartTime] = useState(saved.startTime || "");
   const [endTime, setEndTime] = useState(saved.endTime || "");
   const [persons, setPersons] = useState(saved.persons || "");
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
+  const availability = listing.availability || [];
+  const availableDates = React.useMemo(() => {
+    return [...new Set(availability.map(a => a.date.split("T")[0]))];
+  }, [availability]);
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    const [h, m] = timeStr.split(":").map(Number);
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "AM" : "PM";
+    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+  };
+
+  const startTimeOptions = React.useMemo(() => {
+    if (!date) return [];
+    return availability
+      .filter(a => a.date.split("T")[0] === date && a.isAvailable !== false)
+      .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
+  }, [date, availability]);
+
   useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ checkIn, checkOut, startTime, endTime, persons }));
-  }, [checkIn, checkOut, startTime, endTime, persons, SKEY]);
+    sessionStorage.setItem(SKEY, JSON.stringify({ date, startTime, endTime, persons }));
+  }, [date, startTime, endTime, persons, SKEY]);
 
   const isPerPerson = listing.bookingType === "per_person";
-
-  const hours = startTime && endTime
-    ? Math.max(0.5, parseFloat(((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000).toFixed(1)))
-    : 3;
-  const units = isPerPerson ? (Number(persons) || 1) : hours;
+  const units = isPerPerson ? (Number(persons) || 1) : 1;
   const subtotal = listing.price * units;
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
@@ -608,19 +579,18 @@ function ActivityBookingCard({ listing, listingId }) {
   const priceUnit = isPerPerson ? "/Person" : "/Hr";
   const summaryLabel = isPerPerson
     ? `$${listing.price}/person × ${units} person${units > 1 ? "s" : ""}`
-    : `$${listing.price}/hr × ${hours} hour${hours > 1 ? "s" : ""}`;
+    : `$${listing.price}/hr`;
 
   const handleReserve = () => {
     const newErrors = {};
-    if (!checkIn) { toast.error("Check-in date is required."); newErrors.checkIn = true; }
-    if (!checkOut) { toast.error("Check-out date is required."); newErrors.checkOut = true; }
+    if (!date) { toast.error("Date is required."); newErrors.date = true; }
     if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
-    if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
     if (isPerPerson && !persons) { toast.error("Number of guests is required."); newErrors.persons = true; }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    const fields = isPerPerson
-      ? { startDate: checkIn, endDate: checkOut, startTime, endTime, numberOfGuests: persons || 1, units, dateFrom: checkIn, dateTo: checkOut, guests: `${persons || 1} guest` }
-      : { startDate: checkIn, endDate: checkOut, startTime, endTime, units: hours, dateFrom: checkIn, dateTo: checkOut };
+    const fields = {
+      startDate: date, endDate: date, startTime, endTime, dateFrom: date, dateTo: date,
+      ...(isPerPerson ? { numberOfGuests: persons || 1, units, guests: `${persons || 1} guest` } : { units: 1 }),
+    };
     navigateToConfirm(fields, SKEY);
   };
 
@@ -645,19 +615,40 @@ function ActivityBookingCard({ listing, listingId }) {
         </button>
       }
     >
-      {/* Check-in / Check-out */}
-      <DateRangeField
-        checkIn={checkIn} setCheckIn={v => { setCheckIn(v); setErrors(e => ({ ...e, checkIn: false })); }}
-        checkOut={checkOut} setCheckOut={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }}
-        checkInError={errors.checkIn} checkOutError={errors.checkOut}
-      />
+      {/* Single date */}
+      <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
+        <CalendarDropdown
+          value={date}
+          onChange={v => {
+            setDate(v);
+            setErrors(e => ({ ...e, date: false }));
+            const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+            if (!valid) {
+              setStartTime("");
+              setEndTime("");
+            }
+          }}
+          placeholder="mm/dd/yyyy"
+          availableDates={availableDates}
+        />
+      </BookingField>
 
-      {/* Start / End time */}
-      <TimeRangeField
-        startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
-        endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
-        startError={errors.startTime} endError={errors.endTime}
-      />
+      {/* Start time only */}
+      <BookingField icon={<ClockIcon />} error={errors.startTime} errorMessage="Start time is required">
+        <TimeDropdown
+          value={startTime}
+          onChange={v => {
+            setStartTime(v);
+            setErrors(e => ({ ...e, startTime: false }));
+            const slot = availability.find(a => a.date.split("T")[0] === date && a.startTime === v && a.isAvailable !== false);
+            if (slot) setEndTime(slot.endTime);
+            else setEndTime("");
+          }}
+          placeholder="Start time"
+          options={startTimeOptions}
+        />
+      </BookingField>
+
 
       {/* Guests — only show for per_person */}
       {isPerPerson && (
@@ -687,6 +678,9 @@ function ActivityBookingCard({ listing, listingId }) {
 function PlacesBookingCard({ listing, listingId }) {
   const SKEY = `booking_places_${listingId}`;
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
+  const hasDaily = !!(listing.dailyPrice);
+  const [mode, setMode] = useState((saved.mode === "daily" && !hasDaily) ? "hourly" : (saved.mode || "hourly"));
+  const [date, setDate] = useState(saved.date || "");
   const [checkIn, setCheckIn] = useState(saved.checkIn || "");
   const [checkOut, setCheckOut] = useState(saved.checkOut || "");
   const [startTime, setStartTime] = useState(saved.startTime || "");
@@ -695,39 +689,84 @@ function PlacesBookingCard({ listing, listingId }) {
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
-  useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ checkIn, checkOut, startTime, endTime, guests }));
-  }, [checkIn, checkOut, startTime, endTime, guests, SKEY]);
+  const availability = listing.availability || [];
+  const availableDates = React.useMemo(() => {
+    return [...new Set(availability.map(a => a.date.split("T")[0]))];
+  }, [availability]);
 
+  // For hourly mode, options for 'date'. For daily mode, options for 'checkIn'.
+  const targetDate = mode === "hourly" ? date : checkIn;
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    const [h, m] = timeStr.split(":").map(Number);
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "AM" : "PM";
+    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+  };
+
+  const startTimeOptions = React.useMemo(() => {
+    if (!targetDate) return [];
+    return availability
+      .filter(a => a.date.split("T")[0] === targetDate && a.isAvailable !== false)
+      .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
+  }, [targetDate, availability]);
+
+  const endTimeOptions = React.useMemo(() => {
+    if (!targetDate || !startTime) return [];
+    return availability
+      .filter(a => a.date.split("T")[0] === targetDate && a.startTime === startTime && a.isAvailable !== false)
+      .map(a => ({ label: formatTime(a.endTime), value: a.endTime }));
+  }, [targetDate, startTime, availability]);
+
+  useEffect(() => {
+    sessionStorage.setItem(SKEY, JSON.stringify({ mode, date, checkIn, checkOut, startTime, endTime, guests }));
+  }, [mode, date, checkIn, checkOut, startTime, endTime, guests, SKEY]);
+
+  const modePrice = mode === "daily" ? listing.dailyPrice : (listing.hourlyPrice ?? listing.price);
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
     : 3;
-  const subtotal = listing.price * hours;
+  const days = checkIn && checkOut ? calculateDaysBetween(checkIn, checkOut) : 1;
+  const span = mode === "daily" ? days : hours;
+  const subtotal = modePrice * span;
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
 
   const handleReserve = () => {
     const newErrors = {};
-    if (!checkIn) { toast.error("Check-in date is required."); newErrors.checkIn = true; }
-    if (!checkOut) { toast.error("Check-out date is required."); newErrors.checkOut = true; }
-    if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
-    if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
+    if (mode === "hourly") {
+      if (!date) { toast.error("Date is required."); newErrors.date = true; }
+      if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
+      if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
+    } else {
+      if (!checkIn) { toast.error("Start date is required."); newErrors.checkIn = true; }
+      if (!checkOut) { toast.error("End date is required."); newErrors.checkOut = true; }
+      if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
+    }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    navigateToConfirm({ startDate: checkIn, endDate: checkOut, startTime, endTime, numberOfGuests: guests || 1, units: hours, dateFrom: checkIn, dateTo: checkOut, guests: `${guests || 1} guest` }, SKEY);
+    const from = mode === "hourly" ? date : checkIn;
+    const to = mode === "hourly" ? date : checkOut;
+    // For daily mode end time = start time (billing is per-day, not per-hour)
+    const resolvedEndTime = mode === "daily" ? startTime : endTime;
+    navigateToConfirm({
+      pricingMode: mode,
+      startDate: from, endDate: to, startTime,
+      endTime: resolvedEndTime,
+      numberOfGuests: guests || 1, units: span, dateFrom: from, dateTo: to, guests: `${guests || 1} guest`,
+      pricePerUnit: String(modePrice),
+    }, SKEY);
   };
 
   return (
     <BookingShell
-      title="Book Your Place" price={listing.price} priceUnit="/Hr" rating={listing.rating} reviews={listing.reviews}
-      topSlot={
-        <div className="rounded-[18px] border border-[#4AA7A7] bg-[#D7ECEB] px-4 py-5 text-center relative">
-          <CheckBadge />
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-[#4AA7A7]"><ClockIcon /></span>
-            <p className="text-sm font-semibold text-gray-700">Per Hour</p>
-          </div>
+      title="Book Your Place" price={modePrice} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
+      topSlot={listing.hourlyPrice && listing.dailyPrice ? (
+        <div className="grid grid-cols-2 gap-3">
+          <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
+          <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
         </div>
-      }
+      ) : null}
       reserveButton={
         <button
           onClick={handleReserve}
@@ -737,19 +776,86 @@ function PlacesBookingCard({ listing, listingId }) {
         </button>
       }
     >
-      {/* Check-in / Check-out */}
-      <DateRangeField
-        checkIn={checkIn} setCheckIn={v => { setCheckIn(v); setErrors(e => ({ ...e, checkIn: false })); }}
-        checkOut={checkOut} setCheckOut={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }}
-        checkInError={errors.checkIn} checkOutError={errors.checkOut}
-      />
-
-      {/* Start / End time */}
-      <TimeRangeField
-        startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
-        endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
-        startError={errors.startTime} endError={errors.endTime}
-      />
+      {mode === "hourly" ? (
+        /* Hourly: single date + start/end time */
+        <>
+          <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
+            <CalendarDropdown
+              value={date}
+              onChange={v => {
+                setDate(v);
+                setErrors(e => ({ ...e, date: false }));
+                const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+                if (!valid) {
+                  setStartTime("");
+                  setEndTime("");
+                }
+              }}
+              placeholder="Select date"
+              availableDates={availableDates}
+            />
+          </BookingField>
+          <TimeRangeField
+            startTime={startTime}
+            setStartTime={v => {
+              setStartTime(v);
+              setErrors(e => ({ ...e, startTime: false }));
+              const slot = availability.find(a => a.date.split("T")[0] === targetDate && a.startTime === v && a.isAvailable !== false);
+              if (slot) setEndTime(slot.endTime);
+              else setEndTime("");
+            }}
+            endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
+            startError={errors.startTime} endError={errors.endTime}
+            startOptions={startTimeOptions}
+            endOptions={endTimeOptions}
+          />
+        </>
+      ) : (
+        /* Daily: start date | end date + start time only */
+        <>
+          <div className="flex gap-3">
+            <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkIn ? "border-red-400" : "border-gray-200"}`}>
+              <span className="shrink-0"><CalendarIcon /></span>
+              <CalendarDropdown
+                value={checkIn}
+                onChange={v => {
+                  setCheckIn(v);
+                  setErrors(e => ({ ...e, checkIn: false }));
+                  const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+                  if (!valid) {
+                    setStartTime("");
+                    setEndTime("");
+                  }
+                }}
+                placeholder="Start date"
+                availableDates={availableDates}
+              />
+            </div>
+            <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkOut ? "border-red-400" : "border-gray-200"}`}>
+              <span className="shrink-0"><CalendarIcon /></span>
+              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" availableDates={availableDates} />
+            </div>
+          </div>
+          {(errors.checkIn || errors.checkOut) && (
+            <div className="flex gap-3 -mt-3">
+              {errors.checkIn && <p className="flex-1 text-[10px] text-red-500 pl-3">Start date required</p>}
+              {errors.checkOut && <p className="flex-1 text-[10px] text-red-500 pl-3">End date required</p>}
+            </div>
+          )}
+          <BookingField icon={<ClockIcon />} error={errors.startTime} errorMessage="Start time is required">
+            <TimeDropdown
+              value={startTime}
+              onChange={v => {
+                setStartTime(v);
+                setEndTime(v); // daily = full day, end time = start time
+                setErrors(e => ({ ...e, startTime: false }));
+              }}
+              placeholder="Start time"
+              options={startTimeOptions}
+            />
+          </BookingField>
+        </>
+      )}
 
       {/* Guests */}
       <BookingField icon={<UserOutlineIcon />} error={errors.guests} errorMessage="Number of guests is required">
@@ -765,7 +871,7 @@ function PlacesBookingCard({ listing, listingId }) {
 
       {/* Summary */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
-        <SummaryLine label={`$${listing.price}/hr × ${hours} hour${hours > 1 ? "s" : ""}`} value={`$${subtotal}`} />
+        <SummaryLine label={`$${modePrice}/${mode === "daily" ? "day" : "hr"} × ${span} ${mode === "daily" ? "day" : "hour"}${span > 1 ? "s" : ""}`} value={`$${subtotal}`} />
         <SummaryLine label="Service fee" value={`$${fee}`} />
         <SummaryLine label="Total" value={`$${total}`} bold />
       </div>
@@ -777,48 +883,97 @@ function PlacesBookingCard({ listing, listingId }) {
 function EquipmentBookingCard({ listing, listingId }) {
   const SKEY = `booking_equipment_${listingId}`;
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
-  const [mode, setMode] = useState(saved.mode || "hourly");
+  const hasDaily = !!(listing.dailyPrice);
+  const [mode, setMode] = useState((saved.mode === "daily" && !hasDaily) ? "hourly" : (saved.mode || "hourly"));
+  const [date, setDate] = useState(saved.date || "");
   const [checkIn, setCheckIn] = useState(saved.checkIn || "");
   const [checkOut, setCheckOut] = useState(saved.checkOut || "");
   const [startTime, setStartTime] = useState(saved.startTime || "");
   const [endTime, setEndTime] = useState(saved.endTime || "");
+  const [guests, setGuests] = useState(saved.guests || "");
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
-  useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ mode, checkIn, checkOut, startTime, endTime }));
-  }, [mode, checkIn, checkOut, startTime, endTime, SKEY]);
+  const availability = listing.availability || [];
+  const availableDates = React.useMemo(() => {
+    return [...new Set(availability.map(a => a.date.split("T")[0]))];
+  }, [availability]);
 
+  // For hourly mode, options for 'date'. For daily mode, options for 'checkIn'.
+  const targetDate = mode === "hourly" ? date : checkIn;
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    const [h, m] = timeStr.split(":").map(Number);
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "AM" : "PM";
+    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+  };
+
+  const startTimeOptions = React.useMemo(() => {
+    if (!targetDate) return [];
+    return availability
+      .filter(a => a.date.split("T")[0] === targetDate && a.isAvailable !== false)
+      .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
+  }, [targetDate, availability]);
+
+  const endTimeOptions = React.useMemo(() => {
+    if (!targetDate || !startTime) return [];
+    return availability
+      .filter(a => a.date.split("T")[0] === targetDate && a.startTime === startTime && a.isAvailable !== false)
+      .map(a => ({ label: formatTime(a.endTime), value: a.endTime }));
+  }, [targetDate, startTime, availability]);
+
+  useEffect(() => {
+    sessionStorage.setItem(SKEY, JSON.stringify({ mode, date, checkIn, checkOut, startTime, endTime, guests }));
+  }, [mode, date, checkIn, checkOut, startTime, endTime, guests, SKEY]);
+
+  const modePrice = mode === "daily" ? listing.dailyPrice : (listing.hourlyPrice ?? listing.price);
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
     : 3;
-  const days = checkIn && checkOut
-    ? calculateDaysBetween(checkIn, checkOut)
-    : 1;
+  const days = checkIn && checkOut ? calculateDaysBetween(checkIn, checkOut) : 1;
   const span = mode === "daily" ? days : hours;
-  const subtotal = listing.price * span;
+  const subtotal = modePrice * span;
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
 
   const handleReserve = () => {
     const newErrors = {};
-    if (!checkIn) { toast.error("Check-in date is required."); newErrors.checkIn = true; }
-    if (!checkOut) { toast.error("Check-out date is required."); newErrors.checkOut = true; }
-    if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
-    if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
+    if (mode === "hourly") {
+      if (!date) { toast.error("Date is required."); newErrors.date = true; }
+      if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
+      if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
+    } else {
+      if (!checkIn) { toast.error("Start date is required."); newErrors.checkIn = true; }
+      if (!checkOut) { toast.error("End date is required."); newErrors.checkOut = true; }
+      if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
+    }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    navigateToConfirm({ startDate: checkIn, endDate: checkOut, startTime, endTime, units: span, dateFrom: checkIn, dateTo: checkOut }, SKEY);
+    const from = mode === "hourly" ? date : checkIn;
+    const to = mode === "hourly" ? date : checkOut;
+    // For daily mode, end time equals start time (billing is per-day, not per-hour)
+    const resolvedEndTime = mode === "daily" ? startTime : endTime;
+    navigateToConfirm({
+      pricingMode: mode,
+      startDate: from, endDate: to, startTime,
+      endTime: resolvedEndTime,
+      numberOfGuests: guests || 1,
+      units: span, dateFrom: from, dateTo: to,
+      guests: `${guests || 1} guest`,
+      pricePerUnit: String(modePrice),
+    }, SKEY);
   };
 
   return (
     <BookingShell
-      title="Book Your Equipment" price={listing.price} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
-      topSlot={
+      title="Book Your Equipment" price={modePrice} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
+      topSlot={listing.hourlyPrice && listing.dailyPrice ? (
         <div className="grid grid-cols-2 gap-3">
           <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
           <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
         </div>
-      }
+      ) : null}
       reserveButton={
         <button
           onClick={handleReserve}
@@ -828,23 +983,103 @@ function EquipmentBookingCard({ listing, listingId }) {
         </button>
       }
     >
-      {/* Check-in / Check-out — same for both hourly and daily */}
-      <DateRangeField
-        checkIn={checkIn} setCheckIn={v => { setCheckIn(v); setErrors(e => ({ ...e, checkIn: false })); }}
-        checkOut={checkOut} setCheckOut={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }}
-        checkInError={errors.checkIn} checkOutError={errors.checkOut}
-      />
+      {mode === "hourly" ? (
+        /* Hourly: single date + start/end time */
+        <>
+          <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
+            <CalendarDropdown
+              value={date}
+              onChange={v => {
+                setDate(v);
+                setErrors(e => ({ ...e, date: false }));
+                const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+                if (!valid) {
+                  setStartTime("");
+                  setEndTime("");
+                }
+              }}
+              placeholder="Select date"
+              availableDates={availableDates}
+            />
+          </BookingField>
+          <TimeRangeField
+            startTime={startTime}
+            setStartTime={v => {
+              setStartTime(v);
+              setErrors(e => ({ ...e, startTime: false }));
+              const slot = availability.find(a => a.date.split("T")[0] === targetDate && a.startTime === v && a.isAvailable !== false);
+              if (slot) setEndTime(slot.endTime);
+              else setEndTime("");
+            }}
+            endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
+            startError={errors.startTime} endError={errors.endTime}
+            startOptions={startTimeOptions}
+            endOptions={endTimeOptions}
+          />
+        </>
+      ) : (
+        /* Daily: start date | end date + start time only */
+        <>
+          <div className="flex gap-3">
+            <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkIn ? "border-red-400" : "border-gray-200"}`}>
+              <span className="shrink-0"><CalendarIcon /></span>
+              <CalendarDropdown
+                value={checkIn}
+                onChange={v => {
+                  setCheckIn(v);
+                  setErrors(e => ({ ...e, checkIn: false }));
+                  const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+                  if (!valid) {
+                    setStartTime("");
+                    setEndTime("");
+                  }
+                }}
+                placeholder="Start date"
+                availableDates={availableDates}
+              />
+            </div>
+            <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkOut ? "border-red-400" : "border-gray-200"}`}>
+              <span className="shrink-0"><CalendarIcon /></span>
+              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" availableDates={availableDates} />
+            </div>
+          </div>
+          {(errors.checkIn || errors.checkOut) && (
+            <div className="flex gap-3 -mt-3">
+              {errors.checkIn && <p className="flex-1 text-[10px] text-red-500 pl-3">Start date required</p>}
+              {errors.checkOut && <p className="flex-1 text-[10px] text-red-500 pl-3">End date required</p>}
+            </div>
+          )}
+          <BookingField icon={<ClockIcon />} error={errors.startTime} errorMessage="Start time is required">
+            <TimeDropdown
+              value={startTime}
+              onChange={v => {
+                setStartTime(v);
+                setErrors(e => ({ ...e, startTime: false }));
+                // Daily mode: end time = start time (same pickup time each day)
+                setEndTime(v);
+              }}
+              placeholder="Start time"
+              options={startTimeOptions}
+            />
+          </BookingField>
+        </>
+      )}
 
-      {/* Start / End time */}
-      <TimeRangeField
-        startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
-        endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
-        startError={errors.startTime} endError={errors.endTime}
-      />
+      {/* Guests */}
+      <BookingField icon={<UserOutlineIcon />} error={errors.guests} errorMessage="Number of guests is required">
+        <input
+          type="number"
+          min="1"
+          value={guests}
+          placeholder="Select guest number"
+          onChange={e => { setGuests(e.target.value); setErrors(err => ({ ...err, guests: false })); }}
+          className="w-full bg-transparent text-xs sm:text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400 min-w-0"
+        />
+      </BookingField>
 
       {/* Summary */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
-        <SummaryLine label={`$${listing.price}/${mode === "daily" ? "day" : "hr"} × ${span} ${mode === "daily" ? "day" : "hour"}${span > 1 ? "s" : ""}`} value={`$${subtotal}`} />
+        <SummaryLine label={`$${modePrice}/${mode === "daily" ? "day" : "hr"} × ${span} ${mode === "daily" ? "day" : "hour"}${span > 1 ? "s" : ""}`} value={`$${subtotal}`} />
         <SummaryLine label="Service fee" value={`$${fee}`} />
         <SummaryLine label="Total" value={`$${total}`} bold />
       </div>
@@ -1270,7 +1505,7 @@ export default function ListingDetailPage({ params: paramsPromise }) {
 
           {/* Right – booking section */}
           <div className="w-full xl:w-[440px] shrink-0 xl:self-stretch">
-            {listing.type === "places"     && <PlacesBookingCard    listing={listing} listingId={rawId} />}
+            {(listing.type === "places"    || listing.type === "place")     && <PlacesBookingCard    listing={listing} listingId={rawId} />}
             {listing.type === "equipment"  && <EquipmentBookingCard listing={listing} listingId={rawId} />}
             {(listing.type === "activities" || listing.type === "activity") && <ActivityBookingCard listing={listing} listingId={rawId} />}
           </div>

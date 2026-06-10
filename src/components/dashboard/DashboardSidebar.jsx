@@ -4,6 +4,8 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSelector } from "react-redux";
+import { selectUser } from "@/store/slices/profileSlice";
 import logo from "@/assets/images/logo.svg";
 import { DashboardIcon, ReservationsIcon, ListingsIcon, EarningsIcon } from "@/icons";
 
@@ -16,6 +18,8 @@ const navItems = [
 
 export default function DashboardSidebar({ isOpen, onClose, hideOnDesktop = false }) {
   const pathname = usePathname();
+  const profile = useSelector(selectUser);
+  const isAdmin = profile?.role === "admin";
 
   return (
     <>
@@ -44,7 +48,7 @@ export default function DashboardSidebar({ isOpen, onClose, hideOnDesktop = fals
         </div>
 
         {/* Nav area — lighter teal */}
-        <div className="flex-1 flex flex-col bg-[#2FAE9E] overflow-hidden">
+        <div className="flex-1 flex flex-col bg-[#2FA39F] overflow-hidden">
 
         {/* Nav items */}
         <nav className="flex-1 flex flex-col gap-1 px-3 pt-8">
@@ -69,6 +73,22 @@ export default function DashboardSidebar({ isOpen, onClose, hideOnDesktop = fals
             );
           })}
         </nav>
+
+        {/* Admin panel link — only for admin role */}
+        {isAdmin && (
+          <div className="px-3 pb-4 shrink-0">
+            <Link
+              href="/admin/refund-requests"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-all"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Admin Panel
+            </Link>
+          </div>
+        )}
         </div>
       </aside>
     </>

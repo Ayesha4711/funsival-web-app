@@ -61,7 +61,11 @@ const TYPE_STYLES = {
   booking_confirmed:  { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700"  },
   booking_cancelled:  { bg: "bg-red-50",    border: "border-red-200",    text: "text-red-700"    },
   booking_pending:    { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-700" },
+  booking_new:        { bg: "bg-teal-50",   border: "border-teal-200",   text: "text-teal-700"   },
   review:             { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+  refund_requested:   { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700" },
+  refund_approved:    { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700"  },
+  refund_rejected:    { bg: "bg-red-50",    border: "border-red-200",    text: "text-red-700"    },
 };
 
 function typeLabel(type) {
@@ -107,7 +111,7 @@ function NotificationMeta({ type, userId, data }) {
   );
 }
 
-function NotificationItem({ notification, dispatch, isSelected, onSelect }) {
+function NotificationItem({ notification, dispatch, router, isSelected, onSelect }) {
   const isNew = !notification.isRead && !notification.read;
   const id = notification._id ?? notification.id;
   const title = notification.title ?? "Notification";
@@ -118,6 +122,19 @@ function NotificationItem({ notification, dispatch, isSelected, onSelect }) {
   const handleClick = () => {
     onSelect(id);
     if (isNew) dispatch(markNotificationRead(id));
+    // Navigate based on type
+    const type = notification.type ?? "";
+    const data = meta ?? {};
+    if (type === "refund_requested") {
+      if (data.refundRequestId) router.push(`/admin/refund-requests/${data.refundRequestId}`);
+      else router.push("/admin/refund-requests");
+    } else if (type === "refund_approved" || type === "refund_rejected") {
+      router.push("/user-dashboard/bookings");
+    } else if (type === "booking_new") {
+      router.push("/dashboard/reservations");
+    } else if (type === "booking_cancelled") {
+      router.push("/dashboard/reservations");
+    }
   };
 
   // const handleDelete = (e) => {
@@ -216,7 +233,7 @@ export default function NotificationsPage() {
   return (
     <div className="flex-1 bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-10 py-5 flex items-center justify-between gap-3">
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
@@ -266,7 +283,7 @@ export default function NotificationsPage() {
                 <h3 className="text-base font-extrabold text-[#111827]">{label}</h3>
               )}
               {groups[label].map((n) => (
-                <NotificationItem key={n._id ?? n.id} notification={n} dispatch={dispatch} isSelected={selectedId === (n._id ?? n.id)} onSelect={handleSelect} />
+                <NotificationItem key={n._id ?? n.id} notification={n} dispatch={dispatch} router={router} isSelected={selectedId === (n._id ?? n.id)} onSelect={handleSelect} />
               ))}
             </section>
           ))}

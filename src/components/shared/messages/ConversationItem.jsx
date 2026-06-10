@@ -11,12 +11,13 @@ export default function ConversationItem({ conv, isActive, onClick, currentUserI
   const name = resolveDisplayName(otherParticipant);
   const src = otherParticipant?.profileImage || null;
   const lastMsg = conv.lastMessage;
-  const preview =
-    lastMsg?.text && lastMsg.text.trim()
-      ? lastMsg.text
-      : lastMsg?.type === "image"
-      ? "📷 Image"
-      : "No messages yet";
+  const preview = (() => {
+    if (!lastMsg) return "No messages yet";
+    if (lastMsg.type === "image") return "📷 Image";
+    if (lastMsg.type === "video") return "🎬 Video";
+    if (lastMsg.type === "file") return "📎 File";
+    return lastMsg.text?.trim() || "No messages yet";
+  })();
   const time = formatConvTime(conv.lastMessageAt);
   const unread = currentUserId ? (conv.unreadCount?.[currentUserId] ?? 0) : 0;
 

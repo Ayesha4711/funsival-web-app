@@ -14,7 +14,8 @@
  */
 export function normalizeDateValue(value) {
   if (!value) return "";
-  const str = String(value).trim();
+  // Strip time portion from full ISO datetime strings (e.g. "2025-09-25T00:00:00.000Z")
+  const str = String(value).trim().split("T")[0];
 
   // ISO format: yyyy-mm-dd
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
@@ -32,11 +33,13 @@ export function normalizeDateValue(value) {
 }
 
 /**
- * Parse a date string (ISO or mm/dd/yyyy) into a Date object.
+ * Parse a date string (ISO, ISO datetime, or mm/dd/yyyy) into a Date object.
  * Returns null if the input is invalid.
  */
 export function parseCalendarDate(value = "") {
-  const str = String(value).trim();
+  if (!value) return null;
+  // Strip time portion from full ISO datetime strings (e.g. "2025-09-25T00:00:00.000Z")
+  const str = String(value).trim().split("T")[0];
   let year, month, day;
 
   if (str.includes("-")) {
