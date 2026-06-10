@@ -43,6 +43,15 @@ function EmptyState() {
   );
 }
 
+function fmt12(t) {
+  if (!t) return "";
+  if (t.includes("AM") || t.includes("PM")) return t;
+  const [h, m] = t.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) return t;
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${hr}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
 /* ─── Map API booking → row shape ─────────────────────────────────────────── */
 function mapBookingToRow(b) {
   const info = b.listing?.basicInformation ?? {};
@@ -78,15 +87,38 @@ function mapBookingToRow(b) {
   };
   const status = statusMap[b.status] ?? "Upcoming";
 
-  const startDate = b.startDate
-    ? new Date(b.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : "—";
-  const endDate = b.endDate
-    ? new Date(b.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  const rawStart = b.startDate ? new Date(b.startDate) : null;
+  const rawEnd   = b.endDate   ? new Date(b.endDate)   : null;
+
+  const fmtDate = (d) => d
+    ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : null;
 
-  const timeRange = b.startTime && b.endTime ? `${b.startTime} to ${b.endTime}` : "—";
-  const dateRange = endDate ? `${startDate} to ${endDate}` : startDate;
+  const startDate = fmtDate(rawStart) ?? "—";
+  const endDate   = fmtDate(rawEnd);
+
+  // day count for daily bookings
+  const dayCount = rawStart && rawEnd
+    ? Math.round((rawEnd.getTime() - rawStart.getTime()) / 86400000) + 1
+    : null;
+
+  const isDaily = b.pricingMode === "daily" || (rawEnd && rawStart && rawEnd > rawStart);
+
+  // Time from top-level fields or availability array
+  const avail0 = b.availability?.[0];
+  const rawStartTime = b.startTime || avail0?.startTime || "";
+  const rawEndTime   = b.endTime   || avail0?.endTime   || "";
+
+  const timeRange = rawStartTime && rawEndTime && rawStartTime !== rawEndTime
+    ? `${fmt12(rawStartTime)} – ${fmt12(rawEndTime)}`
+    : rawStartTime
+      ? fmt12(rawStartTime)
+      : "—";
+
+  // Date range: "Jun 22, 2026 – Jun 24, 2026 (3 days)" for daily, just start for hourly
+  const dateRange = endDate && endDate !== startDate
+    ? `${startDate} – ${endDate}${isDaily && dayCount ? ` (${dayCount} day${dayCount > 1 ? "s" : ""})` : ""}`
+    : startDate;
 
   const bookedBy   = b.bookedBy;
   const reservedBy =

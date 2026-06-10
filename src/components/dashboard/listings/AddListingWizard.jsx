@@ -26,6 +26,7 @@ import {
   startConnectOnboarding,
   selectConnectStatus,
   selectConnectStatusLoading,
+  selectConnectStatusError,
   selectOnboardLoading,
 } from "@/store/slices/paymentsSlice";
 import { normalizeDateValue, parseCalendarDate } from "@/components/shared/dateUtils";
@@ -284,31 +285,6 @@ function StripeGateScreen({ isIncomplete, stripeCountry, setStripeCountry, onboa
               </div>
             )}
 
-            {/* Requirements due */}
-            {(pastDue.length > 0 || currentlyDue.length > 0) && (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Action required</p>
-                {[...new Set([...pastDue, ...currentlyDue])].map((req) => (
-                  <div key={req} className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-100">
-                    <svg className="text-red-400 shrink-0 mt-0.5" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <span className="text-xs text-red-700 font-medium">{req.replace(/\./g, " › ")}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Stripe errors */}
-            {errors.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Verification errors</p>
-                {errors.map((e, i) => (
-                  <div key={i} className="px-3 py-2.5 rounded-xl bg-orange-50 border border-orange-100 text-xs text-orange-800 leading-relaxed">
-                    <p className="font-bold mb-0.5">{e.code?.replace(/_/g, " ")}</p>
-                    <p>{e.reason}</p>
-                  </div>
-                ))}
-              </div>
-            )}
 
             {/* Country picker — first-time only */}
             {!isIncomplete && (
@@ -706,6 +682,7 @@ export default function AddListingWizard() {
   const dispatch = useDispatch();
   const connectStatus = useSelector(selectConnectStatus);
   const connectStatusLoading = useSelector(selectConnectStatusLoading);
+  const connectStatusError = useSelector(selectConnectStatusError);
   const onboardLoading = useSelector(selectOnboardLoading);
   const [stripeCountry, setStripeCountry] = useState("US");
   const mode = searchParams.get("mode") ?? "resume";
@@ -950,7 +927,8 @@ export default function AddListingWizard() {
     dispatch(fetchConnectStatus());
   }, [dispatch]);
 
-  if (connectStatusLoading && !connectStatus) {
+  // Show spinner until we have a definitive answer
+  if (connectStatusLoading) {
     return (
       <div className="flex flex-col bg-[#F3F4F6] min-h-full">
         <WizardNavbar />
@@ -963,9 +941,37 @@ export default function AddListingWizard() {
     );
   }
 
+  // If the fetch errored (non-404 network/auth failure), block and offer retry
+  if (connectStatusError && !connectStatus) {
+    return (
+      <div className="flex flex-col bg-[#F3F4F6] min-h-full">
+        <WizardNavbar />
+        <BackSubHeader label="Add New Listing" router={router} />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4">
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 max-w-sm w-full flex flex-col items-center gap-4 text-center">
+            <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Could not verify Stripe status</h2>
+            <p className="text-sm text-gray-400 leading-relaxed">We couldn&apos;t check your payment account status. Please try again.</p>
+            <button
+              onClick={() => dispatch(fetchConnectStatus())}
+              className="w-full py-3 rounded-full bg-secondary text-gray-900 font-semibold text-sm hover:opacity-90 transition-opacity"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Block wizard if Stripe Connect is not ready
-  if (connectStatus && !connectStatus.chargesEnabled) {
-    const isIncomplete = connectStatus.hasAccount && !connectStatus.chargesEnabled;
+  const stripeNotReady = connectStatus !== null && !connectStatus.chargesEnabled;
+  if (stripeNotReady) {
+    const isIncomplete = connectStatus?.hasAccount && !connectStatus?.chargesEnabled;
 
     const handleGoToStripe = async () => {
       try {

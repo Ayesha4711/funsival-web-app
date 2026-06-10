@@ -7,6 +7,7 @@ import { Elements, CardElement, useStripe, useElements } from "@stripe/react-str
 import { toast } from "sonner";
 import {
   createSetupIntent,
+  saveCard,
   fetchSavedCards,
   selectSetupIntentLoading,
 } from "@/store/slices/paymentsSlice";
@@ -64,9 +65,12 @@ function AddPaymentModalInner({ onClose, onSuccess }) {
       }
 
       if (setupIntent.status === "succeeded") {
+        const pmId = setupIntent.payment_method;
+        // Register the PM with the backend so it appears in saved cards
+        await dispatch(saveCard({ paymentMethodId: pmId, setAsDefault: setDefault })).unwrap();
         await dispatch(fetchSavedCards());
         toast.success("Card added successfully.");
-        onSuccess?.(setupIntent.payment_method, setDefault);
+        onSuccess?.(pmId, setDefault);
         onClose();
       }
     } catch (err) {

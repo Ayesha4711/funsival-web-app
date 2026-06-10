@@ -15,6 +15,18 @@ export const createSetupIntent = createAsyncThunk(
   }
 );
 
+export const saveCard = createAsyncThunk(
+  "payments/saveCard",
+  async ({ paymentMethodId, setAsDefault = false }, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/payments/cards", { paymentMethodId, setAsDefault });
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
 export const fetchSavedCards = createAsyncThunk(
   "payments/fetchSavedCards",
   async (_, { rejectWithValue }) => {
@@ -70,9 +82,14 @@ export const fetchConnectStatus = createAsyncThunk(
   "payments/fetchConnectStatus",
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.get("/payments/account/status");
+      const { data } = await axiosInstance.get("/payments/connect/status");
       return data;
     } catch (err) {
+      const status = err.response?.status;
+      // 404 = endpoint not deployed yet → treat same as "no account" so gate shows
+      if (status === 404) {
+        return { data: { chargesEnabled: false, hasAccount: false, _endpointMissing: true } };
+      }
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
   }
@@ -221,6 +238,11 @@ const paymentsSlice = createSlice({
       .addCase(createSetupIntent.rejected, (state) => {
         state.setupIntentLoading = false;
       })
+
+      // saveCard
+      .addCase(saveCard.pending, (state) => { state.setupIntentLoading = true; })
+      .addCase(saveCard.fulfilled, (state) => { state.setupIntentLoading = false; })
+      .addCase(saveCard.rejected, (state) => { state.setupIntentLoading = false; })
 
       // fetchSavedCards
       .addCase(fetchSavedCards.pending, (state) => {

@@ -136,25 +136,35 @@ function ListingCard({ listing }) {
 
   const availability = listing.availability || [];
   let dateDisplay = '';
+  let timeDisplay = '';
+
   if (availability.length > 0) {
-    const dates = availability
-      .map(a => new Date(a.date))
-      .filter(d => !isNaN(d.getTime()))
-      .sort((a, b) => a - b);
-    
-    if (dates.length > 0) {
-      const formatDate = (d) => {
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      };
+    const fmtDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const fmt12 = (t) => {
+      if (!t) return '';
+      if (t.includes('AM') || t.includes('PM')) return t;
+      const [h, m] = t.split(':').map(Number);
+      if (isNaN(h) || isNaN(m)) return t;
+      const hr = h % 12 === 0 ? 12 : h % 12;
+      return `${hr}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+    };
 
-      const start = dates[0];
-      const end = dates[dates.length - 1];
+    const sorted = [...availability]
+      .map(a => ({ ...a, _d: new Date(a.date) }))
+      .filter(a => !isNaN(a._d.getTime()))
+      .sort((a, b) => a._d - b._d);
 
-      if (start.toDateString() === end.toDateString()) {
-        dateDisplay = formatDate(start);
-      } else {
-        dateDisplay = `${formatDate(start)} - ${formatDate(end)}`;
-      }
+    if (sorted.length > 0) {
+      const first = sorted[0];
+      const last  = sorted[sorted.length - 1];
+      dateDisplay = first._d.toDateString() === last._d.toDateString()
+        ? fmtDate(first._d)
+        : `${fmtDate(first._d)} – ${fmtDate(last._d)}`;
+
+      const st = first.startTime;
+      const et = first.endTime;
+      if (st && et && st !== et) timeDisplay = `${fmt12(st)} – ${fmt12(et)}`;
+      else if (st) timeDisplay = fmt12(st);
     }
   }
 
@@ -239,18 +249,23 @@ function ListingCard({ listing }) {
           );
         })()}
 
-        {/* Date and Location */}
+        {/* Location, Date, Time */}
         <div className="flex flex-col gap-1.5">
-          {dateDisplay && (
-            <div className="flex items-center gap-1.5">
-              <CalendarIcon size={16} className="shrink-0 text-[#F5823A]" />
-              <span className="text-xs text-gray-500">{dateDisplay}</span>
-            </div>
-          )}
           <div className="flex items-center gap-1.5">
             <LocationIcon size={16} className="shrink-0 text-[#F5823A] fill-current" />
             <span className="text-xs text-gray-500 line-clamp-1">{locationStr}</span>
           </div>
+          {dateDisplay && (
+            <div className="flex items-center gap-1.5">
+              <CalendarIcon size={16} className="shrink-0 text-[#FEB538]" />
+              <span className="text-xs font-bold text-[#FEB538]">{dateDisplay}</span>
+            </div>
+          )}
+          {/* {timeDisplay && (
+            <div className="flex items-center gap-1.5 pl-5.5">
+              <span className="text-xs text-gray-400">{timeDisplay}</span>
+            </div>
+          )} */}
         </div>
       </div>
     </div>

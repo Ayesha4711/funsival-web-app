@@ -6,6 +6,15 @@ import { SimpleMap } from "@/components/shared/MapControls";
 import { describeListingPrice, formatListingPrice, getPriceMode } from "./listingPrice";
 import { MapPinIcon, DollarIcon, ClockIcon, UsersIcon, CalendarIcon, InfoIcon, SpinnerIcon } from "@/icons";
 
+function fmt12(timeStr) {
+  if (!timeStr) return "";
+  if (timeStr.includes("AM") || timeStr.includes("PM")) return timeStr;
+  const [h, m] = timeStr.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) return timeStr;
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
 function cap(str) {
   if (!str) return "—";
   return str.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -262,7 +271,7 @@ export default function StepReview({
 
         <Divider />
 
-        {/* Availability slots */}
+        {/* Availability slots — two-column Date / Time */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {slots.map((slot, i) => (
             <React.Fragment key={i}>
@@ -278,8 +287,8 @@ export default function StepReview({
                 <FieldValue className="flex items-center gap-1.5">
                   <ClockIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
                   {slot.startTime && slot.endTime
-                    ? `${slot.startTime} – ${slot.endTime}`
-                    : slot.startTime || slot.endTime || "—"}
+                    ? `${fmt12(slot.startTime)} – ${fmt12(slot.endTime)}`
+                    : fmt12(slot.startTime || slot.endTime) || "—"}
                 </FieldValue>
               </div>
             </React.Fragment>

@@ -135,6 +135,11 @@ function adaptApiListing(api, urlType) {
 
   const priceObj = typeof api.price === "object" && api.price !== null ? api.price : null;
   const price = extractPrice(priceObj, info);
+  // Only set hourlyPrice/dailyPrice when those keys actually exist in the API response.
+  // Falling back to `price` would make both truthy even when only one is configured,
+  // causing the Daily mode pill to appear and the backend to reject with "no daily price".
+  const hourlyPrice = toNum(priceObj?.hourly) ?? toNum(info?.pricePerHour) ?? null;
+  const dailyPrice  = toNum(priceObj?.daily)  ?? toNum(info?.dailyRate)    ?? null;
 
   const priceKeys = priceObj ? Object.keys(priceObj).filter(k => k !== "currency") : [];
   const bookingType = api.bookingType
@@ -186,6 +191,8 @@ function adaptApiListing(api, urlType) {
     rating: api.rating ?? 4.4,
     reviews: api.reviewCount ?? "21K",
     price,
+    hourlyPrice,
+    dailyPrice,
     images,
     host: { id: hostId, name: hostFullName, agency: hostAgency, avatar: hostAvatar, location: hostLocation, rating: hostRating, reviews: hostReviews },
     details: {
@@ -671,7 +678,8 @@ function ActivityBookingCard({ listing, listingId }) {
 function PlacesBookingCard({ listing, listingId }) {
   const SKEY = `booking_places_${listingId}`;
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
-  const [mode, setMode] = useState(saved.mode || "hourly");
+  const hasDaily = !!(listing.dailyPrice);
+  const [mode, setMode] = useState((saved.mode === "daily" && !hasDaily) ? "hourly" : (saved.mode || "hourly"));
   const [date, setDate] = useState(saved.date || "");
   const [checkIn, setCheckIn] = useState(saved.checkIn || "");
   const [checkOut, setCheckOut] = useState(saved.checkOut || "");
@@ -715,12 +723,13 @@ function PlacesBookingCard({ listing, listingId }) {
     sessionStorage.setItem(SKEY, JSON.stringify({ mode, date, checkIn, checkOut, startTime, endTime, guests }));
   }, [mode, date, checkIn, checkOut, startTime, endTime, guests, SKEY]);
 
+  const modePrice = mode === "daily" ? listing.dailyPrice : (listing.hourlyPrice ?? listing.price);
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
     : 3;
   const days = checkIn && checkOut ? calculateDaysBetween(checkIn, checkOut) : 1;
   const span = mode === "daily" ? days : hours;
-  const subtotal = listing.price * span;
+  const subtotal = modePrice * span;
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
 
@@ -738,23 +747,26 @@ function PlacesBookingCard({ listing, listingId }) {
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     const from = mode === "hourly" ? date : checkIn;
     const to = mode === "hourly" ? date : checkOut;
+    // For daily mode end time = start time (billing is per-day, not per-hour)
+    const resolvedEndTime = mode === "daily" ? startTime : endTime;
     navigateToConfirm({
       pricingMode: mode,
       startDate: from, endDate: to, startTime,
-      endTime,
-      numberOfGuests: guests || 1, units: span, dateFrom: from, dateTo: to, guests: `${guests || 1} guest`
+      endTime: resolvedEndTime,
+      numberOfGuests: guests || 1, units: span, dateFrom: from, dateTo: to, guests: `${guests || 1} guest`,
+      pricePerUnit: String(modePrice),
     }, SKEY);
   };
 
   return (
     <BookingShell
-      title="Book Your Place" price={listing.price} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
-      topSlot={
+      title="Book Your Place" price={modePrice} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
+      topSlot={listing.hourlyPrice && listing.dailyPrice ? (
         <div className="grid grid-cols-2 gap-3">
           <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
           <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
         </div>
-      }
+      ) : null}
       reserveButton={
         <button
           onClick={handleReserve}
@@ -835,10 +847,8 @@ function PlacesBookingCard({ listing, listingId }) {
               value={startTime}
               onChange={v => {
                 setStartTime(v);
+                setEndTime(v); // daily = full day, end time = start time
                 setErrors(e => ({ ...e, startTime: false }));
-                const slot = availability.find(a => a.date.split("T")[0] === targetDate && a.startTime === v && a.isAvailable !== false);
-                if (slot) setEndTime(slot.endTime);
-                else setEndTime("");
               }}
               placeholder="Start time"
               options={startTimeOptions}
@@ -846,8 +856,6 @@ function PlacesBookingCard({ listing, listingId }) {
           </BookingField>
         </>
       )}
-
-
 
       {/* Guests */}
       <BookingField icon={<UserOutlineIcon />} error={errors.guests} errorMessage="Number of guests is required">
@@ -863,7 +871,7 @@ function PlacesBookingCard({ listing, listingId }) {
 
       {/* Summary */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
-        <SummaryLine label={`$${listing.price}/${mode === "daily" ? "day" : "hr"} × ${span} ${mode === "daily" ? "day" : "hour"}${span > 1 ? "s" : ""}`} value={`$${subtotal}`} />
+        <SummaryLine label={`$${modePrice}/${mode === "daily" ? "day" : "hr"} × ${span} ${mode === "daily" ? "day" : "hour"}${span > 1 ? "s" : ""}`} value={`$${subtotal}`} />
         <SummaryLine label="Service fee" value={`$${fee}`} />
         <SummaryLine label="Total" value={`$${total}`} bold />
       </div>
@@ -875,7 +883,8 @@ function PlacesBookingCard({ listing, listingId }) {
 function EquipmentBookingCard({ listing, listingId }) {
   const SKEY = `booking_equipment_${listingId}`;
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
-  const [mode, setMode] = useState(saved.mode || "hourly");
+  const hasDaily = !!(listing.dailyPrice);
+  const [mode, setMode] = useState((saved.mode === "daily" && !hasDaily) ? "hourly" : (saved.mode || "hourly"));
   const [date, setDate] = useState(saved.date || "");
   const [checkIn, setCheckIn] = useState(saved.checkIn || "");
   const [checkOut, setCheckOut] = useState(saved.checkOut || "");
@@ -919,12 +928,13 @@ function EquipmentBookingCard({ listing, listingId }) {
     sessionStorage.setItem(SKEY, JSON.stringify({ mode, date, checkIn, checkOut, startTime, endTime, guests }));
   }, [mode, date, checkIn, checkOut, startTime, endTime, guests, SKEY]);
 
+  const modePrice = mode === "daily" ? listing.dailyPrice : (listing.hourlyPrice ?? listing.price);
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
     : 3;
   const days = checkIn && checkOut ? calculateDaysBetween(checkIn, checkOut) : 1;
   const span = mode === "daily" ? days : hours;
-  const subtotal = listing.price * span;
+  const subtotal = modePrice * span;
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
 
@@ -951,18 +961,19 @@ function EquipmentBookingCard({ listing, listingId }) {
       numberOfGuests: guests || 1,
       units: span, dateFrom: from, dateTo: to,
       guests: `${guests || 1} guest`,
+      pricePerUnit: String(modePrice),
     }, SKEY);
   };
 
   return (
     <BookingShell
-      title="Book Your Equipment" price={listing.price} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
-      topSlot={
+      title="Book Your Equipment" price={modePrice} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
+      topSlot={listing.hourlyPrice && listing.dailyPrice ? (
         <div className="grid grid-cols-2 gap-3">
           <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
           <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
         </div>
-      }
+      ) : null}
       reserveButton={
         <button
           onClick={handleReserve}
@@ -1068,7 +1079,7 @@ function EquipmentBookingCard({ listing, listingId }) {
 
       {/* Summary */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
-        <SummaryLine label={`$${listing.price}/${mode === "daily" ? "day" : "hr"} × ${span} ${mode === "daily" ? "day" : "hour"}${span > 1 ? "s" : ""}`} value={`$${subtotal}`} />
+        <SummaryLine label={`$${modePrice}/${mode === "daily" ? "day" : "hr"} × ${span} ${mode === "daily" ? "day" : "hour"}${span > 1 ? "s" : ""}`} value={`$${subtotal}`} />
         <SummaryLine label="Service fee" value={`$${fee}`} />
         <SummaryLine label="Total" value={`$${total}`} bold />
       </div>

@@ -208,19 +208,21 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
                   </td>
 
                   {/* Date & Time */}
-                  <td className="px-5 py-3 whitespace-nowrap">
+                  <td className="px-5 py-3">
                     <div
-                      className="text-[12px] text-[var(--color-text)]"
-                      style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif", fontWeight: 600 }}
-                    >
-                      {item.date}
-                    </div>
-                    <div
-                      className="text-[11px] text-[var(--color-text-muted)] mt-0.5"
+                      className="text-[12px] text-[var(--color-text)] font-semibold whitespace-nowrap"
                       style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
                     >
-                      {item.time}
+                      {item.dateRange}
                     </div>
+                    {item.time && item.time !== "—" && (
+                      <div
+                        className="text-[11px] text-[var(--color-text-muted)] whitespace-nowrap mt-0.5"
+                        style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
+                      >
+                        {item.time}
+                      </div>
+                    )}
                   </td>
 
                   {/* Status */}

@@ -9,9 +9,6 @@ import { Elements, useStripe } from "@stripe/react-stripe-js";
 
 import {
   createBooking,
-  fetchBookingQuote,
-  selectBookingQuote,
-  selectBookingQuoteStatus,
 } from "@/store/slices/bookingsSlice";
 import {
   fetchSavedCards,
@@ -65,9 +62,11 @@ function buildBookingPayload(params) {
     if (endTime) payload.endTime = endTime;
     if (durationHours) payload.durationHours = Number(durationHours);
   } else {
+    // daily mode — endDate required, startTime optional, no endTime
     if (endDate) payload.endDate = endDate;
     if (startTime) payload.startTime = startTime;
     if (durationDays) payload.durationDays = Number(durationDays);
+    // never send endTime for daily bookings
   }
 
   if (numberOfGuests) payload.numberOfGuests = Number(numberOfGuests);
@@ -94,8 +93,7 @@ function PaymentSection({ selectedPmId, onSelect, onNewCardReady }) {
     }
   }, [cards]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleModalSuccess = async (pmId) => {
-    await dispatch(fetchSavedCards());
+  const handleModalSuccess = (pmId) => {
     if (pmId) {
       onNewCardReady(pmId);
       onSelect(pmId);
@@ -177,9 +175,6 @@ function ConfirmAndPayInner() {
   const dispatch = useDispatch();
   const stripe   = useStripe();
 
-  const quote       = useSelector(selectBookingQuote);
-  const quoteStatus = useSelector(selectBookingQuoteStatus);
-
   const title       = params.get("title")       || "Listing";
   const description = params.get("description") || "";
   const image       = params.get("image")       || "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=200&q=80";
@@ -187,30 +182,15 @@ function ConfirmAndPayInner() {
   const dateTo      = params.get("dateTo")      || params.get("endDate")   || "";
   const startTime   = params.get("startTime")   || "";
   const endTime     = params.get("endTime")     || "";
-  const bookingType = params.get("bookingType") || "";
-
-  useEffect(() => {
-    const payload = buildBookingPayload(params);
-    const rawType = params.get("listingType") || "";
-    const typeMap = { activities: "activity", places: "place", equipment: "equipment" };
-    const lt = typeMap[rawType] ?? rawType;
-    if (lt) payload.listingType = lt;
-    if (payload.listingId) dispatch(fetchBookingQuote(payload));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const bookingType  = params.get("bookingType")  || "";
+  const pricingMode  = params.get("pricingMode")  || "";
 
   const toNum = (v, fb = 0) => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : fb; };
-  const fallbackPPU   = toNum(params.get("pricePerUnit"), 0);
-  const fallbackUnits = toNum(params.get("units") ?? params.get("hours"), 1);
-  const fallbackFee   = toNum(params.get("funsivalFee"), 8);
-
-  const pricing      = quote?.pricing;
-  const pricePerUnit = pricing?.pricePerUnit ?? fallbackPPU;
-  const unitsBooked  = pricing?.unitsBooked  ?? fallbackUnits;
-  const subtotal     = pricing?.subtotal     ?? pricePerUnit * unitsBooked;
-  const serviceFee   = pricing?.serviceFee   ?? fallbackFee;
-  const deliveryFee  = pricing?.deliveryFee  ?? 0;
-  const total        = pricing?.totalAmount  ?? subtotal + serviceFee + deliveryFee;
+  const pricePerUnit = toNum(params.get("pricePerUnit"), 0);
+  const unitsBooked  = toNum(params.get("units") ?? params.get("hours"), 1);
+  const serviceFee   = toNum(params.get("funsivalFee"), 8);
+  const subtotal     = pricePerUnit * unitsBooked;
+  const total        = subtotal + serviceFee;
 
   const formatTime = (timeStr) => {
     if (!timeStr) return "";
@@ -221,10 +201,7 @@ function ConfirmAndPayInner() {
     return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
   };
 
-  const serverEndTime = quote?.endTime || endTime;
-  const serverEndDate = quote?.endDate
-    ? new Date(quote.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : dateTo || dateFrom;
+  const serverEndDate = dateTo || dateFrom;
 
   const priceLabel = (() => {
     if (bookingType === "per_person") return `$${pricePerUnit} × ${unitsBooked} person(s)`;
@@ -297,12 +274,15 @@ function ConfirmAndPayInner() {
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-4 flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-gray-900 hover:opacity-70 transition-opacity shrink-0">
+      <div className="w-full bg-white border-b border-gray-100">
+        <div className="flex items-center gap-4 px-3 sm:px-6 lg:px-8 h-14 sm:h-16">
+          <button
+            onClick={() => router.back()}
+            className="flex shrink-0 items-center justify-center text-gray-700 hover:text-[#4AA7A7] transition-colors"
+          >
             <BackIcon />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">Confirm And Pay</h1>
+          <h1 className="text-lg font-bold text-gray-900">Confirm And Pay</h1>
         </div>
       </div>
 
@@ -324,25 +304,42 @@ function ConfirmAndPayInner() {
                 </button>
               </div>
               <div className="flex flex-col gap-3">
-                {(dateFrom || serverEndDate) && (
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 mb-0.5">Dates</p>
-                    <p className="text-sm text-gray-500">
-                      {dateFrom && serverEndDate && dateFrom !== serverEndDate
-                        ? `${dateFrom} – ${serverEndDate}`
-                        : dateFrom || serverEndDate}
-                    </p>
-                  </div>
-                )}
-                {(startTime || serverEndTime) && (
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 mb-0.5">Time</p>
-                    <p className="text-sm text-gray-500">
-                      {startTime && serverEndTime && startTime !== serverEndTime
-                        ? `${formatTime(startTime)} – ${formatTime(serverEndTime)}`
-                        : formatTime(startTime || serverEndTime)}
-                    </p>
-                  </div>
+                {(pricingMode === "daily" || bookingType === "daily") ? (
+                  /* Daily — one row: "2026-06-22 12:00 AM – 2026-06-24 12:00 AM" */
+                  (dateFrom || serverEndDate) && (
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 mb-0.5">Dates</p>
+                      <p className="text-sm text-gray-500">
+                        {dateFrom && serverEndDate && dateFrom !== serverEndDate
+                          ? `${dateFrom}${startTime ? ` ${formatTime(startTime)}` : ""} – ${serverEndDate}${startTime ? ` ${formatTime(startTime)}` : ""}`
+                          : `${dateFrom || serverEndDate}${startTime ? ` ${formatTime(startTime)}` : ""}`}
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  /* Hourly / per-person — separate Dates + Time rows */
+                  <>
+                    {(dateFrom || serverEndDate) && (
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 mb-0.5">Dates</p>
+                        <p className="text-sm text-gray-500">
+                          {dateFrom && serverEndDate && dateFrom !== serverEndDate
+                            ? `${dateFrom} – ${serverEndDate}`
+                            : dateFrom || serverEndDate}
+                        </p>
+                      </div>
+                    )}
+                    {(startTime || endTime) && (
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 mb-0.5">Time</p>
+                        <p className="text-sm text-gray-500">
+                          {startTime && endTime && startTime !== endTime
+                            ? `${formatTime(startTime)} – ${formatTime(endTime)}`
+                            : formatTime(startTime || endTime)}
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
                 {(() => {
                   const guestVal = params.get("numberOfGuests") || params.get("guests");
@@ -409,38 +406,24 @@ function ConfirmAndPayInner() {
               </div>
 
               {/* Price breakdown */}
-              {quoteStatus === "loading" ? (
-                <div className="flex items-center gap-2 py-2 text-sm text-gray-400">
-                  <SpinnerIcon size={14} className="text-[#4AA7A7]" /> Loading price…
+              <div>
+                <p className="text-base font-bold text-gray-900 mb-3">Price Details</p>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">{priceLabel}</span>
+                  <span className="font-semibold text-gray-900">${subtotal.toLocaleString()}.00</span>
                 </div>
-              ) : (
-                <>
-                  <div>
-                    <p className="text-base font-bold text-gray-900 mb-3">Price Details</p>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">{priceLabel}</span>
-                      <span className="font-semibold text-gray-900">${subtotal.toLocaleString()}.00</span>
-                    </div>
-                    {deliveryFee > 0 && (
-                      <div className="flex justify-between items-center text-sm mt-2">
-                        <span className="text-gray-500">Delivery fee</span>
-                        <span className="font-semibold text-gray-900">${deliveryFee}.00</span>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-base font-bold text-gray-900 mb-3">Taxes &amp; Fees</p>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">Funsival Fee</span>
-                      <span className="font-semibold text-gray-900">${serviceFee}.00</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                    <span className="text-base font-bold text-gray-900">Total</span>
-                    <span className="text-xl font-bold text-[#F5C842]">$ {total.toLocaleString()}.00</span>
-                  </div>
-                </>
-              )}
+              </div>
+              <div>
+                <p className="text-base font-bold text-gray-900 mb-3">Taxes &amp; Fees</p>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Funsival Fee</span>
+                  <span className="font-semibold text-gray-900">${serviceFee}.00</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                <span className="text-base font-bold text-gray-900">Total</span>
+                <span className="text-xl font-bold text-[#F5C842]">$ {total.toLocaleString()}.00</span>
+              </div>
             </div>
 
             {/* Authorization notice */}

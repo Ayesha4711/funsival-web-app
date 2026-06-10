@@ -39,18 +39,6 @@ export const fetchBooking = createAsyncThunk(
   }
 );
 
-// Get a price quote without creating a booking
-export const fetchBookingQuote = createAsyncThunk(
-  "bookings/fetchBookingQuote",
-  async (payload, { rejectWithValue }) => {
-    try {
-      const { data } = await axiosInstance.post("/bookings/quote", payload);
-      return data;
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message ?? err.message);
-    }
-  }
-);
 
 export const createBooking = createAsyncThunk(
   "bookings/createBooking",
@@ -178,10 +166,7 @@ const bookingsSlice = createSlice({
     declineStatus: "idle",
     error: null,
     hostError: null,
-    // quote (price preview, not persisted long)
-    quote: null,
-    quoteStatus: "idle",
-    // refund requests keyed by bookingId
+// refund requests keyed by bookingId
     refundRequests: {},
     refundRequestStatus: "idle",
   },
@@ -246,20 +231,7 @@ const bookingsSlice = createSlice({
         const booking = d?.booking ?? action.payload?.data ?? action.payload;
         if (booking?.id) state.items.unshift(booking);
       })
-      // fetchBookingQuote
-      .addCase(fetchBookingQuote.pending, (state) => {
-        state.quoteStatus = "loading";
-        state.quote = null;
-      })
-      .addCase(fetchBookingQuote.fulfilled, (state, action) => {
-        state.quoteStatus = "succeeded";
-        state.quote = action.payload?.data ?? action.payload;
-      })
-      .addCase(fetchBookingQuote.rejected, (state) => {
-        state.quoteStatus = "failed";
-      })
-
-      // cancelBooking — update in both lists
+// cancelBooking — update in both lists
       .addCase(cancelBooking.pending, (state) => {
         state.cancelStatus = "loading";
       })
@@ -371,7 +343,5 @@ export const selectSelectedBooking = (state) => state.bookings.selectedBooking;
 export const selectBookingsCancelStatus = (state) => state.bookings.cancelStatus;
 export const selectBookingsAcceptStatus = (state) => state.bookings.acceptStatus;
 export const selectBookingsDeclineStatus = (state) => state.bookings.declineStatus;
-export const selectBookingQuote = (state) => state.bookings.quote;
-export const selectBookingQuoteStatus = (state) => state.bookings.quoteStatus;
 
 export default bookingsSlice.reducer;
