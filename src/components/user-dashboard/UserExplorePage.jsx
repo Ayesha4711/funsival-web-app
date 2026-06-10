@@ -134,6 +134,30 @@ function ListingCard({ listing }) {
     ? rawType.charAt(0).toUpperCase() + rawType.slice(1).replace(/_/g, ' ')
     : category === 'places' ? 'Place' : category === 'equipment' ? 'Equipment' : 'Activity';
 
+  const availability = listing.availability || [];
+  let dateDisplay = '';
+  if (availability.length > 0) {
+    const dates = availability
+      .map(a => new Date(a.date))
+      .filter(d => !isNaN(d.getTime()))
+      .sort((a, b) => a - b);
+    
+    if (dates.length > 0) {
+      const formatDate = (d) => {
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      };
+
+      const start = dates[0];
+      const end = dates[dates.length - 1];
+
+      if (start.toDateString() === end.toDateString()) {
+        dateDisplay = formatDate(start);
+      } else {
+        dateDisplay = `${formatDate(start)} - ${formatDate(end)}`;
+      }
+    }
+  }
+
   const navigateToListing = () => {
     dispatch(setSelectedActivity(listing));
     router.push(`/user-dashboard/listing/${id}?type=${category}`);
@@ -215,10 +239,18 @@ function ListingCard({ listing }) {
           );
         })()}
 
-        {/* Location — orange filled pin */}
-        <div className="flex items-center gap-1.5">
-          <LocationIcon size={16} className="shrink-0 text-[#F5823A] fill-current" />
-          <span className="text-xs text-gray-500">{locationStr}</span>
+        {/* Date and Location */}
+        <div className="flex flex-col gap-1.5">
+          {dateDisplay && (
+            <div className="flex items-center gap-1.5">
+              <CalendarIcon size={16} className="shrink-0 text-[#F5823A]" />
+              <span className="text-xs text-gray-500">{dateDisplay}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5">
+            <LocationIcon size={16} className="shrink-0 text-[#F5823A] fill-current" />
+            <span className="text-xs text-gray-500 line-clamp-1">{locationStr}</span>
+          </div>
         </div>
       </div>
     </div>

@@ -112,19 +112,38 @@ export const sendMessage = createAsyncThunk(
   }
 );
 
-export const sendImageMessage = createAsyncThunk(
-  "chat/sendImageMessage",
-  async ({ conversationId, file }, { rejectWithValue }) => {
+export const uploadChatMedia = createAsyncThunk(
+  "chat/uploadChatMedia",
+  async ({ file }, { rejectWithValue }) => {
     try {
-      const isVideo = file.type.startsWith("video/");
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("type", isVideo ? "video" : "image");
-      formData.append("text", isVideo ? "📹 Video" : "📷 Image");
+      const { data } = await axiosInstance.post("/chats/media", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data?.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const sendMediaMessage = createAsyncThunk(
+  "chat/sendMediaMessage",
+  async ({ conversationId, mediaUpload, thumbnailUrl, caption }, { rejectWithValue }) => {
+    try {
+      const body = {
+        type: mediaUpload.mediaType,
+        mediaUrl: mediaUpload.mediaUrl,
+        mimeType: mediaUpload.mimeType,
+        fileName: mediaUpload.fileName,
+        fileSize: mediaUpload.fileSize,
+      };
+      if (thumbnailUrl) body.thumbnailUrl = thumbnailUrl;
+      if (caption) body.text = caption;
       const { data } = await axiosInstance.post(
         `/chats/conversations/${conversationId}/messages`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        body
       );
       return { ...data, conversationId };
     } catch (err) {
@@ -293,10 +312,10 @@ const chatSlice = createSlice({
           );
         });
       })
-      .addCase(sendImageMessage.pending, (state) => {
+      .addCase(sendMediaMessage.pending, (state) => {
         state.sendStatus = "loading";
       })
-      .addCase(sendImageMessage.fulfilled, (state, action) => {
+      .addCase(sendMediaMessage.fulfilled, (state, action) => {
         state.sendStatus = "idle";
         const convId = action.payload?.conversationId;
         const msg = action.payload?.data?.message ?? action.payload?.data;
@@ -315,7 +334,7 @@ const chatSlice = createSlice({
           conv.lastMessageAt = msg.createdAt;
         }
       })
-      .addCase(sendImageMessage.rejected, (state, action) => {
+      .addCase(sendMediaMessage.rejected, (state, action) => {
         state.sendStatus = "idle";
         state.error = action.payload;
         Object.keys(state.messagesByConversation).forEach((id) => {

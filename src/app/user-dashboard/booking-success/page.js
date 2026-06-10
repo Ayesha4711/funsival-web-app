@@ -12,42 +12,43 @@ const POLL_INTERVAL_MS = 3000;
 const MAX_POLLS = 20; // ~60 seconds
 
 export default function BookingSuccessPage() {
-  const router = useRouter();
+  const router       = useRouter();
   const searchParams = useSearchParams();
-  const dispatch = useDispatch();
+  const dispatch     = useDispatch();
 
-  const bookingId = searchParams.get("bookingId") || searchParams.get("BOOKING_ID");
+  const bookingId  = searchParams.get("bookingId") || searchParams.get("BOOKING_ID");
   const recipientId = searchParams.get("recipientId");
-  const listingId = searchParams.get("listingId");
+  const listingId   = searchParams.get("listingId");
 
-  const [paymentStatus, setPaymentStatus] = useState(null);
-  const [polling, setPolling] = useState(!!bookingId);
+  const [bookingStatus, setBookingStatus]   = useState(null);
+  const [paymentStatus, setPaymentStatus]   = useState(null);
+  const [polling, setPolling]               = useState(!!bookingId);
   const pollCount = useRef(0);
+  const active    = useRef(false);
 
   useEffect(() => {
-    if (!bookingId) {
-      setPolling(false);
-      return;
-    }
+    if (!bookingId) { setPolling(false); return; }
+    if (active.current) return;
+    active.current = true;
 
     let timer;
     const poll = async () => {
       try {
         const result = await dispatch(fetchBooking(bookingId)).unwrap();
-        const status = result?.data?.paymentStatus ?? result?.paymentStatus;
-        setPaymentStatus(status);
-        if (status === "held" || status === "released") {
-          setPolling(false);
-          return;
-        }
+        const bStatus = result?.data?.status       ?? result?.status;
+        const pStatus = result?.data?.paymentStatus ?? result?.paymentStatus;
+        setBookingStatus(bStatus);
+        setPaymentStatus(pStatus);
+
+        // Stop polling once we know the card is authorized or beyond
+        const settled = ["authorized", "held", "released", "refunded",
+                         "auth_released", "failed"].includes(pStatus);
+        if (settled) { setPolling(false); return; }
       } catch {
         // keep polling on transient errors
       }
       pollCount.current += 1;
-      if (pollCount.current >= MAX_POLLS) {
-        setPolling(false);
-        return;
-      }
+      if (pollCount.current >= MAX_POLLS) { setPolling(false); return; }
       timer = setTimeout(poll, POLL_INTERVAL_MS);
     };
 
@@ -57,25 +58,44 @@ export default function BookingSuccessPage() {
 
   const handleChatWithProvider = () => {
     if (!recipientId) return;
-    const params = new URLSearchParams({ startChat: recipientId });
-    if (listingId) params.set("listingId", listingId);
-    params.set("message", "Hi, I just made a reservation. Looking forward to it!");
-    router.push(`/user-dashboard/messages?${params.toString()}`);
+    const p = new URLSearchParams({ startChat: recipientId });
+    if (listingId) p.set("listingId", listingId);
+    p.set("message", "Hi, I just sent a booking request. Looking forward to it!");
+    router.push(`/user-dashboard/messages?${p.toString()}`);
   };
+
+  // Derive UI state from booking/payment status
+  const isAwaitingHost = bookingStatus === "awaiting_host_approval" || paymentStatus === "authorized";
+  const isConfirmed    = bookingStatus === "confirmed" || paymentStatus === "held" || paymentStatus === "released";
+  const isDeclined     = bookingStatus === "declined"  || bookingStatus === "cancelled";
+
+  const headline = isConfirmed  ? "Booking Confirmed!"
+                 : isDeclined   ? "Booking Declined"
+                 : isAwaitingHost ? "Request Sent!"
+                 : "Booking Received!";
+
+  const subtext = isConfirmed
+    ? "Your payment was successful and the host has accepted."
+    : isDeclined
+    ? "The host has declined your request. No charge was made."
+    : isAwaitingHost
+    ? "Your card has been authorized. Your booking request has been sent to the host. You will only be charged if the host accepts (up to 6 days)."
+    : "We received your booking. Confirming payment status…";
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
+
         {polling ? (
           <div className="flex flex-col items-center gap-4 mb-8">
             <SpinnerIcon size={40} className="text-[#4AA7A7]" />
-            <p className="text-gray-500 text-sm text-center">Confirming your payment…</p>
+            <p className="text-gray-500 text-sm text-center">Confirming your booking…</p>
           </div>
         ) : (
           <div className="mb-8">
             <Image
               src="/congratulations.png"
-              alt="Congratulations"
+              alt="Booking status"
               width={320}
               height={320}
               className="mx-auto"
@@ -86,19 +106,24 @@ export default function BookingSuccessPage() {
 
         {!polling && (
           <>
-            <h1 className="text-3xl font-bold text-gray-900 mb-3 text-center">
-              {paymentStatus === "held" || paymentStatus === "released"
-                ? "Booking Confirmed!"
-                : "Booking Received!"}
-            </h1>
-            <p className="text-gray-400 text-sm text-center mb-10">
-              {paymentStatus === "held" || paymentStatus === "released"
-                ? "Your payment was successful. Your booking is confirmed."
-                : "We received your booking. Payment confirmation may take a moment."}
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-3 text-center">{headline}</h1>
 
-            <div className="flex flex-col items-center gap-4 w-56">
-              {recipientId && (
+            <p className="text-gray-400 text-sm text-center mb-4 max-w-sm leading-relaxed">{subtext}</p>
+
+            {/* Awaiting host banner */}
+            {isAwaitingHost && (
+              <div className="flex items-start gap-2 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl mb-8 max-w-sm">
+                <svg className="shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  The host has up to <strong>6 days</strong> to respond. If they don't act, your booking is auto-declined and no charge occurs.
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-col items-center gap-4 w-56 mt-2">
+              {recipientId && !isDeclined && (
                 <button
                   onClick={handleChatWithProvider}
                   className="flex items-center justify-between bg-[#4AA7A7] hover:opacity-90 text-white font-bold text-sm rounded-full transition-opacity pl-8 pr-2 py-2 w-full"

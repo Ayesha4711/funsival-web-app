@@ -64,7 +64,7 @@ function InlineSelect({ value, options, onChange, width = 110 }) {
   );
 }
 
-export default function CustomCalendar({ value, onChange, onClose }) {
+export default function CustomCalendar({ value, onChange, onClose, availableDates }) {
   const today   = new Date();
   const initial = value ? new Date(value) : today;
 
@@ -95,6 +95,11 @@ export default function CustomCalendar({ value, onChange, onClose }) {
   const handleSelect = (day) => {
     const d = new Date(viewYear, viewMonth, day);
     const formatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    
+    if (availableDates && !availableDates.includes(formatted)) {
+      return;
+    }
+
     onChange?.(formatted);
     onClose?.();
   };
@@ -109,6 +114,12 @@ export default function CustomCalendar({ value, onChange, onClose }) {
     today.getFullYear() === viewYear &&
     today.getMonth() === viewMonth &&
     today.getDate() === day;
+
+  const isAvailable = (day) => {
+    if (!availableDates) return true;
+    const formatted = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return availableDates.includes(formatted);
+  };
 
   /* Build 6-row grid */
   const cells = [];
@@ -181,24 +192,25 @@ export default function CustomCalendar({ value, onChange, onClose }) {
           const isCurrent = cell.type === "current";
           const sel       = isCurrent && isSelected(cell.day);
           const tod       = isCurrent && isToday(cell.day);
+          const avail     = isCurrent && isAvailable(cell.day);
 
           return (
             <button
               key={i}
               type="button"
-              disabled={!isCurrent}
-              onClick={() => isCurrent && handleSelect(cell.day)}
+              disabled={!isCurrent || !avail}
+              onClick={() => isCurrent && avail && handleSelect(cell.day)}
               style={{ fontFamily: FONT, fontWeight: sel ? 700 : 500, fontSize: 11 }}
               className={[
                 "w-full aspect-square flex items-center justify-center rounded-full transition-all",
-                !isCurrent
+                (!isCurrent || !avail)
                   ? "text-gray-300 cursor-default"
                   : "cursor-pointer",
                 sel
                   ? "bg-[#F5C842] text-gray-900"
                   : tod
                     ? "bg-[#F5C842]/20 text-[#c49a0a] font-semibold"
-                    : isCurrent
+                    : isCurrent && avail
                       ? "text-gray-800 hover:bg-[#EDF6F6] hover:text-[#1d8c82]"
                       : "",
               ].join(" ")}

@@ -1,266 +1,305 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
-import { createBooking, selectBookingsStatus } from "@/store/slices/bookingsSlice";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, useStripe } from "@stripe/react-stripe-js";
+
+import {
+  createBooking,
+  fetchBookingQuote,
+  selectBookingQuote,
+  selectBookingQuoteStatus,
+} from "@/store/slices/bookingsSlice";
+import {
+  fetchSavedCards,
+  selectSavedCards,
+  selectCardsLoading,
+} from "@/store/slices/paymentsSlice";
 import AppFooter from "@/components/shared/AppFooter";
+import AddPaymentModal from "@/components/shared/settings/AddPaymentModal";
+import {
+  ArrowLeftIcon as BackIcon,
+  EditIcon,
+  CheckIcon,
+  CreditCardIcon,
+  PlusIcon,
+  SpinnerIcon,
+} from "@/icons";
 
-import { ArrowLeftIcon as BackIcon, EditIcon, HeartIcon, ShareIcon, ChevronDownIcon, ChevronUpIcon, DollarIcon as DollarCircleIcon, CreditCardIcon as CardIcon, UserIcon, PlusIcon, CalendarIcon, ShieldIcon, CheckIcon, VisaIcon, MastercardIcon } from "@/icons";
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-/* ─── Toast ──────────────────────────────────────────────────────────────────── */
-/* ─── Saved Cards (mock) ─────────────────────────────────────────────────────── */
-const SAVED_CARDS = [
-  { id: 1, brand: "visa", last4: "5614", default: true },
-  { id: 2, brand: "visa", last4: "9832", default: false },
-  { id: 3, brand: "mastercard", last4: "4421", default: false },
-];
-
-/* ─── Payment Method Variants ────────────────────────────────────────────────── */
-function PaymentInitial({ onSelectNewCard, onOpenSavedCards }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <button
-        onClick={onOpenSavedCards}
-        className="w-full flex items-center justify-between px-4 py-3.5 border border-gray-200 rounded-xl bg-white hover:border-[#4AA7A7] transition-colors"
-      >
-        <div className="flex items-center gap-2 text-gray-400">
-          <DollarCircleIcon />
-          <span className="text-sm">Select card</span>
-        </div>
-        <ChevronDownIcon />
-      </button>
-      <div className="flex justify-end">
-        <button
-          onClick={onSelectNewCard}
-          className="flex items-center gap-1.5 text-sm font-medium text-[#4AA7A7] hover:text-[#3d9090] transition-colors"
-        >
-          <PlusIcon />
-          Add new card
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function PaymentSavedCards({ onSelectCard, selectedCardId, onClose }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <button
-        onClick={onClose}
-        className="w-full flex items-center justify-between px-4 py-3.5 border border-gray-200 rounded-xl bg-white"
-      >
-        <div className="flex items-center gap-2 text-gray-400">
-          <DollarCircleIcon />
-          <span className="text-sm">Select Payment method</span>
-        </div>
-        <ChevronUpIcon />
-      </button>
-      <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
-        {SAVED_CARDS.map((card) => (
-          <button
-            key={card.id}
-            onClick={() => onSelectCard(card)}
-            className={`w-full flex items-center justify-between px-4 py-3 transition-colors hover:bg-gray-50 ${selectedCardId === card.id ? "bg-amber-50/60" : ""}`}
-          >
-            <div className="flex items-center gap-3">
-              {card.brand === "visa" ? <VisaIcon /> : <MastercardIcon />}
-              <span className="text-sm text-gray-700">**** **** **** {card.last4}</span>
-            </div>
-            {card.default && <span className="text-xs text-gray-400 font-medium">Default</span>}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PaymentNewCardForm() {
-  const [cardType, setCardType] = useState("Debit Card");
-  const [cardTypeOpen, setCardTypeOpen] = useState(false);
-  const cardTypes = ["Debit Card", "Credit Card"];
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="relative">
-        <button
-          onClick={() => setCardTypeOpen(!cardTypeOpen)}
-          className="w-full flex items-center justify-between px-4 py-3.5 border border-gray-200 rounded-xl bg-white"
-        >
-          <div className="flex items-center gap-2">
-            <CardIcon />
-            <span className="text-sm font-medium text-gray-700">{cardType}</span>
-          </div>
-          <ChevronDownIcon />
-        </button>
-        {cardTypeOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl z-10 overflow-hidden">
-            {cardTypes.map((t) => (
-              <button
-                key={t}
-                onClick={() => { setCardType(t); setCardTypeOpen(false); }}
-                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-3 px-4 py-3.5 border border-gray-200 rounded-xl bg-white">
-        <UserIcon />
-        <input type="text" placeholder="Card holder name" className="flex-1 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none bg-transparent" />
-      </div>
-      <div className="flex items-center justify-between px-4 py-3.5 border border-gray-200 rounded-xl bg-white">
-        <div className="flex items-center gap-3 flex-1">
-          <CardIcon />
-          <input type="text" placeholder="XXXX – XXXX – XXXX – XXXX" maxLength={19} className="flex-1 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none bg-transparent" />
-        </div>
-        <VisaIcon />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex items-center gap-2 px-4 py-3.5 border border-gray-200 rounded-xl bg-white">
-          <CalendarIcon size={16} className="text-gray-300 shrink-0" />
-          <input type="text" placeholder="Expiration Date" className="flex-1 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none bg-transparent min-w-0" />
-        </div>
-        <div className="flex items-center gap-2 px-4 py-3.5 border border-gray-200 rounded-xl bg-white">
-          <ShieldIcon size={16} className="text-gray-300 shrink-0" />
-          <input type="text" placeholder="CVV" maxLength={4} className="flex-1 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none bg-transparent" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PaymentCreditDebitSelected({ onClose }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <button
-        onClick={onClose}
-        className="w-full flex items-center justify-between px-4 py-3.5 border border-gray-200 rounded-xl bg-white"
-      >
-        <div className="flex items-center gap-2 text-gray-400">
-          <DollarCircleIcon />
-          <span className="text-sm">Select Payment method</span>
-        </div>
-        <ChevronUpIcon />
-      </button>
-      <div className="flex items-center justify-between px-4 py-3.5 border border-gray-200 rounded-xl bg-white">
-        <div className="flex items-center gap-3">
-          <CardIcon />
-          <span className="text-sm text-gray-600">Credit or Debit Card</span>
-        </div>
-        <div className="w-5 h-5 rounded-full bg-[#F5C842] flex items-center justify-center">
-          <CheckIcon size={12} className="text-white" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Build booking payload per bookingType ──────────────────────────────────── */
+/* ─── Build booking payload from URL params ──────────────────────────────────── */
 function buildBookingPayload(params) {
-  const listingId = params.get("listingId") || "";
-  const bookingType = params.get("bookingType") || "";
-  const startDate = params.get("startDate") || "";
-  const endDate = params.get("endDate") || "";
-  const startTime = params.get("startTime") || "";
-  const endTime = params.get("endTime") || "";
+  const listingId    = params.get("listingId")    || "";
+  const bookingType  = params.get("bookingType")  || "";
+  const pricingMode  = params.get("pricingMode")  || "";
+  const startDate    = params.get("startDate")    || "";
+  const endDate      = params.get("endDate")      || "";
+  const startTime    = params.get("startTime")    || "";
+  const endTime      = params.get("endTime")      || "";
+  const durationHours  = params.get("durationHours");
+  const durationDays   = params.get("durationDays");
   const numberOfGuests = params.get("numberOfGuests");
+  const includeDelivery = params.get("includeDelivery");
 
-  const base = { listingId, bookingType, startDate, endDate, startTime, endTime };
+  const base = { listingId };
 
   if (bookingType === "per_person") {
-    return { ...base, numberOfGuests: Number(numberOfGuests) || 1 };
+    return {
+      ...base,
+      startDate,
+      startTime,
+      endTime,
+      numberOfGuests: Number(numberOfGuests) || 1,
+    };
   }
-  
-  // fallback — include whatever is available
-  const payload = { ...base };
+
+  const mode = pricingMode || (bookingType === "daily" ? "daily" : "hourly");
+  const payload = { ...base, pricingMode: mode, startDate };
+
+  if (mode === "hourly") {
+    payload.startTime = startTime;
+    if (endTime) payload.endTime = endTime;
+    if (durationHours) payload.durationHours = Number(durationHours);
+  } else {
+    if (endDate) payload.endDate = endDate;
+    if (startTime) payload.startTime = startTime;
+    if (durationDays) payload.durationDays = Number(durationDays);
+  }
+
   if (numberOfGuests) payload.numberOfGuests = Number(numberOfGuests);
+  if (includeDelivery === "true") payload.includeDelivery = true;
   return payload;
 }
 
-/* ─── Main Page ──────────────────────────────────────────────────────────────── */
-export default function ConfirmAndPayPage() {
-  const router = useRouter();
-  const params = useSearchParams();
+/* ─── Card picker ─────────────────────────────────────────────────────────────── */
+function PaymentSection({ selectedPmId, onSelect, onNewCardReady }) {
   const dispatch = useDispatch();
-  const bookingStatus = useSelector(selectBookingsStatus);
+  const cards = useSelector(selectSavedCards);
+  const cardsLoading = useSelector(selectCardsLoading);
+  const [showModal, setShowModal] = useState(false);
 
-  const title = params.get("title") || "Listing";
-  const description = params.get("description") || "";
-  const image = params.get("image") || "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=200&q=80";
-  const dateFrom = params.get("dateFrom") || params.get("startDate") || "";
-  const dateTo = params.get("dateTo") || params.get("endDate") || "";
-  const guests = params.get("guests") || (params.get("numberOfGuests") ? `${params.get("numberOfGuests")} guest(s)` : "");
-  const startTime = params.get("startTime") || "";
-  const endTime = params.get("endTime") || "";
-  const toNumber = (value, fallback = 0) => {
-    const cleaned = String(value ?? "").replace(/[^\d.-]/g, "");
-    const parsed = Number(cleaned);
-    return Number.isFinite(parsed) ? parsed : fallback;
+  useEffect(() => {
+    dispatch(fetchSavedCards());
+  }, [dispatch]);
+
+  // Auto-select default card when cards load
+  useEffect(() => {
+    if (cards.length > 0 && !selectedPmId) {
+      const def = cards.find((c) => c.isDefault) ?? cards[0];
+      onSelect(def.id);
+    }
+  }, [cards]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleModalSuccess = async (pmId) => {
+    await dispatch(fetchSavedCards());
+    if (pmId) {
+      onNewCardReady(pmId);
+      onSelect(pmId);
+    }
+    setShowModal(false);
   };
-  const pricePerUnit = toNumber(params.get("pricePerUnit"), 0);
-  const units = toNumber(params.get("units") ?? params.get("hours"), 1);
-  const funsivalFee = toNumber(params.get("funsivalFee"), 8);
+
+  if (cardsLoading) {
+    return (
+      <div className="flex items-center gap-2 py-4 text-sm text-gray-400">
+        <SpinnerIcon size={14} className="text-[#4AA7A7]" /> Loading saved cards…
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex flex-col gap-2">
+        {/* Saved cards */}
+        {cards.map((card) => {
+          const brand = card.card?.brand ?? card.brand ?? "card";
+          const last4 = card.card?.last4 ?? card.last4 ?? "••••";
+          const isSelected = selectedPmId === card.id;
+          return (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => onSelect(card.id)}
+              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border transition-colors text-left ${isSelected ? "border-[#4AA7A7] bg-[#EBF6F6]" : "border-gray-200 bg-white hover:border-[#4AA7A7]"}`}
+            >
+              <div className="flex items-center gap-3">
+                <CreditCardIcon size={20} className="text-[#4AA7A7]" />
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 capitalize">{brand} •••• {last4}</p>
+                  {card.isDefault && <p className="text-xs text-[#4AA7A7] font-medium">Default</p>}
+                </div>
+              </div>
+              {isSelected && (
+                <div className="w-5 h-5 rounded-full bg-[#4AA7A7] flex items-center justify-center shrink-0">
+                  <CheckIcon size={11} className="text-white" />
+                </div>
+              )}
+            </button>
+          );
+        })}
+
+        {/* Add new card — opens modal */}
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-dashed border-gray-300 bg-white hover:border-[#4AA7A7] hover:bg-[#EBF6F6] transition-colors text-left"
+        >
+          <PlusIcon size={18} className="text-[#4AA7A7]" />
+          <span className="text-sm font-semibold text-gray-600">Add a new card</span>
+        </button>
+      </div>
+
+      {showModal && (
+        <AddPaymentModal
+          onClose={() => setShowModal(false)}
+          onSuccess={handleModalSuccess}
+        />
+      )}
+    </>
+  );
+}
+
+/* ─── 3DS confirmation handler ───────────────────────────────────────────────── */
+async function handle3DS(stripe, clientSecret) {
+  if (!clientSecret || !stripe) return { error: null };
+  const { error } = await stripe.confirmCardPayment(clientSecret);
+  return { error };
+}
+
+/* ─── Inner page (needs Stripe + Elements context) ────────────────────────────── */
+function ConfirmAndPayInner() {
+  const router   = useRouter();
+  const params   = useSearchParams();
+  const dispatch = useDispatch();
+  const stripe   = useStripe();
+
+  const quote       = useSelector(selectBookingQuote);
+  const quoteStatus = useSelector(selectBookingQuoteStatus);
+
+  const title       = params.get("title")       || "Listing";
+  const description = params.get("description") || "";
+  const image       = params.get("image")       || "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=200&q=80";
+  const dateFrom    = params.get("dateFrom")    || params.get("startDate") || "";
+  const dateTo      = params.get("dateTo")      || params.get("endDate")   || "";
+  const startTime   = params.get("startTime")   || "";
+  const endTime     = params.get("endTime")     || "";
   const bookingType = params.get("bookingType") || "";
 
-  const priceAmount = pricePerUnit * units;
-  const total = priceAmount + funsivalFee;
+  useEffect(() => {
+    const payload = buildBookingPayload(params);
+    const rawType = params.get("listingType") || "";
+    const typeMap = { activities: "activity", places: "place", equipment: "equipment" };
+    const lt = typeMap[rawType] ?? rawType;
+    if (lt) payload.listingType = lt;
+    if (payload.listingId) dispatch(fetchBookingQuote(payload));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const priceLabel = (() => {
-    if (bookingType === "per_person") return `$${pricePerUnit} × ${units} person(s)`;
-    if (bookingType === "hourly" || bookingType === "per_hour") return `$${pricePerUnit} × ${units} hour(s)`;
-    if (bookingType === "daily") return `$${pricePerUnit} × ${units} day(s)`;
-    return `$${pricePerUnit} × ${units}`;
-  })();
+  const toNum = (v, fb = 0) => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : fb; };
+  const fallbackPPU   = toNum(params.get("pricePerUnit"), 0);
+  const fallbackUnits = toNum(params.get("units") ?? params.get("hours"), 1);
+  const fallbackFee   = toNum(params.get("funsivalFee"), 8);
 
-  const [paymentState, setPaymentState] = useState("initial");
-  const [selectedCard, setSelectedCard] = useState(null);
-  const [agreed, setAgreed] = useState(false);
+  const pricing      = quote?.pricing;
+  const pricePerUnit = pricing?.pricePerUnit ?? fallbackPPU;
+  const unitsBooked  = pricing?.unitsBooked  ?? fallbackUnits;
+  const subtotal     = pricing?.subtotal     ?? pricePerUnit * unitsBooked;
+  const serviceFee   = pricing?.serviceFee   ?? fallbackFee;
+  const deliveryFee  = pricing?.deliveryFee  ?? 0;
+  const total        = pricing?.totalAmount  ?? subtotal + serviceFee + deliveryFee;
 
-  const isSubmitting = bookingStatus === "loading";
-  const canPay = agreed && !isSubmitting;
-
-  const handleSelectSavedCard = (card) => {
-    setSelectedCard(card);
-    setPaymentState("credit_debit_selected");
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    if (timeStr.includes("AM") || timeStr.includes("PM")) return timeStr;
+    const [h, m] = timeStr.split(":").map(Number);
+    if (isNaN(h) || isNaN(m)) return timeStr;
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
   };
 
+  const serverEndTime = quote?.endTime || endTime;
+  const serverEndDate = quote?.endDate
+    ? new Date(quote.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : dateTo || dateFrom;
+
+  const priceLabel = (() => {
+    if (bookingType === "per_person") return `$${pricePerUnit} × ${unitsBooked} person(s)`;
+    if (bookingType === "hourly" || bookingType === "per_hour") return `$${pricePerUnit} × ${unitsBooked} hour(s)`;
+    if (bookingType === "daily") return `$${pricePerUnit} × ${unitsBooked} day(s)`;
+    return `$${pricePerUnit} × ${unitsBooked}`;
+  })();
+
+  const [selectedPmId, setSelectedPmId] = useState(null);
+  const [agreed, setAgreed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const canPay = agreed && !submitting && !!selectedPmId;
+
   const handleConfirmAndPay = async () => {
-    const payload = buildBookingPayload(params);
-    if (!payload.listingId) return;
+    if (!selectedPmId) {
+      toast.error("Please select or add a payment method.");
+      return;
+    }
+    const bookingPayload = buildBookingPayload(params);
+    if (!bookingPayload.listingId) return;
+
+    // Send normalized listingType so the backend can determine booking mode
+    const rawListingType = params.get("listingType") || "";
+    const listingTypeMap = { activities: "activity", places: "place", equipment: "equipment" };
+    const normalizedType = listingTypeMap[rawListingType] ?? rawListingType;
+    if (normalizedType) bookingPayload.listingType = normalizedType;
+
+    bookingPayload.paymentMethodId = selectedPmId;
+
+    setSubmitting(true);
     try {
-      const result = await dispatch(createBooking(payload)).unwrap();
-      const checkoutUrl = result?.data?.checkout?.url;
-      if (!checkoutUrl) {
-        toast.error(result?.message || "Could not start payment. Please try again.");
-        return;
+      const result = await dispatch(createBooking(bookingPayload)).unwrap();
+      const clientSecret = result?.data?.clientSecret ?? result?.clientSecret;
+      const bookingId    = result?.data?.booking?.id  ?? result?.data?.id;
+
+      // Handle 3DS if the PI requires additional action
+      if (clientSecret) {
+        const { error } = await handle3DS(stripe, clientSecret);
+        if (error) {
+          toast.error(error.message || "Card authentication failed.");
+          setSubmitting(false);
+          return;
+        }
       }
-      // Clear the form's sessionStorage key so the next booking starts fresh
+
       const skey = params.get("_skey");
       if (skey) sessionStorage.removeItem(skey);
-      // Redirect to Stripe Checkout
-      window.location.href = checkoutUrl;
+
+      const successParams = new URLSearchParams();
+      if (bookingId) successParams.set("bookingId", bookingId);
+      const recipientId = params.get("recipientId");
+      const listingId   = params.get("listingId");
+      if (recipientId) successParams.set("recipientId", recipientId);
+      if (listingId)   successParams.set("listingId",   listingId);
+
+      router.push(`/user-dashboard/booking-success?${successParams.toString()}`);
     } catch (err) {
       const fieldErrors = err?.errors;
       if (fieldErrors && typeof fieldErrors === "object") {
         Object.values(fieldErrors).forEach((msg) => toast.error(msg));
       } else {
-        const message = typeof err === "string" ? err : (err?.message || "Booking failed. Please try again.");
-        toast.error(message);
+        toast.error(typeof err === "string" ? err : (err?.message || "Booking failed. Please try again."));
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
-
-      {/* White header bar */}
+      {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-4 flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-[#212121] hover:opacity-70 transition-opacity shrink-0">
+          <button onClick={() => router.back()} className="text-gray-900 hover:opacity-70 transition-opacity shrink-0">
             <BackIcon />
           </button>
           <h1 className="text-xl font-bold text-gray-900">Confirm And Pay</h1>
@@ -268,14 +307,12 @@ export default function ConfirmAndPayPage() {
       </div>
 
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-16 py-8">
-
-        {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8 items-start">
 
           {/* LEFT column */}
           <div className="flex flex-col gap-4">
 
-            {/* Card 1 — Trip Details */}
+            {/* Trip Details */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900">Trip Details</h2>
@@ -283,71 +320,74 @@ export default function ConfirmAndPayPage() {
                   onClick={() => router.back()}
                   className="flex items-center gap-1.5 text-sm font-medium text-[#4AA7A7] hover:text-[#3d9090] transition-colors"
                 >
-                  <EditIcon />
-                  Edit Details
+                  <EditIcon /> Edit Details
                 </button>
               </div>
               <div className="flex flex-col gap-3">
-                {(dateFrom || dateTo) && (
+                {(dateFrom || serverEndDate) && (
                   <div>
                     <p className="text-sm font-bold text-gray-900 mb-0.5">Dates</p>
                     <p className="text-sm text-gray-500">
-                      {dateFrom && dateTo && dateFrom !== dateTo
-                        ? `${dateFrom} – ${dateTo}`
-                        : dateFrom || dateTo}
+                      {dateFrom && serverEndDate && dateFrom !== serverEndDate
+                        ? `${dateFrom} – ${serverEndDate}`
+                        : dateFrom || serverEndDate}
                     </p>
                   </div>
                 )}
-                {guests && (
+                {(startTime || serverEndTime) && (
                   <div>
-                    <p className="text-sm font-bold text-gray-900 mb-0.5">Guests</p>
-                    <p className="text-sm text-gray-500">{guests}</p>
+                    <p className="text-sm font-bold text-gray-900 mb-0.5">Time</p>
+                    <p className="text-sm text-gray-500">
+                      {startTime && serverEndTime && startTime !== serverEndTime
+                        ? `${formatTime(startTime)} – ${formatTime(serverEndTime)}`
+                        : formatTime(startTime || serverEndTime)}
+                    </p>
                   </div>
                 )}
+                {(() => {
+                  const guestVal = params.get("numberOfGuests") || params.get("guests");
+                  const displayGuests = guestVal
+                    ? (isNaN(Number(guestVal)) ? guestVal : `${Number(guestVal)} guest${Number(guestVal) !== 1 ? "s" : ""}`)
+                    : null;
+                  return displayGuests ? (
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 mb-0.5">Guests</p>
+                      <p className="text-sm text-gray-500">{displayGuests}</p>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </div>
 
-            {/* Card 2 — Payment Method + Cancellation Policy + Ground Rules */}
+            {/* Payment + Policy + Rules */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col gap-6">
-
-              {/* Payment Method */}
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
-                  {paymentState === "new_card" ? "Select New Payment Method" : "Select Your Payment Method"}
-                </h2>
-                {paymentState === "initial" && (
-                  <PaymentInitial
-                    onSelectNewCard={() => setPaymentState("new_card")}
-                    onOpenSavedCards={() => setPaymentState("saved_open")}
-                  />
-                )}
-                {paymentState === "saved_open" && (
-                  <PaymentSavedCards
-                    onSelectCard={handleSelectSavedCard}
-                    selectedCardId={selectedCard?.id}
-                    onClose={() => setPaymentState("initial")}
-                  />
-                )}
-                {paymentState === "new_card" && <PaymentNewCardForm />}
-                {paymentState === "credit_debit_selected" && (
-                  <PaymentCreditDebitSelected onClose={() => setPaymentState("saved_open")} />
-                )}
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Select Payment Method</h2>
+                <PaymentSection
+                  selectedPmId={selectedPmId}
+                  onSelect={setSelectedPmId}
+                  onNewCardReady={setSelectedPmId}
+                />
               </div>
 
               <div className="h-px bg-gray-100" />
 
-              {/* Cancellation Policy */}
               <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-2">Cancellation Policy</h2>
-                <p className="text-sm text-gray-500 leading-relaxed">Lorem ipsum dolor sit amet consectetur. Eget imperdiet eu enim lobortis sed.</p>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  If you cancel before the host accepts, your card will not be charged.
+                  If you cancel after the host accepts, the standard cancellation policy applies.
+                </p>
               </div>
 
               <div className="h-px bg-gray-100" />
 
-              {/* Ground Rules */}
               <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-2">Ground Rules</h2>
-                <p className="text-sm text-gray-500 leading-relaxed">Lorem ipsum dolor sit amet consectetur. Eget imperdiet eu enim lobortis sed.</p>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  Please treat all spaces and equipment with respect. Follow the host's house rules
+                  and communicate any issues promptly.
+                </p>
               </div>
             </div>
           </div>
@@ -357,8 +397,7 @@ export default function ConfirmAndPayPage() {
 
             {/* Summary card */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col gap-5">
-
-              {/* Listing summary */}
+              {/* Listing */}
               <div className="flex items-start gap-4 pb-4 border-b border-gray-100">
                 <div className="w-20 h-16 sm:w-24 sm:h-20 rounded-xl overflow-hidden shrink-0">
                   <img src={image} alt={title} className="w-full h-full object-cover" />
@@ -369,66 +408,90 @@ export default function ConfirmAndPayPage() {
                 </div>
               </div>
 
-              {/* Price Details */}
-              <div>
-                <p className="text-base font-bold text-gray-900 mb-3">Price Details</p>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500">{priceLabel}</span>
-                  <span className="font-semibold text-gray-900">${priceAmount.toLocaleString()}.00</span>
+              {/* Price breakdown */}
+              {quoteStatus === "loading" ? (
+                <div className="flex items-center gap-2 py-2 text-sm text-gray-400">
+                  <SpinnerIcon size={14} className="text-[#4AA7A7]" /> Loading price…
                 </div>
-              </div>
-
-              {/* Taxes & Fees */}
-              <div>
-                <p className="text-base font-bold text-gray-900 mb-3">Taxes &amp; Fees</p>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500">Funsival Fee</span>
-                  <span className="font-semibold text-gray-900">${funsivalFee}.00</span>
-                </div>
-              </div>
-
-              {/* Total */}
-              <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                <span className="text-base font-bold text-gray-900">Total</span>
-                <span className="text-xl font-bold text-[#F5C842]">$ {total.toLocaleString()}.00</span>
-              </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-base font-bold text-gray-900 mb-3">Price Details</p>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-500">{priceLabel}</span>
+                      <span className="font-semibold text-gray-900">${subtotal.toLocaleString()}.00</span>
+                    </div>
+                    {deliveryFee > 0 && (
+                      <div className="flex justify-between items-center text-sm mt-2">
+                        <span className="text-gray-500">Delivery fee</span>
+                        <span className="font-semibold text-gray-900">${deliveryFee}.00</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-base font-bold text-gray-900 mb-3">Taxes &amp; Fees</p>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-500">Funsival Fee</span>
+                      <span className="font-semibold text-gray-900">${serviceFee}.00</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                    <span className="text-base font-bold text-gray-900">Total</span>
+                    <span className="text-xl font-bold text-[#F5C842]">$ {total.toLocaleString()}.00</span>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Agreement checkbox — outside card */}
+            {/* Authorization notice */}
+            <div className="flex items-start gap-2 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl">
+              <svg className="shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <p className="text-xs text-blue-700 leading-relaxed">
+                Your card will be <strong>authorized but not charged</strong> until the host accepts your
+                booking (up to 6 days). If declined or ignored, no charge occurs.
+              </p>
+            </div>
+
+            {/* Agreement */}
             <label className="flex items-start gap-3 cursor-pointer p-3 rounded-xl bg-[#FFF8E7] border border-[#F5C842]/30">
               <div className="relative mt-0.5 shrink-0">
-                <input
-                  type="checkbox"
-                  checked={agreed}
-                  onChange={(e) => setAgreed(e.target.checked)}
-                  className="sr-only"
-                />
+                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="sr-only" />
                 <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${agreed ? "bg-[#4AA7A7] border-[#4AA7A7]" : "bg-white border-gray-300"}`}>
                   {agreed && <CheckIcon size={10} className="text-white" />}
                 </div>
               </div>
-              <span className="text-[12px] text-[#4A4A4A] leading-relaxed">
+              <span className="text-[12px] text-gray-600 leading-relaxed">
                 I agree to the Cancellation Policy, Ground Rules, and Terms of Service
               </span>
             </label>
 
-            {/* Confirm & Pay button */}
+            {/* Confirm & Pay */}
             <div className="flex justify-end">
               <button
                 onClick={handleConfirmAndPay}
                 disabled={!canPay}
-                className={`px-10 py-3.5 rounded-full text-sm font-bold transition-all ${canPay ? "bg-[#FEB538] text-gray-900 hover:opacity-90" : "bg-[#F5C842]/40 text-gray-400 cursor-not-allowed"}`}
+                className={`px-10 py-3.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${canPay ? "bg-[#FEB538] text-gray-900 hover:opacity-90" : "bg-[#F5C842]/40 text-gray-400 cursor-not-allowed"}`}
               >
-                {isSubmitting ? "Redirecting to payment…" : "Confirm & Pay"}
+                {submitting && <SpinnerIcon size={14} className="text-gray-600" />}
+                {submitting ? "Processing…" : "Confirm & Pay"}
               </button>
             </div>
           </div>
         </div>
       </main>
 
-
       <AppFooter />
-
     </div>
+  );
+}
+
+/* ─── Exported page — wraps with Stripe Elements ─────────────────────────────── */
+export default function ConfirmAndPayPage() {
+  return (
+    <Elements stripe={stripePromise}>
+      <ConfirmAndPayInner />
+    </Elements>
   );
 }

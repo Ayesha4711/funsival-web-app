@@ -1,6 +1,56 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "../axiosInstance";
 
+// ─── Cards (SetupIntent flow) ─────────────────────────────────────────────────
+
+export const createSetupIntent = createAsyncThunk(
+  "payments/createSetupIntent",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/payments/cards/setup-intent");
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const fetchSavedCards = createAsyncThunk(
+  "payments/fetchSavedCards",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.get("/payments/cards");
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const setDefaultCard = createAsyncThunk(
+  "payments/setDefaultCard",
+  async (paymentMethodId, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.patch(`/payments/cards/${paymentMethodId}/default`);
+      return { paymentMethodId, ...data };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const deleteCard = createAsyncThunk(
+  "payments/deleteCard",
+  async (paymentMethodId, { rejectWithValue }) => {
+    try {
+      await axiosInstance.delete(`/payments/cards/${paymentMethodId}`);
+      return paymentMethodId;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
 // ─── Stripe Connect ───────────────────────────────────────────────────────────
 
 export const startConnectOnboarding = createAsyncThunk(
@@ -20,7 +70,7 @@ export const fetchConnectStatus = createAsyncThunk(
   "payments/fetchConnectStatus",
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.get("/payments/connect/status");
+      const { data } = await axiosInstance.get("/payments/account/status");
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
@@ -32,7 +82,7 @@ export const fetchConnectLoginLink = createAsyncThunk(
   "payments/fetchConnectLoginLink",
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.post("/payments/connect/login-link");
+      const { data } = await axiosInstance.get("/payments/login-link");
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
@@ -113,6 +163,14 @@ export const rejectRefundRequest = createAsyncThunk(
 const paymentsSlice = createSlice({
   name: "payments",
   initialState: {
+    // Saved cards
+    cards: [],
+    cardsLoading: false,
+    cardsError: null,
+    setupIntentSecret: null,
+    setupIntentLoading: false,
+    cardActionLoading: false,   // set-default / delete
+
     // Stripe Connect
     connectStatus: null,       // { hasAccount, accountId, chargesEnabled, payoutsEnabled, detailsSubmitted, disabledReason, requirements }
     connectStatusLoading: false,
@@ -151,6 +209,51 @@ const paymentsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // createSetupIntent
+      .addCase(createSetupIntent.pending, (state) => {
+        state.setupIntentLoading = true;
+        state.setupIntentSecret = null;
+      })
+      .addCase(createSetupIntent.fulfilled, (state, action) => {
+        state.setupIntentLoading = false;
+        state.setupIntentSecret = action.payload?.data?.clientSecret ?? action.payload?.clientSecret ?? null;
+      })
+      .addCase(createSetupIntent.rejected, (state) => {
+        state.setupIntentLoading = false;
+      })
+
+      // fetchSavedCards
+      .addCase(fetchSavedCards.pending, (state) => {
+        state.cardsLoading = true;
+        state.cardsError = null;
+      })
+      .addCase(fetchSavedCards.fulfilled, (state, action) => {
+        state.cardsLoading = false;
+        const raw = action.payload?.data?.paymentMethods ?? action.payload?.data?.cards ?? action.payload?.data ?? [];
+        state.cards = Array.isArray(raw) ? raw : [];
+      })
+      .addCase(fetchSavedCards.rejected, (state, action) => {
+        state.cardsLoading = false;
+        state.cardsError = action.payload;
+      })
+
+      // setDefaultCard
+      .addCase(setDefaultCard.pending, (state) => { state.cardActionLoading = true; })
+      .addCase(setDefaultCard.fulfilled, (state, action) => {
+        state.cardActionLoading = false;
+        const pmId = action.payload?.paymentMethodId;
+        state.cards = state.cards.map((c) => ({ ...c, isDefault: c.id === pmId }));
+      })
+      .addCase(setDefaultCard.rejected, (state) => { state.cardActionLoading = false; })
+
+      // deleteCard
+      .addCase(deleteCard.pending, (state) => { state.cardActionLoading = true; })
+      .addCase(deleteCard.fulfilled, (state, action) => {
+        state.cardActionLoading = false;
+        state.cards = state.cards.filter((c) => c.id !== action.payload);
+      })
+      .addCase(deleteCard.rejected, (state) => { state.cardActionLoading = false; })
+
       // fetchConnectStatus
       .addCase(fetchConnectStatus.pending, (state) => {
         state.connectStatusLoading = true;
@@ -280,6 +383,16 @@ export const { clearConnectError, clearActionError, clearSelectedRefundRequest }
   paymentsSlice.actions;
 
 // ─── Selectors ────────────────────────────────────────────────────────────────
+export const selectSavedCards = (state) => {
+  const cards = state.payments.cards;
+  return Array.isArray(cards) ? cards : [];
+};
+export const selectCardsLoading = (state) => state.payments.cardsLoading;
+export const selectCardsError = (state) => state.payments.cardsError;
+export const selectSetupIntentSecret = (state) => state.payments.setupIntentSecret;
+export const selectSetupIntentLoading = (state) => state.payments.setupIntentLoading;
+export const selectCardActionLoading = (state) => state.payments.cardActionLoading;
+
 export const selectConnectStatus = (state) => state.payments.connectStatus;
 export const selectConnectStatusLoading = (state) => state.payments.connectStatusLoading;
 export const selectConnectStatusError = (state) => state.payments.connectStatusError;

@@ -39,11 +39,24 @@ export const fetchBooking = createAsyncThunk(
   }
 );
 
+// Get a price quote without creating a booking
+export const fetchBookingQuote = createAsyncThunk(
+  "bookings/fetchBookingQuote",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/bookings/quote", payload);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
 export const createBooking = createAsyncThunk(
   "bookings/createBooking",
   async (payload, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.post("/bookings", payload);
+      const { data } = await axiosInstance.post("/bookings/", payload);
       return data;
     } catch (err) {
       const responseData = err.response?.data;
@@ -60,6 +73,33 @@ export const cancelBooking = createAsyncThunk(
   async (bookingId, { rejectWithValue }) => {
     try {
       const { data } = await axiosInstance.patch(`/bookings/${bookingId}/cancel`);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+// Host accepts a booking request → captures payment
+export const acceptBooking = createAsyncThunk(
+  "bookings/acceptBooking",
+  async (bookingId, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.patch(`/bookings/${bookingId}/accept`);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+// Host declines a booking request → voids authorization
+export const declineBooking = createAsyncThunk(
+  "bookings/declineBooking",
+  async ({ bookingId, reason } = {}, { rejectWithValue }) => {
+    try {
+      const body = reason ? { reason } : {};
+      const { data } = await axiosInstance.patch(`/bookings/${bookingId}/decline`, body);
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
@@ -134,8 +174,13 @@ const bookingsSlice = createSlice({
     // shared
     selectedBooking: null,
     cancelStatus: "idle",
+    acceptStatus: "idle",
+    declineStatus: "idle",
     error: null,
     hostError: null,
+    // quote (price preview, not persisted long)
+    quote: null,
+    quoteStatus: "idle",
     // refund requests keyed by bookingId
     refundRequests: {},
     refundRequestStatus: "idle",
@@ -201,24 +246,69 @@ const bookingsSlice = createSlice({
         const booking = d?.booking ?? action.payload?.data ?? action.payload;
         if (booking?.id) state.items.unshift(booking);
       })
+      // fetchBookingQuote
+      .addCase(fetchBookingQuote.pending, (state) => {
+        state.quoteStatus = "loading";
+        state.quote = null;
+      })
+      .addCase(fetchBookingQuote.fulfilled, (state, action) => {
+        state.quoteStatus = "succeeded";
+        state.quote = action.payload?.data ?? action.payload;
+      })
+      .addCase(fetchBookingQuote.rejected, (state) => {
+        state.quoteStatus = "failed";
+      })
+
       // cancelBooking — update in both lists
       .addCase(cancelBooking.pending, (state) => {
         state.cancelStatus = "loading";
       })
       .addCase(cancelBooking.fulfilled, (state, action) => {
         state.cancelStatus = "idle";
-        const updated = action.payload?.data ?? action.payload;
+        const updated = action.payload?.data?.booking ?? action.payload?.data ?? action.payload;
         if (!updated) return;
         const userIdx = state.items.findIndex((b) => b.id === updated.id);
         if (userIdx !== -1) state.items[userIdx] = updated;
         const hostIdx = state.hostItems.findIndex((b) => b.id === updated.id);
         if (hostIdx !== -1) state.hostItems[hostIdx] = updated;
-        if (state.selectedBooking?.id === updated.id) {
-          state.selectedBooking = updated;
-        }
+        if (state.selectedBooking?.id === updated.id) state.selectedBooking = updated;
       })
       .addCase(cancelBooking.rejected, (state, action) => {
         state.cancelStatus = "idle";
+        state.error = action.payload;
+      })
+
+      // acceptBooking
+      .addCase(acceptBooking.pending, (state) => {
+        state.acceptStatus = "loading";
+      })
+      .addCase(acceptBooking.fulfilled, (state, action) => {
+        state.acceptStatus = "idle";
+        const updated = action.payload?.data?.booking ?? action.payload?.data ?? action.payload;
+        if (!updated) return;
+        const idx = state.hostItems.findIndex((b) => b.id === updated.id);
+        if (idx !== -1) state.hostItems[idx] = updated;
+        if (state.selectedBooking?.id === updated.id) state.selectedBooking = updated;
+      })
+      .addCase(acceptBooking.rejected, (state, action) => {
+        state.acceptStatus = "idle";
+        state.error = action.payload;
+      })
+
+      // declineBooking
+      .addCase(declineBooking.pending, (state) => {
+        state.declineStatus = "loading";
+      })
+      .addCase(declineBooking.fulfilled, (state, action) => {
+        state.declineStatus = "idle";
+        const updated = action.payload?.data?.booking ?? action.payload?.data ?? action.payload;
+        if (!updated) return;
+        const idx = state.hostItems.findIndex((b) => b.id === updated.id);
+        if (idx !== -1) state.hostItems[idx] = updated;
+        if (state.selectedBooking?.id === updated.id) state.selectedBooking = updated;
+      })
+      .addCase(declineBooking.rejected, (state, action) => {
+        state.declineStatus = "idle";
         state.error = action.payload;
       })
 
@@ -279,5 +369,9 @@ export const selectHostBookingsError = (state) => state.bookings.hostError;
 
 export const selectSelectedBooking = (state) => state.bookings.selectedBooking;
 export const selectBookingsCancelStatus = (state) => state.bookings.cancelStatus;
+export const selectBookingsAcceptStatus = (state) => state.bookings.acceptStatus;
+export const selectBookingsDeclineStatus = (state) => state.bookings.declineStatus;
+export const selectBookingQuote = (state) => state.bookings.quote;
+export const selectBookingQuoteStatus = (state) => state.bookings.quoteStatus;
 
 export default bookingsSlice.reducer;

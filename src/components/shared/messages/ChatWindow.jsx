@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import {
   fetchMessages,
   sendMessage,
-  sendImageMessage,
+  uploadChatMedia,
+  sendMediaMessage,
   appendOptimisticMessage,
   markConversationRead,
   clearUnreadCount,
@@ -250,8 +251,16 @@ export default function ChatWindow({ conv, onBack, showBackBtn, currentUserId })
                 const file = e.target.files?.[0];
                 e.target.value = "";
                 if (!file) return;
-                const tempId = `_opt_${Date.now()}`;
+
+                const isVideo = file.type.startsWith("video/");
+                const MAX_BYTES = 50 * 1024 * 1024;
+                if (file.size > MAX_BYTES) {
+                  toast.error("File exceeds the 50 MB limit.");
+                  return;
+                }
+
                 const localUrl = URL.createObjectURL(file);
+                const tempId = `_opt_${Date.now()}`;
                 dispatch(
                   appendOptimisticMessage({
                     conversationId: conv.id,
@@ -259,15 +268,20 @@ export default function ChatWindow({ conv, onBack, showBackBtn, currentUserId })
                       id: tempId,
                       _optimistic: true,
                       senderId: currentUserId,
-                      type: file.type.startsWith("video/") ? "video" : "image",
-                      text: localUrl,
+                      type: isVideo ? "video" : "image",
+                      mediaUrl: localUrl,
                       createdAt: new Date().toISOString(),
                       sender: { id: currentUserId },
                     },
                   })
                 );
+
                 try {
-                  await dispatch(sendImageMessage({ conversationId: conv.id, file })).unwrap();
+                  lastSentAtRef.current = Date.now();
+                  const mediaUpload = await dispatch(uploadChatMedia({ file })).unwrap();
+                  await dispatch(
+                    sendMediaMessage({ conversationId: conv.id, mediaUpload })
+                  ).unwrap();
                 } catch {
                   toast.error("Failed to send file.");
                 }

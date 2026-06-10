@@ -28,7 +28,7 @@ import {
   selectConnectStatusLoading,
   selectOnboardLoading,
 } from "@/store/slices/paymentsSlice";
-import { normalizeDateValue } from "@/components/shared/dateUtils";
+import { normalizeDateValue, parseCalendarDate } from "@/components/shared/dateUtils";
 import {
   CheckIcon,
   SearchIcon,
@@ -564,20 +564,91 @@ function buildPayload(data) {
   };
   const duration = durationMap[details.duration] || { value: 0, unit: "hours" };
 
-  // Map availability slots to API format — filter out incomplete slots
-  const availability = (details.slots || [])
-    .filter(slot => slot.day && slot.startTime && slot.endTime)
-    .map((slot) => ({
-      date: slot.day, // Mapping UI 'day' field to API 'date' field
-      startTime: slot.startTime,
-      endTime: slot.endTime,
+  const formatDateForApi = (date) => {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const normalizeTimeToHHMM = (raw) => {
+    if (!raw) return "";
+    const s = String(raw).trim().toUpperCase();
+    if (/^\d{2}:\d{2}$/.test(s)) return s;
+    const hasAM = s.includes("AM");
+    const hasPM = s.includes("PM");
+    const digits = s.replace(/[^0-9:]/g, "");
+    let h, m;
+    if (digits.includes(":")) { [h, m] = digits.split(":").map(Number); }
+    else if (digits.length <= 2) { h = Number(digits); m = 0; }
+    else if (digits.length === 3) { h = Number(digits.slice(0, 1)); m = Number(digits.slice(1)); }
+    else { h = Number(digits.slice(0, 2)); m = Number(digits.slice(2, 4)); }
+    if (isNaN(h) || isNaN(m) || m < 0 || m > 59) return raw;
+    if (hasAM) { if (h === 12) h = 0; } else if (hasPM) { if (h !== 12) h += 12; }
+    if (h < 0 || h > 23) return raw;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
+
+  const normalizeSlot = (slot) => {
+    if (!slot || !slot.day || !slot.startTime || !slot.endTime) return null;
+    const parsed = parseCalendarDate(slot.day);
+    const isoDate = parsed ? formatDateForApi(parsed) : slot.day;
+    return {
+      date: isoDate,
+      startTime: normalizeTimeToHHMM(slot.startTime),
+      endTime: normalizeTimeToHHMM(slot.endTime),
       isAvailable: true,
-    }));
+    };
+  };
+
+  const buildRecurringAvailability = () => {
+    const start = parseCalendarDate(details.recurringStartDate);
+    const end = parseCalendarDate(details.recurringEndDate);
+    if (!start || !end || start > end) return [];
+
+    const recurringDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const availability = [];
+
+    for (let current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
+      const dayName = recurringDays[current.getDay()];
+      const date = formatDateForApi(current);
+      const daySlots = details.recurringSlots?.[dayName] || [];
+
+      daySlots.forEach((slot) => {
+        if (slot && slot.startTime && slot.endTime && date) {
+          availability.push({
+            date,
+            startTime: normalizeTimeToHHMM(slot.startTime),
+            endTime: normalizeTimeToHHMM(slot.endTime),
+            isAvailable: true,
+          });
+        }
+      });
+    }
+
+    return availability;
+  };
+
+  const oneTimeAvailability = (details.slots || [])
+    .map(normalizeSlot)
+    .filter(Boolean);
+
+  const recurringAvailability = buildRecurringAvailability();
+  const availability =
+    details.availabilityType === "recurring"
+      ? (recurringAvailability.length > 0 ? recurringAvailability : oneTimeAvailability)
+      : details.availabilityType === "one_time"
+        ? oneTimeAvailability
+        : (oneTimeAvailability.length > 0 ? oneTimeAvailability : recurringAvailability);
 
   const firstSlot = availability[0] || {};
 
+  const categoryMap = { activities: "activity", places: "place", equipment: "equipment" };
+  const normalizedCategory = categoryMap[category] ?? category ?? "";
+
   return {
-    category: category || "",
+    category: normalizedCategory,
     type: type || "",
     startTime: firstSlot.startTime || "",
     endTime: firstSlot.endTime || "",

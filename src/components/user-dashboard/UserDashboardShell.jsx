@@ -77,7 +77,6 @@ function UserNavbar() {
 
   useEffect(() => {
     const h = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
       if (roleRef.current && !roleRef.current.contains(e.target)) setRoleOpen(false);
     };
@@ -86,12 +85,8 @@ function UserNavbar() {
   }, []);
 
   const handleBellClick = () => {
-    if (window.innerWidth < 1024) {
-      router.push("/user-dashboard/notifications");
-    } else {
-      setNotifOpen((v) => !v);
-      setProfileOpen(false);
-    }
+    setNotifOpen((v) => !v);
+    setProfileOpen(false);
   };
 
   const handleLogout = async () => {

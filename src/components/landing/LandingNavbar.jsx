@@ -24,10 +24,19 @@ function getLogoHref() {
   }
 }
 
+function ShieldIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  );
+}
+
 const profileMenuItems = [
   { Icon: SettingsIcon,   label: "Log In",               href: "/login" },
   { Icon: SettingsIcon,   label: "Sign Up",               href: "/signup/role-selection" },
   { Icon: StarIcon,       label: "Become a Host",         href: "/signup/host" },
+  { Icon: ShieldIcon,     label: "Continue as Admin",     href: "/admin/login", admin: true },
   null,
   { Icon: CreditCardIcon, label: "Ask Funsival",          href: "#" },
   { Icon: StarIcon,       label: "How Funsival Works",    href: "#" },
@@ -110,10 +119,10 @@ export default function LandingNavbar() {
                       <Link
                         key={item.label}
                         href={item.href}
-                        className="flex items-center gap-3 px-5 py-3 text-sm text-gray-800 hover:bg-gray-50 transition-colors"
+                        className={`flex items-center gap-3 px-5 py-3 text-sm transition-colors ${item.admin ? "text-[#228E8A] hover:bg-[#EBF6F6]" : "text-gray-800 hover:bg-gray-50"}`}
                         onClick={() => setProfileOpen(false)}
                       >
-                        <span className="text-gray-500 shrink-0"><item.Icon size={18} /></span>
+                        <span className={`shrink-0 ${item.admin ? "text-[#228E8A]" : "text-gray-500"}`}><item.Icon size={18} /></span>
                         <span className="font-medium">{item.label}</span>
                       </Link>
                     )
@@ -137,10 +146,10 @@ export default function LandingNavbar() {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="flex items-center gap-2.5 px-3 py-2 text-xs text-gray-800 hover:bg-gray-50 transition-colors"
+                  className={`flex items-center gap-2.5 px-3 py-2 text-xs transition-colors ${item.admin ? "text-[#228E8A] hover:bg-[#EBF6F6]" : "text-gray-800 hover:bg-gray-50"}`}
                   onClick={() => setMenuOpen(false)}
                 >
-                  <span className="text-gray-400 shrink-0"><item.Icon size={14} /></span>
+                  <span className={`shrink-0 ${item.admin ? "text-[#228E8A]" : "text-gray-400"}`}><item.Icon size={14} /></span>
                   <span className="font-medium">{item.label}</span>
                 </Link>
               )

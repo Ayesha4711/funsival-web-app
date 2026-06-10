@@ -198,11 +198,40 @@ export default function AdminRefundRequestDetailPage() {
   const booking = request.booking;
   const isPending = request.status === "pending";
 
-  const guestName = typeof guest === "object" ? (guest?.name || guest?.email || "Guest") : (guest || "—");
-  const hostName = typeof host === "object" ? (host?.name || host?.email || "Host") : (host || "—");
+  // Resolve guest display name from nested providerProfile
+  const guestProfile = typeof guest === "object" ? guest?.providerProfile : null;
+  const guestName = guestProfile
+    ? [guestProfile.firstName, guestProfile.lastName].filter(Boolean).join(" ") || guest?.email
+    : (typeof guest === "object" ? guest?.email : guest) || "—";
+  const guestEmail = typeof guest === "object" ? guest?.email : null;
+  const guestAvatar = guestProfile?.profileImage || null;
+
+  // Resolve host display name
+  const hostProfile = typeof host === "object" ? host?.providerProfile : null;
+  const hostName = hostProfile
+    ? [hostProfile.firstName, hostProfile.lastName].filter(Boolean).join(" ") || host?.email
+    : (typeof host === "object" ? host?.email : host) || "—";
+  const hostEmail = typeof host === "object" ? host?.email : null;
+
   const bookingRef = typeof booking === "object"
     ? (booking?.id?.slice(-8)?.toUpperCase() ?? "—")
-    : (booking?.slice(-8)?.toUpperCase() ?? "—");
+    : (typeof booking === "string" ? booking.slice(-8).toUpperCase() : "—");
+
+  // Format date only (no time)
+  const formatDate = (d) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  // Format time from HH:MM
+  const formatTime = (t) => {
+    if (!t) return "—";
+    const [h, m] = t.split(":").map(Number);
+    if (isNaN(h)) return t;
+    const ampm = h < 12 ? "AM" : "PM";
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
@@ -225,28 +254,48 @@ export default function AdminRefundRequestDetailPage() {
           <StatusBadge status={request.status} />
         </div>
 
-        {/* Request details */}
+        {/* Guest & Host cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Guest */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-3">
+            {guestAvatar ? (
+              <img src={guestAvatar} alt="" className="w-11 h-11 rounded-full object-cover shrink-0 border border-gray-100" />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-[#EBF6F6] text-[#4AA7A7] flex items-center justify-center text-sm font-bold shrink-0">
+                {guestName?.[0]?.toUpperCase() || "G"}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Guest</p>
+              <p className="text-sm font-bold text-gray-800 truncate">{guestName}</p>
+              {guestEmail && <p className="text-xs text-gray-400 truncate">{guestEmail}</p>}
+            </div>
+          </div>
+          {/* Host */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-[#FFF8E7] text-[#F5C842] flex items-center justify-center text-sm font-bold shrink-0">
+              {hostName?.[0]?.toUpperCase() || "H"}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Host</p>
+              <p className="text-sm font-bold text-gray-800 truncate">{hostName}</p>
+              {hostEmail && <p className="text-xs text-gray-400 truncate">{hostEmail}</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* Request summary */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 flex flex-col gap-1">
-          <DetailRow label="Guest" value={guestName} />
-          <DetailRow label="Host" value={hostName} />
-          <DetailRow label="Booking Ref" value={bookingRef} />
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Request Summary</p>
+          <DetailRow label="Booking Ref" value={`#${bookingRef}`} />
           <DetailRow
-            label="Amount"
-            value={request.amount != null ? `$${Number(request.amount).toLocaleString()} ${request.currency ?? ""}`.trim() : "—"}
+            label="Refund Amount"
+            value={request.amount != null ? `$${Number(request.amount).toLocaleString()} ${request.currency ?? "USD"}` : "—"}
           />
           <DetailRow label="Submitted" value={formatDateTime(request.createdAt)} />
-          {request.payoutEligibleAt && (
-            <DetailRow label="Payout Eligible At" value={formatDateTime(request.payoutEligibleAt)} />
-          )}
-          {request.decidedBy && (
-            <DetailRow
-              label="Decided By"
-              value={typeof request.decidedBy === "object"
-                ? (request.decidedBy?.name || request.decidedBy?.email)
-                : request.decidedBy}
-            />
-          )}
-          {request.note && <DetailRow label="Admin Note" value={request.note} />}
+          <DetailRow label="Payout Eligible At" value={formatDateTime(request.payoutEligibleAt)} />
+          {request.decidedAt && <DetailRow label="Decided At" value={formatDateTime(request.decidedAt)} />}
+          {request.decisionNote && <DetailRow label="Admin Note" value={request.decisionNote} />}
         </div>
 
         {/* Guest reason */}
@@ -255,19 +304,34 @@ export default function AdminRefundRequestDetailPage() {
           <p className="text-sm text-gray-700 leading-relaxed">{request.reason || "No reason provided."}</p>
         </div>
 
-        {/* Booking snapshot */}
+        {/* Booking details */}
         {typeof booking === "object" && booking && (
           <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 flex flex-col gap-1">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Booking Details</p>
-            <DetailRow label="Booking ID" value={booking.id?.slice(-8)?.toUpperCase()} />
-            <DetailRow label="Status" value={booking.status} />
-            <DetailRow label="Payment Status" value={booking.paymentStatus} />
-            <DetailRow label="Total" value={booking.totalAmount != null ? `$${Number(booking.totalAmount).toLocaleString()}` : "—"} />
-            {booking.startDate && (
+            <DetailRow label="Booking ID" value={`#${booking.id?.slice(-8)?.toUpperCase()}`} />
+            <DetailRow label="Type" value={booking.bookingType?.replace(/_/g, " ")} />
+            <DetailRow label="Status" value={<span className="capitalize">{booking.status}</span>} />
+            <DetailRow label="Payment Status" value={<span className="capitalize">{booking.paymentStatus}</span>} />
+            <DetailRow label="Guests" value={booking.numberOfGuests ?? "—"} />
+            <DetailRow
+              label="Date"
+              value={booking.startDate ? formatDate(booking.startDate) : "—"}
+            />
+            {booking.startTime && (
               <DetailRow
-                label="Date"
-                value={`${booking.startDate}${booking.endDate && booking.endDate !== booking.startDate ? ` → ${booking.endDate}` : ""}`}
+                label="Time"
+                value={`${formatTime(booking.startTime)}${booking.endTime ? ` – ${formatTime(booking.endTime)}` : ""}`}
               />
+            )}
+            <DetailRow label="Price / Unit" value={booking.pricePerUnit != null ? `$${booking.pricePerUnit}` : "—"} />
+            <DetailRow label="Subtotal" value={booking.subtotal != null ? `$${booking.subtotal}` : "—"} />
+            <DetailRow label="Service Fee" value={booking.serviceFee != null ? `$${booking.serviceFee}` : "—"} />
+            <DetailRow
+              label="Total"
+              value={<span className="font-bold text-gray-900">{booking.totalAmount != null ? `$${booking.totalAmount}` : "—"}</span>}
+            />
+            {booking.stripePaymentIntentId && (
+              <DetailRow label="Stripe PI" value={<span className="font-mono text-xs">{booking.stripePaymentIntentId}</span>} />
             )}
           </div>
         )}

@@ -70,12 +70,9 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
     return () => clearInterval(timer);
   }, [dispatch, pathname, currentUserId]);
 
-  // Close popovers when clicking outside
+  // Close profile dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
-      if (notifRef.current && !notifRef.current.contains(event.target)) {
-        setNotifOpen(false);
-      }
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setProfileOpen(false);
       }
@@ -85,11 +82,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
   }, []);
 
   const handleNotifClick = () => {
-    if (window.innerWidth < 1024) {
-      router.push("/dashboard/notifications");
-    } else {
-      setNotifOpen(!notifOpen);
-    }
+    setNotifOpen(o => !o);
   };
 
   const handleLogout = async () => {
@@ -223,7 +216,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
             <span className="absolute top-0 right-0 w-2 h-2 bg-[var(--color-secondary)] rounded-full border border-[var(--color-primary)]" />
           </button>
           {notifOpen &&
-            <NotificationPopover onClose={() => setNotifOpen(false)} />}
+            <NotificationPopover viewAllHref="/dashboard/notifications" onClose={() => setNotifOpen(false)} />}
         </div>
 
         {/* Message — sm and up only */}
@@ -281,6 +274,17 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
                   <span className="text-gray-400"><SettingsIcon /></span>
                   Settings
                 </button>
+                {profile?.role === "admin" && (
+                  <button
+                    onClick={() => { setProfileOpen(false); router.push("/admin/refund-requests"); }}
+                    className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-[#228E8A] hover:bg-[#EBF6F6] transition-colors font-semibold"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    Admin Panel
+                  </button>
+                )}
               </div>
               <div className="border-t border-gray-100">
                 <button

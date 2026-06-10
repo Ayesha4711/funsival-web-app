@@ -202,6 +202,7 @@ function adaptApiListing(api, urlType) {
     requirements,
     cancellationPolicy,
     description,
+    availability: api.availability || [],
     mapLat: toNum(loc.latitude) ?? null,
     mapLng: toNum(loc.longitude) ?? null,
     reviews_list: api.reviews ?? [],
@@ -249,10 +250,12 @@ const TIME_OPTIONS = (() => {
 })();
 
 /* ─── Custom Time Dropdown ───────────────────────────────────────────────────── */
-function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
+function TimeDropdown({ value, onChange, placeholder = "Select time", options }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
   const listRef = useRef(null);
+
+  const finalOptions = options || TIME_OPTIONS;
 
   useEffect(() => {
     if (!open) return;
@@ -267,15 +270,15 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
 
   useEffect(() => {
     if (open && value && listRef.current) {
-      const idx = TIME_OPTIONS.findIndex(t => t.value === value);
+      const idx = finalOptions.findIndex(t => t.value === value);
       if (idx >= 0) {
         const el = listRef.current.children[idx];
         if (el) el.scrollIntoView({ block: "center" });
       }
     }
-  }, [open, value]);
+  }, [open, value, finalOptions]);
 
-  const selected = TIME_OPTIONS.find(t => t.value === value);
+  const selected = finalOptions.find(t => t.value === value);
 
   return (
     <div ref={containerRef} className="relative w-full" style={open ? { zIndex: 10 } : undefined}>
@@ -291,23 +294,27 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-200 bg-white rounded-2xl border border-gray-200 shadow-xl overflow-y-auto" style={{ maxHeight: 280 }}>
+        <div className="absolute left-0 top-full mt-1 z-[200] bg-white rounded-2xl border border-gray-200 shadow-xl overflow-y-auto w-full min-w-[120px]" style={{ maxHeight: 280 }}>
           <div ref={listRef}>
-            {TIME_OPTIONS.map(t => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => { onChange(t.value); setOpen(false); }}
-                className={[
-                  "w-full text-left px-5 py-3 text-sm transition-colors",
-                  t.value === value
-                    ? "bg-[#EBF6F6] text-[#4AA7A7] font-bold border-r-4 border-[#F5C842]"
-                    : "text-gray-700 hover:bg-gray-50",
-                ].join(" ")}
-              >
-                {t.label}
-              </button>
-            ))}
+            {finalOptions.length > 0 ? (
+              finalOptions.map(t => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => { onChange(t.value); setOpen(false); }}
+                  className={[
+                    "w-full text-left px-5 py-3 text-sm transition-colors",
+                    t.value === value
+                      ? "bg-[#EBF6F6] text-[#4AA7A7] font-bold border-r-4 border-[#F5C842]"
+                      : "text-gray-700 hover:bg-gray-50",
+                  ].join(" ")}
+                >
+                  {t.label}
+                </button>
+              ))
+            ) : (
+              <p className="px-5 py-3 text-xs text-gray-400">No times available</p>
+            )}
           </div>
         </div>
       )}
@@ -315,8 +322,9 @@ function TimeDropdown({ value, onChange, placeholder = "Select time" }) {
   );
 }
 
+
 /* ─── Calendar Dropdown ──────────────────────────────────────────────────────── */
-function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy", align = "left" }) {
+function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy", align = "left", availableDates }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -349,12 +357,14 @@ function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy", align =
             value={value}
             onChange={(v) => { onChange(v); setOpen(false); }}
             onClose={() => setOpen(false)}
+            availableDates={availableDates}
           />
         </div>
       )}
     </div>
   );
 }
+
 
 /* ─── Booking field (no label) ───────────────────────────────────────────────── */
 function BookingField({ icon, children, error, errorMessage, onClick }) {
@@ -370,7 +380,7 @@ function BookingField({ icon, children, error, errorMessage, onClick }) {
 }
 
 /* ─── Split time field (Start time | End time in one row) ────────────────────── */
-function TimeRangeField({ startTime, setStartTime, endTime, setEndTime, startError, endError }) {
+function TimeRangeField({ startTime, setStartTime, endTime, setEndTime, startError, endError, startOptions, endOptions }) {
   return (
     <div>
       <div className={`flex items-center gap-0 rounded-full border bg-white overflow-visible ${(startError || endError) ? "border-red-400" : "border-gray-200"}`}>
@@ -379,7 +389,7 @@ function TimeRangeField({ startTime, setStartTime, endTime, setEndTime, startErr
           <span className="hidden sm:block shrink-0"><ClockIcon /></span>
           <span className="text-[9px] sm:text-xs text-gray-400 shrink-0 whitespace-nowrap">Start</span>
           <div className="flex-1 min-w-0">
-            <TimeDropdown value={startTime} onChange={setStartTime} placeholder="09:41 AM" />
+            <TimeDropdown value={startTime} onChange={setStartTime} placeholder="09:41 AM" options={startOptions} />
           </div>
         </div>
         <div className="w-px h-8 bg-gray-200 shrink-0" />
@@ -387,7 +397,7 @@ function TimeRangeField({ startTime, setStartTime, endTime, setEndTime, startErr
         <div className="flex items-center gap-1 sm:gap-2 flex-1 px-2 sm:px-4 py-2.5 sm:py-3.5 min-w-0">
           <span className="text-[9px] sm:text-xs text-gray-400 shrink-0 whitespace-nowrap">End</span>
           <div className="flex-1 min-w-0">
-            <TimeDropdown value={endTime} onChange={setEndTime} placeholder="09:41 AM" />
+            <TimeDropdown value={endTime} onChange={setEndTime} placeholder="09:41 AM" options={endOptions} />
           </div>
         </div>
       </div>
@@ -499,12 +509,15 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
 function useNavigateToConfirm(listing, listingId) {
   const router = useRouter();
   return (fields, sessionKey) => {
+    const categoryMap = { activities: "activity", places: "place", equipment: "equipment" };
+    const listingType = categoryMap[listing.type] ?? listing.type ?? "";
     const p = new URLSearchParams({
       listingId,
       title: listing.title,
       description: listing.details.description || "",
       image: listing.images[0] || "",
       bookingType: listing.bookingType,
+      listingType,
       pricePerUnit: String(listing.price),
       funsivalFee: "8",
       ...(sessionKey ? { _skey: sessionKey } : {}),
@@ -520,13 +533,34 @@ function ActivityBookingCard({ listing, listingId }) {
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
   const [date, setDate] = useState(saved.date || "");
   const [startTime, setStartTime] = useState(saved.startTime || "");
+  const [endTime, setEndTime] = useState(saved.endTime || "");
   const [persons, setPersons] = useState(saved.persons || "");
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
+  const availability = listing.availability || [];
+  const availableDates = React.useMemo(() => {
+    return [...new Set(availability.map(a => a.date.split("T")[0]))];
+  }, [availability]);
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    const [h, m] = timeStr.split(":").map(Number);
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "AM" : "PM";
+    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+  };
+
+  const startTimeOptions = React.useMemo(() => {
+    if (!date) return [];
+    return availability
+      .filter(a => a.date.split("T")[0] === date && a.isAvailable !== false)
+      .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
+  }, [date, availability]);
+
   useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ date, startTime, persons }));
-  }, [date, startTime, persons, SKEY]);
+    sessionStorage.setItem(SKEY, JSON.stringify({ date, startTime, endTime, persons }));
+  }, [date, startTime, endTime, persons, SKEY]);
 
   const isPerPerson = listing.bookingType === "per_person";
   const units = isPerPerson ? (Number(persons) || 1) : 1;
@@ -547,7 +581,7 @@ function ActivityBookingCard({ listing, listingId }) {
     if (isPerPerson && !persons) { toast.error("Number of guests is required."); newErrors.persons = true; }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     const fields = {
-      startDate: date, endDate: date, startTime, dateFrom: date, dateTo: date,
+      startDate: date, endDate: date, startTime, endTime, dateFrom: date, dateTo: date,
       ...(isPerPerson ? { numberOfGuests: persons || 1, units, guests: `${persons || 1} guest` } : { units: 1 }),
     };
     navigateToConfirm(fields, SKEY);
@@ -576,13 +610,38 @@ function ActivityBookingCard({ listing, listingId }) {
     >
       {/* Single date */}
       <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
-        <CalendarDropdown value={date} onChange={v => { setDate(v); setErrors(e => ({ ...e, date: false })); }} placeholder="mm/dd/yyyy" />
+        <CalendarDropdown
+          value={date}
+          onChange={v => {
+            setDate(v);
+            setErrors(e => ({ ...e, date: false }));
+            const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+            if (!valid) {
+              setStartTime("");
+              setEndTime("");
+            }
+          }}
+          placeholder="mm/dd/yyyy"
+          availableDates={availableDates}
+        />
       </BookingField>
 
       {/* Start time only */}
       <BookingField icon={<ClockIcon />} error={errors.startTime} errorMessage="Start time is required">
-        <TimeDropdown value={startTime} onChange={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }} placeholder="Start time" />
+        <TimeDropdown
+          value={startTime}
+          onChange={v => {
+            setStartTime(v);
+            setErrors(e => ({ ...e, startTime: false }));
+            const slot = availability.find(a => a.date.split("T")[0] === date && a.startTime === v && a.isAvailable !== false);
+            if (slot) setEndTime(slot.endTime);
+            else setEndTime("");
+          }}
+          placeholder="Start time"
+          options={startTimeOptions}
+        />
       </BookingField>
+
 
       {/* Guests — only show for per_person */}
       {isPerPerson && (
@@ -622,6 +681,36 @@ function PlacesBookingCard({ listing, listingId }) {
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
+  const availability = listing.availability || [];
+  const availableDates = React.useMemo(() => {
+    return [...new Set(availability.map(a => a.date.split("T")[0]))];
+  }, [availability]);
+
+  // For hourly mode, options for 'date'. For daily mode, options for 'checkIn'.
+  const targetDate = mode === "hourly" ? date : checkIn;
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    const [h, m] = timeStr.split(":").map(Number);
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "AM" : "PM";
+    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+  };
+
+  const startTimeOptions = React.useMemo(() => {
+    if (!targetDate) return [];
+    return availability
+      .filter(a => a.date.split("T")[0] === targetDate && a.isAvailable !== false)
+      .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
+  }, [targetDate, availability]);
+
+  const endTimeOptions = React.useMemo(() => {
+    if (!targetDate || !startTime) return [];
+    return availability
+      .filter(a => a.date.split("T")[0] === targetDate && a.startTime === startTime && a.isAvailable !== false)
+      .map(a => ({ label: formatTime(a.endTime), value: a.endTime }));
+  }, [targetDate, startTime, availability]);
+
   useEffect(() => {
     sessionStorage.setItem(SKEY, JSON.stringify({ mode, date, checkIn, checkOut, startTime, endTime, guests }));
   }, [mode, date, checkIn, checkOut, startTime, endTime, guests, SKEY]);
@@ -650,8 +739,9 @@ function PlacesBookingCard({ listing, listingId }) {
     const from = mode === "hourly" ? date : checkIn;
     const to = mode === "hourly" ? date : checkOut;
     navigateToConfirm({
+      pricingMode: mode,
       startDate: from, endDate: to, startTime,
-      ...(mode === "hourly" ? { endTime } : {}),
+      endTime,
       numberOfGuests: guests || 1, units: span, dateFrom: from, dateTo: to, guests: `${guests || 1} guest`
     }, SKEY);
   };
@@ -678,12 +768,34 @@ function PlacesBookingCard({ listing, listingId }) {
         /* Hourly: single date + start/end time */
         <>
           <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
-            <CalendarDropdown value={date} onChange={v => { setDate(v); setErrors(e => ({ ...e, date: false })); }} placeholder="Select date" />
+            <CalendarDropdown
+              value={date}
+              onChange={v => {
+                setDate(v);
+                setErrors(e => ({ ...e, date: false }));
+                const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+                if (!valid) {
+                  setStartTime("");
+                  setEndTime("");
+                }
+              }}
+              placeholder="Select date"
+              availableDates={availableDates}
+            />
           </BookingField>
           <TimeRangeField
-            startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
+            startTime={startTime}
+            setStartTime={v => {
+              setStartTime(v);
+              setErrors(e => ({ ...e, startTime: false }));
+              const slot = availability.find(a => a.date.split("T")[0] === targetDate && a.startTime === v && a.isAvailable !== false);
+              if (slot) setEndTime(slot.endTime);
+              else setEndTime("");
+            }}
             endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
             startError={errors.startTime} endError={errors.endTime}
+            startOptions={startTimeOptions}
+            endOptions={endTimeOptions}
           />
         </>
       ) : (
@@ -692,11 +804,24 @@ function PlacesBookingCard({ listing, listingId }) {
           <div className="flex gap-3">
             <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkIn ? "border-red-400" : "border-gray-200"}`}>
               <span className="shrink-0"><CalendarIcon /></span>
-              <CalendarDropdown value={checkIn} onChange={v => { setCheckIn(v); setErrors(e => ({ ...e, checkIn: false })); }} placeholder="Start date" />
+              <CalendarDropdown
+                value={checkIn}
+                onChange={v => {
+                  setCheckIn(v);
+                  setErrors(e => ({ ...e, checkIn: false }));
+                  const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+                  if (!valid) {
+                    setStartTime("");
+                    setEndTime("");
+                  }
+                }}
+                placeholder="Start date"
+                availableDates={availableDates}
+              />
             </div>
             <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkOut ? "border-red-400" : "border-gray-200"}`}>
               <span className="shrink-0"><CalendarIcon /></span>
-              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" />
+              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" availableDates={availableDates} />
             </div>
           </div>
           {(errors.checkIn || errors.checkOut) && (
@@ -706,10 +831,23 @@ function PlacesBookingCard({ listing, listingId }) {
             </div>
           )}
           <BookingField icon={<ClockIcon />} error={errors.startTime} errorMessage="Start time is required">
-            <TimeDropdown value={startTime} onChange={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }} placeholder="Start time" />
+            <TimeDropdown
+              value={startTime}
+              onChange={v => {
+                setStartTime(v);
+                setErrors(e => ({ ...e, startTime: false }));
+                const slot = availability.find(a => a.date.split("T")[0] === targetDate && a.startTime === v && a.isAvailable !== false);
+                if (slot) setEndTime(slot.endTime);
+                else setEndTime("");
+              }}
+              placeholder="Start time"
+              options={startTimeOptions}
+            />
           </BookingField>
         </>
       )}
+
+
 
       {/* Guests */}
       <BookingField icon={<UserOutlineIcon />} error={errors.guests} errorMessage="Number of guests is required">
@@ -743,12 +881,43 @@ function EquipmentBookingCard({ listing, listingId }) {
   const [checkOut, setCheckOut] = useState(saved.checkOut || "");
   const [startTime, setStartTime] = useState(saved.startTime || "");
   const [endTime, setEndTime] = useState(saved.endTime || "");
+  const [guests, setGuests] = useState(saved.guests || "");
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
+  const availability = listing.availability || [];
+  const availableDates = React.useMemo(() => {
+    return [...new Set(availability.map(a => a.date.split("T")[0]))];
+  }, [availability]);
+
+  // For hourly mode, options for 'date'. For daily mode, options for 'checkIn'.
+  const targetDate = mode === "hourly" ? date : checkIn;
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    const [h, m] = timeStr.split(":").map(Number);
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "AM" : "PM";
+    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+  };
+
+  const startTimeOptions = React.useMemo(() => {
+    if (!targetDate) return [];
+    return availability
+      .filter(a => a.date.split("T")[0] === targetDate && a.isAvailable !== false)
+      .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
+  }, [targetDate, availability]);
+
+  const endTimeOptions = React.useMemo(() => {
+    if (!targetDate || !startTime) return [];
+    return availability
+      .filter(a => a.date.split("T")[0] === targetDate && a.startTime === startTime && a.isAvailable !== false)
+      .map(a => ({ label: formatTime(a.endTime), value: a.endTime }));
+  }, [targetDate, startTime, availability]);
+
   useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ mode, date, checkIn, checkOut, startTime, endTime }));
-  }, [mode, date, checkIn, checkOut, startTime, endTime, SKEY]);
+    sessionStorage.setItem(SKEY, JSON.stringify({ mode, date, checkIn, checkOut, startTime, endTime, guests }));
+  }, [mode, date, checkIn, checkOut, startTime, endTime, guests, SKEY]);
 
   const hours = startTime && endTime
     ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
@@ -773,10 +942,15 @@ function EquipmentBookingCard({ listing, listingId }) {
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     const from = mode === "hourly" ? date : checkIn;
     const to = mode === "hourly" ? date : checkOut;
+    // For daily mode, end time equals start time (billing is per-day, not per-hour)
+    const resolvedEndTime = mode === "daily" ? startTime : endTime;
     navigateToConfirm({
+      pricingMode: mode,
       startDate: from, endDate: to, startTime,
-      ...(mode === "hourly" ? { endTime } : {}),
-      units: span, dateFrom: from, dateTo: to
+      endTime: resolvedEndTime,
+      numberOfGuests: guests || 1,
+      units: span, dateFrom: from, dateTo: to,
+      guests: `${guests || 1} guest`,
     }, SKEY);
   };
 
@@ -802,12 +976,34 @@ function EquipmentBookingCard({ listing, listingId }) {
         /* Hourly: single date + start/end time */
         <>
           <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
-            <CalendarDropdown value={date} onChange={v => { setDate(v); setErrors(e => ({ ...e, date: false })); }} placeholder="Select date" />
+            <CalendarDropdown
+              value={date}
+              onChange={v => {
+                setDate(v);
+                setErrors(e => ({ ...e, date: false }));
+                const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+                if (!valid) {
+                  setStartTime("");
+                  setEndTime("");
+                }
+              }}
+              placeholder="Select date"
+              availableDates={availableDates}
+            />
           </BookingField>
           <TimeRangeField
-            startTime={startTime} setStartTime={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }}
+            startTime={startTime}
+            setStartTime={v => {
+              setStartTime(v);
+              setErrors(e => ({ ...e, startTime: false }));
+              const slot = availability.find(a => a.date.split("T")[0] === targetDate && a.startTime === v && a.isAvailable !== false);
+              if (slot) setEndTime(slot.endTime);
+              else setEndTime("");
+            }}
             endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
             startError={errors.startTime} endError={errors.endTime}
+            startOptions={startTimeOptions}
+            endOptions={endTimeOptions}
           />
         </>
       ) : (
@@ -816,11 +1012,24 @@ function EquipmentBookingCard({ listing, listingId }) {
           <div className="flex gap-3">
             <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkIn ? "border-red-400" : "border-gray-200"}`}>
               <span className="shrink-0"><CalendarIcon /></span>
-              <CalendarDropdown value={checkIn} onChange={v => { setCheckIn(v); setErrors(e => ({ ...e, checkIn: false })); }} placeholder="Start date" />
+              <CalendarDropdown
+                value={checkIn}
+                onChange={v => {
+                  setCheckIn(v);
+                  setErrors(e => ({ ...e, checkIn: false }));
+                  const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+                  if (!valid) {
+                    setStartTime("");
+                    setEndTime("");
+                  }
+                }}
+                placeholder="Start date"
+                availableDates={availableDates}
+              />
             </div>
             <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkOut ? "border-red-400" : "border-gray-200"}`}>
               <span className="shrink-0"><CalendarIcon /></span>
-              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" />
+              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" availableDates={availableDates} />
             </div>
           </div>
           {(errors.checkIn || errors.checkOut) && (
@@ -830,10 +1039,32 @@ function EquipmentBookingCard({ listing, listingId }) {
             </div>
           )}
           <BookingField icon={<ClockIcon />} error={errors.startTime} errorMessage="Start time is required">
-            <TimeDropdown value={startTime} onChange={v => { setStartTime(v); setErrors(e => ({ ...e, startTime: false })); }} placeholder="Start time" />
+            <TimeDropdown
+              value={startTime}
+              onChange={v => {
+                setStartTime(v);
+                setErrors(e => ({ ...e, startTime: false }));
+                // Daily mode: end time = start time (same pickup time each day)
+                setEndTime(v);
+              }}
+              placeholder="Start time"
+              options={startTimeOptions}
+            />
           </BookingField>
         </>
       )}
+
+      {/* Guests */}
+      <BookingField icon={<UserOutlineIcon />} error={errors.guests} errorMessage="Number of guests is required">
+        <input
+          type="number"
+          min="1"
+          value={guests}
+          placeholder="Select guest number"
+          onChange={e => { setGuests(e.target.value); setErrors(err => ({ ...err, guests: false })); }}
+          className="w-full bg-transparent text-xs sm:text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400 min-w-0"
+        />
+      </BookingField>
 
       {/* Summary */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
@@ -1263,7 +1494,7 @@ export default function ListingDetailPage({ params: paramsPromise }) {
 
           {/* Right – booking section */}
           <div className="w-full xl:w-[440px] shrink-0 xl:self-stretch">
-            {listing.type === "places"     && <PlacesBookingCard    listing={listing} listingId={rawId} />}
+            {(listing.type === "places"    || listing.type === "place")     && <PlacesBookingCard    listing={listing} listingId={rawId} />}
             {listing.type === "equipment"  && <EquipmentBookingCard listing={listing} listingId={rawId} />}
             {(listing.type === "activities" || listing.type === "activity") && <ActivityBookingCard listing={listing} listingId={rawId} />}
           </div>

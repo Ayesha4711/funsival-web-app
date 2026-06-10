@@ -120,7 +120,8 @@ export default function StripeOnboarding({ compact = false }) {
             try {
               const res = await dispatch(fetchConnectLoginLink()).unwrap();
               const url = res?.data?.url ?? res?.url;
-              if (url) window.open(url, "_blank", "noopener");
+              if (url) window.location.href = url;
+              else toast.error("Could not open Stripe dashboard. Please try again.");
             } catch {
               toast.error("Could not open Stripe dashboard. Please try again.");
             }
