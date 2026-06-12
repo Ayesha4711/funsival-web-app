@@ -215,7 +215,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
                     >
                       {item.dateRange}
                     </div>
-                    {item.time && item.time !== "—" && (
+                    {item.time && (
                       <div
                         className="text-[11px] text-[var(--color-text-muted)] whitespace-nowrap mt-0.5"
                         style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
