@@ -464,12 +464,16 @@ function apiToWizardData(raw) {
     postalCode: raw.placeLocation?.postalCode || "",
   };
 
+  // API stores singular ("activity", "place", "equipment"), wizard uses plural ("activities", "places", "equipment")
+  const categoryReverseMap = { activity: "activities", place: "places", equipment: "equipment" };
+  const wizardCategory = categoryReverseMap[raw.category?.toLowerCase()] || raw.category || "";
+
   return {
-    category: raw.category || "",
+    category: wizardCategory,
     type: raw.type || "",
     status: raw.status || "Active",
     details,
-    price: normalizeListingPrice(raw.category || "", raw.price ?? createEmptyPrice(raw.category || "")),
+    price: normalizeListingPrice(wizardCategory || "", raw.price ?? createEmptyPrice(wizardCategory || "")),
   };
 }
 

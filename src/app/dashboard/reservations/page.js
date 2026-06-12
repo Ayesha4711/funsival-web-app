@@ -104,16 +104,33 @@ function mapBookingToRow(b) {
 
   const isDaily = b.pricingMode === "daily" || (rawEnd && rawStart && rawEnd > rawStart);
 
-  // Time from top-level fields or availability array
-  const avail0 = b.availability?.[0];
-  const rawStartTime = b.startTime || avail0?.startTime || "";
-  const rawEndTime   = b.endTime   || avail0?.endTime   || "";
+  // Time: prefer booking-level startTime/endTime, fall back to matching availability slot
+  const startDateStr = b.startDate ? b.startDate.split("T")[0] : null;
+  const listingAvail = b.listing?.availability ?? [];
+  const matchedSlot  = startDateStr
+    ? listingAvail.find((a) => a.date && a.date.split("T")[0] === startDateStr)
+    : null;
 
-  const timeRange = rawStartTime && rawEndTime && rawStartTime !== rawEndTime
-    ? `${fmt12(rawStartTime)} – ${fmt12(rawEndTime)}`
-    : rawStartTime
-      ? fmt12(rawStartTime)
-      : "—";
+  const isBookingDaily = b.bookingType === "daily";
+
+  const rawStartTime = b.startTime || matchedSlot?.startTime || "";
+  const rawEndTime   = b.endTime   || matchedSlot?.endTime   || "";
+
+  // Daily: always show "HH:MM – HH:MM" using startTime for both sides
+  // Hourly/per_person: show range only when start and end differ
+  const timeRange = isBookingDaily && rawStartTime
+    ? `${fmt12(rawStartTime)} – ${fmt12(rawStartTime)}`
+    : rawStartTime && rawEndTime && rawStartTime !== rawEndTime
+      ? `${fmt12(rawStartTime)} – ${fmt12(rawEndTime)}`
+      : rawStartTime
+        ? fmt12(rawStartTime)
+        : null;
+
+  const bookingTypeLabel = b.bookingType
+    ? b.bookingType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    : null;
+
+  const time = timeRange || bookingTypeLabel || "—";
 
   // Date range: "Jun 22, 2026 – Jun 24, 2026 (3 days)" for daily, just start for hourly
   const dateRange = endDate && endDate !== startDate
@@ -139,7 +156,7 @@ function mapBookingToRow(b) {
     reservedBy,
     date: startDate,
     dateRange,
-    time: timeRange,
+    time,
     status,
     totalAmount: b.totalAmount,
     currency: b.currency,

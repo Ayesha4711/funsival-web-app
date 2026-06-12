@@ -1,220 +1,36 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchSavedCards,
+  setDefaultCard,
+  deleteCard,
+  selectSavedCards,
+  selectCardsLoading,
+  selectCardActionLoading,
+} from "@/store/slices/paymentsSlice";
+import AddPaymentModal from "@/components/shared/settings/AddPaymentModal";
 import {
   ArrowLeftIcon,
   HomeIcon,
   ChevronRightIcon,
-  PlusIcon,
   BankIcon,
-  EditIcon,
   TrashIcon,
-  CloseIcon,
-  EyeIcon,
   DollarIcon,
-  InfoIcon,
   ClockIcon,
   ShieldIcon,
   ArrowRightIcon,
   CheckCircleIcon,
-  ChevronDownIcon,
+  SpinnerIcon,
 } from "@/icons";
-
-/* ─── Shared input class ─────────────────────────────────────────────────────── */
-const inputCls = "w-full bg-[#F3F4F6] border-0 rounded-xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30";
-const labelCls = "block text-sm font-semibold text-gray-800 mb-1.5";
-
-/* ─── Add Payment Method Modal ───────────────────────────────────────────────── */
-function AddPaymentModal({ onClose, onAdd }) {
-  const [tab, setTab] = useState("bank");
-  const [showAccNum, setShowAccNum] = useState(false);
-  const [form, setForm] = useState({
-    bankName: "", accountType: "Checking", holderName: "",
-    routing: "", accountNum: "", nickname: "", isDefault: false,
-  });
-
-  const tabs = [
-    { id: "bank",   label: "Bank Account" },
-    { id: "paypal", label: "PayPal"        },
-    { id: "debit",  label: "Debit Card"    },
-  ];
-
-  const infoText = {
-    bank:   "Bank transfers typically take 3-5 business days and have lower fees.",
-    paypal: "PayPal transfers typically arrive within 1 business day.",
-    debit:  "Debit card transfers arrive instantly but may have higher fees.",
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-3 pb-3 sm:p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col max-h-[80vh] sm:max-h-[92vh] overflow-hidden shadow-2xl">
-
-        {/* Header */}
-        <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4 flex items-start justify-between shrink-0">
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-gray-900">Add Payment Method</h2>
-            <p className="text-xs text-gray-400 mt-1 leading-relaxed">Add a new payment method for withdrawals. All information is encrypted and secure.</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0 ml-2 mt-0.5">
-            <CloseIcon />
-          </button>
-        </div>
-
-        {/* Tab pills */}
-        <div className="px-4 sm:px-6 pb-3 sm:pb-4 shrink-0">
-          <div className="flex p-1 bg-[#EDF6F6] rounded-full">
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex-1 px-2 sm:px-3 py-2 rounded-full text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap ${
-                  tab === t.id ? "bg-white text-[var(--color-primary)] shadow-sm" : "text-gray-400"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Info banner */}
-        <div className="px-4 sm:px-6 pb-3 sm:pb-4 shrink-0">
-          <div className="flex gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <span className="text-gray-400 shrink-0 mt-0.5"><ShieldIcon /></span>
-            <p className="text-xs text-gray-500 leading-relaxed">{infoText[tab]}</p>
-          </div>
-        </div>
-
-        {/* Scrollable body */}
-        <div className="px-4 sm:px-6 pb-2 flex-1 overflow-y-auto">
-          {tab === "bank" && (
-            <div className="flex flex-col gap-3 sm:gap-4">
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className={labelCls}>Bank Name *</label>
-                  <input className={inputCls} placeholder="e.g., Chase, Bank of America" value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} />
-                </div>
-                <div>
-                  <label className={labelCls}>Account Type *</label>
-                  <div className="relative">
-                    <select
-                      className={inputCls + " appearance-none pr-9 cursor-pointer"}
-                      value={form.accountType}
-                      onChange={(e) => setForm({ ...form, accountType: e.target.value })}
-                    >
-                      <option>Checking</option>
-                      <option>Savings</option>
-                      <option>Business</option>
-                    </select>
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                      <ChevronDownIcon size={14} />
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className={labelCls}>Account Holder Name *</label>
-                <input className={inputCls} placeholder="Full name as it appears on account" value={form.holderName} onChange={(e) => setForm({ ...form, holderName: e.target.value })} />
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className={labelCls}>Routing Number *</label>
-                  <input className={inputCls} placeholder="9-digit routing number" value={form.routing} onChange={(e) => setForm({ ...form, routing: e.target.value })} />
-                </div>
-                <div>
-                  <label className={labelCls}>Account Number *</label>
-                  <div className="relative">
-                    <input
-                      type={showAccNum ? "text" : "password"}
-                      className={inputCls + " pr-10"}
-                      placeholder="Account number"
-                      value={form.accountNum}
-                      onChange={(e) => setForm({ ...form, accountNum: e.target.value })}
-                    />
-                    <button type="button" onClick={() => setShowAccNum((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      <EyeIcon />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className={labelCls}>Account Nickname *</label>
-                <input className={inputCls} placeholder="e.g., Primary Business Account" value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} />
-              </div>
-
-              <label className="flex items-center gap-2.5 cursor-pointer py-1">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded border-gray-300 accent-[var(--color-primary)]"
-                  checked={form.isDefault}
-                  onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                />
-                <span className="text-sm text-gray-600 font-medium">Make this my default payment method</span>
-              </label>
-            </div>
-          )}
-
-          {tab === "paypal" && (
-            <div className="flex flex-col gap-3 sm:gap-4">
-              <div>
-                <label className={labelCls}>PayPal Email *</label>
-                <input className={inputCls} placeholder="your@email.com" />
-              </div>
-              <div>
-                <label className={labelCls}>Account Nickname *</label>
-                <input className={inputCls} placeholder="e.g., My PayPal" />
-              </div>
-            </div>
-          )}
-
-          {tab === "debit" && (
-            <div className="flex flex-col gap-3 sm:gap-4">
-              <div>
-                <label className={labelCls}>Card Number *</label>
-                <input className={inputCls} placeholder="•••• •••• •••• ••••" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Expiry *</label>
-                  <input className={inputCls} placeholder="MM / YY" />
-                </div>
-                <div>
-                  <label className={labelCls}>CVV *</label>
-                  <input className={inputCls} placeholder="•••" />
-                </div>
-              </div>
-              <div>
-                <label className={labelCls}>Card Nickname *</label>
-                <input className={inputCls} placeholder="e.g., My Visa" />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-end gap-2 sm:gap-3 shrink-0 border-t border-gray-100">
-          <button onClick={onClose} className="px-4 sm:px-6 py-2.5 rounded-full border border-gray-200 text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
-            Cancel
-          </button>
-          <button
-            onClick={() => { onAdd({ name: form.nickname || "New Account", last4: "5678", isDefault: form.isDefault }); onClose(); }}
-            className="px-4 sm:px-6 py-2.5 rounded-full bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white text-xs sm:text-sm font-bold transition-colors"
-          >
-            Add Payment Method
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ─── Withdraw Funds Modal ───────────────────────────────────────────────────── */
 function WithdrawModal({ availableBalance, paymentMethod, onClose, onConfirm }) {
-  const [amount, setAmount] = useState("12,500.00");
+  const [amount, setAmount] = useState(
+    availableBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  );
 
   const rawAmount = parseFloat(amount.replace(/,/g, "")) || 0;
   const processingFee = rawAmount > 0 ? parseFloat((rawAmount * 0.0002).toFixed(2)) : 0;
@@ -225,59 +41,82 @@ function WithdrawModal({ availableBalance, paymentMethod, onClose, onConfirm }) 
     setAmount(val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   };
 
+  const cardBrand = paymentMethod.card?.brand ?? "card";
+  const last4 = paymentMethod.card?.last4 ?? "••••";
+  const displayName = `${cardBrand.charAt(0).toUpperCase() + cardBrand.slice(1)} ····${last4}`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-3 pb-3 sm:p-4">
       <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col max-h-[80vh] sm:max-h-[92vh] overflow-y-auto shadow-2xl">
         <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4 flex items-start justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-[var(--color-secondary)]"><DollarIcon /></span>
+            <span className="text-secondary"><DollarIcon /></span>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-gray-900">Withdraw Funds</h2>
               <p className="text-xs text-gray-400 mt-0.5">Transfer your available funds to your preferred payment method</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0 ml-2">
-            <CloseIcon />
+            <span className="text-lg leading-none">✕</span>
           </button>
         </div>
 
         <div className="px-4 sm:px-6 pb-5 sm:pb-6 flex flex-col gap-3 sm:gap-4">
           <div>
             <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Add Amount:</label>
-            <div className="flex items-center border-2 border-[var(--color-primary)] rounded-xl px-3 py-2.5 gap-2 bg-white">
+            <div className="flex items-center border-2 border-primary rounded-xl px-3 py-2.5 gap-2 bg-white">
               <span className="text-sm font-bold text-gray-500">$</span>
-              <input className="flex-1 text-sm font-bold text-gray-900 focus:outline-none min-w-0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <input
+                className="flex-1 text-sm font-bold text-gray-900 focus:outline-none min-w-0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
             {[["25%", 0.25], ["50%", 0.5], ["All", 1]].map(([label, pct]) => (
-              <button key={label} onClick={() => setPercent(pct)} className="py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">
+              <button
+                key={label}
+                onClick={() => setPercent(pct)}
+                className="py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:border-primary hover:text-primary transition-colors"
+              >
                 {label}
               </button>
             ))}
           </div>
 
           <div className="flex items-start gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <span className="text-gray-400 shrink-0 mt-0.5"><InfoIcon /></span>
+            <span className="text-gray-400 shrink-0 mt-0.5"><ShieldIcon /></span>
             <p className="text-xs text-gray-500">Minimum withdrawal: $10 • Maximum: ${availableBalance.toLocaleString()}</p>
           </div>
 
           <div className="border border-gray-100 rounded-xl p-3 sm:p-4 flex flex-col gap-3">
-            <div className="flex justify-between items-center text-xs sm:text-sm gap-2"><span className="text-gray-500 shrink-0">Withdrawal Amount:</span><span className="font-bold text-gray-900">${rawAmount.toLocaleString()}</span></div>
-            <div className="flex justify-between items-center text-xs sm:text-sm gap-2"><span className="text-gray-500 shrink-0">Processing Fee:</span><span className="font-bold text-gray-500">-${processingFee}</span></div>
-            <div className="flex justify-between items-center text-xs sm:text-sm gap-2 pt-2 border-t border-gray-100"><span className="font-bold text-gray-900 shrink-0">You'll receive:</span><span className="font-bold text-[var(--color-primary)]">${parseFloat(youReceive).toLocaleString()}</span></div>
+            <div className="flex justify-between items-center text-xs sm:text-sm gap-2">
+              <span className="text-gray-500 shrink-0">Withdrawal Amount:</span>
+              <span className="font-bold text-gray-900">${rawAmount.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs sm:text-sm gap-2">
+              <span className="text-gray-500 shrink-0">Processing Fee:</span>
+              <span className="font-bold text-gray-500">-${processingFee}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs sm:text-sm gap-2 pt-2 border-t border-gray-100">
+              <span className="font-bold text-gray-900 shrink-0">You&apos;ll receive:</span>
+              <span className="font-bold text-primary">${parseFloat(youReceive).toLocaleString()}</span>
+            </div>
           </div>
 
           <div className="border border-gray-100 rounded-xl p-3 sm:p-4 flex flex-col gap-2">
             <div className="flex items-center gap-3">
               <span className="text-gray-500 shrink-0"><BankIcon /></span>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-gray-900 truncate">{paymentMethod.name}</p>
-                <p className="text-xs text-gray-400">****-{paymentMethod.last4}</p>
+                <p className="text-sm font-bold text-gray-900 truncate">{displayName}</p>
+                <p className="text-xs text-gray-400">····{last4}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1"><ClockIcon /><span>Estimated arrival: 3-5 business days</span></div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
+              <ClockIcon /><span>Estimated arrival: 3-5 business days</span>
+            </div>
           </div>
 
           <div className="flex items-start gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
@@ -290,7 +129,7 @@ function WithdrawModal({ availableBalance, paymentMethod, onClose, onConfirm }) 
 
           <button
             onClick={() => onConfirm({ amount: rawAmount, fee: processingFee, net: youReceive, method: paymentMethod })}
-            className="w-full flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white font-bold rounded-full transition-colors text-sm"
+            className="w-full flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-secondary hover:bg-secondary-dark text-white font-bold rounded-full transition-colors text-sm"
           >
             Confirm Withdrawal <ArrowRightIcon />
           </button>
@@ -303,65 +142,92 @@ function WithdrawModal({ availableBalance, paymentMethod, onClose, onConfirm }) 
 /* ─── Success Modal ──────────────────────────────────────────────────────────── */
 function SuccessModal({ withdrawalData, onClose }) {
   const txId = "WD-" + Math.floor(Math.random() * 9000000000 + 1000000000);
+  const cardBrand = withdrawalData.method.card?.brand ?? "card";
+  const last4 = withdrawalData.method.card?.last4 ?? "••••";
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-3 pb-3 sm:p-4">
       <div className="bg-white rounded-2xl w-full max-w-md mx-auto flex flex-col shadow-2xl">
         <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4 flex items-start justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-[var(--color-secondary)]"><DollarIcon /></span>
+            <span className="text-secondary"><DollarIcon /></span>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-gray-900">Withdraw Funds</h2>
               <p className="text-xs text-gray-400 mt-0.5">Transfer your available funds to your preferred payment method</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0 ml-2"><CloseIcon /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0 ml-2">
+            <span className="text-lg leading-none">✕</span>
+          </button>
         </div>
         <div className="px-4 sm:px-6 pb-5 sm:pb-6 flex flex-col items-center gap-4 sm:gap-5">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-50 flex items-center justify-center text-green-500"><CheckCircleIcon size={56} /></div>
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-50 flex items-center justify-center text-green-500">
+            <CheckCircleIcon size={56} />
+          </div>
           <div className="text-center">
             <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">Withdrawal Initiated!</h3>
-            <p className="text-xs sm:text-sm text-gray-500">Your withdrawal of ${parseFloat(withdrawalData.net).toLocaleString()} has been processed and will arrive in 3-5 business days.</p>
+            <p className="text-xs sm:text-sm text-gray-500">
+              Your withdrawal of ${parseFloat(withdrawalData.net).toLocaleString()} has been processed and will arrive in 3-5 business days.
+            </p>
           </div>
           <div className="w-full border border-gray-100 rounded-xl p-3 sm:p-4 flex flex-col gap-3">
-            <div className="flex justify-between items-center gap-2 text-xs sm:text-sm"><span className="text-gray-500 shrink-0">Transaction ID:</span><span className="font-bold text-gray-900 text-[10px] sm:text-xs truncate">{txId}</span></div>
-            <div className="flex justify-between items-center gap-2 text-xs sm:text-sm"><span className="text-gray-500 shrink-0">Method:</span><span className="font-bold text-gray-900 truncate">{withdrawalData.method.name}</span></div>
-            <div className="flex justify-between items-center gap-2 text-xs sm:text-sm"><span className="text-gray-500 shrink-0">Status:</span><span className="px-3 py-1 bg-orange-50 text-orange-500 border border-orange-100 rounded-full text-xs font-bold">Processing</span></div>
+            <div className="flex justify-between items-center gap-2 text-xs sm:text-sm">
+              <span className="text-gray-500 shrink-0">Transaction ID:</span>
+              <span className="font-bold text-gray-900 text-[10px] sm:text-xs truncate">{txId}</span>
+            </div>
+            <div className="flex justify-between items-center gap-2 text-xs sm:text-sm">
+              <span className="text-gray-500 shrink-0">Method:</span>
+              <span className="font-bold text-gray-900 truncate">
+                {cardBrand.charAt(0).toUpperCase() + cardBrand.slice(1)} ····{last4}
+              </span>
+            </div>
+            <div className="flex justify-between items-center gap-2 text-xs sm:text-sm">
+              <span className="text-gray-500 shrink-0">Status:</span>
+              <span className="px-3 py-1 bg-orange-50 text-orange-500 border border-orange-100 rounded-full text-xs font-bold">Processing</span>
+            </div>
           </div>
-          <button onClick={onClose} className="px-8 sm:px-10 py-3 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white font-bold rounded-full transition-colors text-sm">Done</button>
+          <button
+            onClick={onClose}
+            className="px-8 sm:px-10 py-3 bg-secondary hover:bg-secondary-dark text-white font-bold rounded-full transition-colors text-sm"
+          >
+            Done
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ─── Payment Method Row ─────────────────────────────────────────────────────── */
-function PaymentMethodRow({ method, onDelete }) {
+/* ─── Card Row ───────────────────────────────────────────────────────────────── */
+function CardRow({ card, onDelete, actionLoading }) {
+  const brand = card.card?.brand ?? "card";
+  const last4 = card.card?.last4 ?? "••••";
+  const expMonth = card.card?.exp_month;
+  const expYear = card.card?.exp_year;
+  const displayName = `${brand.charAt(0).toUpperCase() + brand.slice(1)} ····${last4}`;
+
   return (
     <div className="flex items-center p-3 sm:p-4 border-2 border-gray-200 rounded-xl gap-2">
-      {/* Bank icon */}
       <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
         <BankIcon />
       </div>
-
-      {/* Name + last4 */}
       <div className="flex-1 min-w-0">
-        <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{method.name}</p>
-        <p className="text-[10px] sm:text-xs text-gray-400">****-{method.last4}</p>
+        <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{displayName}</p>
+        <p className="text-[10px] sm:text-xs text-gray-400">
+          {expMonth && expYear ? `Expires ${expMonth}/${String(expYear).slice(-2)}` : "····" + last4}
+        </p>
       </div>
-
-      {/* Default / Edit / Delete */}
       <div className="flex flex-col items-end gap-1 sm:gap-1.5 shrink-0">
-        {method.isDefault && (
+        {card.isDefault && (
           <span className="px-2 sm:px-3 py-0.5 bg-gray-100 text-gray-500 rounded-full text-[9px] sm:text-[10px] font-bold">Default</span>
         )}
-        <button className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-gray-600 hover:text-[var(--color-primary)] transition-colors">
-          Edit <EditIcon />
-        </button>
         <button
-          onClick={() => onDelete(method.id)}
-          className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-red-400 hover:text-red-600 transition-colors"
+          onClick={() => onDelete(card.id)}
+          disabled={actionLoading}
+          className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
         >
-          Delete <TrashIcon />
+          {actionLoading ? <SpinnerIcon size={10} /> : <TrashIcon />}
+          Delete
         </button>
       </div>
     </div>
@@ -371,24 +237,26 @@ function PaymentMethodRow({ method, onDelete }) {
 /* ─── Main Withdraw Page ─────────────────────────────────────────────────────── */
 export default function WithdrawPage() {
   const router = useRouter();
-  const availableBalance = 50000;
+  const dispatch = useDispatch();
 
-  const [paymentMethods, setPaymentMethods] = useState([
-    { id: 1, name: "Chase Business Account", last4: "1234", isDefault: true },
-  ]);
+  const cards = useSelector(selectSavedCards);
+  const cardsLoading = useSelector(selectCardsLoading);
+  const actionLoading = useSelector(selectCardActionLoading);
 
   const [modal, setModal] = useState(null);
   const [withdrawalResult, setWithdrawalResult] = useState(null);
-  const [showLastWithdrawal, setShowLastWithdrawal] = useState(true);
-  const lastWithdrawal = { amount: 12497.5, date: "12/12/12", methodName: "Chase Business Account", last4: "1234" };
 
-  const defaultMethod = paymentMethods.find((m) => m.isDefault) ?? paymentMethods[0];
+  // Balance is not yet available via API — keep as 0 until endpoint exists
+  const availableBalance = 0;
 
-  const handleAddMethod = (newMethod) => {
-    setPaymentMethods((prev) => [
-      ...prev.map((m) => newMethod.isDefault ? { ...m, isDefault: false } : m),
-      { id: Date.now(), ...newMethod },
-    ]);
+  const defaultCard = cards.find((c) => c.isDefault) ?? cards[0] ?? null;
+
+  useEffect(() => {
+    dispatch(fetchSavedCards());
+  }, [dispatch]);
+
+  const handleDelete = async (pmId) => {
+    await dispatch(deleteCard(pmId));
   };
 
   const handleWithdrawConfirm = (data) => {
@@ -400,10 +268,7 @@ export default function WithdrawPage() {
     <div className="flex-1 flex flex-col bg-[#F3F4F6]">
 
       <div className="bg-white border-b border-gray-100 px-4 sm:px-8 lg:px-10 py-4 sm:py-6 flex items-center gap-3">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-900 hover:text-gray-600 transition-colors shrink-0"
-        >
+        <button onClick={() => router.back()} className="text-gray-900 hover:text-gray-600 transition-colors shrink-0">
           <ArrowLeftIcon size={20} />
         </button>
         <h1 className="text-base sm:text-xl font-bold text-gray-900">Get Paid</h1>
@@ -411,9 +276,8 @@ export default function WithdrawPage() {
       </div>
 
       <div className="flex-1 px-3 sm:px-8 lg:px-10 py-4 sm:py-6 flex flex-col gap-4 sm:gap-5">
-
-        {/* Combined Card */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 lg:p-8">
+
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-xs mb-4 sm:mb-6">
             <button onClick={() => router.push("/dashboard/earnings")} className="text-[#228E8A] hover:opacity-80 transition-opacity">
@@ -423,7 +287,7 @@ export default function WithdrawPage() {
             <span className="px-3 py-1 bg-white border border-gray-200 rounded-full text-gray-600 font-medium">Withdraw Funds</span>
           </div>
 
-          {/* Available Balance Section */}
+          {/* Available Balance */}
           <div className="mb-4 sm:mb-6 p-4 sm:p-7 border-2 border-gray-200 rounded-xl">
             <p className="text-sm font-semibold text-gray-500 mb-2 sm:mb-3">Available Balance</p>
             <p className="text-3xl sm:text-4xl font-extrabold text-green-500 mb-1">
@@ -432,83 +296,65 @@ export default function WithdrawPage() {
             <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 mt-4 sm:mt-8">
               <p className="text-sm text-gray-400">Ready for withdrawal</p>
               <button
-                onClick={() => setModal("withdraw")}
-                className="flex items-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-dark)] text-white text-sm font-bold rounded-full transition-colors w-full xs:w-auto justify-center"
+                onClick={() => defaultCard && setModal("withdraw")}
+                disabled={!defaultCard || availableBalance <= 0}
+                className="flex items-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-secondary hover:bg-secondary-dark text-white text-sm font-bold rounded-full transition-colors w-full xs:w-auto justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Get Paid <ArrowRightIcon />
               </button>
             </div>
           </div>
 
-          {/* Payment Method Section */}
+          {/* Payment Methods */}
           <div className="mb-4 sm:mb-6 p-4 sm:p-5 border-2 border-gray-200 rounded-xl">
             <div className="flex items-center justify-between gap-2 mb-4 sm:mb-5">
               <h2 className="text-sm sm:text-base font-bold text-gray-900">Select Payment Method</h2>
               <button
-                onClick={() => setModal("addMethod")}
-                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors shrink-0"
+                onClick={() => setModal("addCard")}
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 border border-gray-200 rounded-full text-xs font-bold text-gray-600 hover:border-primary hover:text-primary transition-colors shrink-0"
               >
-                <PlusIcon /> Add Method
+                + Add Method
               </button>
             </div>
 
-            <div className="flex flex-col gap-3">
-              {paymentMethods.map((method) => (
-                <PaymentMethodRow
-                    key={method.id}
-                    method={method}
-                    onDelete={(id) => setPaymentMethods((prev) => prev.filter((m) => m.id !== id))}
+            {cardsLoading ? (
+              <div className="flex items-center justify-center py-8 text-gray-400">
+                <SpinnerIcon size={20} />
+              </div>
+            ) : cards.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8">No payment methods added yet.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {cards.map((card) => (
+                  <CardRow
+                    key={card.id}
+                    card={card}
+                    onDelete={handleDelete}
+                    actionLoading={actionLoading}
                   />
                 ))}
-                {paymentMethods.length === 0 && (
-                  <p className="text-sm text-gray-400 text-center py-8">No payment methods added yet.</p>
-                )}
               </div>
-            </div>
-
-          {/* Last Withdrawal — inside the main card */}
-          {lastWithdrawal && showLastWithdrawal && (
-            <div className="bg-[#EDF6F6] rounded-2xl border border-[#C8E6E5] p-4 sm:p-6">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#228E8A] shrink-0"><ShieldIcon /></span>
-                  <p className="text-sm font-bold text-gray-800">Last Withdrawal</p>
-                </div>
-                <button
-                  onClick={() => setShowLastWithdrawal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mb-3">
-                {"Your last withdrawal was $" + lastWithdrawal.amount.toLocaleString() + " on date " + lastWithdrawal.date + "."}
-              </p>
-              <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100">
-                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
-                  <BankIcon />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{lastWithdrawal.methodName}</p>
-                  <p className="text-[10px] sm:text-xs text-gray-400">****-{lastWithdrawal.last4}</p>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
-      {modal === "addMethod" && (
-        <AddPaymentModal onClose={() => setModal(null)} onAdd={handleAddMethod} />
+      {modal === "addCard" && (
+        <AddPaymentModal
+          onClose={() => setModal(null)}
+          onSuccess={() => setModal(null)}
+        />
       )}
-      {modal === "withdraw" && defaultMethod && (
+
+      {modal === "withdraw" && defaultCard && (
         <WithdrawModal
           availableBalance={availableBalance}
-          paymentMethod={defaultMethod}
+          paymentMethod={defaultCard}
           onClose={() => setModal(null)}
           onConfirm={handleWithdrawConfirm}
         />
       )}
+
       {modal === "success" && withdrawalResult && (
         <SuccessModal
           withdrawalData={withdrawalResult}

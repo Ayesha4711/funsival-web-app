@@ -19,6 +19,15 @@ import {
   selectBookingsError,
   selectRefundRequestStatus,
 } from "@/store/slices/bookingsSlice";
+import {
+  fetchBookingReviewContext,
+  submitReview,
+  clearReviewContext,
+  selectReviewContext,
+  selectReviewContextLoading,
+  selectReviewSubmitLoading,
+  selectReviewSubmitError,
+} from "@/store/slices/reviewsSlice";
 import { startOrGetConversation } from "@/store/slices/chatSlice";
 import AppFooter from "@/components/shared/AppFooter";
 import SharedPagination from "@/components/shared/Pagination";
@@ -44,13 +53,44 @@ function formatDateRange(s, e) {
   const ed = formatDate(e);
   return sd === ed ? sd : `${sd} – ${ed}`;
 }
+function fmt12(t) {
+  if (!t) return "";
+  if (t.includes("AM") || t.includes("PM")) return t;
+  const [h, m] = t.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) return t;
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${hr}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+function getBookingTime(b) {
+  const startTime = b.startTime;
+  const endTime   = b.endTime;
+  if (startTime) {
+    return endTime && endTime !== startTime
+      ? `${fmt12(startTime)} – ${fmt12(endTime)}`
+      : fmt12(startTime);
+  }
+  const dateStr = b.startDate ? b.startDate.split("T")[0] : null;
+  const slot = dateStr
+    ? (b.listing?.availability ?? []).find((a) => a.date && a.date.split("T")[0] === dateStr)
+    : null;
+  if (slot?.startTime) {
+    return slot.endTime && slot.endTime !== slot.startTime
+      ? `${fmt12(slot.startTime)} – ${fmt12(slot.endTime)}`
+      : fmt12(slot.startTime);
+  }
+  return null;
+}
 function getStatusKey(b) {
   if (b.status === "confirmed") return "in-progress";
   if (b.status === "cancelled") return "cancelled";
   return b.status;
 }
 function canCancel(b) { return b.status === "confirmed"; }
-function canReview(b) { return b.status === "completed"; }
+function getReviewButtonLabel(b) {
+  if (b.reviewStatus?.canEdit) return "Edit Review";
+  if (b.reviewStatus?.canSubmit) return "Leave a Review";
+  return null;
+}
 
 import { ArrowLeftIcon as BackIcon, HeartFilledIcon, HeartIcon as HeartIconBase, ShareIcon, MoreHorizIcon as DotsIcon, CloseIcon, StarIcon as StarIconBase, MapPinIcon as LocationPinIcon, ArrowRightIcon, CircleAlertIcon, UserIcon as UserIconBase, ReservationsIcon } from "@/icons";
 
@@ -95,9 +135,72 @@ function StarRatingInput({ value, onChange }) {
 }
 
 /* ─── Leave Review Modal ─────────────────────────────────────────────────────── */
-function LeaveReviewModal({ booking, onClose }) {
-  const [ratings, setRatings] = useState({ overall: 0, accuracy: 0, quality: 0, communication: 0, value: 0 });
+function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
+  const dispatch = useDispatch();
+  const context = useSelector(selectReviewContext);
+  const contextLoading = useSelector(selectReviewContextLoading);
+  const submitLoading = useSelector(selectReviewSubmitLoading);
+  const submitError = useSelector(selectReviewSubmitError);
+
+  const existingReview = context?.review ?? null;
+  const isEdit = context?.reviewStatus?.canEdit && existingReview;
+
+  const [ratings, setRatings] = useState({
+    overall: 0, accuracy: 0, quality: 0, communication: 0, value: 0,
+  });
   const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    dispatch(fetchBookingReviewContext(bookingId));
+    return () => { dispatch(clearReviewContext()); };
+  }, [dispatch, bookingId]);
+
+  // Prefill when context loads (edit mode)
+  useEffect(() => {
+    if (existingReview) {
+      setRatings({
+        overall:       existingReview.overallRating    ?? 0,
+        accuracy:      existingReview.accuracy         ?? 0,
+        quality:       existingReview.quality          ?? 0,
+        communication: existingReview.communication    ?? 0,
+        value:         existingReview.value            ?? 0,
+      });
+      setComment(existingReview.comment ?? "");
+    }
+  }, [existingReview]);
+
+  const handleSubmit = async () => {
+    if (!ratings.overall) {
+      toast.error("Please select an overall rating.");
+      return;
+    }
+    try {
+      await dispatch(submitReview({
+        bookingId,
+        overallRating: ratings.overall,
+        accuracy:      ratings.accuracy,
+        quality:       ratings.quality,
+        communication: ratings.communication,
+        value:         ratings.value,
+        comment:       comment.trim(),
+      })).unwrap();
+      toast.success(isEdit ? "Review updated!" : "Review submitted!");
+      onSubmitted?.();
+      onClose();
+    } catch (err) {
+      toast.error(typeof err === "string" ? err : "Failed to submit review.");
+    }
+  };
+
+  const b = context?.booking ?? null;
+  const title = b?.listing?.basicInformation?.activityTitle
+    || b?.listing?.basicInformation?.equipmentName
+    || b?.listing?.basicInformation?.placeName
+    || "Booking";
+  const photo = b?.listing?.photos?.[0]
+    ?? "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80";
+  const confirmationNo = b?.confirmationNumber ?? b?.id?.slice(-8)?.toUpperCase();
+
   const cats = [
     { key: "overall",       label: "Overall Rating",   sub: "Your general experience" },
     { key: "accuracy",      label: "Accuracy",         sub: "How well did it match the description?" },
@@ -105,46 +208,69 @@ function LeaveReviewModal({ booking, onClose }) {
     { key: "communication", label: "Communication",    sub: "Host responsiveness and clarity" },
     { key: "value",         label: "Value",            sub: "Quality relative to price paid" },
   ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
       <div className="bg-white rounded-2xl w-full max-w-lg overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-5">
-          <h2 className="text-xl font-bold text-gray-900">Leave a Review</h2>
+          <h2 className="text-xl font-bold text-gray-900">{isEdit ? "Edit Review" : "Leave a Review"}</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"><CloseIcon /></button>
         </div>
-        <div className="px-6 pb-6 flex flex-col gap-5">
-          {/* Booking summary strip */}
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <img src={getImage(booking)} alt={getTitle(booking)} className="w-16 h-12 rounded-lg object-cover shrink-0" />
+
+        {contextLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="w-7 h-7 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="px-6 pb-6 flex flex-col gap-5">
+            {/* Booking summary strip */}
+            {b && (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <img src={photo} alt={title} className="w-16 h-12 rounded-lg object-cover shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-gray-900">{title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Confirmation No: {confirmationNo}</p>
+                  <p className="text-xs text-gray-400">
+                    {formatDateRange(b.startDate, b.endDate)}
+                    {b.numberOfGuests ? ` · ${b.numberOfGuests} guest(s)` : ""}
+                    {b.totalAmount ? ` · $${b.totalAmount}` : ""}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {cats.map(({ key, label, sub }) => (
+              <div key={key}>
+                <p className="text-sm font-bold text-gray-900">{label}</p>
+                <p className="text-xs text-gray-400 mb-2">{sub}</p>
+                <StarRatingInput value={ratings[key]} onChange={(v) => setRatings((r) => ({ ...r, [key]: v }))} />
+              </div>
+            ))}
+
             <div>
-              <p className="text-sm font-bold text-gray-900">{getTitle(booking)}</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Confirmation No: {booking.id?.slice(-8)?.toUpperCase()}
-              </p>
-              <p className="text-xs text-gray-400">
-                {formatDateRange(booking.startDate, booking.endDate)}
-                {booking.numberOfGuests ? ` · ${booking.numberOfGuests} guest(s)` : ""}
-                {booking.totalAmount ? ` · $${booking.totalAmount}` : ""}
-              </p>
+              <p className="text-sm font-bold text-gray-900 mb-2">Additional Comments (Optional)</p>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Tell us what stood out about your experience"
+                rows={4}
+                className="w-full px-4 py-3 text-sm text-gray-700 placeholder:text-gray-300 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4AA7A7] resize-none"
+              />
             </div>
+
+            {submitError && (
+              <p className="text-xs text-red-500 font-medium">{submitError}</p>
+            )}
+
+            <button
+              onClick={handleSubmit}
+              disabled={submitLoading || !ratings.overall}
+              className="w-full py-4 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors disabled:opacity-50"
+            >
+              {submitLoading ? "Submitting…" : isEdit ? "Update Review" : "Submit Review"}
+            </button>
           </div>
-          {cats.map(({ key, label, sub }) => (
-            <div key={key}>
-              <p className="text-sm font-bold text-gray-900">{label}</p>
-              <p className="text-xs text-gray-400 mb-2">{sub}</p>
-              <StarRatingInput value={ratings[key]} onChange={(v) => setRatings((r) => ({ ...r, [key]: v }))} />
-            </div>
-          ))}
-          <div>
-            <p className="text-sm font-bold text-gray-900 mb-2">Additional Comments (Optional)</p>
-            <textarea value={comment} onChange={(e) => setComment(e.target.value)}
-              placeholder="Tell us what stood out about your experience" rows={4}
-              className="w-full px-4 py-3 text-sm text-gray-700 placeholder:text-gray-300 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4AA7A7] resize-none" />
-          </div>
-          <button onClick={onClose} className="w-full py-4 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors">
-            Submit Review
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -458,10 +584,10 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
               <span className="font-bold text-gray-900">{guests}</span>
             </div>
           )}
-          {booking.startTime && (
+          {getBookingTime(booking) && (
             <div className="flex items-center gap-2">
               <span className="text-gray-500 w-36 text-xs shrink-0">Time:</span>
-              <span className="font-bold text-gray-900">{booking.startTime} – {booking.endTime}</span>
+              <span className="font-bold text-gray-900">{getBookingTime(booking)}</span>
             </div>
           )}
           <div className="flex items-center gap-2">
@@ -482,26 +608,25 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
 
         {/* Action buttons — bottom right */}
         <div className="flex flex-wrap items-center justify-end gap-2 mt-auto" onClick={(e) => e.stopPropagation()}>
-          {canReview(booking) && (
+          {booking.status === "completed" && getReviewButtonLabel(booking) && (
             <button
               onClick={() => onLeaveReview(booking)}
-              className="flex items-center justify-between pl-8 pr-2 py-2 bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-bold rounded-full text-sm transition-colors w-44"
+              style={{ width: 216, height: 58 }}
+              className="bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-bold rounded-full text-sm transition-colors whitespace-nowrap flex items-center justify-center"
             >
-              <span className="flex-1 text-center">Leave a Review</span>
-              <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800">
-                <ArrowRightIcon />
-              </span>
+              {getReviewButtonLabel(booking)}
             </button>
           )}
-          {canCancel(booking) && (
+          {/* Cancel + Refund only shown for in-progress, not completed */}
+          {booking.status !== "completed" && canCancel(booking) && (
             <button
               onClick={() => onCancel(booking)}
-              className="px-6 py-2.5 border-2 border-[#FEB538] text-gray-800 font-semibold rounded-full text-sm hover:bg-[#FEB538]/10 transition-colors whitespace-nowrap"
+              className="px-6 py-2.5 border-2 border-[#E25C5C] text-[#E25C5C] font-semibold rounded-full text-sm hover:bg-[#FEB538]/10 transition-colors whitespace-nowrap"
             >
               Cancel Reservation
             </button>
           )}
-          {canRequestRefund(booking) && !refundRequest && (
+          {booking.status !== "completed" && canRequestRefund(booking) && !refundRequest && (
             <button
               onClick={() => onRequestRefund(booking)}
               className="px-5 py-2.5 border-2 border-[#4AA7A7] text-[#4AA7A7] font-semibold rounded-full text-sm hover:bg-[#4AA7A7]/10 transition-colors whitespace-nowrap"
@@ -509,7 +634,7 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
               Request Refund
             </button>
           )}
-          {refundRequest?.status === "pending" && (
+          {booking.status !== "completed" && refundRequest?.status === "pending" && (
             <button
               onClick={() => onWithdrawRefund(booking)}
               className="px-5 py-2.5 border-2 border-gray-300 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50 transition-colors whitespace-nowrap"
@@ -620,10 +745,10 @@ function BookingDetailView({ booking, onLeaveReview, onCancel, onContactHost, wi
                   <span className="font-bold text-gray-900">{guests}</span>
                 </div>
               )}
-              {booking.startTime && (
+              {getBookingTime(booking) && (
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 w-36 text-xs shrink-0">Time:</span>
-                  <span className="font-bold text-gray-900">{booking.startTime} – {booking.endTime}</span>
+                  <span className="font-bold text-gray-900">{getBookingTime(booking)}</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
@@ -632,17 +757,15 @@ function BookingDetailView({ booking, onLeaveReview, onCancel, onContactHost, wi
               </div>
             </div>
 
-            <div className="flex justify-end mt-auto">
-              {canReview(booking) && (
+            <div className="flex justify-end mt-auto gap-2 flex-wrap">
+              {booking.status === "completed" && getReviewButtonLabel(booking) && (
                 <button onClick={onLeaveReview}
-                  className="flex items-center justify-between pl-8 pr-2 py-2 bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-bold rounded-full text-sm transition-colors w-44">
-                  <span className="flex-1 text-center">Leave a Review</span>
-                  <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 text-gray-800">
-                    <ArrowRightIcon />
-                  </span>
+                  style={{ width: 216, height: 58 }}
+                  className="bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-bold rounded-full text-sm transition-colors whitespace-nowrap flex items-center justify-center">
+                  {getReviewButtonLabel(booking)}
                 </button>
               )}
-              {canCancel(booking) && (
+              {booking.status !== "completed" && canCancel(booking) && (
                 <button onClick={onCancel}
                   className="px-6 py-2.5 border-2 border-[#FEB538] text-gray-800 font-semibold rounded-full text-sm hover:bg-[#FEB538]/10 transition-colors">
                   Cancel Reservation
@@ -795,9 +918,10 @@ function EmptyState({ onStartBooking }) {
 
 /* ─── Tab filter ─────────────────────────────────────────────────────────────── */
 const TABS = [
-  { key: "all",        label: "All" },
-  { key: "in-progress", label: "Inprogress" },
-  { key: "cancelled",  label: "Cancelled" },
+  { key: "all",         label: "All" },
+  { key: "in-progress", label: "In progress" },
+  { key: "completed",   label: "Completed" },
+  { key: "cancelled",   label: "Cancelled" },
 ];
 
 /* ─── Main page ──────────────────────────────────────────────────────────────── */
@@ -973,12 +1097,18 @@ export default function MyReservationPage() {
               </div>
               <div>
                 <p className="text-base font-semibold text-gray-700 mb-1">
-                  {activeTab === "cancelled" ? "No Cancelled Reservations" : "Nothing Here Yet"}
+                  {activeTab === "cancelled"
+                    ? "No Cancelled Reservations"
+                    : activeTab === "completed"
+                      ? "No Completed Reservations"
+                      : "Nothing Here Yet"}
                 </p>
                 <p className="text-sm text-gray-400 max-w-xs">
                   {activeTab === "cancelled"
                     ? "You haven't cancelled any reservations. Your active bookings are doing great!"
-                    : "No reservations match this filter."}
+                    : activeTab === "completed"
+                      ? "You don't have any completed reservations yet."
+                      : "No reservations match this filter."}
                 </p>
               </div>
             </div>
@@ -1016,7 +1146,11 @@ export default function MyReservationPage() {
 
       {/* Modals */}
       {modal === "review" && activeBooking && (
-        <LeaveReviewModal booking={activeBooking} onClose={closeModal} />
+        <LeaveReviewModal
+          bookingId={activeBooking.id}
+          onClose={closeModal}
+          onSubmitted={() => dispatch(fetchBookings({ page: currentPage, limit: 10 }))}
+        />
       )}
       {modal === "cancel" && (
         <CancelBookingModal

@@ -7,6 +7,7 @@ import bookingsReducer from "./slices/bookingsSlice";
 import chatReducer from "./slices/chatSlice";
 import notificationsReducer from "./slices/notificationsSlice";
 import paymentsReducer from "./slices/paymentsSlice";
+import reviewsReducer from "./slices/reviewsSlice";
 
 export const resetStore = createAction("store/reset");
 
@@ -28,6 +29,7 @@ export const store = configureStore({
     chat:          withReset(chatReducer),
     notifications: withReset(notificationsReducer),
     payments:      withReset(paymentsReducer),
+    reviews:       withReset(reviewsReducer),
   },
 });
 
