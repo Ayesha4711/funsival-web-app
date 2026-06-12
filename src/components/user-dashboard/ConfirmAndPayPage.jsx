@@ -62,11 +62,13 @@ function buildBookingPayload(params) {
     if (endTime) payload.endTime = endTime;
     if (durationHours) payload.durationHours = Number(durationHours);
   } else {
-    // daily mode — endDate required, startTime optional, no endTime
+    // daily mode — endDate required; send startTime = endTime so both are stored
     if (endDate) payload.endDate = endDate;
-    if (startTime) payload.startTime = startTime;
+    if (startTime) {
+      payload.startTime = startTime;
+      payload.endTime   = startTime;
+    }
     if (durationDays) payload.durationDays = Number(durationDays);
-    // never send endTime for daily bookings
   }
 
   if (numberOfGuests) payload.numberOfGuests = Number(numberOfGuests);
@@ -203,6 +205,13 @@ function ConfirmAndPayInner() {
 
   const serverEndDate = dateTo || dateFrom;
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
   const priceLabel = (() => {
     if (bookingType === "per_person") return `$${pricePerUnit} × ${unitsBooked} person(s)`;
     if (bookingType === "hourly" || bookingType === "per_hour") return `$${pricePerUnit} × ${unitsBooked} hour(s)`;
@@ -305,16 +314,28 @@ function ConfirmAndPayInner() {
               </div>
               <div className="flex flex-col gap-3">
                 {(pricingMode === "daily" || bookingType === "daily") ? (
-                  /* Daily — one row: "2026-06-22 12:00 AM – 2026-06-24 12:00 AM" */
+                  /* Daily — dates row + optional time row */
                   (dateFrom || serverEndDate) && (
-                    <div>
-                      <p className="text-sm font-bold text-gray-900 mb-0.5">Dates</p>
-                      <p className="text-sm text-gray-500">
-                        {dateFrom && serverEndDate && dateFrom !== serverEndDate
-                          ? `${dateFrom}${startTime ? ` ${formatTime(startTime)}` : ""} – ${serverEndDate}${startTime ? ` ${formatTime(startTime)}` : ""}`
-                          : `${dateFrom || serverEndDate}${startTime ? ` ${formatTime(startTime)}` : ""}`}
-                      </p>
-                    </div>
+                    <>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 mb-0.5">Dates</p>
+                        <p className="text-sm text-gray-500">
+                          {dateFrom && serverEndDate && dateFrom !== serverEndDate
+                            ? `${formatDate(dateFrom)} – ${formatDate(serverEndDate)}`
+                            : formatDate(dateFrom || serverEndDate)}
+                        </p>
+                      </div>
+                      {(startTime || endTime) && (
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 mb-0.5">Time</p>
+                          <p className="text-sm text-gray-500">
+                            {startTime && endTime && startTime !== endTime
+                              ? `${formatTime(startTime)} – ${formatTime(endTime)}`
+                              : formatTime(startTime || endTime)}
+                          </p>
+                        </div>
+                      )}
+                    </>
                   )
                 ) : (
                   /* Hourly / per-person — separate Dates + Time rows */
@@ -324,8 +345,8 @@ function ConfirmAndPayInner() {
                         <p className="text-sm font-bold text-gray-900 mb-0.5">Dates</p>
                         <p className="text-sm text-gray-500">
                           {dateFrom && serverEndDate && dateFrom !== serverEndDate
-                            ? `${dateFrom} – ${serverEndDate}`
-                            : dateFrom || serverEndDate}
+                            ? `${formatDate(dateFrom)} – ${formatDate(serverEndDate)}`
+                            : formatDate(dateFrom || serverEndDate)}
                         </p>
                       </div>
                     )}

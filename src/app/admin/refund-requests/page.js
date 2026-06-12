@@ -181,20 +181,20 @@ export default function AdminRefundRequestsPage() {
   const rejectModalOpen = !!rejectTarget;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto flex flex-col gap-5">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 2xl:p-8">
+      <div className="w-full flex flex-col gap-5">
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Refund Requests</h1>
+            <h1 className="text-2xl 2xl:text-3xl font-bold text-gray-900">Refund Requests</h1>
             {activeTab === "pending" && pagination.total > 0 && (
-              <p className="text-sm text-yellow-600 font-medium mt-0.5">{pagination.total} pending review</p>
+              <p className="text-sm 2xl:text-base text-yellow-600 font-medium mt-0.5">{pagination.total} pending review</p>
             )}
           </div>
           <button
             onClick={load}
-            className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-100 text-gray-600 font-medium transition-colors"
+            className="px-4 2xl:px-6 py-2 2xl:py-3 text-sm 2xl:text-base border border-gray-200 rounded-xl hover:bg-gray-100 text-gray-600 font-medium transition-colors"
           >
             Refresh
           </button>
@@ -236,7 +236,7 @@ export default function AdminRefundRequestsPage() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     {["Guest", "Host", "Booking Ref", "Amount", "Reason", "Submitted", "Status", "Actions"].map((h) => (
-                      <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                      <th key={h} className="px-5 2xl:px-8 py-3 2xl:py-5 text-left text-xs 2xl:text-sm font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {h}
                       </th>
                     ))}
@@ -258,65 +258,65 @@ export default function AdminRefundRequestsPage() {
                       <tr key={req.id} className="hover:bg-gray-50/60 transition-colors">
 
                         {/* Guest */}
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 2xl:px-8 py-3.5 2xl:py-5">
                           <div className="flex items-center gap-2.5">
                             {guestAvatar ? (
-                              <img src={guestAvatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-100" />
+                              <img src={guestAvatar} alt="" className="w-8 h-8 2xl:w-11 2xl:h-11 rounded-full object-cover shrink-0 border border-gray-100" />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-[#EBF6F6] text-[#4AA7A7] flex items-center justify-center text-xs font-bold shrink-0">
+                              <div className="w-8 h-8 2xl:w-11 2xl:h-11 rounded-full bg-[#EBF6F6] text-[#4AA7A7] flex items-center justify-center text-xs 2xl:text-sm font-bold shrink-0">
                                 {guestName?.[0]?.toUpperCase() || "G"}
                               </div>
                             )}
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-800 truncate max-w-30">{guestName}</p>
-                              {guestEmail && <p className="text-xs text-gray-400 truncate max-w-30">{guestEmail}</p>}
+                              <p className="text-sm 2xl:text-base font-semibold text-gray-800 truncate max-w-30 2xl:max-w-48">{guestName}</p>
+                              {guestEmail && <p className="text-xs 2xl:text-sm text-gray-400 truncate max-w-30 2xl:max-w-48">{guestEmail}</p>}
                             </div>
                           </div>
                         </td>
 
                         {/* Host */}
-                        <td className="px-5 py-3.5">
-                          <p className="text-sm font-semibold text-gray-800 truncate max-w-32.5">{hostName}</p>
-                          {hostEmail && <p className="text-xs text-gray-400 truncate max-w-32.5">{hostEmail}</p>}
+                        <td className="px-5 2xl:px-8 py-3.5 2xl:py-5">
+                          <p className="text-sm 2xl:text-base font-semibold text-gray-800 truncate max-w-32.5">{hostName}</p>
+                          {hostEmail && <p className="text-xs 2xl:text-sm text-gray-400 truncate max-w-32.5">{hostEmail}</p>}
                         </td>
 
                         {/* Booking Ref */}
-                        <td className="px-5 py-3.5">
-                          <p className="text-sm font-mono font-semibold text-gray-700">#{bookingRef}</p>
-                          {bookingTotal != null && <p className="text-xs text-gray-400">${bookingTotal} total</p>}
+                        <td className="px-5 2xl:px-8 py-3.5 2xl:py-5">
+                          <p className="text-sm 2xl:text-base font-mono font-semibold text-gray-700">#{bookingRef}</p>
+                          {bookingTotal != null && <p className="text-xs 2xl:text-sm text-gray-400">${bookingTotal} total</p>}
                         </td>
 
                         {/* Amount */}
-                        <td className="px-5 py-3.5 whitespace-nowrap">
-                          <p className="text-sm font-bold text-gray-900">
+                        <td className="px-5 2xl:px-8 py-3.5 2xl:py-5 whitespace-nowrap">
+                          <p className="text-sm 2xl:text-base font-bold text-gray-900">
                             {req.amount != null ? `$${Number(req.amount).toLocaleString()}` : "—"}
-                            {req.currency && <span className="text-xs font-normal text-gray-400 ml-1">{req.currency}</span>}
+                            {req.currency && <span className="text-xs 2xl:text-sm font-normal text-gray-400 ml-1">{req.currency}</span>}
                           </p>
                         </td>
 
                         {/* Reason */}
-                        <td className="px-5 py-3.5 max-w-40">
-                          <p className="text-sm text-gray-600 truncate" title={req.reason}>{req.reason || "—"}</p>
+                        <td className="px-5 2xl:px-8 py-3.5 2xl:py-5 max-w-40 2xl:max-w-64">
+                          <p className="text-sm 2xl:text-base text-gray-600 truncate" title={req.reason}>{req.reason || "—"}</p>
                         </td>
 
                         {/* Submitted */}
-                        <td className="px-5 py-3.5 whitespace-nowrap">
-                          <p className="text-sm text-gray-500">{formatDateTime(req.createdAt)}</p>
+                        <td className="px-5 2xl:px-8 py-3.5 2xl:py-5 whitespace-nowrap">
+                          <p className="text-sm 2xl:text-base text-gray-500">{formatDateTime(req.createdAt)}</p>
                         </td>
 
                         {/* Status */}
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 2xl:px-8 py-3.5 2xl:py-5">
                           <StatusBadge status={req.status} />
                         </td>
 
                         {/* Actions */}
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 2xl:px-8 py-3.5 2xl:py-5">
                           {isPending ? (
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleApprove(req.id)}
                                 disabled={isActing}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500 text-white text-xs font-bold hover:bg-green-600 disabled:opacity-50 transition-colors whitespace-nowrap"
+                                className="flex items-center gap-1.5 px-3 2xl:px-4 py-1.5 2xl:py-2 rounded-lg bg-green-500 text-white text-xs 2xl:text-sm font-bold hover:bg-green-600 disabled:opacity-50 transition-colors whitespace-nowrap"
                               >
                                 {isActing && acting?.type === "approve" ? (
                                   <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
@@ -333,7 +333,7 @@ export default function AdminRefundRequestsPage() {
                               <button
                                 onClick={() => setRejectTarget(req.id)}
                                 disabled={isActing}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-300 text-red-600 text-xs font-bold hover:bg-red-50 disabled:opacity-50 transition-colors whitespace-nowrap"
+                                className="flex items-center gap-1.5 px-3 2xl:px-4 py-1.5 2xl:py-2 rounded-lg border border-red-300 text-red-600 text-xs 2xl:text-sm font-bold hover:bg-red-50 disabled:opacity-50 transition-colors whitespace-nowrap"
                               >
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

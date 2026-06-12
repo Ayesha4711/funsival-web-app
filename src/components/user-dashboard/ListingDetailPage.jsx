@@ -589,7 +589,7 @@ function ActivityBookingCard({ listing, listingId }) {
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     const fields = {
       startDate: date, endDate: date, startTime, endTime, dateFrom: date, dateTo: date,
-      ...(isPerPerson ? { numberOfGuests: persons || 1, units, guests: `${persons || 1} guest` } : { units: 1 }),
+      ...(isPerPerson ? { numberOfGuests: Number(persons), units, guests: `${Number(persons)} guest${Number(persons) !== 1 ? "s" : ""}` } : { units: 1 }),
     };
     navigateToConfirm(fields, SKEY);
   };
@@ -753,7 +753,8 @@ function PlacesBookingCard({ listing, listingId }) {
       pricingMode: mode,
       startDate: from, endDate: to, startTime,
       endTime: resolvedEndTime,
-      numberOfGuests: guests || 1, units: span, dateFrom: from, dateTo: to, guests: `${guests || 1} guest`,
+      units: span, dateFrom: from, dateTo: to,
+      ...(guests ? { numberOfGuests: Number(guests), guests: `${Number(guests)} guest${Number(guests) !== 1 ? "s" : ""}` } : {}),
       pricePerUnit: String(modePrice),
     }, SKEY);
   };
@@ -958,9 +959,8 @@ function EquipmentBookingCard({ listing, listingId }) {
       pricingMode: mode,
       startDate: from, endDate: to, startTime,
       endTime: resolvedEndTime,
-      numberOfGuests: guests || 1,
       units: span, dateFrom: from, dateTo: to,
-      guests: `${guests || 1} guest`,
+      ...(guests ? { numberOfGuests: Number(guests), guests: `${Number(guests)} guest${Number(guests) !== 1 ? "s" : ""}` } : {}),
       pricePerUnit: String(modePrice),
     }, SKEY);
   };
