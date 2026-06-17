@@ -97,20 +97,42 @@ export function DropdownField({
 }) {
   const [open, setOpen] = useState(false);
   const [typedValue, setTypedValue] = useState("");
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef(null);
+  const menuRef = useRef(null);
   const inputRef = useRef(null);
 
-  useLockBodyScroll(open);
+  const computeMenuPos = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const menuHeight = Math.min(options.length * 42 + 8, 248);
+    const openUp = spaceBelow < menuHeight + 8 && rect.top > menuHeight + 8;
+    setMenuPos({
+      top: openUp ? rect.top - menuHeight - 4 : rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+      openUp,
+    });
+  }, [options.length]);
 
   useEffect(() => {
     if (!open) return;
     function handleMouseDown(event) {
       const inTrigger = triggerRef.current?.contains(event.target);
-      if (!inTrigger) closeDropdown();
+      const inMenu = menuRef.current?.contains(event.target);
+      if (!inTrigger && !inMenu) closeDropdown();
     }
+    function handleScroll() { computeMenuPos(); }
     document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", computeMenuPos);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", computeMenuPos);
+    };
+  }, [open, computeMenuPos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (open && allowTyping) setTimeout(() => inputRef.current?.focus(), 0);
@@ -127,7 +149,7 @@ export function DropdownField({
     : options;
 
   // When closing with a typed value: normalize to HH:MM and commit
-  const closeDropdown = () => {
+  const closeDropdown = useCallback(() => {
     if (allowTyping && typedValue) {
       const normalized = normalizeTimeInput(typedValue);
       if (normalized && normalized !== value) onChange(normalized);
@@ -138,7 +160,7 @@ export function DropdownField({
       }
     }
     setOpen(false);
-  };
+  }, [allowTyping, typedValue, value, onChange, options]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTypedChange = (e) => {
     setTypedValue(e.target.value);
@@ -152,8 +174,52 @@ export function DropdownField({
   const toggle = () => {
     if (open) { closeDropdown(); return; }
     if (allowTyping) setTypedValue(displayLabel || "");
+    computeMenuPos();
     setOpen(true);
   };
+
+  const portalMenu = open && !disabled && typeof document !== "undefined" && createPortal(
+    <div
+      ref={menuRef}
+      style={{
+        position: "fixed",
+        top: menuPos.top,
+        left: menuPos.left,
+        width: menuPos.width,
+        zIndex: 99999,
+      }}
+      className={`rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden ${menuClassName}`}
+    >
+      <div className="max-h-60 overflow-y-auto py-1">
+        {filteredOptions.length > 0 ? filteredOptions.map((option) => {
+          const active = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(option.value);
+                setTypedValue(option.label);
+                setOpen(false);
+              }}
+              className={[
+                "w-full px-4 py-2.5 text-left text-sm transition-colors",
+                active
+                  ? "bg-[var(--color-primary-light)] text-[var(--color-primary)] font-semibold"
+                  : "text-gray-600 hover:bg-gray-50",
+              ].join(" ")}
+            >
+              {option.label}
+            </button>
+          );
+        }) : (
+          <p className="px-4 py-3 text-sm text-gray-400">No options found</p>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
 
   return (
     <div ref={triggerRef} className={`relative ${className}`}>
@@ -180,7 +246,10 @@ export function DropdownField({
               value={typedValue}
               onChange={handleTypedChange}
               onKeyDown={handleTypedKeyDown}
-              onBlur={closeDropdown}
+              onBlur={(e) => {
+                if (menuRef.current?.contains(e.relatedTarget)) return;
+                closeDropdown();
+              }}
               placeholder={splitDisplay ? "e.g. 2:30 PM" : placeholder}
               className="flex-1 min-w-0 text-sm font-bold text-gray-800 placeholder:text-gray-400 placeholder:font-normal focus:outline-none bg-transparent text-right"
             />
@@ -218,47 +287,7 @@ export function DropdownField({
         </button>
       </div>
 
-      {open && !disabled && typeof document !== "undefined" && createPortal(
-        <button
-          type="button"
-          aria-label="Close dropdown"
-          className="fixed inset-0 z-[9998] cursor-default bg-transparent"
-          onMouseDown={(e) => { e.preventDefault(); closeDropdown(); }}
-        />,
-        document.body
-      )}
-
-      {open && !disabled && (
-        <div className={`absolute left-0 right-0 top-full mt-2 z-[9999] rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden ${menuClassName}`}>
-          <div className="max-h-60 overflow-y-auto py-1">
-            {filteredOptions.length > 0 ? filteredOptions.map((option) => {
-              const active = option.value === value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    onChange(option.value);
-                    setTypedValue(option.label);
-                    setOpen(false);
-                  }}
-                  className={[
-                    "w-full px-4 py-2.5 text-left text-sm transition-colors",
-                    active
-                      ? "bg-[var(--color-primary-light)] text-[var(--color-primary)] font-semibold"
-                      : "text-gray-600 hover:bg-gray-50",
-                  ].join(" ")}
-                >
-                  {option.label}
-                </button>
-              );
-            }) : (
-              <p className="px-4 py-3 text-sm text-gray-400">No options found</p>
-            )}
-          </div>
-        </div>
-      )}
+      {portalMenu}
     </div>
   );
 }

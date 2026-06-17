@@ -332,9 +332,9 @@ export default function ReservationsPage() {
         {status === "succeeded" && filteredRows.length === 0 && <EmptyState />}
 
         {status === "succeeded" && filteredRows.length > 0 && (
-          <div className="mt-4 flex-1 min-h-0 overflow-hidden">
+          <div className="mt-4">
             {/* Table: iPad (md) and up */}
-            <div className="hidden md:block h-full">
+            <div className="hidden md:block">
               <ReservationTable
                 data={filteredRows}
                 activeTab={activeTab}
