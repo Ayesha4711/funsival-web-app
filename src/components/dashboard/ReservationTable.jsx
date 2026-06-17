@@ -19,11 +19,13 @@ function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
   const computePos = useCallback(() => {
     if (!btnRef.current) return;
     const rect = btnRef.current.getBoundingClientRect();
+    const menuW = 180;
     const itemCount = (isActionNeeded ? 2 : 0) + 1 + (isUpcoming || isActionNeeded ? 1 : 0);
     const menuH = itemCount * 44 + 12;
     const spaceBelow = window.innerHeight - rect.bottom;
     const top = spaceBelow < menuH + 8 ? rect.top - menuH - 4 : rect.bottom + 4;
-    setMenuPos({ top, left: rect.right - 180 });
+    const left = Math.min(Math.max(rect.right - menuW, 8), window.innerWidth - menuW - 8);
+    setMenuPos({ top, left });
   }, [isActionNeeded, isUpcoming]);
 
   const handleOpen = () => { computePos(); setOpen(v => !v); };
@@ -46,7 +48,7 @@ function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
   const menu = open && (
     <div
       ref={menuRef}
-      style={{ position: "fixed", top: menuPos.top, left: menuPos.left, zIndex: 9999, minWidth: 180 }}
+      style={{ position: "fixed", top: menuPos.top, left: menuPos.left, zIndex: 9999, width: 180 }}
       className="bg-white border border-gray-200 rounded-2xl py-1.5 shadow-lg"
     >
       {isActionNeeded && (
