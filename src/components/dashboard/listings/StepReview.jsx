@@ -25,11 +25,11 @@ function FieldLabel({ children }) {
     <p
       className="mb-1"
       style={{
-        fontFamily: "Sofia Pro, sans-serif",
+        fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif",
         fontWeight: 500,
         fontSize: "14px",
         lineHeight: "100%",
-        letterSpacing: "0%",
+        letterSpacing: "0",
         color: "#212121",
       }}
     >
@@ -43,11 +43,11 @@ function FieldValue({ children, className = "", ...props }) {
     <p
       className={className}
       style={{
-        fontFamily: "Sofia Pro, sans-serif",
+        fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif",
         fontWeight: 400,
         fontSize: "13px",
         lineHeight: "100%",
-        letterSpacing: "0%",
+        letterSpacing: "0",
         color: "#4A4A4A",
       }}
       {...props}
@@ -112,9 +112,10 @@ export default function StepReview({
   }, [submitError, fieldErrors]);
 
   const title = details.title || "—";
-  const location = details.addressLine1
-    ? [details.addressLine1, details.placeCity, details.state, details.country].filter(Boolean).join(", ")
-    : details.location || "—";
+  const location = [details.placeCity, details.state, details.country].filter(Boolean).join(", ")
+    || details.addressLine1
+    || details.location
+    || "—";
   const description = details.description || "—";
   const difficulty = details.difficulty || "—";
   const duration = details.duration || "—";

@@ -66,7 +66,8 @@ export default function ListingsTable({
 }) {
   return (
     <div className="flex flex-col flex-1 justify-between">
-      <div className="overflow-x-auto rounded-2xl" style={{ border: "1px solid rgba(224,224,224,1)" }}>
+      <div className="rounded-2xl" style={{ border: "1px solid rgba(224,224,224,1)", overflow: "visible", minHeight: 596 }}>
+        <div style={{ overflowX: "auto", overflowY: "auto" }}>
         <table className="w-full text-left border-collapse min-w-[700px]">
           <thead>
             <tr className="bg-[#F8F9FA]" style={{ borderBottom: "2px solid rgba(224,224,224,1)" }}>
@@ -163,6 +164,7 @@ export default function ListingsTable({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pagination */}

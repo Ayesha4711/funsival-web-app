@@ -88,15 +88,6 @@ export default function EarningsStats() {
             <p className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-[var(--color-primary)] mb-1 leading-tight">Feb 15, 2024</p>
             <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] leading-tight">Scheduled payout date</p>
           </div>
-          {isOnboarded && (
-            <button
-              onClick={handleOpenStripeDashboard}
-              disabled={loginLinkLoading}
-              className="flex items-center justify-center gap-1 w-full py-1.5 sm:py-2 border border-[#4AA7A7] text-[#4AA7A7] text-[10px] sm:text-xs lg:text-sm font-semibold rounded-full hover:bg-[#4AA7A7] hover:text-white transition-colors disabled:opacity-50"
-            >
-              {loginLinkLoading ? "Opening…" : "Stripe Dashboard"}
-            </button>
-          )}
         </div>
       </div>
     </div>

@@ -31,7 +31,7 @@ function Toggle({ checked, onChange }) {
 
 function CurrencyInput({ value, onChange, suffix, placeholder = "0.00" }) {
   return (
-    <div className="flex items-center bg-[#F5F5F5] rounded-xl overflow-hidden border border-transparent focus-within:border-[var(--color-primary)] transition-colors min-h-14">
+    <div className="flex items-center bg-white rounded-xl overflow-hidden border border-[#C7E4E2] focus-within:border-[var(--color-primary)] transition-colors min-h-14">
       <span className="pl-4 pr-2 text-gray-400 font-bold text-base select-none">$</span>
       <input
         type="number"
