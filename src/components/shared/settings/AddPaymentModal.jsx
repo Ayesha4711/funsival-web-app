@@ -7,8 +7,8 @@ import { Elements, CardElement, useStripe, useElements } from "@stripe/react-str
 import { toast } from "sonner";
 import {
   createSetupIntent,
-  saveCard,
   fetchSavedCards,
+  setDefaultCard,
   selectSetupIntentLoading,
 } from "@/store/slices/paymentsSlice";
 import { CreditCardIcon, CloseIcon as XIcon, SpinnerIcon } from "@/icons";
@@ -66,9 +66,11 @@ function AddPaymentModalInner({ onClose, onSuccess }) {
 
       if (setupIntent.status === "succeeded") {
         const pmId = setupIntent.payment_method;
-        // Register the PM with the backend so it appears in saved cards
-        await dispatch(saveCard({ paymentMethodId: pmId, setAsDefault: setDefault })).unwrap();
+        // Stripe has already attached the PM to the customer — just refresh the list
         await dispatch(fetchSavedCards());
+        if (setDefault && pmId) {
+          await dispatch(setDefaultCard(pmId));
+        }
         toast.success("Card added successfully.");
         onSuccess?.(pmId, setDefault);
         onClose();

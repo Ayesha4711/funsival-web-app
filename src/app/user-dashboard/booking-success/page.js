@@ -8,52 +8,59 @@ import { fetchBooking } from "@/store/slices/bookingsSlice";
 import AppFooter from "@/components/shared/AppFooter";
 import { ArrowRightIcon, MessageIcon as ChatIcon, SpinnerIcon } from "@/icons";
 
-const POLL_INTERVAL_MS = 3000;
-const MAX_POLLS = 20; // ~60 seconds
+const SETTLED_STATUSES = ["authorized", "held", "released", "refunded", "auth_released", "failed"];
+const MAX_POLLS = 10;          // hard cap — ~30 s total worst-case
+const BASE_INTERVAL_MS = 2000; // first retry after 2 s, then 4 s, 4 s, …
+const MAX_INTERVAL_MS  = 4000;
 
 export default function BookingSuccessPage() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const dispatch     = useDispatch();
 
-  const bookingId  = searchParams.get("bookingId") || searchParams.get("BOOKING_ID");
+  const bookingId   = searchParams.get("bookingId") || searchParams.get("BOOKING_ID");
   const recipientId = searchParams.get("recipientId");
   const listingId   = searchParams.get("listingId");
 
-  const [bookingStatus, setBookingStatus]   = useState(null);
-  const [paymentStatus, setPaymentStatus]   = useState(null);
-  const [polling, setPolling]               = useState(!!bookingId);
-  const pollCount = useRef(0);
-  const active    = useRef(false);
+  const [bookingStatus, setBookingStatus] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [polling, setPolling]             = useState(!!bookingId);
+
+  const timerRef    = useRef(null);
+  const pollCount   = useRef(0);
+  const destroyed   = useRef(false);
 
   useEffect(() => {
     if (!bookingId) { setPolling(false); return; }
-    if (active.current) return;
-    active.current = true;
+    destroyed.current = false;
 
-    let timer;
     const poll = async () => {
+      if (destroyed.current) return;
       try {
         const result = await dispatch(fetchBooking(bookingId)).unwrap();
-        const bStatus = result?.data?.status       ?? result?.status;
+        if (destroyed.current) return;
+        const bStatus = result?.data?.status        ?? result?.status;
         const pStatus = result?.data?.paymentStatus ?? result?.paymentStatus;
         setBookingStatus(bStatus);
         setPaymentStatus(pStatus);
 
-        // Stop polling once we know the card is authorized or beyond
-        const settled = ["authorized", "held", "released", "refunded",
-                         "auth_released", "failed"].includes(pStatus);
-        if (settled) { setPolling(false); return; }
+        if (SETTLED_STATUSES.includes(pStatus)) { setPolling(false); return; }
       } catch {
-        // keep polling on transient errors
+        // keep trying on transient errors
       }
+
       pollCount.current += 1;
       if (pollCount.current >= MAX_POLLS) { setPolling(false); return; }
-      timer = setTimeout(poll, POLL_INTERVAL_MS);
+
+      const delay = Math.min(BASE_INTERVAL_MS * Math.pow(1.5, pollCount.current - 1), MAX_INTERVAL_MS);
+      timerRef.current = setTimeout(poll, delay);
     };
 
     poll();
-    return () => clearTimeout(timer);
+    return () => {
+      destroyed.current = true;
+      clearTimeout(timerRef.current);
+    };
   }, [bookingId, dispatch]);
 
   const handleChatWithProvider = () => {

@@ -15,17 +15,6 @@ export const createSetupIntent = createAsyncThunk(
   }
 );
 
-export const saveCard = createAsyncThunk(
-  "payments/saveCard",
-  async ({ paymentMethodId, setAsDefault = false }, { rejectWithValue }) => {
-    try {
-      const { data } = await axiosInstance.post("/payments/cards", { paymentMethodId, setAsDefault });
-      return data;
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message ?? err.message);
-    }
-  }
-);
 
 export const fetchSavedCards = createAsyncThunk(
   "payments/fetchSavedCards",
@@ -238,11 +227,6 @@ const paymentsSlice = createSlice({
       .addCase(createSetupIntent.rejected, (state) => {
         state.setupIntentLoading = false;
       })
-
-      // saveCard
-      .addCase(saveCard.pending, (state) => { state.setupIntentLoading = true; })
-      .addCase(saveCard.fulfilled, (state) => { state.setupIntentLoading = false; })
-      .addCase(saveCard.rejected, (state) => { state.setupIntentLoading = false; })
 
       // fetchSavedCards
       .addCase(fetchSavedCards.pending, (state) => {
