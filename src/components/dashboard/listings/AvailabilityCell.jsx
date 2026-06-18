@@ -1,7 +1,14 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React from "react";
+import { createPortal } from "react-dom";
 import { CalendarIcon, ChevronDownIcon } from "@/icons";
+import useDropdownPosition from "@/hooks/useDropdownPosition";
+
+const PANEL_WIDTH  = 224; // w-56
+const HEADER_HEIGHT = 36;
+const ROW_HEIGHT    = 50;
+const LIST_MAX_HEIGHT = 256; // max-h-64
 
 function formatSlotDay(raw) {
   if (!raw) return "—";
@@ -29,16 +36,14 @@ function formatTime(t) {
 }
 
 export default function AvailabilityCell({ slots = [] }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  const getHeight = React.useCallback(
+    () => HEADER_HEIGHT + Math.min(slots.length * ROW_HEIGHT, LIST_MAX_HEIGHT),
+    [slots.length]
+  );
+  const { open, toggle, pos, btnRef, menuRef } = useDropdownPosition({
+    width: PANEL_WIDTH,
+    getHeight,
+  });
 
   if (!slots.length) return <span className="text-gray-300 text-xs">—</span>;
 
@@ -79,10 +84,34 @@ export default function AvailabilityCell({ slots = [] }) {
     );
   }
 
+  const panel = open && (
+    <div
+      ref={menuRef}
+      style={{
+        position: "fixed",
+        top:      pos.top,
+        left:     pos.left,
+        zIndex:   9999,
+        width:    PANEL_WIDTH,
+      }}
+      className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden"
+    >
+      <div className="px-4 py-2.5 border-b border-gray-50 bg-gray-50/60">
+        <p className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wide">
+          {slots.length} Availability Slots
+        </p>
+      </div>
+      <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
+        {slots.map((slot, i) => renderSlotRow(slot, i))}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={btnRef}
+        onClick={toggle}
         className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[var(--color-primary-light)] border border-[var(--color-primary)]/20 rounded-lg text-[10px] font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors"
       >
         <CalendarIcon />
@@ -90,18 +119,7 @@ export default function AvailabilityCell({ slots = [] }) {
         <ChevronDownIcon size={9} />
       </button>
 
-      {open && (
-        <div className="absolute left-0 top-full mt-2 z-40 bg-white rounded-2xl border border-gray-100 w-56 overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-gray-50 bg-gray-50/60">
-            <p className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wide">
-              {slots.length} Availability Slots
-            </p>
-          </div>
-          <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
-            {slots.map((slot, i) => renderSlotRow(slot, i))}
-          </div>
-        </div>
-      )}
+      {typeof document !== "undefined" && createPortal(panel, document.body)}
     </div>
   );
 }
