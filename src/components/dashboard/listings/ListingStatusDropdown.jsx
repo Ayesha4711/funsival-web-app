@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React from "react";
+import { createPortal } from "react-dom";
 import { ChevronDownIcon } from "@/icons";
+import useDropdownPosition from "@/hooks/useDropdownPosition";
 
 export const STATUS_OPTIONS = ["Draft", "Active", "Inactive"];
 
@@ -20,21 +22,19 @@ export const STATUS_STYLES = {
   },
 };
 
+const MENU_WIDTH  = 110;
+const MENU_HEIGHT = 88; // approx for 2 options
+
 /**
  * Inline status pill that opens a dropdown to switch between Active / Inactive.
  * Draft status is read-only (no dropdown).
  */
 export default function ListingStatusDropdown({ status, onStatusChange }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  const getHeight = React.useCallback(() => MENU_HEIGHT, []);
+  const { open, toggle, close, pos, btnRef, menuRef } = useDropdownPosition({
+    width: MENU_WIDTH,
+    getHeight,
+  });
 
   const styles = STATUS_STYLES[status] ?? {
     pill: "bg-gray-100 text-gray-400 border-gray-200",
@@ -52,10 +52,43 @@ export default function ListingStatusDropdown({ status, onStatusChange }) {
     );
   }
 
+  const menu = open && (
+    <div
+      ref={menuRef}
+      style={{
+        position: "fixed",
+        top:      pos.top,
+        left:     pos.left,
+        zIndex:   9999,
+        minWidth: MENU_WIDTH,
+      }}
+      className="bg-white rounded-xl border border-gray-100 py-1 shadow-lg"
+    >
+      {STATUS_OPTIONS.filter((opt) =>
+        status === "Draft" ? opt === "Draft" : opt !== "Draft"
+      ).map((opt) => {
+        const s = STATUS_STYLES[opt];
+        return (
+          <button
+            key={opt}
+            onClick={() => { onStatusChange(opt); close(); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors hover:bg-gray-50 ${opt === status ? "opacity-100" : "opacity-60"}`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+            <span className={s.pill.split(" ").find((c) => c.startsWith("text-"))}>
+              {opt}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={btnRef}
+        onClick={toggle}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[10px] font-bold whitespace-nowrap transition-colors ${styles.pill}`}
       >
         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${styles.dot}`} />
@@ -63,27 +96,7 @@ export default function ListingStatusDropdown({ status, onStatusChange }) {
         <ChevronDownIcon size={9} />
       </button>
 
-      {open && (
-        <div className="absolute left-0 top-9 z-30 bg-white rounded-xl border border-gray-100 py-1 min-w-[110px]">
-          {STATUS_OPTIONS.filter((opt) =>
-            status === "Draft" ? opt === "Draft" : opt !== "Draft"
-          ).map((opt) => {
-            const s = STATUS_STYLES[opt];
-            return (
-              <button
-                key={opt}
-                onClick={() => { onStatusChange(opt); setOpen(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors hover:bg-gray-50 ${opt === status ? "opacity-100" : "opacity-60"}`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                <span className={s.pill.split(" ").find((c) => c.startsWith("text-"))}>
-                  {opt}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {typeof document !== "undefined" && createPortal(menu, document.body)}
     </div>
   );
 }

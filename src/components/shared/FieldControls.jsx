@@ -6,6 +6,19 @@ import CustomCalendar from "@/components/shared/CustomCalendar";
 import { ChevronDownIcon, CalendarIcon, PlusIcon } from "@/icons";
 export { ChevronDownIcon, CalendarIcon };
 
+// Only one FieldControls dropdown/calendar should be open at a time. Each
+// instance registers its own close fn here on open, and any instance opening
+// evicts whatever was previously registered — so a panel can never get
+// orphaned open behind a newly-opened one.
+let activeCloser = null;
+function claimActiveDropdown(close) {
+  if (activeCloser && activeCloser !== close) activeCloser();
+  activeCloser = close;
+}
+function releaseActiveDropdown(close) {
+  if (activeCloser === close) activeCloser = null;
+}
+
 function useOutsideClose(onClose) {
   const ref = useRef(null);
   useEffect(() => {
@@ -18,16 +31,34 @@ function useOutsideClose(onClose) {
   return ref;
 }
 
-function useLockBodyScroll(open) {
+/**
+ * Locks page scroll while open, including the inner scrollable dashboard
+ * container (which isn't `body`), so an open menu never has to track scroll
+ * movement. `allowRef` lets scrolling continue inside the menu itself
+ * (e.g. a long options list).
+ */
+function useLockBodyScroll(open, allowRef) {
   useEffect(() => {
     if (!open) return;
 
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const { body } = document;
+    const previous = body.style.overflow;
+    body.style.overflow = "hidden";
+
+    function blockScroll(e) {
+      if (allowRef?.current && allowRef.current.contains(e.target)) return;
+      e.preventDefault();
+    }
+    const opts = { passive: false };
+    document.addEventListener("wheel", blockScroll, opts);
+    document.addEventListener("touchmove", blockScroll, opts);
+
     return () => {
-      document.body.style.overflow = previous;
+      body.style.overflow = previous;
+      document.removeEventListener("wheel", blockScroll, opts);
+      document.removeEventListener("touchmove", blockScroll, opts);
     };
-  }, [open]);
+  }, [open, allowRef]);
 }
 
 /**
@@ -102,11 +133,15 @@ export function DropdownField({
   const menuRef = useRef(null);
   const inputRef = useRef(null);
 
+  const filteredOptions = allowTyping && typedValue
+    ? options.filter(o => o.label.toLowerCase().includes(typedValue.toLowerCase()))
+    : options;
+
   const computeMenuPos = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
-    const menuHeight = Math.min(options.length * 42 + 8, 248);
+    const menuHeight = Math.min(Math.max(filteredOptions.length, 1) * 42 + 8, 248);
     const openUp = spaceBelow < menuHeight + 8 && rect.top > menuHeight + 8;
     setMenuPos({
       top: openUp ? rect.top - menuHeight - 4 : rect.bottom + 4,
@@ -114,39 +149,7 @@ export function DropdownField({
       width: rect.width,
       openUp,
     });
-  }, [options.length]);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleMouseDown(event) {
-      const inTrigger = triggerRef.current?.contains(event.target);
-      const inMenu = menuRef.current?.contains(event.target);
-      if (!inTrigger && !inMenu) closeDropdown();
-    }
-    function handleScroll() { computeMenuPos(); }
-    document.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("scroll", handleScroll, true);
-    window.addEventListener("resize", computeMenuPos);
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("scroll", handleScroll, true);
-      window.removeEventListener("resize", computeMenuPos);
-    };
-  }, [open, computeMenuPos]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (open && allowTyping) setTimeout(() => inputRef.current?.focus(), 0);
-  }, [open, allowTyping]);
-
-  const selected = options.find((option) => option.value === value);
-
-  // For split display: resolve what to show on the right side
-  // — from options list OR from a normalized typed HH:MM value
-  const displayLabel = selected?.label || (value ? formatTimeDisplay(value) : "");
-
-  const filteredOptions = allowTyping && typedValue
-    ? options.filter(o => o.label.toLowerCase().includes(typedValue.toLowerCase()))
-    : options;
+  }, [filteredOptions.length]);
 
   // When closing with a typed value: normalize to HH:MM and commit
   const closeDropdown = useCallback(() => {
@@ -160,7 +163,61 @@ export function DropdownField({
       }
     }
     setOpen(false);
-  }, [allowTyping, typedValue, value, onChange, options]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [allowTyping, typedValue, value, onChange, options]);
+
+  const closeDropdownRef = useRef(closeDropdown);
+  useEffect(() => {
+    closeDropdownRef.current = closeDropdown;
+  }, [closeDropdown]);
+
+  useEffect(() => {
+    if (!open) return;
+    const closer = () => closeDropdownRef.current();
+    claimActiveDropdown(closer);
+    return () => releaseActiveDropdown(closer);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleMouseDown(event) {
+      const inTrigger = triggerRef.current?.contains(event.target);
+      const inMenu = menuRef.current?.contains(event.target);
+      if (!inTrigger && !inMenu) closeDropdown();
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("resize", computeMenuPos);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("resize", computeMenuPos);
+    };
+  }, [open, computeMenuPos, closeDropdown]);
+
+  // Scroll is locked while open, but anything that can still move the
+  // trigger (focus-into-view, layout shifts from sibling fields) should
+  // not leave the menu stranded — keep it glued via rAF instead of trying
+  // to enumerate every possible cause.
+  useEffect(() => {
+    if (!open) return;
+    let frame;
+    function tick() {
+      computeMenuPos();
+      frame = requestAnimationFrame(tick);
+    }
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [open, computeMenuPos]);
+
+  useLockBodyScroll(open, menuRef);
+
+  useEffect(() => {
+    if (open && allowTyping) setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0);
+  }, [open, allowTyping]);
+
+  const selected = options.find((option) => option.value === value);
+
+  // For split display: resolve what to show on the right side
+  // — from options list OR from a normalized typed HH:MM value
+  const displayLabel = selected?.label || (value ? formatTimeDisplay(value) : "");
 
   const handleTypedChange = (e) => {
     setTypedValue(e.target.value);
@@ -492,7 +549,14 @@ export function CalendarField({ value, placeholder = "Select date", onChange, al
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
-  useLockBodyScroll(open);
+  useLockBodyScroll(open, containerRef);
+
+  useEffect(() => {
+    if (!open) return;
+    const closer = () => setOpen(false);
+    claimActiveDropdown(closer);
+    return () => releaseActiveDropdown(closer);
+  }, [open]);
 
   // Close on outside click — but only if the click is outside the whole container
   useEffect(() => {

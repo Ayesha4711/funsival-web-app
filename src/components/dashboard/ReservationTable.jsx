@@ -1,66 +1,46 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useCallback } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
 import { MoreHorizIcon, CheckCircleIcon, ClockIcon, RefundIcon, MapPinIcon } from "@/icons";
+import useDropdownPosition from "@/hooks/useDropdownPosition";
+
+const MENU_WIDTH = 180;
 
 /* ─── Action Dropdown — portal-based so it escapes overflow/scroll clipping ── */
 function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
-  const [open, setOpen]       = useState(false);
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
-  const btnRef  = useRef(null);
-  const menuRef = useRef(null);
-
   const isActionNeeded = item.status === "Action Needed";
   const isUpcoming     = item.status === "Upcoming";
 
-  const computePos = useCallback(() => {
-    if (!btnRef.current) return;
-    const rect = btnRef.current.getBoundingClientRect();
-    const menuW = 180;
+  const getHeight = useCallback(() => {
     const itemCount = (isActionNeeded ? 2 : 0) + 1 + (isUpcoming || isActionNeeded ? 1 : 0);
-    const menuH = itemCount * 44 + 12;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const top = spaceBelow < menuH + 8 ? rect.top - menuH - 4 : rect.bottom + 4;
-    const left = Math.min(Math.max(rect.right - menuW, 8), window.innerWidth - menuW - 8);
-    setMenuPos({ top, left });
+    return itemCount * 44 + 12;
   }, [isActionNeeded, isUpcoming]);
 
-  const handleOpen = () => { computePos(); setOpen(v => !v); };
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e) => {
-      if (btnRef.current?.contains(e.target) || menuRef.current?.contains(e.target)) return;
-      setOpen(false);
-    };
-    const onScroll = () => computePos();
-    document.addEventListener("mousedown", onDown);
-    window.addEventListener("scroll", onScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      window.removeEventListener("scroll", onScroll, true);
-    };
-  }, [open, computePos]);
+  const { open, toggle, close, pos, btnRef, menuRef } = useDropdownPosition({
+    width: MENU_WIDTH,
+    getHeight,
+    align: "right",
+  });
 
   const menu = open && (
     <div
       ref={menuRef}
-      style={{ position: "fixed", top: menuPos.top, left: menuPos.left, zIndex: 9999, width: 180 }}
+      style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999, width: MENU_WIDTH }}
       className="bg-white border border-gray-200 rounded-2xl py-1.5 shadow-lg"
     >
       {isActionNeeded && (
         <>
           <button
-            onClick={() => { setOpen(false); onAccept?.(item); }}
+            onClick={() => { close(); onAccept?.(item); }}
             className="w-full text-left px-4 py-2.5 text-sm font-semibold text-green-600 hover:bg-green-50 transition-colors"
           >
             ✓ Accept Booking
           </button>
           <button
-            onClick={() => { setOpen(false); onDecline?.(item); }}
+            onClick={() => { close(); onDecline?.(item); }}
             className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
           >
             ✕ Decline
@@ -68,14 +48,14 @@ function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
         </>
       )}
       <button
-        onClick={() => { setOpen(false); onViewDetails(item); }}
+        onClick={() => { close(); onViewDetails(item); }}
         className="w-full text-left px-4 py-2.5 text-sm font-medium text-[var(--color-text)] hover:bg-gray-50 transition-colors"
       >
         View Details
       </button>
       {(isUpcoming || isActionNeeded) && (
         <button
-          onClick={() => { setOpen(false); onCancel(item); }}
+          onClick={() => { close(); onCancel(item); }}
           className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
         >
           Cancel
@@ -88,7 +68,7 @@ function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
     <div className="flex justify-center">
       <button
         ref={btnRef}
-        onClick={handleOpen}
+        onClick={toggle}
         className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
       >
         <MoreHorizIcon />
