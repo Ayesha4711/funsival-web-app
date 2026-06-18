@@ -613,7 +613,7 @@ function buildPayload(data) {
   const recurringAvailability = buildRecurringAvailability();
   const availability =
     details.availabilityType === "recurring"
-      ? (recurringAvailability.length > 0 ? recurringAvailability : oneTimeAvailability)
+      ? recurringAvailability
       : details.availabilityType === "one_time"
         ? oneTimeAvailability
         : (oneTimeAvailability.length > 0 ? oneTimeAvailability : recurringAvailability);
@@ -700,9 +700,13 @@ export default function AddListingWizard() {
   const [fieldErrors, setFieldErrors] = useState(null);
   const [draftLoading, setDraftLoading] = useState(true);
   const [draftSaving, setDraftSaving] = useState(false);
+  const didInitRef = React.useRef(false);
 
   // On mount: fetch existing draft and resume from saved step
   useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+
     const normalizeSlots = (slots) =>
       Array.isArray(slots)
         ? slots.map((slot) => (
@@ -713,6 +717,12 @@ export default function AddListingWizard() {
         : slots;
 
     if (isFreshCreate) {
+      // Clear any previously abandoned draft so this explicit "new listing" click
+      // starts blank, then drop ?mode=new from the URL — otherwise a refresh on
+      // step 2+ would re-enter this branch and wipe out the draft we're about to save.
+      dispatch(deleteDraft());
+      try { localStorage.removeItem("listing_draft_local"); } catch { /* ignore */ }
+      router.replace("/dashboard/listings/add");
       const blank = {
         category: "",
         type: "",
@@ -764,6 +774,7 @@ export default function AddListingWizard() {
       setDraftLoading(false);
     }
     loadDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFreshCreate, dispatch]);
 
   // Save draft after every step advance (fire-and-forget, no blocking UX)
@@ -979,7 +990,7 @@ export default function AddListingWizard() {
         const res = await dispatch(startConnectOnboarding(payload)).unwrap();
         const url = res?.data?.url ?? res?.url;
         if (url) {
-          window.location.href = url;
+          window.open(url, "_blank", "noopener,noreferrer");
         } else {
           toast.error("Could not start Stripe onboarding. Please try again.");
         }

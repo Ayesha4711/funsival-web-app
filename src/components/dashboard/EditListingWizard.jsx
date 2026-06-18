@@ -545,7 +545,7 @@ function buildPayload(data) {
   const recurringAvailability = buildRecurringAvailability();
   const availability =
     details.availabilityType === "recurring"
-      ? (recurringAvailability.length > 0 ? recurringAvailability : oneTimeAvailability)
+      ? recurringAvailability
       : details.availabilityType === "one_time"
         ? oneTimeAvailability
         : (oneTimeAvailability.length > 0 ? oneTimeAvailability : recurringAvailability);
