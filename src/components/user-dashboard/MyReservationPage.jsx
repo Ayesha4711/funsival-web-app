@@ -621,7 +621,8 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
           {booking.status !== "completed" && canCancel(booking) && (
             <button
               onClick={() => onCancel(booking)}
-              className="px-6 py-2.5 border-2 border-[#E25C5C] text-[#E25C5C] font-semibold rounded-full text-sm hover:bg-[#FEB538]/10 transition-colors whitespace-nowrap"
+              style={{ width: 188 }}
+              className="py-2.5 border-2 border-[#E25C5C] text-[#E25C5C] font-semibold rounded-full text-sm hover:bg-[#FEB538]/10 transition-colors whitespace-nowrap flex items-center justify-center"
             >
               Cancel Reservation
             </button>
@@ -629,7 +630,8 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
           {booking.status !== "completed" && canRequestRefund(booking) && !refundRequest && (
             <button
               onClick={() => onRequestRefund(booking)}
-              className="px-5 py-2.5 border-2 border-[#4AA7A7] text-[#4AA7A7] font-semibold rounded-full text-sm hover:bg-[#4AA7A7]/10 transition-colors whitespace-nowrap"
+              style={{ width: 188 }}
+              className="py-2.5 border-2 border-[#4AA7A7] text-[#4AA7A7] font-semibold rounded-full text-sm hover:bg-[#4AA7A7]/10 transition-colors whitespace-nowrap flex items-center justify-center"
             >
               Request Refund
             </button>
@@ -637,7 +639,8 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
           {booking.status !== "completed" && refundRequest?.status === "pending" && (
             <button
               onClick={() => onWithdrawRefund(booking)}
-              className="px-5 py-2.5 border-2 border-gray-300 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50 transition-colors whitespace-nowrap"
+              style={{ width: 188 }}
+              className="py-2.5 border-2 border-gray-300 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50 transition-colors whitespace-nowrap flex items-center justify-center"
             >
               Withdraw Request
             </button>

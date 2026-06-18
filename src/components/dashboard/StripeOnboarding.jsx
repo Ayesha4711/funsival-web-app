@@ -120,7 +120,7 @@ export default function StripeOnboarding({ compact = false }) {
             try {
               const res = await dispatch(fetchConnectLoginLink()).unwrap();
               const url = res?.data?.url ?? res?.url;
-              if (url) window.location.href = url;
+              if (url) window.open(url, "_blank", "noopener,noreferrer");
               else toast.error("Could not open Stripe dashboard. Please try again.");
             } catch {
               toast.error("Could not open Stripe dashboard. Please try again.");
@@ -146,7 +146,7 @@ export default function StripeOnboarding({ compact = false }) {
       const res = await dispatch(startConnectOnboarding(payload)).unwrap();
       const url = res?.data?.url ?? res?.url;
       if (url) {
-        window.location.href = url;
+        window.open(url, "_blank", "noopener,noreferrer");
       } else {
         toast.error("Could not start onboarding. Please try again.");
       }
