@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { toast } from "sonner";
 import { SimpleMap } from "@/components/shared/MapControls";
+import { parseCalendarDate } from "@/components/shared/dateUtils";
 import { describeListingPrice, formatListingPrice, getPriceMode } from "./listingPrice";
 import { MapPinIcon, DollarIcon, ClockIcon, UsersIcon, CalendarIcon, InfoIcon, SpinnerIcon } from "@/icons";
 
@@ -13,6 +14,22 @@ function fmt12(timeStr) {
   if (isNaN(h) || isNaN(m)) return timeStr;
   const hour = h % 12 === 0 ? 12 : h % 12;
   return `${hour}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
+function fmtLongDate(raw) {
+  if (!raw) return "";
+  let date = null;
+  if (raw instanceof Date) {
+    date = raw;
+  } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+    const [month, day, year] = raw.split("/").map(Number);
+    date = new Date(year, month - 1, day);
+  } else {
+    const parsed = new Date(raw);
+    if (!isNaN(parsed)) date = parsed;
+  }
+  if (!date || isNaN(date)) return raw;
+  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
 function cap(str) {
@@ -126,7 +143,35 @@ export default function StepReview({
   const wifi = details.wifi;
   const requirements = details.requirements || "—";
   const cancellationPolicy = details.cancellationPolicy || "—";
-  const slots = details.slots?.filter((s) => s.day || s.startTime) || [];
+
+  // Recurring slots are stored per-weekday (details.recurringSlots) across a date
+  // range, separately from one-time slots (details.slots) — show whichever type
+  // the provider currently has selected, expanding recurring weekdays into actual
+  // calendar dates so both cases display as concrete Select Date / Select Time rows.
+  const oneTimeSlots = details.slots?.filter((s) => s.day || s.startTime) || [];
+  const recurringSlots = (() => {
+    const start = parseCalendarDate(details.recurringStartDate);
+    const end = parseCalendarDate(details.recurringEndDate);
+    if (!start || !end || start > end) return [];
+    const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const rows = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dayName = DAY_NAMES[d.getDay()];
+      const daySlots = details.recurringSlots?.[dayName] || [];
+      daySlots.forEach((s) => {
+        if (s.startTime || s.endTime) {
+          rows.push({ day: new Date(d), startTime: s.startTime, endTime: s.endTime });
+        }
+      });
+    }
+    return rows;
+  })();
+  const slots =
+    details.availabilityType === "recurring"
+      ? (recurringSlots.length > 0 ? recurringSlots : oneTimeSlots)
+      : details.availabilityType === "one_time"
+        ? oneTimeSlots
+        : (oneTimeSlots.length > 0 ? oneTimeSlots : recurringSlots);
   const photos = details.photos || [];
   const serviceCategory = cap(type) || "—";
   const displayPrice = formatListingPrice(category, price);
@@ -280,7 +325,7 @@ export default function StepReview({
                 <FieldLabel>Select Date</FieldLabel>
                 <FieldValue className="flex items-center gap-1.5">
                   <CalendarIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
-                  {slot.day || "—"}
+                  {fmtLongDate(slot.day) || "—"}
                 </FieldValue>
               </div>
               <div>

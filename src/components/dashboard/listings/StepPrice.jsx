@@ -206,35 +206,6 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
             <FieldHint>Enter the rate you want to charge per day</FieldHint>
           </div>
 
-          {/* Delivery & Pickup */}
-          <div className="rounded-2xl bg-[#EAF4F4] border border-[#C7E4E2] p-5 sm:p-6 space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0">
-                <TruckIcon size={20} className="text-[#50627A]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-text">Delivery &amp; Pickup Option</p>
-                <p className="text-xs text-gray-500">Add delivery &amp; pickup fee</p>
-              </div>
-              <Toggle
-                checked={Boolean(form.delivery?.enabled)}
-                onChange={(v) => updateDelivery("enabled", v)}
-              />
-            </div>
-
-            {form.delivery?.enabled && (
-              <div className="space-y-2">
-                <p className="text-xs font-bold text-gray-600">Price</p>
-                <CurrencyInput
-                  value={form.delivery?.fee}
-                  onChange={(v) => updateDelivery("fee", v)}
-                  placeholder="0.00"
-                />
-                <FieldHint>One-time fee for delivery and pickup</FieldHint>
-              </div>
-            )}
-          </div>
-
           <hr className="border-gray-200" />
 
           <div className="flex items-start gap-2.5">
