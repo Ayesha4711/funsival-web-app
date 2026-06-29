@@ -36,14 +36,38 @@ function useOutsideClose(onClose) {
  * container (which isn't `body`), so an open menu never has to track scroll
  * movement. `allowRef` lets scrolling continue inside the menu itself
  * (e.g. a long options list).
+ *
+ * Setting `overflow: hidden` on `body` alone doesn't stop the dashboard's
+ * `<main className="overflow-y-auto">` from scrolling — that element owns
+ * its own scrollbar. Scrollbar dragging and trackpad momentum scroll are
+ * native browser behaviors driven by that `overflow` CSS, not by `wheel`/
+ * `touchmove` events, so blocking those events alone leaves a gap. We close
+ * it by also hard-locking every scrollable ancestor's `overflow` style.
  */
 function useLockBodyScroll(open, allowRef) {
   useEffect(() => {
     if (!open) return;
 
     const { body } = document;
-    const previous = body.style.overflow;
-    body.style.overflow = "hidden";
+    const lockedEls = [];
+
+    function lock(el) {
+      lockedEls.push([el, el.style.overflow]);
+      el.style.overflow = "hidden";
+    }
+    lock(body);
+
+    // Walk up from the currently-focused element (the trigger that opened
+    // this menu) so we catch the real scroll container even if it's nested
+    // deeper than `<main>` on some screens.
+    let node = document.activeElement;
+    while (node && node !== body) {
+      const style = window.getComputedStyle(node);
+      if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) {
+        lock(node);
+      }
+      node = node.parentElement;
+    }
 
     function blockScroll(e) {
       if (allowRef?.current && allowRef.current.contains(e.target)) return;
@@ -54,7 +78,7 @@ function useLockBodyScroll(open, allowRef) {
     document.addEventListener("touchmove", blockScroll, opts);
 
     return () => {
-      body.style.overflow = previous;
+      lockedEls.forEach(([el, prev]) => { el.style.overflow = prev; });
       document.removeEventListener("wheel", blockScroll, opts);
       document.removeEventListener("touchmove", blockScroll, opts);
     };
