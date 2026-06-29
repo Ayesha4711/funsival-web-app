@@ -15,7 +15,7 @@ import {
   selectMessagesStatus,
   selectSendStatus,
 } from "@/store/slices/chatSlice";
-import { ArrowLeftIcon as BackIcon, EmojiIcon, SendIcon, PaperclipIcon } from "@/icons";
+import { ArrowLeftIcon as BackIcon, EmojiIcon, SendIcon, PaperclipIcon, CloseIcon } from "@/icons";
 import Avatar from "./Avatar";
 import MessageBubble from "./MessageBubble";
 import { resolveDisplayName } from "./messageHelpers";
@@ -32,6 +32,8 @@ export default function ChatWindow({ conv, onBack, showBackBtn, currentUserId })
 
   const [text, setText] = useState("");
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [pendingMedia, setPendingMedia] = useState(null); // { file, previewUrl, isVideo }
+  const [mediaSending, setMediaSending] = useState(false);
   const messagesContainerRef = useRef(null);
   const prevMessageCountRef = useRef(null);
   const emojiRef = useRef(null);
@@ -125,6 +127,67 @@ export default function ChatWindow({ conv, onBack, showBackBtn, currentUserId })
     }
   };
 
+  // Revoke the local preview URL whenever it's replaced or the component unmounts
+  useEffect(() => {
+    return () => {
+      if (pendingMedia?.previewUrl) URL.revokeObjectURL(pendingMedia.previewUrl);
+    };
+  }, [pendingMedia]);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const isVideo = file.type.startsWith("video/");
+    const MAX_BYTES = 50 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      toast.error("File exceeds the 50 MB limit.");
+      return;
+    }
+
+    setPendingMedia({ file, previewUrl: URL.createObjectURL(file), isVideo });
+  };
+
+  const handleCancelMedia = () => {
+    if (pendingMedia?.previewUrl) URL.revokeObjectURL(pendingMedia.previewUrl);
+    setPendingMedia(null);
+  };
+
+  const handleConfirmMedia = async () => {
+    if (!pendingMedia || mediaSending) return;
+    const { file, previewUrl, isVideo } = pendingMedia;
+    setMediaSending(true);
+
+    const tempId = `_opt_${Date.now()}`;
+    dispatch(
+      appendOptimisticMessage({
+        conversationId: conv.id,
+        message: {
+          id: tempId,
+          _optimistic: true,
+          senderId: currentUserId,
+          type: isVideo ? "video" : "image",
+          mediaUrl: previewUrl,
+          createdAt: new Date().toISOString(),
+          sender: { id: currentUserId },
+        },
+      })
+    );
+
+    setPendingMedia(null);
+
+    try {
+      lastSentAtRef.current = Date.now();
+      const mediaUpload = await dispatch(uploadChatMedia({ file })).unwrap();
+      await dispatch(sendMediaMessage({ conversationId: conv.id, mediaUpload })).unwrap();
+    } catch {
+      toast.error("Failed to send file.");
+    } finally {
+      setMediaSending(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -207,6 +270,42 @@ export default function ChatWindow({ conv, onBack, showBackBtn, currentUserId })
 
       {/* Input */}
       <div className="px-4 sm:px-6 py-4 border-t border-gray-100 shrink-0">
+        {/* Media preview — shown before the file is actually sent */}
+        {pendingMedia && (
+          <div className="mb-3 flex items-center gap-3 bg-gray-50 rounded-2xl p-3">
+            <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-black/5 shrink-0">
+              {pendingMedia.isVideo ? (
+                <video src={pendingMedia.previewUrl} className="w-full h-full object-cover" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={pendingMedia.previewUrl} alt="Selected preview" className="w-full h-full object-cover" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[var(--color-text)] truncate">{pendingMedia.file.name}</p>
+              <p className="text-xs text-gray-400">{pendingMedia.isVideo ? "Video" : "Image"} ready to send</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancelMedia}
+              disabled={mediaSending}
+              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors disabled:opacity-50"
+              title="Cancel"
+            >
+              <CloseIcon size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmMedia}
+              disabled={mediaSending}
+              className="shrink-0 w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+              title="Send"
+            >
+              <SendIcon />
+            </button>
+          </div>
+        )}
+
         <div className="relative" ref={emojiRef}>
           {emojiOpen && (
             <div className="absolute bottom-14 left-0 z-30">
@@ -247,45 +346,7 @@ export default function ChatWindow({ conv, onBack, showBackBtn, currentUserId })
               type="file"
               accept="image/*,video/*"
               className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (!file) return;
-
-                const isVideo = file.type.startsWith("video/");
-                const MAX_BYTES = 50 * 1024 * 1024;
-                if (file.size > MAX_BYTES) {
-                  toast.error("File exceeds the 50 MB limit.");
-                  return;
-                }
-
-                const localUrl = URL.createObjectURL(file);
-                const tempId = `_opt_${Date.now()}`;
-                dispatch(
-                  appendOptimisticMessage({
-                    conversationId: conv.id,
-                    message: {
-                      id: tempId,
-                      _optimistic: true,
-                      senderId: currentUserId,
-                      type: isVideo ? "video" : "image",
-                      mediaUrl: localUrl,
-                      createdAt: new Date().toISOString(),
-                      sender: { id: currentUserId },
-                    },
-                  })
-                );
-
-                try {
-                  lastSentAtRef.current = Date.now();
-                  const mediaUpload = await dispatch(uploadChatMedia({ file })).unwrap();
-                  await dispatch(
-                    sendMediaMessage({ conversationId: conv.id, mediaUpload })
-                  ).unwrap();
-                } catch {
-                  toast.error("Failed to send file.");
-                }
-              }}
+              onChange={handleFileSelect}
             />
 
             <input
@@ -297,13 +358,15 @@ export default function ChatWindow({ conv, onBack, showBackBtn, currentUserId })
               className="flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none min-w-0"
             />
 
-            <button
-              onClick={handleSend}
-              disabled={sendStatus === "loading" || !text.trim()}
-              className="shrink-0 w-10 h-10 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              <SendIcon />
-            </button>
+            {!pendingMedia && (
+              <button
+                onClick={handleSend}
+                disabled={sendStatus === "loading" || !text.trim()}
+                className="shrink-0 w-10 h-10 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                <SendIcon />
+              </button>
+            )}
           </div>
         </div>
       </div>

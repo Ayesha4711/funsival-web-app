@@ -87,67 +87,71 @@ export default function SettingsPage({ role = "provider", showFooter = true }) {
         </div>
       </div>
 
+      {/* ── Mobile header bar ────────────────────────────────────────────────── */}
+      <div className="md:hidden bg-white border-b border-gray-100">
+        <div className="px-4 sm:px-6 py-5 flex items-center gap-3">
+          {!mobileActive ? (
+            <>
+              <button
+                onClick={() => router.back()}
+                className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <ArrowLeftIcon size={20} />
+              </button>
+              <div>
+                <h1 className="text-lg font-bold text-text">Settings</h1>
+                <p className="text-xs text-gray-400">Manage your account</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleMobileBack}
+                className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <ChevronLeftIcon />
+              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-primary">
+                  <mobileActive.Icon size={18} />
+                </span>
+                <h1 className="text-lg font-bold text-text">{mobileActive.label}</h1>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       <div className="flex-1 bg-[#F4F6F8] p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-200px)] 2xl:min-h-200">
 
         {/* ── Mobile layout ────────────────────────────────────────────────── */}
         <div className="md:hidden">
           {!mobileActive ? (
             /* List view */
-            <>
-              <div className="flex items-center gap-3 mb-6">
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              {TABS.map((tab, i) => (
                 <button
-                  onClick={() => router.back()}
-                  className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 transition-colors"
+                  key={tab.key}
+                  onClick={() => handleTabClick(tab.key)}
+                  className={`flex items-center gap-4 w-full px-5 py-4 text-left transition-colors hover:bg-gray-50 ${
+                    i > 0 ? "border-t border-gray-100" : ""
+                  }`}
                 >
-                  <ArrowLeftIcon size={20} />
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+                    <tab.Icon size={17} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-text">{tab.label}</p>
+                  </div>
+                  <span className="text-gray-300 shrink-0">
+                    <ChevronRightIcon />
+                  </span>
                 </button>
-                <div>
-                  <h1 className="text-lg font-bold text-text">Settings</h1>
-                  <p className="text-xs text-gray-400">Manage your account</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                {TABS.map((tab, i) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => handleTabClick(tab.key)}
-                    className={`flex items-center gap-4 w-full px-5 py-4 text-left transition-colors hover:bg-gray-50 ${
-                      i > 0 ? "border-t border-gray-100" : ""
-                    }`}
-                  >
-                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
-                      <tab.Icon size={17} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-text">{tab.label}</p>
-                    </div>
-                    <span className="text-gray-300 shrink-0">
-                      <ChevronRightIcon />
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </>
+              ))}
+            </div>
           ) : (
             /* Content view */
-            <>
-              <div className="flex items-center gap-3 mb-5">
-                <button
-                  onClick={handleMobileBack}
-                  className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <ChevronLeftIcon />
-                </button>
-                <div className="flex items-center gap-2">
-                  <span className="text-primary">
-                    <mobileActive.Icon size={18} />
-                  </span>
-                  <h1 className="text-lg font-bold text-text">{mobileActive.label}</h1>
-                </div>
-              </div>
-              {renderPanel(mobileActive)}
-            </>
+            renderPanel(mobileActive)
           )}
         </div>
 
