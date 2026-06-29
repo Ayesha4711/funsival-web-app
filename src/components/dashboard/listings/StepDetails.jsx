@@ -1,503 +1,29 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import Image from "next/image";
 import { useDispatch } from "react-redux";
-import { Country, State, City } from "country-state-city";
+import { Country, State } from "country-state-city";
 import {
-  CalendarField,
   DropdownField,
   ComboboxField,
   TagInputField,
 } from "@/components/shared/FieldControls";
 import { LocationMap } from "@/components/shared/MapControls";
 import { uploadListingImages } from "@/store/slices/listingsSlice";
-import { MoreVertIcon, TrashIcon, PlusIcon, UploadIcon, UsersIcon, ChevronUpIcon, ChevronDownIcon, InfoIcon } from "@/icons";
-
-/* Match a raw city name from Nominatim against the country-state-city library */
-function resolveCity(rawCity, countryCode, stateCode) {
-  if (!rawCity || !countryCode) return rawCity || "";
-  const lower = rawCity.toLowerCase();
-
-  // 1. Try exact match within the state
-  if (stateCode) {
-    const stateCities = City.getCitiesOfState(countryCode, stateCode);
-    const exact = stateCities.find(c => c.name.toLowerCase() === lower);
-    if (exact) return exact.name;
-    const partial = stateCities.find(c =>
-      c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase())
-    );
-    if (partial) return partial.name;
-  }
-
-  // 2. Fall back: search all cities in the country (Nominatim city may belong to a neighbouring state)
-  const allStates = State.getStatesOfCountry(countryCode);
-  for (const st of allStates) {
-    const cities = City.getCitiesOfState(countryCode, st.isoCode);
-    const exact = cities.find(c => c.name.toLowerCase() === lower);
-    if (exact) return exact.name;
-  }
-  for (const st of allStates) {
-    const cities = City.getCitiesOfState(countryCode, st.isoCode);
-    const partial = cities.find(c =>
-      c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase())
-    );
-    if (partial) return partial.name;
-  }
-
-  // 3. Return the raw string as last resort (won't match dropdown but keeps the value visible)
-  return rawCity;
-}
-
-/* ─── Shared field components ───────────────────────────────────────────────── */
-function Label({ children, required }) {
-  return (
-    <label className="block text-xs font-bold text-gray-700 mb-1.5">
-      {children}{required && <span className="text-red-400 ml-0.5">*</span>}
-    </label>
-  );
-}
-
-function TextInput({ error, className, ...props }) {
-  return (
-    <input
-      className={[
-        "w-full px-3 py-2.5 rounded-xl border bg-[#F5F5F5] text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:bg-white transition-colors",
-        error
-          ? "border-red-400 focus:ring-red-200 focus:border-red-500"
-          : "border-transparent focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]",
-        className
-      ].join(" ")}
-      {...props}
-    />
-  );
-}
-
-function FieldError({ msg }) {
-  if (!msg) return null;
-  return <p className="mt-1 text-xs text-red-500 font-medium">{msg}</p>;
-}
-
-const DESCRIPTION_MAX = 500;
-
-function Textarea({ error, rows = 3, maxLength, onChange, value, ...props }) {
-  const count = typeof value === "string" ? value.length : 0;
-  const limit = maxLength ?? null;
-  const over = limit !== null && count > limit;
-
-  const handleChange = (e) => {
-    if (limit !== null && e.target.value.length > limit) return;
-    onChange?.(e);
-  };
-
-  return (
-    <div className="relative">
-      <textarea
-        rows={rows}
-        value={value}
-        onChange={handleChange}
-        className={[
-          "w-full px-3 py-2.5 rounded-xl border bg-[#F5F5F5] text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:bg-white resize-none transition-colors",
-          error || over
-            ? "border-red-400 focus:ring-red-200 focus:border-red-500"
-            : "border-transparent focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
-        ].join(" ")}
-        {...props}
-      />
-      {limit !== null && (
-        <span className={`absolute bottom-2 right-3 text-[11px] font-medium pointer-events-none ${over ? "text-red-400" : count >= limit * 0.9 ? "text-amber-500" : "text-gray-400"}`}>
-          {count}/{limit}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function SectionTitle({ num, children }) {
-  return (
-    <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-1">
-      <span className="text-gray-900 text-base font-bold shrink-0">
-        {num}.
-      </span>
-      {children}
-    </h3>
-  );
-}
-
-function extractUploadedPhotoUrls(response) {
-  const urls = [];
-  const seen = new Set();
-
-  const visit = (value) => {
-    if (!value) return;
-
-    if (typeof value === "string") {
-      const normalized = value.trim();
-      if (
-        normalized &&
-        !seen.has(normalized) &&
-        (normalized.startsWith("http://") ||
-          normalized.startsWith("https://") ||
-          normalized.startsWith("/"))
-      ) {
-        seen.add(normalized);
-        urls.push(normalized);
-      }
-      return;
-    }
-
-    if (Array.isArray(value)) {
-      value.forEach(visit);
-      return;
-    }
-
-    if (typeof value === "object") {
-      [
-        "photos",
-        "images",
-        "urls",
-        "links",
-        "files",
-        "items",
-        "data",
-        "result",
-        "url",
-        "path",
-      ].forEach((key) => visit(value[key]));
-    }
-  };
-
-  visit(response?.data ?? response);
-  return urls;
-}
-
-/* ─── Photo upload ───────────────────────────────────────────────────────────── */
-function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isUploading }) {
-  const [openMenuIndex, setOpenMenuIndex] = useState(null);
-  const menuRef = useRef(null);
-  const thumbInputRef = useRef(null);
-  const dropInputRef = useRef(null);
-
-  useEffect(() => {
-    function handleClick(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpenMenuIndex(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  const handleFiles = async (files) => {
-    const filesArray = Array.from(files ?? []).filter(Boolean);
-    if (filesArray.length === 0) return;
-
-    const previewUrls = filesArray.map((file) => URL.createObjectURL(file));
-    onPhotosChange((prev) => [...prev, ...previewUrls]);
-
-    try {
-      const response = await onUploadFiles(filesArray);
-      const uploadedUrls = extractUploadedPhotoUrls(response);
-
-      if (uploadedUrls.length === 0) {
-        throw new Error("Upload succeeded, but no image link was returned.");
-      }
-
-      onPhotosChange((prev) => {
-        const remaining = prev.filter((src) => !previewUrls.includes(src));
-        return [...remaining, ...uploadedUrls];
-      });
-    } catch (error) {
-      onPhotosChange((prev) => prev.filter((src) => !previewUrls.includes(src)));
-      toast.error(error?.message || "Failed to upload images. Please try again.");
-    } finally {
-      previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    }
-  };
-
-  const deletePhoto = (index) => {
-    if (isUploading) return;
-    onPhotosChange(photos.filter((_, i) => i !== index));
-    setOpenMenuIndex(null);
-  };
-
-  const triggerThumb = () => { if (!isUploading) thumbInputRef.current?.click(); };
-  const triggerDrop = () => { if (!isUploading) dropInputRef.current?.click(); };
-
-  return (
-    <div className="space-y-3">
-      {/* Hidden file inputs */}
-      <input ref={thumbInputRef} type="file" accept="image/jpeg,image/png" multiple className="hidden" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} disabled={isUploading} />
-      <input ref={dropInputRef} type="file" accept="image/jpeg,image/png" multiple className="hidden" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} disabled={isUploading} />
-
-      <div className="flex gap-3 flex-wrap">
-        {photos.map((src, i) => (
-          <div key={i} className="relative w-32 h-24 sm:w-40 sm:h-28 rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-100 shrink-0 group">
-            {src.startsWith("blob:") || src.startsWith("http") || src.startsWith("data:") ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={src} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-sky-200 to-blue-300 flex items-center justify-center text-2xl">🪂</div>
-            )}
-            {i === 0 && <div className="absolute bottom-0 left-0 right-0 bg-[var(--color-secondary)] text-white text-[9px] font-bold text-center py-0.5">Cover Image</div>}
-
-            {/* Three dots menu button */}
-            <div className="absolute top-2 right-2" ref={openMenuIndex === i ? menuRef : null}>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setOpenMenuIndex(openMenuIndex === i ? null : i); }}
-                className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white flex items-center justify-center transition-colors"
-              >
-                <MoreVertIcon size={16} />
-              </button>
-
-              {/* Dropdown menu */}
-              {openMenuIndex === i && (
-                <div className="absolute top-full right-0 mt-1 bg-white rounded-lg border border-gray-100 py-1 min-w-[120px] z-20">
-                  <button
-                    type="button"
-                    onClick={() => deletePhoto(i)}
-                    disabled={isUploading}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <TrashIcon size={14} />
-                    Delete
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-        {/* Thumbnail + button */}
-        <button
-          type="button"
-          onClick={triggerThumb}
-          disabled={isUploading}
-          className="flex flex-col items-center justify-center w-32 h-24 sm:w-40 sm:h-28 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <PlusIcon size={20} className="text-gray-400" />
-        </button>
-      </div>
-
-      {/* Drag-drop zone */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={triggerDrop}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") triggerDrop(); }}
-        onDrop={(e) => { e.preventDefault(); if (!isUploading) handleFiles(e.dataTransfer.files); }}
-        onDragOver={(e) => e.preventDefault()}
-        className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors select-none"
-      >
-        <UploadIcon size={28} className="text-gray-400" />
-        <p className="text-sm font-bold text-gray-700 mt-2">Upload & Drag Images Here</p>
-        <p className="text-xs text-gray-400 mt-0.5">JPEG or PNG files only</p>
-        <p className="text-xs text-gray-400">Max size: 5MB</p>
-      </div>
-
-      {isUploading && <p className="text-xs font-medium text-[var(--color-primary)]">Uploading images...</p>}
-    </div>
-  );
-}
-
-/* ─── Availability slot ──────────────────────────────────────────────────────── */
-function AvailabilitySlot({ slot, index, onChange, onRemove, canRemove }) {
-  // Generate 24h time options in HH:MM format (what the API expects)
-  const timeOptions = [];
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const val = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      const ampm = h < 12 ? "AM" : "PM";
-      const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      const label = `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
-      timeOptions.push({ value: val, label });
-    }
-  }
-
-  return (
-    <div className="rounded-2xl border border-[#CEE6E5] bg-[#f0faf9]">
-      {/* ── Desktop (lg+): date left | vertical divider | Select Time label + dropdowns right ── */}
-      <div className="hidden lg:flex items-stretch">
-        {/* Date section */}
-        <div className="w-[280px] shrink-0 px-4 py-3">
-          <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Select Date</p>
-          <CalendarField
-            value={slot.day || ""}
-            placeholder="Pick a date"
-            onChange={(value) => onChange(index, "day", value)}
-          />
-        </div>
-
-        {/* Vertical divider */}
-        <div className="w-px bg-[#CEE6E5] shrink-0 my-3" />
-
-        {/* Time section: label above two dropdowns */}
-        <div className="flex-1 px-4 py-3">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Select Time</p>
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <DropdownField
-                value={slot.startTime || ""}
-                placeholder="When the activity begins"
-                options={timeOptions}
-                onChange={(value) => onChange(index, "startTime", value)}
-                splitDisplay
-                teal
-              />
-            </div>
-            <div className="flex-1">
-              <DropdownField
-                value={slot.endTime || ""}
-                placeholder="When the activity ends"
-                options={timeOptions}
-                onChange={(value) => onChange(index, "endTime", value)}
-                splitDisplay
-                teal
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Delete icon */}
-        {canRemove && (
-          <div className="flex items-center justify-center px-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => onRemove(index)}
-              className="flex items-center justify-center w-8 h-8 rounded-full text-red-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-              aria-label="Remove slot"
-            >
-              <TrashIcon size={14} />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ── Mobile / tablet (< lg): stacked ── */}
-      <div className="flex flex-col lg:hidden divide-y divide-[#CEE6E5]">
-        {/* Date row */}
-        <div className="px-4 py-3">
-          <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Select Date</p>
-          <CalendarField
-            value={slot.day || ""}
-            placeholder="Pick a date"
-            onChange={(value) => onChange(index, "day", value)}
-          />
-        </div>
-
-        {/* Select Time label + dropdowns */}
-        <div className="px-4 py-3">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Select Time</p>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <div className="flex-1 min-w-0">
-              <DropdownField
-                value={slot.startTime || ""}
-                placeholder="Begins"
-                options={timeOptions}
-                onChange={(value) => onChange(index, "startTime", value)}
-                splitDisplay
-                teal
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <DropdownField
-                value={slot.endTime || ""}
-                placeholder="Ends"
-                options={timeOptions}
-                onChange={(value) => onChange(index, "endTime", value)}
-                splitDisplay
-                teal
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Delete row — only when removable */}
-        {canRemove && (
-          <div className="flex justify-end px-3 py-2">
-            <button
-              type="button"
-              onClick={() => onRemove(index)}
-              className="flex items-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-500 transition-colors"
-              aria-label="Remove slot"
-            >
-              <TrashIcon size={12} />
-              Remove
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Location cascading dropdowns ──────────────────────────────────────────── */
-function LocationDropdowns({ country, state, city, onCountryChange, onStateChange, onCityChange, errors }) {
-  const countryOptions = useMemo(
-    () => Country.getAllCountries().map(c => ({ value: c.isoCode, label: c.name })),
-    []
-  );
-  const stateOptions = useMemo(
-    () => country ? State.getStatesOfCountry(country).map(s => ({ value: s.isoCode, label: s.name })) : [],
-    [country]
-  );
-  const cityOptions = useMemo(
-    () => (country && state) ? City.getCitiesOfState(country, state).map(c => ({ value: c.name, label: c.name })) : [],
-    [country, state]
-  );
-
-  const handleCountryChange = (val) => {
-    onCountryChange(val);
-    onStateChange("");
-    onCityChange("");
-  };
-
-  const handleStateChange = (val) => {
-    onStateChange(val);
-    onCityChange("");
-  };
-
-  return (
-    <>
-      <div>
-        <Label required>Country</Label>
-        <ComboboxField
-          value={country}
-          placeholder="Select country"
-          options={countryOptions}
-          onChange={handleCountryChange}
-          error={!!errors?.country}
-        />
-        <FieldError msg={errors?.country} />
-      </div>
-      <div>
-        <Label required>State / Province</Label>
-        <ComboboxField
-          value={state}
-          placeholder={country ? (stateOptions.length ? "Select state" : "No states available") : "Select country first"}
-          options={stateOptions}
-          onChange={handleStateChange}
-          disabled={!country || stateOptions.length === 0}
-          error={!!errors?.state}
-        />
-        <FieldError msg={errors?.state} />
-      </div>
-      <div>
-        <Label required>City</Label>
-        <ComboboxField
-          value={city}
-          placeholder={state ? (cityOptions.length ? "Select city" : "No cities available") : "Select state first"}
-          options={cityOptions}
-          onChange={onCityChange}
-          disabled={!state || cityOptions.length === 0}
-          error={!!(errors?.city || errors?.placeCity)}
-        />
-        <FieldError msg={errors?.city || errors?.placeCity} />
-      </div>
-    </>
-  );
-}
+import { UsersIcon, ChevronUpIcon, ChevronDownIcon, InfoIcon } from "@/icons";
+import {
+  Label,
+  TextInput,
+  Textarea,
+  FieldError,
+  SectionTitle,
+  DESCRIPTION_MAX,
+} from "./StepDetailsFieldControls";
+import PhotoUpload from "./StepDetailsPhotoUpload";
+import LocationDropdowns from "./StepDetailsLocationDropdowns";
+import StepDetailsAvailabilitySection from "./StepDetailsAvailabilitySection";
+import { geocodeSearch, reverseGeocodeToAddressFields } from "./locationGeocoding";
 
 /* ─── Step ─────────────────────────────────────────────────────────────────── */
 export default function StepDetails({ details, onChange, onNext, onBack, fieldErrors = null }) {
@@ -585,12 +111,8 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
   useEffect(() => {
     const prefilled = details?.addressLine1 || details?.location;
     if (!prefilled || (details?.mapLat && details?.mapLng)) return;
-    fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(prefilled)}&format=json&limit=1`,
-      { headers: { "Accept-Language": "en" } }
-    )
-      .then(r => r.json())
-      .then(results => { if (results?.[0]) setMapCoords({ lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon) }); })
+    geocodeSearch(prefilled, 1)
+      .then(result => { if (result) setMapCoords({ lat: parseFloat(result.lat), lon: parseFloat(result.lon) }); })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -599,12 +121,8 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
     if (!q.trim() || q.length < 3) { setMapSuggestions([]); return; }
     setMapLoading(true);
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,
-        { headers: { "Accept-Language": "en" } }
-      );
-      const data = await res.json();
-      setMapSuggestions(data);
+      const results = await geocodeSearch(q, 5);
+      setMapSuggestions(results);
     } catch { setMapSuggestions([]); }
     finally { setMapLoading(false); }
   }, []);
@@ -631,87 +149,9 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
 
     // Fetch full address details to populate all fields
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
-        { headers: { "Accept-Language": "en" } }
-      );
-      const data = await res.json();
-      const addr = data.address || {};
-
-      // Build address line 1 from street-level fields
-      const road = addr.road || addr.pedestrian || addr.footway || addr.path || "";
-      const houseNumber = addr.house_number || "";
-      const addressLine1 = [houseNumber, road].filter(Boolean).join(" ") || s.display_name;
-
-      // Resolve country ISO code
-      const countryName = addr.country || "";
-      const allCountries = Country.getAllCountries();
-      const countryObj = allCountries.find(
-        c => c.name.toLowerCase() === countryName.toLowerCase() ||
-             c.isoCode === (addr.country_code || "").toUpperCase()
-      );
-      const countryCode = countryObj?.isoCode || "";
-
-      // Resolve state ISO code
-      const stateName = addr.state || addr.region || addr.county || "";
-      let stateCode = "";
-      if (countryCode) {
-        const allStates = State.getStatesOfCountry(countryCode);
-        const stateObj = allStates.find(st => st.name.toLowerCase() === stateName.toLowerCase());
-        stateCode = stateObj?.isoCode || "";
-      }
-
-      // City: prefer city, then town, then village, then suburb
-      const rawCity =
-        addr.city || addr.town || addr.village || addr.suburb ||
-        addr.municipality || addr.district || "";
-
-      // Resolve city — may find it in a different state than what Nominatim returned
-      let resolvedStateCode = stateCode;
-      let resolvedStateName = stateName;
-      let placeCity = "";
-      if (rawCity && countryCode) {
-        const lower = rawCity.toLowerCase();
-        const allStates = State.getStatesOfCountry(countryCode);
-
-        // Try state from Nominatim first
-        const tryState = (sc) => {
-          const cities = City.getCitiesOfState(countryCode, sc);
-          return cities.find(c => c.name.toLowerCase() === lower)
-            || cities.find(c => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase()));
-        };
-
-        let found = stateCode ? tryState(stateCode) : null;
-
-        // Fall back to any state in the country
-        if (!found) {
-          for (const st of allStates) {
-            found = tryState(st.isoCode);
-            if (found) {
-              resolvedStateCode = st.isoCode;
-              resolvedStateName = st.name;
-              break;
-            }
-          }
-        }
-
-        placeCity = found ? found.name : rawCity;
-      }
-
-      const postalCode = addr.postcode || form.postalCode || "";
-
-      setMapQuery(addressLine1);
-      setForm(prev => ({
-        ...prev,
-        addressLine1,
-        location: data.display_name || s.display_name,
-        countryCode,
-        country: countryObj?.name || countryName,
-        stateCode: resolvedStateCode,
-        state: resolvedStateName,
-        placeCity,
-        postalCode,
-      }));
+      const fields = await reverseGeocodeToAddressFields(lat, lon, s.display_name, form.postalCode);
+      setMapQuery(fields.addressLine1);
+      setForm(prev => ({ ...prev, ...fields }));
     } catch {
       // Fallback: just set address line from display_name
       setMapQuery(s.display_name);
@@ -734,72 +174,10 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
     navigator.geolocation.getCurrentPosition(async ({ coords: { latitude: lat, longitude: lon } }) => {
       setMapCoords({ lat, lon });
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
-          { headers: { "Accept-Language": "en" } }
-        );
-        const data = await res.json();
-        const addr = data.address || {};
-
-        const road = addr.road || addr.pedestrian || addr.footway || addr.path || "";
-        const houseNumber = addr.house_number || "";
-        const addressLine1 = [houseNumber, road].filter(Boolean).join(" ") || data.display_name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-
-        const countryName = addr.country || "";
-        const allCountries = Country.getAllCountries();
-        const countryObj = allCountries.find(
-          c => c.name.toLowerCase() === countryName.toLowerCase() ||
-               c.isoCode === (addr.country_code || "").toUpperCase()
-        );
-        const countryCode = countryObj?.isoCode || "";
-
-        const stateName = addr.state || addr.region || addr.county || "";
-        let stateCode = "";
-        if (countryCode) {
-          const allStates = State.getStatesOfCountry(countryCode);
-          const stateObj = allStates.find(st => st.name.toLowerCase() === stateName.toLowerCase());
-          stateCode = stateObj?.isoCode || "";
-        }
-
-        const rawCity =
-          addr.city || addr.town || addr.village || addr.suburb ||
-          addr.municipality || addr.district || "";
-
-        let resolvedStateCode = stateCode;
-        let resolvedStateName = stateName;
-        let placeCity = "";
-        if (rawCity && countryCode) {
-          const lower = rawCity.toLowerCase();
-          const allStatesForCity = State.getStatesOfCountry(countryCode);
-          const tryStateForCity = (sc) => {
-            const cities = City.getCitiesOfState(countryCode, sc);
-            return cities.find(c => c.name.toLowerCase() === lower)
-              || cities.find(c => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase()));
-          };
-          let found = stateCode ? tryStateForCity(stateCode) : null;
-          if (!found) {
-            for (const st of allStatesForCity) {
-              found = tryStateForCity(st.isoCode);
-              if (found) { resolvedStateCode = st.isoCode; resolvedStateName = st.name; break; }
-            }
-          }
-          placeCity = found ? found.name : rawCity;
-        }
-
-        const postalCode = addr.postcode || form.postalCode || "";
-
-        setMapQuery(addressLine1);
-        setForm(prev => ({
-          ...prev,
-          addressLine1,
-          location: data.display_name || addressLine1,
-          countryCode,
-          country: countryObj?.name || countryName,
-          stateCode: resolvedStateCode,
-          state: resolvedStateName,
-          placeCity,
-          postalCode,
-        }));
+        const fallbackName = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        const fields = await reverseGeocodeToAddressFields(lat, lon, fallbackName, form.postalCode);
+        setMapQuery(fields.addressLine1);
+        setForm(prev => ({ ...prev, ...fields }));
         setActiveErrors(prev => {
           const n = { ...prev };
           delete n.addressLine1; delete n.country; delete n.state; delete n.placeCity; delete n.city;
@@ -843,38 +221,17 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
 
   // Geocode a free-form query and pan the map there (fire-and-forget)
   const geocodeAndPan = useCallback(async (query) => {
-    if (!query || query.length < 3) return;
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
-        { headers: { "Accept-Language": "en" } }
-      );
-      const results = await res.json();
-      if (results[0]) {
-        setMapCoords({ lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon) });
-      }
+      const result = await geocodeSearch(query, 1);
+      if (result) setMapCoords({ lat: parseFloat(result.lat), lon: parseFloat(result.lon) });
     } catch { /* ignore */ }
   }, []);
-  const addSlot = () => {
-    const last = form.slots[form.slots.length - 1];
-    if (last && last.day && last.startTime && last.endTime) {
-      const isDup = form.slots.slice(0, -1).some(
-        s => s.day === last.day && s.startTime === last.startTime && s.endTime === last.endTime
-      );
-      if (isDup) {
-        toast.error("Duplicate slot", { description: "A slot with the same date and time already exists." });
-        return;
-      }
-    }
-    set("slots", [...form.slots, { day: "", startTime: "", endTime: "" }]);
-    clearSlotErrors();
-  };
+
   const clearSlotErrors = () => {
     if (activeErrors.slots || activeErrors.availability) {
       setActiveErrors(prev => { const n = { ...prev }; delete n.slots; delete n.availability; return n; });
     }
   };
-  const removeSlot = (i) => { set("slots", form.slots.filter((_, idx) => idx !== i)); clearSlotErrors(); };
   const updateSlot = (i, key, val) => {
     const next = [...form.slots];
     next[i] = { ...next[i], [key]: val };
@@ -1128,249 +485,14 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         </section>
 
         {/* ── 5. Availability ─────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 overflow-visible" data-field="availability">
-          <SectionTitle num="5">Availability</SectionTitle>
-          <p className="text-xs text-gray-400 mb-4">Choose when this activity is available for booking</p>
-
-          {/* Activity type selector */}
-          <div className="mb-5">
-            <p className="text-xs font-semibold text-gray-600 mb-2">Select Activity Type:</p>
-            <div className="w-48">
-              <DropdownField
-                value={form.availabilityType}
-                placeholder="choose type"
-                options={[
-                  { value: "one_time", label: "One Time" },
-                  { value: "recurring", label: "Recurring" },
-                ]}
-                onChange={(value) => {
-                  set("availabilityType", value);
-                  if (activeErrors.availability || activeErrors.slots) {
-                    setActiveErrors(prev => { const n = { ...prev }; delete n.availability; delete n.slots; return n; });
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          {/* One Time UI */}
-          {form.availabilityType === "one_time" && (
-            <div className="flex flex-col gap-3">
-              <div className="rounded-2xl border border-[#CEE6E5] bg-[#f0faf9] p-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
-                    <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Select Date</p>
-                    <CalendarField
-                      value={form.slots[0]?.day || ""}
-                      placeholder="Pick a date"
-                      onChange={(value) => updateSlot(0, "day", value)}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Select Time</p>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <DropdownField
-                          value={form.slots[0]?.startTime || ""}
-                          placeholder="When the activity begins"
-                          options={(() => {
-                            const opts = [];
-                            for (let h = 0; h < 24; h++) for (let m = 0; m < 60; m += 30) {
-                              const val = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
-                              const ampm = h < 12 ? "AM" : "PM";
-                              const hr = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                              opts.push({ value: val, label: `${String(hr).padStart(2,"0")}:${String(m).padStart(2,"0")} ${ampm}` });
-                            }
-                            return opts;
-                          })()}
-                          onChange={(value) => updateSlot(0, "startTime", value)}
-                          splitDisplay
-                          teal
-                          allowTyping
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <DropdownField
-                          value={form.slots[0]?.endTime || ""}
-                          placeholder="When the activity ends"
-                          options={(() => {
-                            const opts = [];
-                            for (let h = 0; h < 24; h++) for (let m = 0; m < 60; m += 30) {
-                              const val = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
-                              const ampm = h < 12 ? "AM" : "PM";
-                              const hr = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                              opts.push({ value: val, label: `${String(hr).padStart(2,"0")}:${String(m).padStart(2,"0")} ${ampm}` });
-                            }
-                            return opts;
-                          })()}
-                          onChange={(value) => updateSlot(0, "endTime", value)}
-                          splitDisplay
-                          teal
-                          allowTyping
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {(fe.availability || fe.slots) && (
-                <p className="text-xs text-red-500 font-medium">{fe.availability || fe.slots}</p>
-              )}
-            </div>
-          )}
-
-          {/* Recurring UI */}
-          {form.availabilityType === "recurring" && (() => {
-            const ALL_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-            // JS day index: 0=Sun,1=Mon,...,6=Sat
-            const DAY_JS_INDEX = { Sunday:0, Monday:1, Tuesday:2, Wednesday:3, Thursday:4, Friday:5, Saturday:6 };
-
-            // Compute the set of day-names present in the [startDate, endDate] range
-            const getActiveDays = (start, end) => {
-              if (!start || !end) return new Set();
-              const s = new Date(start); const e = new Date(end);
-              if (isNaN(s) || isNaN(e) || s > e) return new Set();
-              // If range spans 7+ days every day is active
-              const diffDays = Math.round((e - s) / 86400000) + 1;
-              if (diffDays >= 7) return new Set(ALL_DAYS);
-              const active = new Set();
-              for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
-                const jsDay = d.getDay(); // 0=Sun
-                const name = ALL_DAYS.find(n => DAY_JS_INDEX[n] === jsDay);
-                if (name) active.add(name);
-              }
-              return active;
-            };
-
-            const activeDays = getActiveDays(form.recurringStartDate, form.recurringEndDate);
-            const hasRange = !!(form.recurringStartDate && form.recurringEndDate);
-
-            const timeOptions = [];
-            for (let h = 0; h < 24; h++) for (let m = 0; m < 60; m += 30) {
-              const val = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
-              const ampm = h < 12 ? "AM" : "PM";
-              const hr = h === 0 ? 12 : h > 12 ? h - 12 : h;
-              timeOptions.push({ value: val, label: `${String(hr).padStart(2,"0")}:${String(m).padStart(2,"0")} ${ampm}` });
-            }
-
-            return (
-              <div className="flex flex-col gap-4">
-                {/* Date range */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
-                    <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Start Date</p>
-                    <CalendarField
-                      value={form.recurringStartDate || ""}
-                      placeholder="September 25, 2025"
-                      onChange={(value) => set("recurringStartDate", value)}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-semibold text-gray-500 mb-1.5">End Date</p>
-                    <CalendarField
-                      value={form.recurringEndDate || ""}
-                      placeholder="September 30, 2025"
-                      onChange={(value) => set("recurringEndDate", value)}
-                      align="right"
-                    />
-                  </div>
-                </div>
-
-                {/* Day-by-day slots — only shown once both dates are picked */}
-                {hasRange && (
-                  <div className="flex flex-col gap-2">
-                    {ALL_DAYS.map((day) => {
-                      const isActive = activeDays.has(day);
-                      const daySlots = form.recurringSlots?.[day] || [];
-                      return (
-                        <div key={day}>
-                          <p className="text-xs font-semibold text-gray-600 mb-1.5">{day}:</p>
-                          {!isActive ? (
-                            <div className="w-full flex items-center justify-center h-10 rounded-xl bg-[#FFF3E0] text-xs font-semibold text-[#E65100]">
-                              Unavailable
-                            </div>
-                          ) : daySlots.length === 0 ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                set("recurringSlots", { ...form.recurringSlots, [day]: [{ startTime: "", endTime: "" }] });
-                              }}
-                              className="w-full flex items-center justify-center gap-1.5 h-10 rounded-xl border-2 border-dashed border-[#CEE6E5] bg-[#f0faf9] text-xs font-semibold text-[var(--color-primary)] hover:bg-[#e0f5f4] transition-colors"
-                            >
-                              <PlusIcon size={12} /> Add time slot
-                            </button>
-                          ) : (
-                            <div className="flex flex-col gap-2">
-                              {daySlots.map((slot, si) => (
-                                <div key={si} className="flex items-center gap-2">
-                                  <div className="flex-1">
-                                    <DropdownField
-                                      value={slot.startTime || ""}
-                                      placeholder="When the activity begins"
-                                      options={timeOptions}
-                                      onChange={(value) => {
-                                        const next = [...daySlots];
-                                        next[si] = { ...next[si], startTime: value };
-                                        set("recurringSlots", { ...form.recurringSlots, [day]: next });
-                                      }}
-                                      splitDisplay
-                                      teal
-                                      allowTyping
-                                    />
-                                  </div>
-                                  <div className="flex-1">
-                                    <DropdownField
-                                      value={slot.endTime || ""}
-                                      placeholder="When the activity ends"
-                                      options={timeOptions}
-                                      onChange={(value) => {
-                                        const next = [...daySlots];
-                                        next[si] = { ...next[si], endTime: value };
-                                        set("recurringSlots", { ...form.recurringSlots, [day]: next });
-                                      }}
-                                      splitDisplay
-                                      teal
-                                      allowTyping
-                                    />
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const next = daySlots.filter((_, i) => i !== si);
-                                      set("recurringSlots", { ...form.recurringSlots, [day]: next });
-                                    }}
-                                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors shrink-0"
-                                  >
-                                    <TrashIcon size={14} />
-                                  </button>
-                                </div>
-                              ))}
-                              <div className="flex justify-end mt-0.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    set("recurringSlots", { ...form.recurringSlots, [day]: [...daySlots, { startTime: "", endTime: "" }] });
-                                  }}
-                                  className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-primary)] hover:underline"
-                                >
-                                  <PlusIcon size={11} /> Add Another Slot
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {(fe.availability || fe.slots) && (
-                  <p className="text-xs text-red-500 font-medium">{fe.availability || fe.slots}</p>
-                )}
-              </div>
-            );
-          })()}
-        </section>
+        <StepDetailsAvailabilitySection
+          form={form}
+          fe={fe}
+          set={set}
+          updateSlot={updateSlot}
+          activeErrors={activeErrors}
+          setActiveErrors={setActiveErrors}
+        />
       </div>
 
       {/* Nav buttons — full-width on mobile */}
