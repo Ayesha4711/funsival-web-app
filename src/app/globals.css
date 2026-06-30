@@ -102,3 +102,19 @@ button:disabled,
     display: none;
   }
 }
+
+/* ─── Leaflet popup: strip default chrome so our card renders cleanly ──────── */
+.leaflet-price-popup .leaflet-popup-content-wrapper {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 1rem;
+  overflow: visible;
+}
+.leaflet-price-popup .leaflet-popup-content {
+  margin: 0;
+}
+.leaflet-price-popup .leaflet-popup-tip-container {
+  display: none;
+}
