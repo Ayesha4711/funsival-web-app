@@ -114,8 +114,10 @@ const profileSlice = createSlice({
   name: "profile",
   initialState: {
     user: null,
-    status: "idle",   // "idle" | "loading" | "succeeded" | "failed"
+    status: "idle",   // "idle" | "loading" | "succeeded" | "failed" — fetchProfile auth gate only
     error: null,
+    saveStatus: "idle", // "idle" | "loading" | "succeeded" | "failed" — profile update/save calls
+    saveError: null,
   },
   reducers: {
     setProfile(state, action) {
@@ -143,42 +145,42 @@ const profileSlice = createSlice({
       })
 
       .addCase(updateProfile.pending, (state) => {
-        state.status = "loading";
-        state.error = null;
+        state.saveStatus = "loading";
+        state.saveError = null;
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
-        state.status = "succeeded";
+        state.saveStatus = "succeeded";
         state.user = action.payload;
       })
       .addCase(updateProfile.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
+        state.saveStatus = "failed";
+        state.saveError = action.payload;
       })
 
       .addCase(updateUserProfile.pending, (state) => {
-        state.status = "loading";
-        state.error = null;
+        state.saveStatus = "loading";
+        state.saveError = null;
       })
       .addCase(updateUserProfile.fulfilled, (state, action) => {
-        state.status = "succeeded";
+        state.saveStatus = "succeeded";
         if (action.payload) state.user = { ...state.user, ...action.payload };
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
+        state.saveStatus = "failed";
+        state.saveError = action.payload;
       })
 
       .addCase(updateProviderProfile.pending, (state) => {
-        state.status = "loading";
-        state.error = null;
+        state.saveStatus = "loading";
+        state.saveError = null;
       })
       .addCase(updateProviderProfile.fulfilled, (state, action) => {
-        state.status = "succeeded";
+        state.saveStatus = "succeeded";
         if (action.payload) state.user = { ...state.user, ...action.payload };
       })
       .addCase(updateProviderProfile.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
+        state.saveStatus = "failed";
+        state.saveError = action.payload;
       })
 
       .addCase(savePreferences.fulfilled, (state, action) => {
@@ -195,5 +197,7 @@ export const { setProfile, clearProfile } = profileSlice.actions;
 export const selectUser = (state) => state.profile.user;
 export const selectProfileStatus = (state) => state.profile.status;
 export const selectProfileError = (state) => state.profile.error;
+export const selectProfileSaveStatus = (state) => state.profile.saveStatus;
+export const selectProfileSaveError = (state) => state.profile.saveError;
 
 export default profileSlice.reducer;
