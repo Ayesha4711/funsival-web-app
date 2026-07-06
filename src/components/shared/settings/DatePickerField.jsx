@@ -23,6 +23,13 @@ export default function DatePickerField({ value, onChange, hasError, errorMsg })
     Math.floor((parsed?.getFullYear() ?? today.getFullYear() - 20) / 12) * 12
   );
 
+  const displayValue = parsed
+    ? `${String(parsed.getDate()).padStart(2, "0")}/${String(parsed.getMonth() + 1).padStart(2, "0")}/${parsed.getFullYear()}`
+    : "";
+  const [typedValue, setTypedValue] = useState(displayValue);
+
+  useEffect(() => { setTypedValue(displayValue); }, [displayValue]);
+
   useEffect(() => {
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -48,9 +55,27 @@ export default function DatePickerField({ value, onChange, hasError, errorMsg })
   for (let i = 0; i < firstDay; i++) dayGrid.push(null);
   for (let d = 1; d <= daysInMonth; d++) dayGrid.push(d);
 
-  const displayValue = parsed
-    ? `${parsed.getDate()} ${MONTHS[parsed.getMonth()]} ${parsed.getFullYear()}`
-    : "";
+  const formatTyped = (raw) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 8);
+    const dd = digits.slice(0, 2);
+    const mm = digits.slice(2, 4);
+    const yyyy = digits.slice(4, 8);
+    return [dd, mm, yyyy].filter(Boolean).join("/");
+  };
+
+  const commitTyped = (raw) => {
+    const match = raw.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) { setTypedValue(displayValue); return; }
+    const [, dd, mm, yyyy] = match;
+    const day = parseInt(dd, 10), month = parseInt(mm, 10), year = parseInt(yyyy, 10);
+    const d = new Date(year, month - 1, day);
+    if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
+      setTypedValue(displayValue);
+      return;
+    }
+    onChange(`${yyyy}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
+    setCursor({ year, month: month - 1 });
+  };
 
   return (
     <div className="sm:col-span-2" ref={ref}>
@@ -59,20 +84,32 @@ export default function DatePickerField({ value, onChange, hasError, errorMsg })
         Date of Birth
       </label>
 
-      <button
-        type="button"
-        onClick={() => { setOpen((o) => !o); setView("day"); }}
-        className={`w-full flex items-center justify-between border rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 ${
+      <div
+        className={`w-full flex items-center justify-between border rounded-xl px-4 py-2.5 text-sm transition-colors focus-within:ring-2 ${
           hasError
-            ? "border-red-400 focus:ring-red-200 focus:border-red-400"
-            : "border-gray-200 focus:ring-primary/20 focus:border-primary"
+            ? "border-red-400 focus-within:ring-red-200 focus-within:border-red-400"
+            : "border-gray-200 focus-within:ring-primary/20 focus-within:border-primary"
         }`}
       >
-        <span className={displayValue ? "text-text" : "text-gray-400"}>
-          {displayValue || "Select date of birth"}
-        </span>
-        <span className="text-gray-400"><CalendarIcon /></span>
-      </button>
+        <input
+          type="text"
+          inputMode="numeric"
+          placeholder="DD/MM/YYYY"
+          value={typedValue}
+          onChange={(e) => setTypedValue(formatTyped(e.target.value))}
+          maxLength={10}
+          onBlur={(e) => commitTyped(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") commitTyped(e.currentTarget.value); }}
+          className={`flex-1 min-w-0 bg-transparent focus:outline-none ${typedValue ? "text-text" : "text-gray-400"}`}
+        />
+        <button
+          type="button"
+          onClick={() => { setOpen((o) => !o); setView("day"); }}
+          className="text-gray-400 hover:text-primary shrink-0 ml-2"
+        >
+          <CalendarIcon />
+        </button>
+      </div>
       {hasError && <p className="mt-1 text-xs text-red-500 font-medium">{errorMsg}</p>}
 
       {open && (
@@ -159,6 +196,18 @@ export default function DatePickerField({ value, onChange, hasError, errorMsg })
                 <span className="text-sm font-bold text-text">{yearStart} – {yearStart + 11}</span>
                 <button type="button" onClick={() => setYearStart((y) => y + 12)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"><ChevronRightIcon /></button>
               </div>
+              <input
+                type="number"
+                placeholder="Jump to year, e.g. 2005"
+                className="w-full mb-3 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  const yr = parseInt(e.currentTarget.value, 10);
+                  if (!yr || yr < 1) return;
+                  setYearStart(Math.floor(yr / 12) * 12);
+                  setCursor((c) => ({ ...c, year: yr }));
+                }}
+              />
               <div className="grid grid-cols-3 gap-2">
                 {Array.from({ length: 12 }, (_, i) => yearStart + i).map((yr) => (
                   <button key={yr} type="button" onClick={() => selectYear(yr)}
