@@ -30,6 +30,49 @@ export function SectionHeader({ emoji, title, subtitle }) {
   );
 }
 
+// ─── DropdownField ───────────────────────────────────────────────────────────
+
+export function DropdownField({
+  label,
+  trigger,
+  open,
+  onToggle,
+  onClose,
+  children,
+  menuClassName = "",
+}) {
+  const ref = useOutsideClose(() => {
+    if (open) onClose?.();
+  });
+
+  return (
+    <div ref={ref} className="mb-5">
+      <label className="block text-xs font-semibold text-gray-500 mb-2">{label}</label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left text-text transition-colors hover:border-gray-300"
+        >
+          <div className="min-w-0 flex-1">{trigger}</div>
+          <span className={`shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}>
+            <ChevronDownIcon />
+          </span>
+        </button>
+
+        {open && (
+          <div
+            className={`absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.12)] ${menuClassName}`}
+          >
+            {children}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Toggle ───────────────────────────────────────────────────────────────────
 
 export function Toggle({ checked, onChange }) {
