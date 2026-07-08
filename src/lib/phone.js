@@ -85,6 +85,8 @@ const countryIsoByName = {
   jordan: "JO",
   kenya: "KE",
   kuwait: "KW",
+  "hong kong": "HK",
+  "czech republic": "CZ",
   lebanon: "LB",
   malaysia: "MY",
   mexico: "MX",
