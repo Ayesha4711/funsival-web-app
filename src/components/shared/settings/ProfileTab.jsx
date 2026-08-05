@@ -130,6 +130,11 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
     if (fieldErrors.phoneNumber) setFieldErrors((fe) => ({ ...fe, phoneNumber: undefined }));
   };
 
+  const optionalText = (value) => {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : undefined;
+  };
+
   const handleSave = async () => {
     const localErrors = {};
     for (const key of REQUIRED_FIELDS) {
@@ -173,7 +178,7 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
         firstName: form.firstName, lastName: form.lastName,
         phoneNumber: formatPhoneNumber(phoneCountryCode, form.phoneNumber),
         dateOfBirth: form.dateOfBirth, bio: form.bio, profileImage,
-        addressLine1: form.addressLine1, addressLine2: form.addressLine2,
+        addressLine1: form.addressLine1, addressLine2: optionalText(form.addressLine2),
         city: form.city, state: form.state, postalCode: form.postalCode, country: form.country,
         ...(role !== "user" && { businessName: form.businessName, businessType: form.businessType }),
       };
