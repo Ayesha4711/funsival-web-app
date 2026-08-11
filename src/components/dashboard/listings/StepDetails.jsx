@@ -233,9 +233,11 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
     }
   };
   const updateSlot = (i, key, val) => {
-    const next = [...form.slots];
-    next[i] = { ...next[i], [key]: val };
-    set("slots", next);
+    setForm(prev => {
+      const next = [...(prev.slots || [])];
+      next[i] = { ...(next[i] || { day: "", startTime: "", endTime: "" }), [key]: val };
+      return { ...prev, slots: next };
+    });
     clearSlotErrors();
   };
 
@@ -531,17 +533,40 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
                 errs.availability = "Please complete the date and time for the one-time slot.";
               }
             } else if (form.availabilityType === "recurring") {
-              const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-              const hasAnySlot = days.some(d => (form.recurringSlots?.[d] || []).length > 0);
               if (!form.recurringStartDate || !form.recurringEndDate) {
                 errs.availability = "Please select a start and end date for the recurring schedule.";
-              } else if (!hasAnySlot) {
-                errs.availability = "Please add at least one time slot to a day.";
               } else {
-                const incomplete = days.some(d =>
-                  (form.recurringSlots?.[d] || []).some(s => !s.startTime || !s.endTime)
-                );
-                if (incomplete) errs.availability = "Please complete all recurring time slots.";
+                const allDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                const dayJsIndex = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+                const sDate = new Date(form.recurringStartDate);
+                const eDate = new Date(form.recurringEndDate);
+                const activeDaysSet = new Set();
+
+                if (!isNaN(sDate) && !isNaN(eDate) && sDate <= eDate) {
+                  const diffDays = Math.round((eDate.getTime() - sDate.getTime()) / 86400000) + 1;
+                  if (diffDays >= 7) {
+                    allDays.forEach(d => activeDaysSet.add(d));
+                  } else {
+                    for (let d = new Date(sDate); d <= eDate; d.setDate(d.getDate() + 1)) {
+                      const name = allDays.find(n => dayJsIndex[n] === d.getDay());
+                      if (name) activeDaysSet.add(name);
+                    }
+                  }
+                } else {
+                  allDays.forEach(d => activeDaysSet.add(d));
+                }
+
+                const activeDaysList = allDays.filter(d => activeDaysSet.has(d));
+                const hasAnySlot = activeDaysList.some(d => (form.recurringSlots?.[d] || []).length > 0);
+
+                if (!hasAnySlot) {
+                  errs.availability = "Please add at least one time slot to an available day.";
+                } else {
+                  const incomplete = activeDaysList.some(d =>
+                    (form.recurringSlots?.[d] || []).some(s => !s.startTime || !s.endTime)
+                  );
+                  if (incomplete) errs.availability = "Please complete all recurring time slots.";
+                }
               }
             }
 

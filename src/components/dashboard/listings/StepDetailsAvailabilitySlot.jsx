@@ -6,17 +6,28 @@ import { TrashIcon } from "@/icons";
 
 /* ─── Availability slot ──────────────────────────────────────────────────────── */
 export default function AvailabilitySlot({ slot, index, onChange, onRemove, canRemove }) {
-  // Generate 24h time options in HH:MM format (what the API expects)
+  const getOneHourLater = (timeStr) => {
+    if (!timeStr) return "";
+    const [h] = String(timeStr).split(":").map(Number);
+    if (!Number.isFinite(h)) return "";
+    const nextHour = (h + 1) % 24;
+    return `${String(nextHour).padStart(2, "0")}:00`;
+  };
+
+  // Generate 24h hourly time options in HH:00 format
   const timeOptions = [];
   for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const val = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      const ampm = h < 12 ? "AM" : "PM";
-      const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      const label = `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
-      timeOptions.push({ value: val, label });
-    }
+    const val = `${String(h).padStart(2, "0")}:00`;
+    const ampm = h < 12 ? "AM" : "PM";
+    const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    const label = `${String(hour).padStart(2, "0")}:00 ${ampm}`;
+    timeOptions.push({ value: val, label });
   }
+
+  const handleStartTimeChange = (value) => {
+    onChange(index, "startTime", value);
+    onChange(index, "endTime", getOneHourLater(value));
+  };
 
   return (
     <div className="rounded-2xl border border-[#CEE6E5] bg-[#f0faf9]">
@@ -44,7 +55,7 @@ export default function AvailabilitySlot({ slot, index, onChange, onRemove, canR
                 value={slot.startTime || ""}
                 placeholder="When the activity begins"
                 options={timeOptions}
-                onChange={(value) => onChange(index, "startTime", value)}
+                onChange={handleStartTimeChange}
                 splitDisplay
                 teal
               />
@@ -98,7 +109,7 @@ export default function AvailabilitySlot({ slot, index, onChange, onRemove, canR
                 value={slot.startTime || ""}
                 placeholder="Begins"
                 options={timeOptions}
-                onChange={(value) => onChange(index, "startTime", value)}
+                onChange={handleStartTimeChange}
                 splitDisplay
                 teal
               />
