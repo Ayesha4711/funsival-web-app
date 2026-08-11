@@ -9,15 +9,21 @@ const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satur
 // JS day index: 0=Sun,1=Mon,...,6=Sat
 const DAY_JS_INDEX = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
 
-function buildHalfHourOptions() {
+function getOneHourLater(timeStr) {
+  if (!timeStr) return "";
+  const [h] = String(timeStr).split(":").map(Number);
+  if (!Number.isFinite(h)) return "";
+  const nextHour = (h + 1) % 24;
+  return `${String(nextHour).padStart(2, "0")}:00`;
+}
+
+function buildHourlyOptions() {
   const opts = [];
   for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const val = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      const ampm = h < 12 ? "AM" : "PM";
-      const hr = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      opts.push({ value: val, label: `${String(hr).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}` });
-    }
+    const val = `${String(h).padStart(2, "0")}:00`;
+    const ampm = h < 12 ? "AM" : "PM";
+    const hr = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    opts.push({ value: val, label: `${String(hr).padStart(2, "0")}:00 ${ampm}` });
   }
   return opts;
 }
@@ -41,7 +47,7 @@ function getActiveDays(start, end) {
 
 /* ─── Availability section (one-time + recurring schedule) ─────────────────── */
 export default function StepDetailsAvailabilitySection({ form, fe, set, updateSlot, activeErrors, setActiveErrors }) {
-  const timeOptions = buildHalfHourOptions();
+  const timeOptions = buildHourlyOptions();
   const activeDays = getActiveDays(form.recurringStartDate, form.recurringEndDate);
   const hasRange = !!(form.recurringStartDate && form.recurringEndDate);
 
@@ -92,7 +98,10 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
                       value={form.slots[0]?.startTime || ""}
                       placeholder="When the activity begins"
                       options={timeOptions}
-                      onChange={(value) => updateSlot(0, "startTime", value)}
+                      onChange={(value) => {
+                        updateSlot(0, "startTime", value);
+                        updateSlot(0, "endTime", getOneHourLater(value));
+                      }}
                       splitDisplay
                       teal
                       allowTyping
@@ -177,7 +186,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
                                 options={timeOptions}
                                 onChange={(value) => {
                                   const next = [...daySlots];
-                                  next[si] = { ...next[si], startTime: value };
+                                  next[si] = { ...next[si], startTime: value, endTime: getOneHourLater(value) };
                                   set("recurringSlots", { ...form.recurringSlots, [day]: next });
                                 }}
                                 splitDisplay

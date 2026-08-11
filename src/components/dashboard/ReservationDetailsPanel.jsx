@@ -18,7 +18,7 @@ function DetailRow({ label, value }) {
       <span style={{ fontFamily: FONT, fontWeight: 500, fontSize: 14, color: "#374151" }}>
         {label}
       </span>
-      <span style={{ fontFamily: FONT, fontWeight: 500, fontSize: 14, color: "#9CA3AF" }} className="text-right max-w-[55%]">
+      <span style={{ fontFamily: FONT, fontWeight: 500, fontSize: 14, color: "#9CA3AF" }} className="text-right max-w-[55%] whitespace-pre-line">
         {value}
       </span>
     </div>
@@ -110,6 +110,12 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
             />
             <DetailRow label="Reserved By" value={reservation.reservedBy} />
             <DetailRow label="Date"        value={reservation.dateRange || reservation.date} />
+            <DetailRow
+              label="Time"
+              value={Array.isArray(reservation.timeRanges) && reservation.timeRanges.length > 0
+                ? reservation.timeRanges.join("\n")
+                : reservation.time || "—"}
+            />
             <DetailRow label="Location"    value={reservation.location} />
 
             {/* Payment status */}

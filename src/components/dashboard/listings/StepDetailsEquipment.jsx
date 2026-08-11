@@ -82,15 +82,21 @@ function PhotoUpload({ photos, onAdd }) {
 
 /* ─── Availability slot (equipment: start + end time, delete button) ─────────── */
 function AvailabilitySlot({ slot, index, onChange, onRemove, showDelete }) {
+  const getOneHourLater = (timeStr) => {
+    if (!timeStr) return "";
+    const [h] = String(timeStr).split(":").map(Number);
+    if (!Number.isFinite(h)) return "";
+    const nextHour = (h + 1) % 24;
+    return `${String(nextHour).padStart(2, "0")}:00`;
+  };
+
   const timeOptions = [];
   for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const val = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      const ampm = h < 12 ? "AM" : "PM";
-      const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      const label = `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
-      timeOptions.push({ value: val, label });
-    }
+    const val = `${String(h).padStart(2, "0")}:00`;
+    const ampm = h < 12 ? "AM" : "PM";
+    const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    const label = `${String(hour).padStart(2, "0")}:00 ${ampm}`;
+    timeOptions.push({ value: val, label });
   }
 
   return (
@@ -109,7 +115,10 @@ function AvailabilitySlot({ slot, index, onChange, onRemove, showDelete }) {
           value={slot.startTime || ""}
           placeholder="Begins"
           options={timeOptions}
-          onChange={(value) => onChange(index, "startTime", value)}
+          onChange={(value) => {
+            onChange(index, "startTime", value);
+            onChange(index, "endTime", getOneHourLater(value));
+          }}
         />
       </div>
       <div className="flex-1 min-w-[120px]">
@@ -254,9 +263,11 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
   };
   const addSlot = () => { set("slots", [...form.slots, { day: "", startTime: "", endTime: "" }]); clearSlotErrors(); };
   const updateSlot = (i, key, val) => {
-    const next = [...form.slots];
-    next[i] = { ...next[i], [key]: val };
-    set("slots", next);
+    setForm(prev => {
+      const next = [...(prev.slots || [])];
+      next[i] = { ...(next[i] || { day: "", startTime: "", endTime: "" }), [key]: val };
+      return { ...prev, slots: next };
+    });
     clearSlotErrors();
   };
   const removeSlot = (i) => { set("slots", form.slots.filter((_, j) => j !== i)); clearSlotErrors(); };

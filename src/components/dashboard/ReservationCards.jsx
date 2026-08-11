@@ -133,7 +133,13 @@ export default function ReservationCards({ data, onViewDetails, onCancel }) {
             </div>
             <div className="col-span-2">
               <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase mb-1">Date & Time</p>
-              <p className="text-xs font-bold text-[var(--color-text)]">{item.date} — {item.time}</p>
+              <p className="text-xs font-bold text-[var(--color-text)] whitespace-pre-line">
+                {item.date}
+                {"\n"}
+                {Array.isArray(item.timeRanges) && item.timeRanges.length > 0
+                  ? item.timeRanges.join("\n")
+                  : item.time}
+              </p>
             </div>
           </div>
         </div>

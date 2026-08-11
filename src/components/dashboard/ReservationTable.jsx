@@ -199,11 +199,17 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
                   <div className="text-[12px] text-[var(--color-text)] font-semibold whitespace-nowrap" style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}>
                     {item.dateRange}
                   </div>
-                  {item.time && (
+                  {Array.isArray(item.timeRanges) && item.timeRanges.length > 0 ? (
+                    <div className="mt-0.5 flex flex-col gap-0.5 text-[11px] text-[var(--color-text-muted)] whitespace-nowrap" style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}>
+                      {item.timeRanges.map((range, index) => (
+                        <span key={`${range}-${index}`}>{range}</span>
+                      ))}
+                    </div>
+                  ) : item.time ? (
                     <div className="text-[11px] text-[var(--color-text-muted)] whitespace-nowrap mt-0.5" style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}>
                       {item.time}
                     </div>
-                  )}
+                  ) : null}
                 </td>
 
                 {/* Status */}

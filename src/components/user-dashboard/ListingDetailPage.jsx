@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
+import axiosInstance from "@/store/axiosInstance";
 import {
   fetchBrowseListing,
   selectSelectedActivity,
@@ -245,16 +246,216 @@ function ImageGallery({ images, title }) {
 const TIME_OPTIONS = (() => {
   const opts = [];
   for (let h = 0; h < 24; h++) {
-    for (const m of [0, 30]) {
-      const hour = h % 12 === 0 ? 12 : h % 12;
-      const ampm = h < 12 ? "AM" : "PM";
-      const label = `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
-      const value = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      opts.push({ label, value });
-    }
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "AM" : "PM";
+    const label = `${String(hour).padStart(2, "0")}:00 ${ampm}`;
+    const value = `${String(h).padStart(2, "0")}:00`;
+    opts.push({ label, value });
   }
   return opts;
 })();
+
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function safeParseJSON(value, fallback = {}) {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function getCurrencySymbol(currency) {
+  const code = String(currency || "").trim().toUpperCase();
+  if (code === "PKR") return "Rs";
+  if (code === "USD") return "$";
+  if (code === "EUR") return "€";
+  if (code === "GBP") return "£";
+  if (code) return code;
+  return "$";
+}
+
+function formatMoney(amount, currency = "USD", minimumFractionDigits = 2, maximumFractionDigits = 2) {
+  const numeric = Number(amount);
+  const value = Number.isFinite(numeric) ? numeric : 0;
+  const symbol = getCurrencySymbol(currency);
+  const fixed = value.toLocaleString("en-US", {
+    minimumFractionDigits,
+    maximumFractionDigits,
+  });
+  return `${symbol} ${fixed}`;
+}
+
+function formatCompactDate(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return {
+      weekday: "",
+      label: "",
+      month: "",
+      year: "",
+      full: dateStr,
+    };
+  }
+  const weekday = WEEKDAY_SHORT[date.getDay()];
+  const month = MONTH_SHORT[date.getMonth()];
+  return {
+    weekday,
+    label: `${date.getDate()}`,
+    month,
+    year: String(date.getFullYear()),
+    full: `${month} ${date.getDate()}, ${date.getFullYear()}`,
+  };
+}
+
+function formatTimeLabel(value) {
+  if (!value) return "";
+  const parts = String(value).split(":");
+  if (parts.length < 2) return value;
+  const hours = Number(parts[0]);
+  const minutes = Number(parts[1]);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return value;
+  const ampm = hours < 12 ? "AM" : "PM";
+  const hour = hours % 12 === 0 ? 12 : hours % 12;
+  return `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")} ${ampm}`;
+}
+
+function calculateSlotMinutes(startTime, endTime) {
+  if (!startTime || !endTime) return 0;
+  const [sh, sm] = String(startTime).split(":").map(Number);
+  const [eh, em] = String(endTime).split(":").map(Number);
+  if (!Number.isFinite(sh) || !Number.isFinite(sm) || !Number.isFinite(eh) || !Number.isFinite(em)) return 0;
+  const startTotal = sh * 60 + sm;
+  let endTotal = eh * 60 + em;
+  if (endTotal < startTotal) endTotal += 24 * 60;
+  const diff = endTotal - startTotal;
+  return diff > 0 ? diff : 0;
+}
+
+function timeToMinutes(value) {
+  if (!value) return Number.NaN;
+  const [hours, minutes] = String(value).split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return Number.NaN;
+  return hours * 60 + minutes;
+}
+
+function compareSlotOrder(a, b) {
+  const dateA = String(a.date || "");
+  const dateB = String(b.date || "");
+  if (dateA !== dateB) return dateA.localeCompare(dateB);
+  return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+}
+
+function mergeHourlySlots(slots, targetMinutes = 60) {
+  const sorted = (Array.isArray(slots) ? slots : [])
+    .filter((slot) => slot && slot.startTime && slot.endTime)
+    .slice()
+    .sort(compareSlotOrder);
+
+  const merged = [];
+  let group = [];
+  let groupMinutes = 0;
+
+  const flushGroup = () => {
+    if (group.length === 0) return;
+    if (groupMinutes >= targetMinutes) {
+      const first = group[0];
+      const last = group[group.length - 1];
+      merged.push({
+        ...first,
+        endTime: last.endTime,
+        durationMinutes: targetMinutes,
+        available: group.every((slot) => slot.available !== false),
+        price: null,
+      });
+    }
+    group = [];
+    groupMinutes = 0;
+  };
+
+  for (const slot of sorted) {
+    const slotMinutes = Number(slot.durationMinutes) || calculateSlotMinutes(slot.startTime, slot.endTime);
+    if (!Number.isFinite(slotMinutes) || slotMinutes <= 0) continue;
+
+    if (slotMinutes >= targetMinutes) {
+      flushGroup();
+      merged.push({
+        ...slot,
+        durationMinutes: slotMinutes,
+      });
+      continue;
+    }
+
+    const previous = group[group.length - 1];
+    const isContiguous =
+      previous &&
+      previous.available !== false &&
+      slot.available !== false &&
+      String(previous.date || "") === String(slot.date || "") &&
+      timeToMinutes(previous.endTime) === timeToMinutes(slot.startTime);
+
+    if (!isContiguous) {
+      flushGroup();
+    }
+
+    group.push(slot);
+    groupMinutes += slotMinutes;
+
+    if (groupMinutes >= targetMinutes) {
+      flushGroup();
+    }
+  }
+
+  flushGroup();
+  return merged;
+}
+
+function extractSlotsArray(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.slots)) return payload.slots;
+  if (Array.isArray(payload.availability)) return payload.availability;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (payload.data && typeof payload.data === "object") {
+    if (Array.isArray(payload.data.slots)) return payload.data.slots;
+    if (Array.isArray(payload.data.availability)) return payload.data.availability;
+    if (Array.isArray(payload.data.data)) return payload.data.data;
+  }
+  return [];
+}
+
+function slotKey(slot) {
+  return `${slot.startTime ?? ""}-${slot.endTime ?? ""}`;
+}
+
+function normalizeSlotsResponse(payload) {
+  const rawSlots = extractSlotsArray(payload);
+  const data = payload?.data && typeof payload.data === "object" && !Array.isArray(payload.data)
+    ? payload.data
+    : (payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {});
+  return {
+    slots: rawSlots.map((slot) => {
+      const startTime = slot.startTime ?? slot.start_time ?? "";
+      const endTime = slot.endTime ?? slot.end_time ?? "";
+      const calcDuration = calculateSlotMinutes(startTime, endTime);
+      const durationMinutes = Number(slot.durationMinutes ?? slot.duration_minutes) || calcDuration || null;
+      return {
+        startTime,
+        endTime,
+        durationMinutes,
+        price: Number(slot.price) || null,
+        available: slot.available ?? slot.isAvailable ?? slot.is_available ?? true,
+        date: slot.date ?? "",
+      };
+    }),
+    slotDurationMinutes: Number(data.slotDurationMinutes ?? data.slot_duration_minutes) || null,
+    hourlyPrice: Number(data.hourlyPrice ?? data.hourly_price) || null,
+    currency: data.currency || "USD",
+  };
+}
 
 /* ─── Custom Time Dropdown ───────────────────────────────────────────────────── */
 function TimeDropdown({ value, onChange, placeholder = "Select time", options }) {
@@ -512,6 +713,406 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
   );
 }
 
+function HourlySlotBookingCard({
+  listing,
+  listingId,
+  bookingTitle,
+  bannerIcon,
+  bannerLabel,
+  reserveLabel = "Continue to Payment",
+  slotRefresh = "",
+}) {
+  const router = useRouter();
+  const SKEY = `booking_hourly_${listingId}`;
+  const saved = React.useMemo(() => {
+    if (typeof window === "undefined") return {};
+    return safeParseJSON(sessionStorage.getItem(SKEY), {});
+  }, [SKEY]);
+
+  const listingDates = React.useMemo(() => {
+    const dates = (listing.availability || [])
+      .map((slot) => slot?.date?.split("T")[0] || slot?.day || "")
+      .filter(Boolean);
+    return [...new Set(dates)].sort();
+  }, [listing.availability]);
+
+  const shouldMergeHourlySlots = listing.bookingType === "per_hour";
+
+  const initialDate = saved.selectedDate || saved.startDate || listingDates[0] || "";
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [selectionByDate, setSelectionByDate] = useState(saved.selectionByDate || {});
+  const [grid, setGrid] = useState({ slots: [], slotDurationMinutes: null, hourlyPrice: null, currency: "USD" });
+  const [loadingGrid, setLoadingGrid] = useState(false);
+  const [gridError, setGridError] = useState("");
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  // Fallback slots extracted directly from listing.availability if /slots API response is empty or fails
+  const fallbackSlots = React.useMemo(() => {
+    if (!selectedDate || !(listing.availability || []).length) return [];
+    const normalized = (listing.availability || [])
+      .filter((slot) => {
+        const slotDate = slot?.date?.split("T")[0] || slot?.day || "";
+        return !slotDate || slotDate === selectedDate;
+      })
+      .map((slot) => {
+        const startTime = slot.startTime ?? slot.start_time ?? "";
+        const endTime = slot.endTime ?? slot.end_time ?? "";
+        const calcDuration = calculateSlotMinutes(startTime, endTime);
+        const durationMinutes = Number(slot.durationMinutes ?? slot.duration_minutes) || calcDuration || null;
+        return {
+          startTime,
+          endTime,
+          durationMinutes,
+          price: Number(slot.price) || null,
+          available: slot.available ?? slot.isAvailable ?? slot.is_available ?? true,
+          date: slot.date ?? selectedDate,
+        };
+      });
+    return shouldMergeHourlySlots ? mergeHourlySlots(normalized, 60) : normalized;
+  }, [listing.availability, selectedDate, shouldMergeHourlySlots]);
+
+  const activeSlots = grid.slots.length > 0 ? grid.slots : fallbackSlots;
+  const effectiveSlotDurationMinutes = shouldMergeHourlySlots ? 60 : grid.slotDurationMinutes;
+
+  const currentSelection = selectionByDate[selectedDate] || [];
+  const hourlyPrice = Number(grid.hourlyPrice || listing.hourlyPrice || listing.price || 0);
+  const currency = grid.currency || listing.currency || "USD";
+  const selectedHours = React.useMemo(() => currentSelection.reduce((sum, slot) => {
+    const minutes = slot.durationMinutes || effectiveSlotDurationMinutes || calculateSlotMinutes(slot.startTime, slot.endTime) || 0;
+    return sum + (minutes / 60);
+  }, 0), [currentSelection, effectiveSlotDurationMinutes]);
+
+  const selectedPrice = React.useMemo(() => currentSelection.reduce((sum, slot) => {
+    const raw = Number(slot.price);
+    if (Number.isFinite(raw) && raw > 0) return sum + raw;
+    const minutes = slot.durationMinutes || effectiveSlotDurationMinutes || calculateSlotMinutes(slot.startTime, slot.endTime) || 0;
+    return sum + ((hourlyPrice * minutes) / 60);
+  }, 0), [currentSelection, effectiveSlotDurationMinutes, hourlyPrice]);
+
+  const availableCount = activeSlots.filter((slot) => slot.available !== false).length;
+
+  useEffect(() => {
+    if (!selectedDate && listingDates[0]) {
+      setSelectedDate(listingDates[0]);
+    }
+  }, [listingDates, selectedDate]);
+
+  useEffect(() => {
+    if (!selectedDate) return;
+
+    let cancelled = false;
+    const load = async () => {
+      setLoadingGrid(true);
+      setGridError("");
+      try {
+        const { data } = await axiosInstance.get(`/listings/browse/${listingId}/slots`, {
+          params: { date: selectedDate },
+        });
+        if (cancelled) return;
+        const normalized = normalizeSlotsResponse(data);
+        setGrid(
+          shouldMergeHourlySlots
+            ? {
+                ...normalized,
+                slots: mergeHourlySlots(normalized.slots, 60),
+                slotDurationMinutes: 60,
+              }
+            : normalized
+        );
+      } catch (error) {
+        if (cancelled) return;
+        setGrid({ slots: [], slotDurationMinutes: null, hourlyPrice: null, currency: "USD" });
+        setGridError(error?.response?.data?.message || "Unable to load slots right now.");
+      } finally {
+        if (!cancelled) setLoadingGrid(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [listingId, selectedDate, refreshTick, shouldMergeHourlySlots]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem(SKEY, JSON.stringify({
+      selectedDate,
+      selectionByDate,
+      listingId,
+      pricingMode: "hourly",
+      hourlyPrice,
+      currency,
+      slotDurationMinutes: effectiveSlotDurationMinutes,
+    }));
+  }, [SKEY, selectedDate, selectionByDate, listingId, hourlyPrice, currency, effectiveSlotDurationMinutes]);
+
+  useEffect(() => {
+    if (!slotRefresh) return;
+    setSelectionByDate({});
+    setRefreshTick((tick) => tick + 1);
+  }, [slotRefresh]);
+
+  const selectedCount = currentSelection.length;
+  const selectedRanges = currentSelection
+    .slice()
+    .sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
+
+  const handleRefresh = () => {
+    setSelectionByDate((prev) => ({ ...prev, [selectedDate]: [] }));
+    setRefreshTick((tick) => tick + 1);
+  };
+
+  const toggleSlot = (slot) => {
+    if (slot.available === false) return;
+    const key = slotKey(slot);
+    setSelectionByDate((prev) => {
+      const existing = prev[selectedDate] || [];
+      const next = existing.some((item) => slotKey(item) === key)
+        ? existing.filter((item) => slotKey(item) !== key)
+        : [...existing, {
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          durationMinutes: slot.durationMinutes || effectiveSlotDurationMinutes || calculateSlotMinutes(slot.startTime, slot.endTime) || null,
+          price: slot.price || null,
+        }];
+      return { ...prev, [selectedDate]: next };
+    });
+  };
+
+  const handleContinue = () => {
+    if (!selectedDate) {
+      toast.error("Please pick a date first.");
+      return;
+    }
+    if (!currentSelection.length) {
+      toast.error("Please select at least one slot.");
+      return;
+    }
+
+    const serializedSlots = currentSelection.map((slot) => ({
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+    }));
+
+    const sessionState = {
+      selectedDate,
+      slots: serializedSlots,
+      slotDurationMinutes: effectiveSlotDurationMinutes,
+      hourlyPrice,
+      currency,
+      listingId,
+      title: listing.title,
+      description: listing.details?.description || "",
+      image: listing.images?.[0] || "",
+      pricingMode: "hourly",
+      bookingType: listing.bookingType,
+      selectionByDate,
+      totalHours: selectedHours,
+      totalPrice: selectedPrice,
+      listingType: listing.type,
+    };
+    sessionStorage.setItem(SKEY, JSON.stringify(sessionState));
+
+    const params = new URLSearchParams({
+      listingId,
+      title: listing.title,
+      description: listing.details?.description || "",
+      image: listing.images?.[0] || "",
+      bookingType: listing.bookingType || "hourly",
+      listingType: listing.type,
+      pricingMode: "hourly",
+      startDate: selectedDate,
+      pricePerUnit: String(hourlyPrice),
+      units: String(selectedHours),
+      _skey: SKEY,
+    });
+
+    router.push(`/user-dashboard/confirm-and-pay?${params.toString()}`);
+  };
+
+  return (
+    <BookingShell
+      title={bookingTitle}
+      price={hourlyPrice || listing.price}
+      priceUnit="/Hr"
+      rating={listing.rating}
+      reviews={listing.reviews}
+      topSlot={(
+        <div className="rounded-[22px] bg-[#228E8A] bg-gradient-to-r from-[#228E8A] to-[#1D8C82] px-4 py-4 text-white shadow-[0_10px_24px_rgba(34,142,138,0.18)]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20 text-white">
+              {bannerIcon}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{bannerLabel}</p>
+              <p className="text-xs text-white/80">
+                {selectedDate ? formatCompactDate(selectedDate).full : "Select a date"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      reserveButton={(
+        <button
+          onClick={handleContinue}
+          disabled={!currentSelection.length || loadingGrid}
+          className={`w-full rounded-full px-5 py-4 text-sm font-bold transition-all ${
+            currentSelection.length && !loadingGrid
+              ? "bg-[#FEB538] text-gray-900 hover:opacity-90 shadow-md"
+              : "cursor-not-allowed bg-gray-300 text-white"
+          }`}
+        >
+          {reserveLabel}
+        </button>
+      )}
+    >
+      <div className="space-y-4">
+        <div className="rounded-[22px] border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900">
+                {selectedDate ? `Available Slots for ${formatCompactDate(selectedDate).weekday}, ${formatCompactDate(selectedDate).full}` : "Select a date"}
+              </p>
+              <p className="text-xs text-gray-500">
+                {availableCount} slots available{selectedCount ? ` · ${selectedCount} selected` : ""}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:border-[#228E8A] hover:text-[#228E8A]"
+            >
+              <span className={loadingGrid ? "animate-spin" : ""}>↻</span>
+              Refresh
+            </button>
+          </div>
+
+          <div className="mt-4 overflow-x-auto pb-1">
+            <div className="flex min-w-max gap-3">
+              {listingDates.map((date) => {
+                const meta = formatCompactDate(date);
+                const active = date === selectedDate;
+                return (
+                  <button
+                    key={date}
+                    type="button"
+                    onClick={() => setSelectedDate(date)}
+                    className={`flex w-16 shrink-0 flex-col items-center rounded-2xl border px-2 py-3 transition-colors ${
+                      active
+                        ? "border-[#228E8A] bg-[#EBF6F6] text-[#228E8A] font-bold"
+                        : "border-transparent bg-white text-gray-500 hover:border-gray-200"
+                    }`}
+                  >
+                    <span className="text-[10px] font-semibold uppercase tracking-wide">{meta.weekday}</span>
+                    <span className="text-lg font-bold leading-none">{meta.label}</span>
+                    <span className="mt-0.5 text-[10px] font-medium">{meta.month}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#CBE6E5] bg-[#EBF6F6] px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#228E8A] shadow-sm">
+              {bannerIcon}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[#228E8A]">
+                {hourlyPrice ? `${formatMoney(hourlyPrice, currency)} per hour` : "Hourly booking"}
+              </p>
+              <p className="text-xs text-gray-600">
+                {grid.slotDurationMinutes ? `${grid.slotDurationMinutes} minutes per slot` : "Server-defined slot length"}{" "}
+                {selectedCount ? `· ${selectedCount} selected` : ""}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {gridError && (
+          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {gridError}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {loadingGrid && !activeSlots.length ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-24 animate-pulse rounded-2xl border border-gray-100 bg-gray-50" />
+            ))
+          ) : activeSlots.length === 0 ? (
+            <div className="col-span-full py-8 text-center text-sm text-gray-400">
+              No slots available for this date.
+            </div>
+          ) : (
+            activeSlots.map((slot) => {
+              const selected = currentSelection.some((item) => slotKey(item) === slotKey(slot));
+              const disabled = slot.available === false;
+              const slotDuration = slot.durationMinutes || grid.slotDurationMinutes || calculateSlotMinutes(slot.startTime, slot.endTime) || 0;
+              const slotPrice = slot.price ?? ((hourlyPrice * slotDuration) / 60);
+              return (
+                <button
+                  key={slotKey(slot)}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => toggleSlot(slot)}
+                  className={`relative rounded-2xl border p-4 text-left transition-all ${
+                    disabled
+                      ? "cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300"
+                      : selected
+                        ? "border-[#228E8A] bg-white shadow-[0_10px_24px_rgba(34,142,138,0.12)] ring-1 ring-[#228E8A]"
+                        : "border-gray-100 bg-white hover:border-[#228E8A]/40 hover:shadow-[0_10px_24px_rgba(34,142,138,0.06)]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-base font-bold text-gray-900">
+                        {formatTimeLabel(slot.startTime)} - {formatTimeLabel(slot.endTime)}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {slotDuration} minutes
+                      </p>
+                    </div>
+                    <div className={`mt-0.5 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                      disabled
+                        ? "bg-gray-100 text-gray-400"
+                        : selected
+                          ? "bg-[#228E8A] text-white"
+                          : "bg-[#EBF6F6] text-[#228E8A]"
+                    }`}>
+                      {disabled ? "Booked" : selected ? "Selected" : "Available"}
+                    </div>
+                  </div>
+                  <p className={`mt-3 text-lg font-bold ${disabled ? "text-gray-300" : "text-[#228E8A]"}`}>
+                    {formatMoney(slotPrice, currency)}
+                  </p>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        <div className="rounded-[22px] border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-gray-900">
+                {selectedRanges.length ? `${formatTimeLabel(selectedRanges[0].startTime)} - ${formatTimeLabel(selectedRanges[0].endTime)}` : "Select at least one slot"}
+              </p>
+              <p className="text-xs text-gray-500">
+                {selectedCount ? `${selectedCount} slot${selectedCount > 1 ? "s" : ""} selected` : "Pick one or more non-contiguous slots"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-medium text-gray-400">Total</p>
+              <p className="text-xl font-bold text-[#228E8A]">{formatMoney(selectedPrice, currency)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </BookingShell>
+  );
+}
+
 /* ─── Navigate to confirm-and-pay ────────────────────────────────────────────── */
 function useNavigateToConfirm(listing, listingId) {
   const router = useRouter();
@@ -535,7 +1136,25 @@ function useNavigateToConfirm(listing, listingId) {
 }
 
 /* ─── Activity Booking Card ──────────────────────────────────────────────────── */
-function ActivityBookingCard({ listing, listingId }) {
+function ActivityBookingCard({ listing, listingId, slotRefresh = "" }) {
+  if (listing.bookingType !== "per_person") {
+    return (
+      <HourlySlotBookingCard
+        listing={listing}
+        listingId={listingId}
+        bookingTitle="Book Your Activity"
+        bannerLabel={listing.title}
+        bannerIcon={<UserOutlineIcon size={18} />}
+        reserveLabel="Continue to Payment"
+        slotRefresh={slotRefresh}
+      />
+    );
+  }
+
+  return <ActivityPerPersonBookingCard listing={listing} listingId={listingId} />;
+}
+
+function ActivityPerPersonBookingCard({ listing, listingId }) {
   const SKEY = `booking_activity_${listingId}`;
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
   const [date, setDate] = useState(saved.date || "");
@@ -569,27 +1188,24 @@ function ActivityBookingCard({ listing, listingId }) {
     sessionStorage.setItem(SKEY, JSON.stringify({ date, startTime, endTime, persons }));
   }, [date, startTime, endTime, persons, SKEY]);
 
-  const isPerPerson = listing.bookingType === "per_person";
-  const units = isPerPerson ? (Number(persons) || 1) : 1;
+  const units = Number(persons) || 1;
   const subtotal = listing.price * units;
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
 
-  const pillLabel = isPerPerson ? "Per Person" : "Per Hour";
-  const priceUnit = isPerPerson ? "/Person" : "/Hr";
-  const summaryLabel = isPerPerson
-    ? `$${listing.price}/person × ${units} person${units > 1 ? "s" : ""}`
-    : `$${listing.price}/hr`;
+  const pillLabel = "Per Person";
+  const priceUnit = "/Person";
+  const summaryLabel = `$${listing.price}/person × ${units} person${units > 1 ? "s" : ""}`;
 
   const handleReserve = () => {
     const newErrors = {};
     if (!date) { toast.error("Date is required."); newErrors.date = true; }
     if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
-    if (isPerPerson && !persons) { toast.error("Number of guests is required."); newErrors.persons = true; }
+    if (!persons) { toast.error("Number of guests is required."); newErrors.persons = true; }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     const fields = {
       startDate: date, endDate: date, startTime, endTime, dateFrom: date, dateTo: date,
-      ...(isPerPerson ? { numberOfGuests: Number(persons), units, guests: `${Number(persons)} guest${Number(persons) !== 1 ? "s" : ""}` } : { units: 1 }),
+      numberOfGuests: Number(persons), units, guests: `${Number(persons)} guest${Number(persons) !== 1 ? "s" : ""}`,
     };
     navigateToConfirm(fields, SKEY);
   };
@@ -650,19 +1266,17 @@ function ActivityBookingCard({ listing, listingId }) {
       </BookingField>
 
 
-      {/* Guests — only show for per_person */}
-      {isPerPerson && (
-        <BookingField icon={<UserOutlineIcon />} error={errors.persons} errorMessage="Number of guests is required">
-          <input
-            type="number"
-            min="1"
-            value={persons}
-            placeholder="Select guest number"
-            onChange={e => { setPersons(e.target.value); setErrors(err => ({ ...err, persons: false })); }}
-            className="w-full bg-transparent text-xs sm:text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400 min-w-0"
-          />
-        </BookingField>
-      )}
+      {/* Guests */}
+      <BookingField icon={<UserOutlineIcon />} error={errors.persons} errorMessage="Number of guests is required">
+        <input
+          type="number"
+          min="1"
+          value={persons}
+          placeholder="Select guest number"
+          onChange={e => { setPersons(e.target.value); setErrors(err => ({ ...err, persons: false })); }}
+          className="w-full bg-transparent text-xs sm:text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400 min-w-0"
+        />
+      </BookingField>
 
       {/* Summary */}
       <div className="space-y-2 border-t border-gray-100 pt-4">
@@ -675,7 +1289,7 @@ function ActivityBookingCard({ listing, listingId }) {
 }
 
 /* ─── Places Booking Card ────────────────────────────────────────────────────── */
-function PlacesBookingCard({ listing, listingId }) {
+function PlacesBookingCard({ listing, listingId, slotRefresh = "" }) {
   const SKEY = `booking_places_${listingId}`;
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
   const hasDaily = !!(listing.dailyPrice);
@@ -732,6 +1346,20 @@ function PlacesBookingCard({ listing, listingId }) {
   const subtotal = modePrice * span;
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
+
+  if (mode === "hourly") {
+    return (
+      <HourlySlotBookingCard
+        listing={listing}
+        listingId={listingId}
+        bookingTitle="Book Your Place"
+        bannerLabel={listing.title}
+        bannerIcon={<CalendarIcon size={18} />}
+        reserveLabel="Continue to Payment"
+        slotRefresh={slotRefresh}
+      />
+    );
+  }
 
   const handleReserve = () => {
     const newErrors = {};
@@ -855,6 +1483,25 @@ function PlacesBookingCard({ listing, listingId }) {
               options={startTimeOptions}
             />
           </BookingField>
+
+          {(startTime || endTime) && (
+            <div className="rounded-2xl border border-[#CBE6E5] bg-[#EBF6F6] px-4 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-gray-900">
+                    {formatTime(startTime || endTime)}{endTime && endTime !== startTime ? ` - ${formatTime(endTime)}` : ""}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Daily slot preview
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Price</p>
+                  <p className="text-base font-bold text-[#228E8A]">{formatMoney(subtotal, listing.currency || "USD")}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -881,7 +1528,7 @@ function PlacesBookingCard({ listing, listingId }) {
 }
 
 /* ─── Equipment Booking Card ─────────────────────────────────────────────────── */
-function EquipmentBookingCard({ listing, listingId }) {
+function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
   const SKEY = `booking_equipment_${listingId}`;
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
   const hasDaily = !!(listing.dailyPrice);
@@ -938,6 +1585,20 @@ function EquipmentBookingCard({ listing, listingId }) {
   const subtotal = modePrice * span;
   const fee = Math.max(8, Math.round(subtotal * 0.067));
   const total = subtotal + fee;
+
+  if (mode === "hourly") {
+    return (
+      <HourlySlotBookingCard
+        listing={listing}
+        listingId={listingId}
+        bookingTitle="Book Your Equipment"
+        bannerLabel={listing.title}
+        bannerIcon={<ClockIcon size={18} />}
+        reserveLabel="Continue to Payment"
+        slotRefresh={slotRefresh}
+      />
+    );
+  }
 
   const handleReserve = () => {
     const newErrors = {};
@@ -1062,6 +1723,25 @@ function EquipmentBookingCard({ listing, listingId }) {
               options={startTimeOptions}
             />
           </BookingField>
+
+          {(startTime || endTime) && (
+            <div className="rounded-2xl border border-[#CBE6E5] bg-[#EBF6F6] px-4 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-gray-900">
+                    {formatTime(startTime || endTime)}{endTime && endTime !== startTime ? ` - ${formatTime(endTime)}` : ""}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Daily slot preview
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Price</p>
+                  <p className="text-base font-bold text-[#228E8A]">{formatMoney(subtotal, listing.currency || "USD")}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -1384,6 +2064,7 @@ export default function ListingDetailPage({ params: paramsPromise }) {
   const params = React.use(paramsPromise);
   const rawId = params?.id;
   const urlType = searchParams.get("type");
+  const slotRefresh = searchParams.get("slotRefresh") || "";
 
   const rawActivity = useSelector(selectSelectedActivity);
   const hostCache = useSelector(selectHostCache);
@@ -1505,9 +2186,9 @@ export default function ListingDetailPage({ params: paramsPromise }) {
 
           {/* Right – booking section */}
           <div className="w-full xl:w-[440px] shrink-0 xl:self-stretch">
-            {(listing.type === "places"    || listing.type === "place")     && <PlacesBookingCard    listing={listing} listingId={rawId} />}
-            {listing.type === "equipment"  && <EquipmentBookingCard listing={listing} listingId={rawId} />}
-            {(listing.type === "activities" || listing.type === "activity") && <ActivityBookingCard listing={listing} listingId={rawId} />}
+            {(listing.type === "places"    || listing.type === "place")     && <PlacesBookingCard    listing={listing} listingId={rawId} slotRefresh={slotRefresh} />}
+            {listing.type === "equipment"  && <EquipmentBookingCard listing={listing} listingId={rawId} slotRefresh={slotRefresh} />}
+            {(listing.type === "activities" || listing.type === "activity") && <ActivityBookingCard listing={listing} listingId={rawId} slotRefresh={slotRefresh} />}
           </div>
         </div>
 
