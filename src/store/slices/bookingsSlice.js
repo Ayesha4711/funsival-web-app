@@ -51,6 +51,26 @@ export const createBooking = createAsyncThunk(
       return rejectWithValue({
         message: responseData?.message ?? err.message,
         errors: responseData?.errors ?? null,
+        details: responseData?.details ?? null,
+        status: err.response?.status ?? null,
+      });
+    }
+  }
+);
+
+export const quoteBooking = createAsyncThunk(
+  "bookings/quoteBooking",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/bookings/quote", payload);
+      return data;
+    } catch (err) {
+      const responseData = err.response?.data;
+      return rejectWithValue({
+        message: responseData?.message ?? err.message,
+        errors: responseData?.errors ?? null,
+        details: responseData?.details ?? null,
+        status: err.response?.status ?? null,
       });
     }
   }

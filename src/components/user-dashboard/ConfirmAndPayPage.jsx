@@ -28,6 +28,36 @@ import {
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
+function readStoredBooking(sessionKey) {
+  if (!sessionKey || typeof window === "undefined") return {};
+  try {
+    return JSON.parse(sessionStorage.getItem(sessionKey) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function parseStoredSlots(rawSlots) {
+  if (Array.isArray(rawSlots)) return rawSlots;
+  if (typeof rawSlots === "string" && rawSlots.trim()) {
+    try {
+      const parsed = JSON.parse(rawSlots);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function formatMoney(amount, currency = "USD", minimumFractionDigits = 2, maximumFractionDigits = 2) {
+  const numeric = Number(amount);
+  const value = Number.isFinite(numeric) ? numeric : 0;
+  const code = String(currency || "").trim().toUpperCase();
+  const symbol = code === "PKR" ? "Rs" : code === "USD" ? "$" : code === "EUR" ? "€" : code === "GBP" ? "£" : (code || "$");
+  return `${symbol} ${value.toLocaleString("en-US", { minimumFractionDigits, maximumFractionDigits })}`;
+}
+
 /* ─── Build booking payload from URL params ──────────────────────────────────── */
 function buildBookingPayload(params) {
   const listingId    = params.get("listingId")    || "";
@@ -41,8 +71,19 @@ function buildBookingPayload(params) {
   const durationDays   = params.get("durationDays");
   const numberOfGuests = params.get("numberOfGuests");
   const includeDelivery = params.get("includeDelivery");
+  const sessionKey = params.get("_skey");
+  const stored = readStoredBooking(sessionKey);
+  const storedSlots = parseStoredSlots(stored.slots);
 
-  const base = { listingId };
+  const returnUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/user-dashboard/booking-success`
+    : "";
+
+  const base = {
+    listingId,
+    return_url: returnUrl,
+    returnUrl: returnUrl,
+  };
 
   if (bookingType === "per_person") {
     return {
@@ -54,13 +95,23 @@ function buildBookingPayload(params) {
     };
   }
 
-  const mode = pricingMode || (bookingType === "daily" ? "daily" : "hourly");
-  const payload = { ...base, pricingMode: mode, startDate };
+  const mode = pricingMode || stored.pricingMode || (bookingType === "daily" ? "daily" : "hourly");
+  const payload = { ...base, pricingMode: mode, startDate: startDate || stored.selectedDate || stored.startDate || "" };
 
   if (mode === "hourly") {
-    payload.startTime = startTime;
-    if (endTime) payload.endTime = endTime;
-    if (durationHours) payload.durationHours = Number(durationHours);
+    const slots = storedSlots.length > 0 ? storedSlots : parseStoredSlots(params.get("slots"));
+    if (slots.length > 0) {
+      payload.slots = slots
+        .filter((slot) => slot?.startTime && slot?.endTime)
+        .map((slot) => ({
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        }));
+    } else {
+      payload.startTime = startTime || stored.startTime || "";
+      if (endTime || stored.endTime) payload.endTime = endTime || stored.endTime;
+      if (durationHours || stored.totalHours) payload.durationHours = Number(durationHours || stored.totalHours);
+    }
   } else {
     // daily mode — endDate required; send startTime = endTime so both are stored
     if (endDate) payload.endDate = endDate;
@@ -166,7 +217,12 @@ function PaymentSection({ selectedPmId, onSelect, onNewCardReady }) {
 /* ─── 3DS confirmation handler ───────────────────────────────────────────────── */
 async function handle3DS(stripe, clientSecret) {
   if (!clientSecret || !stripe) return { error: null };
-  const { error } = await stripe.confirmCardPayment(clientSecret);
+  const returnUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/user-dashboard/booking-success`
+    : undefined;
+  const { error } = await stripe.confirmCardPayment(clientSecret, {
+    return_url: returnUrl,
+  });
   return { error };
 }
 
@@ -186,13 +242,24 @@ function ConfirmAndPayInner() {
   const endTime     = params.get("endTime")     || "";
   const bookingType  = params.get("bookingType")  || "";
   const pricingMode  = params.get("pricingMode")  || "";
+  const sessionKey   = params.get("_skey") || "";
+  const storedBooking = readStoredBooking(sessionKey);
+  const storedSlots = parseStoredSlots(storedBooking.slots);
 
   const toNum = (v, fb = 0) => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : fb; };
-  const pricePerUnit = toNum(params.get("pricePerUnit"), 0);
-  const unitsBooked  = toNum(params.get("units") ?? params.get("hours"), 1);
+  const pricePerUnit = toNum(params.get("pricePerUnit"), toNum(storedBooking.hourlyPrice, 0));
+  const unitsBooked  = storedSlots.length > 0
+    ? toNum(params.get("units") ?? params.get("hours") ?? storedBooking.totalHours, storedBooking.slotDurationMinutes
+      ? storedSlots.reduce((sum, slot) => {
+          const minutes = toNum(slot.durationMinutes, toNum(storedBooking.slotDurationMinutes, 0));
+          return sum + (minutes / 60);
+        }, 0)
+      : 1)
+    : toNum(params.get("units") ?? params.get("hours") ?? storedBooking.totalHours, 1);
   const serviceFee   = toNum(params.get("funsivalFee"), 8);
   const subtotal     = pricePerUnit * unitsBooked;
   const total        = subtotal + serviceFee;
+  const currency     = storedBooking.currency || "USD";
 
   const formatTime = (timeStr) => {
     if (!timeStr) return "";
@@ -214,7 +281,7 @@ function ConfirmAndPayInner() {
 
   const priceLabel = (() => {
     if (bookingType === "per_person") return `$${pricePerUnit} × ${unitsBooked} person(s)`;
-    if (bookingType === "hourly" || bookingType === "per_hour") return `$${pricePerUnit} × ${unitsBooked} hour(s)`;
+    if (bookingType === "hourly" || bookingType === "per_hour") return `${formatMoney(pricePerUnit, currency)} × ${unitsBooked} hour(s)`;
     if (bookingType === "daily") return `$${pricePerUnit} × ${unitsBooked} day(s)`;
     return `$${pricePerUnit} × ${unitsBooked}`;
   })();
@@ -269,11 +336,49 @@ function ConfirmAndPayInner() {
 
       router.push(`/user-dashboard/booking-success?${successParams.toString()}`);
     } catch (err) {
-      const fieldErrors = err?.errors;
-      if (fieldErrors && typeof fieldErrors === "object") {
-        Object.values(fieldErrors).forEach((msg) => toast.error(msg));
-      } else {
-        toast.error(typeof err === "string" ? err : (err?.message || "Booking failed. Please try again."));
+      const isSlotConflict =
+        err?.status === 409 ||
+        !!err?.details?.slots ||
+        !!err?.errors?.slots ||
+        (typeof err?.message === "string" && err.message.toLowerCase().includes("no longer available"));
+
+      if (isSlotConflict) {
+        toast.error("One or more selected time slots are no longer available. Please refresh and reselect.");
+        const listingId = params.get("listingId");
+        const rawListingType = params.get("listingType") || "";
+        if (listingId) {
+          const backParams = new URLSearchParams();
+          if (rawListingType) backParams.set("type", rawListingType);
+          backParams.set("slotRefresh", String(Date.now()));
+          router.push(`/user-dashboard/listing/${listingId}?${backParams.toString()}`);
+        } else {
+          router.back();
+        }
+        return;
+      }
+
+      const mainMsg = typeof err === "string"
+        ? err
+        : (typeof err?.message === "string" ? err.message : "Booking failed. Please try again.");
+
+      toast.error(mainMsg);
+
+      if (err?.errors && typeof err.errors === "object") {
+        Object.entries(err.errors).forEach(([key, val]) => {
+          if (key === "slots") return;
+          if (typeof val === "string") {
+            toast.error(val);
+          } else if (Array.isArray(val)) {
+            val.forEach((item) => {
+              if (typeof item === "string") {
+                toast.error(item);
+              } else if (item && typeof item === "object") {
+                const itemStr = Object.values(item).filter((v) => typeof v === "string").join(" - ");
+                if (itemStr) toast.error(itemStr);
+              }
+            });
+          }
+        });
       }
     } finally {
       setSubmitting(false);
@@ -335,6 +440,24 @@ function ConfirmAndPayInner() {
                           </p>
                         </div>
                       )}
+                      {(startTime || endTime) && (
+                        <div className="rounded-2xl border border-[#E9EEF8] bg-[#F9FBFF] p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-gray-900">
+                                {startTime && endTime && startTime !== endTime
+                                  ? `${formatTime(startTime)} – ${formatTime(endTime)}`
+                                  : formatTime(startTime || endTime)}
+                              </p>
+                              <p className="mt-0.5 text-xs text-gray-500">Daily slot preview</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Price</p>
+                              <p className="text-base font-bold text-[#2f4d86]">{formatMoney(subtotal, currency)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </>
                   )
                 ) : (
@@ -350,15 +473,28 @@ function ConfirmAndPayInner() {
                         </p>
                       </div>
                     )}
-                    {(startTime || endTime) && (
+                    {storedSlots.length > 0 ? (
                       <div>
-                        <p className="text-sm font-bold text-gray-900 mb-0.5">Time</p>
-                        <p className="text-sm text-gray-500">
-                          {startTime && endTime && startTime !== endTime
-                            ? `${formatTime(startTime)} – ${formatTime(endTime)}`
-                            : formatTime(startTime || endTime)}
-                        </p>
+                        <p className="text-sm font-bold text-gray-900 mb-0.5">Selected Slots</p>
+                        <div className="space-y-1">
+                          {storedSlots.map((slot, index) => (
+                            <p key={`${slot.startTime}-${slot.endTime}-${index}`} className="text-sm text-gray-500">
+                              {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
+                            </p>
+                          ))}
+                        </div>
                       </div>
+                    ) : (
+                      (startTime || endTime) && (
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 mb-0.5">Time</p>
+                          <p className="text-sm text-gray-500">
+                            {startTime && endTime && startTime !== endTime
+                              ? `${formatTime(startTime)} – ${formatTime(endTime)}`
+                              : formatTime(startTime || endTime)}
+                          </p>
+                        </div>
+                      )
                     )}
                   </>
                 )}
@@ -403,7 +539,7 @@ function ConfirmAndPayInner() {
               <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-2">Ground Rules</h2>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Please treat all spaces and equipment with respect. Follow the host's house rules
+                  Please treat all spaces and equipment with respect. Follow the host&apos;s house rules
                   and communicate any issues promptly.
                 </p>
               </div>
@@ -431,7 +567,7 @@ function ConfirmAndPayInner() {
                 <p className="text-base font-bold text-gray-900 mb-3">Price Details</p>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">{priceLabel}</span>
-                  <span className="font-semibold text-gray-900">${subtotal.toLocaleString()}.00</span>
+                  <span className="font-semibold text-gray-900">{formatMoney(subtotal, currency)}</span>
                 </div>
               </div>
               <div>
@@ -443,7 +579,7 @@ function ConfirmAndPayInner() {
               </div>
               <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                 <span className="text-base font-bold text-gray-900">Total</span>
-                <span className="text-xl font-bold text-[#F5C842]">$ {total.toLocaleString()}.00</span>
+                <span className="text-xl font-bold text-[#F5C842]">{formatMoney(total, currency)}</span>
               </div>
             </div>
 

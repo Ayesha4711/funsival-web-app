@@ -52,6 +52,34 @@ function fmt12(t) {
   return `${hr}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 }
 
+function formatTimeRange(startTime, endTime) {
+  if (!startTime) return "";
+  if (endTime && endTime !== startTime) {
+    return `${fmt12(startTime)} – ${fmt12(endTime)}`;
+  }
+  return fmt12(startTime);
+}
+
+function getBookingTimeRanges(b) {
+  const slots = Array.isArray(b.slots) ? b.slots.filter((slot) => slot?.startTime) : [];
+  if (slots.length > 0) {
+    const formatted = slots.map((slot) => formatTimeRange(slot.startTime, slot.endTime)).filter(Boolean);
+    if (formatted.length > 0) return formatted;
+  }
+
+  const startTime = b.startTime;
+  const endTime = b.endTime;
+  if (startTime) return [formatTimeRange(startTime, endTime)];
+
+  const dateStr = b.startDate ? b.startDate.split("T")[0] : null;
+  const slot = dateStr
+    ? (b.listing?.availability ?? []).find((a) => a.date && a.date.split("T")[0] === dateStr)
+    : null;
+  if (slot?.startTime) return [formatTimeRange(slot.startTime, slot.endTime)];
+
+  return [];
+}
+
 /* ─── Map API booking → row shape ─────────────────────────────────────────── */
 function mapBookingToRow(b) {
   const info = b.listing?.basicInformation ?? {};
@@ -104,33 +132,12 @@ function mapBookingToRow(b) {
 
   const isDaily = b.pricingMode === "daily" || (rawEnd && rawStart && rawEnd > rawStart);
 
-  // Time: prefer booking-level startTime/endTime, fall back to matching availability slot
-  const startDateStr = b.startDate ? b.startDate.split("T")[0] : null;
-  const listingAvail = b.listing?.availability ?? [];
-  const matchedSlot  = startDateStr
-    ? listingAvail.find((a) => a.date && a.date.split("T")[0] === startDateStr)
-    : null;
-
-  const isBookingDaily = b.bookingType === "daily";
-
-  const rawStartTime = b.startTime || matchedSlot?.startTime || "";
-  const rawEndTime   = b.endTime   || matchedSlot?.endTime   || "";
-
-  // Daily: always show "HH:MM – HH:MM" using startTime for both sides
-  // Hourly/per_person: show range only when start and end differ
-  const timeRange = isBookingDaily && rawStartTime
-    ? `${fmt12(rawStartTime)} – ${fmt12(rawStartTime)}`
-    : rawStartTime && rawEndTime && rawStartTime !== rawEndTime
-      ? `${fmt12(rawStartTime)} – ${fmt12(rawEndTime)}`
-      : rawStartTime
-        ? fmt12(rawStartTime)
-        : null;
-
   const bookingTypeLabel = b.bookingType
     ? b.bookingType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
     : null;
 
-  const time = timeRange || bookingTypeLabel || "—";
+  const timeRanges = getBookingTimeRanges(b);
+  const timeLabel = timeRanges.length > 0 ? timeRanges : [bookingTypeLabel || "—"];
 
   // Date range: "Jun 22, 2026 – Jun 24, 2026 (3 days)" for daily, just start for hourly
   const dateRange = endDate && endDate !== startDate
@@ -156,7 +163,8 @@ function mapBookingToRow(b) {
     reservedBy,
     date: startDate,
     dateRange,
-    time,
+    timeRanges: timeLabel,
+    time: timeLabel.length === 1 ? timeLabel[0] : timeLabel.join("\n"),
     status,
     totalAmount: b.totalAmount,
     currency: b.currency,
