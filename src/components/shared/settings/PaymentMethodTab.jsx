@@ -46,13 +46,15 @@ function CardRow({ card, onSetDefault, onDelete, actionLoading }) {
             Set Default
           </button>
         )}
-        <button
-          onClick={() => onDelete(card.id)}
-          disabled={actionLoading}
-          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-        >
-          <TrashIcon />
-        </button>
+        {!isDefault && (
+          <button
+            onClick={() => onDelete(card.id)}
+            disabled={actionLoading}
+            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <TrashIcon />
+          </button>
+        )}
       </div>
     </div>
   );

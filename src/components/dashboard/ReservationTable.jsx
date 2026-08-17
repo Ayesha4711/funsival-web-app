@@ -155,13 +155,13 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
                         : <Image src={heroImg} alt={item.name} fill className="object-cover" />
                       }
                     </div>
-                    <div className="min-w-0">
-                      <p style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif", fontWeight: 600 }} className="text-[13px] text-[var(--color-text)] whitespace-nowrap">
+                    <div className="min-w-0 max-w-[180px]">
+                      <p style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif", fontWeight: 600 }} className="text-[13px] text-[var(--color-text)] truncate">
                         {item.name}
                       </p>
-                      <p className="text-[11px] text-[var(--color-text-muted)] whitespace-nowrap flex items-center gap-1 mt-0.5">
+                      <p className="text-[11px] text-[var(--color-text-muted)] flex items-center gap-1 mt-0.5 min-w-0">
                         <MapPinIcon size={10} className="shrink-0" />
-                        {item.location}
+                        <span className="truncate">{item.location}</span>
                       </p>
                     </div>
                   </div>

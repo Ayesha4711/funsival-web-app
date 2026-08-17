@@ -96,6 +96,50 @@ export const fetchConnectLoginLink = createAsyncThunk(
   }
 );
 
+// ─── Merchant wallet ───────────────────────────────────────────────────────────
+
+export const fetchConnectBalance = createAsyncThunk(
+  "payments/fetchConnectBalance",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.get("/payments/connect/balance");
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const createWithdrawal = createAsyncThunk(
+  "payments/createWithdrawal",
+  async ({ amount, currency, idempotencyKey }, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post(
+        "/payments/connect/withdrawals",
+        { amount, currency },
+        { headers: { "Idempotency-Key": idempotencyKey } }
+      );
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const fetchWithdrawals = createAsyncThunk(
+  "payments/fetchWithdrawals",
+  async ({ page = 1, limit = 20 } = {}, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.get("/payments/connect/withdrawals", {
+        params: { page, limit },
+      });
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
 // ─── Admin: direct refund (bypass request flow) ───────────────────────────────
 
 export const adminDirectRefund = createAsyncThunk(
@@ -188,6 +232,20 @@ const paymentsSlice = createSlice({
 
     loginLinkLoading: false,
     loginLinkError: null,
+
+    // Merchant wallet
+    balances: [],              // [{ currency, pending, current, breakdown }]
+    balanceAccountId: null,
+    balanceLoading: false,
+    balanceError: null,
+
+    withdrawals: [],
+    withdrawalsPagination: { page: 1, limit: 20, total: 0, totalPages: 1 },
+    withdrawalsStatus: "idle",
+    withdrawalsError: null,
+
+    withdrawalActionStatus: "idle",
+    withdrawalActionError: null,
 
     // Admin refund requests
     refundRequests: [],
@@ -301,6 +359,51 @@ const paymentsSlice = createSlice({
         state.loginLinkError = action.payload;
       })
 
+      // fetchConnectBalance
+      .addCase(fetchConnectBalance.pending, (state) => {
+        state.balanceLoading = true;
+        state.balanceError = null;
+      })
+      .addCase(fetchConnectBalance.fulfilled, (state, action) => {
+        state.balanceLoading = false;
+        const d = action.payload?.data ?? action.payload ?? {};
+        state.balances = Array.isArray(d.balances) ? d.balances : [];
+        state.balanceAccountId = d.accountId ?? null;
+      })
+      .addCase(fetchConnectBalance.rejected, (state, action) => {
+        state.balanceLoading = false;
+        state.balanceError = action.payload;
+      })
+
+      // createWithdrawal
+      .addCase(createWithdrawal.pending, (state) => {
+        state.withdrawalActionStatus = "loading";
+        state.withdrawalActionError = null;
+      })
+      .addCase(createWithdrawal.fulfilled, (state) => {
+        state.withdrawalActionStatus = "idle";
+      })
+      .addCase(createWithdrawal.rejected, (state, action) => {
+        state.withdrawalActionStatus = "idle";
+        state.withdrawalActionError = action.payload;
+      })
+
+      // fetchWithdrawals
+      .addCase(fetchWithdrawals.pending, (state) => {
+        state.withdrawalsStatus = "loading";
+        state.withdrawalsError = null;
+      })
+      .addCase(fetchWithdrawals.fulfilled, (state, action) => {
+        state.withdrawalsStatus = "succeeded";
+        const d = action.payload?.data ?? action.payload ?? {};
+        state.withdrawals = Array.isArray(d.withdrawals) ? d.withdrawals : [];
+        state.withdrawalsPagination = d.pagination ?? state.withdrawalsPagination;
+      })
+      .addCase(fetchWithdrawals.rejected, (state, action) => {
+        state.withdrawalsStatus = "failed";
+        state.withdrawalsError = action.payload;
+      })
+
       // fetchAdminRefundRequests
       .addCase(fetchAdminRefundRequests.pending, (state) => {
         state.refundRequestsStatus = "loading";
@@ -405,6 +508,17 @@ export const selectConnectStatusError = (state) => state.payments.connectStatusE
 export const selectOnboardLoading = (state) => state.payments.onboardLoading;
 export const selectOnboardError = (state) => state.payments.onboardError;
 export const selectLoginLinkLoading = (state) => state.payments.loginLinkLoading;
+
+export const selectConnectBalances = (state) => state.payments.balances;
+export const selectConnectBalanceLoading = (state) => state.payments.balanceLoading;
+export const selectConnectBalanceError = (state) => state.payments.balanceError;
+
+export const selectWithdrawals = (state) => state.payments.withdrawals;
+export const selectWithdrawalsPagination = (state) => state.payments.withdrawalsPagination;
+export const selectWithdrawalsStatus = (state) => state.payments.withdrawalsStatus;
+export const selectWithdrawalsError = (state) => state.payments.withdrawalsError;
+export const selectWithdrawalActionStatus = (state) => state.payments.withdrawalActionStatus;
+export const selectWithdrawalActionError = (state) => state.payments.withdrawalActionError;
 
 export const selectAdminRefundRequests = (state) => state.payments.refundRequests;
 export const selectAdminRefundRequestsPagination = (state) => state.payments.refundRequestsPagination;

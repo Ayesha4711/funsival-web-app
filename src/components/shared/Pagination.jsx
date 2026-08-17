@@ -7,18 +7,23 @@ export default function Pagination({
   totalPages = 1,
   onPageChange = () => {},
   className = "",
+  hasPrevPage = null,
+  hasNextPage = null,
 }) {
   const goTo = (page) => {
     const next = Math.min(totalPages, Math.max(1, page));
     if (next !== currentPage) onPageChange(next);
   };
 
+  const isFirst = hasPrevPage === null ? currentPage === 1 : !hasPrevPage;
+  const isLast = hasNextPage === null ? currentPage === totalPages : !hasNextPage;
+
   return (
     <div className={`flex items-center justify-center gap-1 ${className}`}>
       {/* First */}
       <button
         onClick={() => goTo(1)}
-        disabled={currentPage === 1}
+        disabled={isFirst}
         className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 text-xs hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         aria-label="First page"
       >
@@ -28,7 +33,7 @@ export default function Pagination({
       {/* Prev */}
       <button
         onClick={() => goTo(currentPage - 1)}
-        disabled={currentPage === 1}
+        disabled={isFirst}
         className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 text-xs hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         aria-label="Previous page"
       >
@@ -46,7 +51,7 @@ export default function Pagination({
       {/* Next */}
       <button
         onClick={() => goTo(currentPage + 1)}
-        disabled={currentPage === totalPages}
+        disabled={isLast}
         className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 text-xs hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         aria-label="Next page"
       >
@@ -56,7 +61,7 @@ export default function Pagination({
       {/* Last */}
       <button
         onClick={() => goTo(totalPages)}
-        disabled={currentPage === totalPages}
+        disabled={isLast}
         className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 text-xs hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         aria-label="Last page"
       >

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { Suspense, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchHostBookings,
@@ -9,9 +10,11 @@ import {
   declineBooking,
   selectHostBookings,
   selectHostBookingsPagination,
+  selectHostBookingsFilters,
   selectHostBookingsStatus,
   selectHostBookingsError,
 } from "@/store/slices/bookingsSlice";
+import axiosInstance from "@/store/axiosInstance";
 import { toast } from "sonner";
 import { NoListingIcon } from "@/icons";
 import ReservationStats from "@/components/dashboard/ReservationStats";
@@ -23,7 +26,7 @@ import CancelReasonModal from "@/components/dashboard/CancelReasonModal";
 import Pagination from "@/components/shared/Pagination";
 
 /* ─── Empty state ─────────────────────────────────────────────────────────── */
-function EmptyState() {
+function EmptyState({ hasActiveFilters = false, onClearFilters }) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 gap-5 py-16">
       <div className="relative flex items-center justify-center w-52 h-52">
@@ -37,8 +40,17 @@ function EmptyState() {
         className="text-lg font-bold text-gray-800 relative z-10"
         style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
       >
-        No Data Found
+        {hasActiveFilters ? "No reservations match your filters" : "No Data Found"}
       </p>
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={onClearFilters}
+          className="text-sm font-semibold text-[var(--color-primary)] hover:opacity-80"
+        >
+          Clear filters
+        </button>
+      )}
     </div>
   );
 }
@@ -80,91 +92,78 @@ function getBookingTimeRanges(b) {
   return [];
 }
 
+function formatDateRange(startDate, endDate) {
+  const fmt = (d) => d
+    ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "—";
+  const start = startDate ? new Date(startDate) : null;
+  const end = endDate ? new Date(endDate) : null;
+  if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && start.getTime() !== end.getTime()) {
+    return `${fmt(start)} – ${fmt(end)}`;
+  }
+  return fmt(start);
+}
+
+function mapReservationStatus(b) {
+  const raw = String(b.status || b.bookingStatus || b.state || "").toLowerCase();
+  if (raw === "completed") return "Completed";
+  if (raw === "cancelled" || raw === "canceled" || raw === "declined") return "Cancelled";
+  if (raw === "pending" || raw === "awaiting_host_approval") return "Action Needed";
+  if (raw === "confirmed" || raw === "upcoming" || raw === "active") return "Upcoming";
+  return "Action Needed";
+}
+
+function mapPaymentStatus(paymentStatus) {
+  const raw = String(paymentStatus || "").toLowerCase();
+  if (["held", "releasing", "released"].includes(raw)) return "Paid";
+  if (raw === "refunded") return "Refunded";
+  if (raw === "refunding") return "Refunding";
+  if (raw === "processing") return "Processing";
+  if (raw === "authorized") return "Authorized";
+  if (raw === "failed") return "Failed";
+  if (raw === "requires_payment") return "Payment Required";
+  if (raw === "disputed") return "Disputed";
+  if (raw === "auth_released") return "Authorization Released";
+  return raw ? raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—";
+}
+
 /* ─── Map API booking → row shape ─────────────────────────────────────────── */
 function mapBookingToRow(b) {
   const info = b.listing?.basicInformation ?? {};
-  const loc  = b.listing?.placeLocation ?? {};
-
-  const name =
-    info.activityTitle || info.equipmentName || info.placeName || "Booking";
-
-  const location =
-    [loc.city, loc.state, loc.country].filter(Boolean).join(", ") ||
-    info.location ||
-    "—";
-
-  const category = b.listing?.category
-    ? b.listing.category.charAt(0).toUpperCase() + b.listing.category.slice(1)
-    : "—";
-
-  const invoiceLabel =
-    b.paymentStatus === "held"     || b.paymentStatus === "released"  ? "Paid"
-    : b.paymentStatus === "refunded"                                  ? "Refunded"
-    : b.paymentStatus === "authorized"                                ? "Authorized"
-    : b.paymentStatus === "auth_released" || b.status === "declined"  ? "Refunded"
-    : b.status === "cancelled"                                        ? "Refunded"
-    : "Overdue";
-
-  const statusMap = {
-    confirmed:               "Upcoming",
-    awaiting_host_approval:  "Action Needed",
-    completed:               "Completed",
-    cancelled:               "Cancelled",
-    declined:                "Declined",
-    pending:                 "Pending",
-  };
-  const status = statusMap[b.status] ?? "Upcoming";
-
-  const rawStart = b.startDate ? new Date(b.startDate) : null;
-  const rawEnd   = b.endDate   ? new Date(b.endDate)   : null;
-
-  const fmtDate = (d) => d
-    ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : null;
-
-  const startDate = fmtDate(rawStart) ?? "—";
-  const endDate   = fmtDate(rawEnd);
-
-  // day count for daily bookings
-  const dayCount = rawStart && rawEnd
-    ? Math.round((rawEnd.getTime() - rawStart.getTime()) / 86400000) + 1
-    : null;
-
-  const isDaily = b.pricingMode === "daily" || (rawEnd && rawStart && rawEnd > rawStart);
-
-  const bookingTypeLabel = b.bookingType
-    ? b.bookingType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-    : null;
-
+  const loc = b.listing?.placeLocation ?? {};
+  const title = info.activityTitle || info.equipmentName || info.placeName || b.listing?.title || "Booking";
+  const location = info.location || [loc.city, loc.state, loc.country].filter(Boolean).join(", ") || "—";
+  const category = b.listing?.category ? b.listing.category.charAt(0).toUpperCase() + b.listing.category.slice(1) : "—";
+  const status = mapReservationStatus(b);
+  const invoice = mapPaymentStatus(b.paymentStatus);
+  const startDate = b.startDate ? new Date(b.startDate) : null;
+  const endDate = b.endDate ? new Date(b.endDate) : null;
+  const dateRange = formatDateRange(startDate, endDate);
   const timeRanges = getBookingTimeRanges(b);
-  const timeLabel = timeRanges.length > 0 ? timeRanges : [bookingTypeLabel || "—"];
-
-  // Date range: "Jun 22, 2026 – Jun 24, 2026 (3 days)" for daily, just start for hourly
-  const dateRange = endDate && endDate !== startDate
-    ? `${startDate} – ${endDate}${isDaily && dayCount ? ` (${dayCount} day${dayCount > 1 ? "s" : ""})` : ""}`
-    : startDate;
-
-  const bookedBy   = b.bookedBy;
-  const reservedBy =
-    typeof bookedBy === "string"
-      ? bookedBy
-      : bookedBy?.email || bookedBy?.name || bookedBy?.id || "Guest";
-
+  const bookedBy = b.bookedBy;
+  const providerProfile = typeof bookedBy === "object" ? bookedBy?.providerProfile ?? {} : {};
+  const reservedBy = typeof bookedBy === "string"
+    ? bookedBy
+    : [providerProfile.firstName, providerProfile.lastName].filter(Boolean).join(" ").trim()
+      || bookedBy?.email
+      || bookedBy?.name
+      || bookedBy?.id
+      || "Guest";
   const image = b.listing?.photos?.[0] ?? b.listing?.images?.[0] ?? null;
 
   return {
     id: b.id,
-    name,
+    name: title,
     location,
     category,
-    invoice: invoiceLabel,
+    invoice,
     paymentStatus: b.paymentStatus ?? null,
     activeRefundRequest: b.activeRefundRequest ?? null,
     reservedBy,
-    date: startDate,
+    date: formatDateRange(startDate, startDate),
     dateRange,
-    timeRanges: timeLabel,
-    time: timeLabel.length === 1 ? timeLabel[0] : timeLabel.join("\n"),
+    timeRanges,
+    time: timeRanges.length === 1 ? timeRanges[0] : timeRanges.join("\n"),
     status,
     totalAmount: b.totalAmount,
     currency: b.currency,
@@ -191,19 +190,47 @@ function exportToCSV(rows) {
   URL.revokeObjectURL(url);
 }
 
+const VALID_TABS = ["all", "upcoming", "completed", "cancelled"];
+
 /* ─── Page ────────────────────────────────────────────────────────────────── */
 export default function ReservationsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReservationsPageContent />
+    </Suspense>
+  );
+}
+
+function getInitialUrlState(searchParams) {
+  const tabParam = searchParams.get("tab");
+  const pageParam = parseInt(searchParams.get("page"), 10);
+  return {
+    tab: VALID_TABS.includes(tabParam) ? tabParam : "all",
+    search: searchParams.get("search") || "",
+    date: searchParams.get("date") || "",
+    page: Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1,
+  };
+}
+
+function ReservationsPageContent() {
   const dispatch = useDispatch();
+  const searchParams = useSearchParams();
+  const tableAreaRef = useRef(null);
+  const requestRef = useRef(null);
 
   const hostBookings = useSelector(selectHostBookings);
   const pagination   = useSelector(selectHostBookingsPagination);
+  const hostFilters  = useSelector(selectHostBookingsFilters);
   const status       = useSelector(selectHostBookingsStatus);
   const error        = useSelector(selectHostBookingsError);
 
-  const [activeTab,    setActiveTab]    = useState("all");
-  const [currentPage,  setCurrentPage]  = useState(1);
-  const [search,       setSearch]       = useState("");
-  const [dateFilter,   setDateFilter]   = useState("");
+  const [activeTab,    setActiveTab]    = useState(() => getInitialUrlState(searchParams).tab);
+  const [currentPage,  setCurrentPage]  = useState(() => getInitialUrlState(searchParams).page);
+  const [limit]       = useState(10);
+  const [searchInput,  setSearchInput]   = useState(() => getInitialUrlState(searchParams).search);
+  const [debouncedSearch, setDebouncedSearch] = useState(() => getInitialUrlState(searchParams).search);
+  const [selectedDate, setSelectedDate]  = useState(() => getInitialUrlState(searchParams).date);
+  const [retryTick, setRetryTick] = useState(0);
 
   /* detail panel */
   const [panelItem,    setPanelItem]    = useState(null);
@@ -217,38 +244,79 @@ export default function ReservationsPage() {
   const [declineReason, setDeclineReason] = useState("");
 
   useEffect(() => {
-    dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
-  }, [dispatch, currentPage]);
+    const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-  const rows = hostBookings.map(mapBookingToRow);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, debouncedSearch, selectedDate]);
 
-  const tabCounts = rows.reduce(
-    (acc, row) => {
-      const key = row.status.toLowerCase();
-      acc[key] = (acc[key] ?? 0) + 1;
-      return acc;
-    },
-    { upcoming: 0, completed: 0, cancelled: 0, pending: 0 }
-  );
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeTab && activeTab !== "all") params.set("tab", activeTab);
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (selectedDate) params.set("date", selectedDate);
+    if (currentPage > 1) params.set("page", String(currentPage));
+    const query = params.toString();
+    const url = query ? `?${query}` : window.location.pathname;
+    window.history.replaceState(null, "", url);
+  }, [activeTab, debouncedSearch, selectedDate, currentPage]);
 
-  const filteredRows = rows.filter((r) => {
-    if (activeTab !== "all" && r.status.toLowerCase() !== activeTab.toLowerCase()) return false;
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      if (![r.name, r.reservedBy, r.category, r.location].some((v) => v.toLowerCase().includes(q))) return false;
-    }
-    if (dateFilter) {
-      const fd  = new Date(dateFilter);
-      const rd  = r._raw?.startDate ? new Date(r._raw.startDate) : null;
-      if (!rd) return false;
-      if (rd.getFullYear() !== fd.getFullYear() || rd.getMonth() !== fd.getMonth() || rd.getDate() !== fd.getDate()) return false;
-    }
-    return true;
-  });
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      const pageParam = parseInt(params.get("page"), 10);
+      setActiveTab(VALID_TABS.includes(tabParam) ? tabParam : "all");
+      setSearchInput(params.get("search") || "");
+      setDebouncedSearch(params.get("search") || "");
+      setSelectedDate(params.get("date") || "");
+      setCurrentPage(Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
-  const handleTabChange    = useCallback((t) => { setActiveTab(t);  setCurrentPage(1); }, []);
-  const handleSearchChange = useCallback((v) => { setSearch(v);     setCurrentPage(1); }, []);
-  const handleDateChange   = useCallback((v) => { setDateFilter(v); setCurrentPage(1); }, []);
+  useEffect(() => {
+    if (requestRef.current?.abort) requestRef.current.abort();
+    const request = dispatch(fetchHostBookings({
+      tab: activeTab,
+      search: debouncedSearch || undefined,
+      date: selectedDate || undefined,
+      page: currentPage,
+      limit,
+    }));
+    requestRef.current = request;
+    return () => request.abort?.();
+  }, [dispatch, activeTab, debouncedSearch, selectedDate, currentPage, limit, retryTick]);
+
+  useEffect(() => {
+    if (tableAreaRef.current) tableAreaRef.current.scrollIntoView({ block: "start" });
+  }, [currentPage]);
+
+  const rows = useMemo(() => hostBookings.map(mapBookingToRow), [hostBookings]);
+  const counts = hostFilters?.counts ?? {};
+  const hasActiveFilters = activeTab !== "all" || Boolean(debouncedSearch) || Boolean(selectedDate);
+
+  const handleTabChange = useCallback((t) => {
+    setActiveTab(t);
+    setCurrentPage(1);
+  }, []);
+  const handleSearchChange = useCallback((v) => {
+    setSearchInput(v);
+  }, []);
+  const handleDateChange = useCallback((v) => {
+    setSelectedDate(v);
+    setCurrentPage(1);
+  }, []);
+  const handleClearFilters = useCallback(() => {
+    setActiveTab("all");
+    setSearchInput("");
+    setDebouncedSearch("");
+    setSelectedDate("");
+    setCurrentPage(1);
+  }, []);
 
   const handleViewDetails = (item) => setPanelItem(item);
   const handleClosePanel  = ()     => setPanelItem(null);
@@ -261,7 +329,13 @@ export default function ReservationsPage() {
     try {
       await dispatch(acceptBooking(acceptTarget.id)).unwrap();
       toast.success("Booking accepted. Guest's card has been charged.");
-      dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
+      dispatch(fetchHostBookings({
+        tab: activeTab,
+        search: debouncedSearch || undefined,
+        date: selectedDate || undefined,
+        page: currentPage,
+        limit,
+      }));
       setPanelItem((prev) => prev?.id === acceptTarget.id ? { ...prev, status: "Upcoming", paymentStatus: "held" } : prev);
     } catch (err) {
       toast.error(typeof err === "string" ? err : "Could not accept booking. Please try again.");
@@ -278,7 +352,13 @@ export default function ReservationsPage() {
     try {
       await dispatch(declineBooking({ bookingId: declineTarget.id, reason: declineReason || undefined })).unwrap();
       toast.success("Booking declined. Authorization has been voided.");
-      dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
+      dispatch(fetchHostBookings({
+        tab: activeTab,
+        search: debouncedSearch || undefined,
+        date: selectedDate || undefined,
+        page: currentPage,
+        limit,
+      }));
       setPanelItem((prev) => prev?.id === declineTarget.id ? { ...prev, status: "Declined", paymentStatus: "auth_released" } : prev);
     } catch (err) {
       toast.error(typeof err === "string" ? err : "Could not decline booking. Please try again.");
@@ -295,7 +375,13 @@ export default function ReservationsPage() {
   const handleConfirmCancel = async (reason) => {
     if (!cancelTarget?.id) return;
     await dispatch(cancelBooking(cancelTarget.id));
-    dispatch(fetchHostBookings({ page: currentPage, limit: 10 }));
+    dispatch(fetchHostBookings({
+      tab: activeTab,
+      search: debouncedSearch || undefined,
+      date: selectedDate || undefined,
+      page: currentPage,
+      limit,
+    }));
     setPanelItem((prev) =>
       prev?.id === cancelTarget.id
         ? { ...prev, status: "Cancelled", invoice: "Refunded", _cancelReason: reason, _cancelledBy: prev.reservedBy }
@@ -305,6 +391,28 @@ export default function ReservationsPage() {
   };
 
   const totalPages = pagination?.totalPages ?? 1;
+  const visibleRows = rows;
+
+  const handleExportCSV = async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set("tab", activeTab);
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (selectedDate) params.set("date", selectedDate);
+      const { data, headers } = await axiosInstance.get(`/bookings/host/export?${params.toString()}`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([data], { type: headers?.["content-type"] || "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `reservations_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error("Could not export reservations. Please try again.");
+    }
+  };
 
   return (
     <div className="p-3 xs:p-4 sm:p-6 w-full flex-1 flex flex-col gap-4 sm:gap-5">
@@ -313,38 +421,61 @@ export default function ReservationsPage() {
       <div
         className="bg-white border border-gray-200 flex flex-col w-full flex-1"
         style={{ borderRadius: 16, padding: 20, gap: 0 }}
+        ref={tableAreaRef}
       >
         <ReservationFilters
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          search={search}
+          search={searchInput}
           onSearchChange={handleSearchChange}
-          dateValue={dateFilter}
+          dateValue={selectedDate}
           onDateChange={handleDateChange}
-          onExportCSV={() => exportToCSV(filteredRows)}
-          counts={tabCounts}
+          onExportCSV={handleExportCSV}
+          counts={counts}
         />
 
-        {status === "loading" && (
+        {status === "loading" && visibleRows.length === 0 && (
           <div className="flex items-center justify-center flex-1">
             <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
-        {status === "failed" && (
-          <div className="flex items-center justify-center flex-1 text-red-500 text-sm">
-            {error || "Failed to load reservations."}
+        {status === "failed" && visibleRows.length === 0 && (
+          <div className="flex flex-col items-center justify-center flex-1 gap-3 text-red-500 text-sm">
+            <p>{error || "Failed to load reservations."}</p>
+            <button
+              type="button"
+              onClick={() => setRetryTick((t) => t + 1)}
+              className="text-sm font-semibold text-[var(--color-primary)] hover:opacity-80"
+            >
+              Retry
+            </button>
           </div>
         )}
 
-        {status === "succeeded" && filteredRows.length === 0 && <EmptyState />}
+        {status === "failed" && visibleRows.length > 0 && (
+          <div className="flex items-center justify-between gap-3 mt-4 px-4 py-2.5 rounded-xl bg-red-50 text-red-600 text-sm">
+            <span>{error || "Failed to refresh reservations."}</span>
+            <button
+              type="button"
+              onClick={() => setRetryTick((t) => t + 1)}
+              className="font-semibold hover:opacity-80 shrink-0"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
-        {status === "succeeded" && filteredRows.length > 0 && (
-          <div className="mt-4">
+        {visibleRows.length === 0 && status === "succeeded" && (
+          <EmptyState hasActiveFilters={hasActiveFilters} onClearFilters={handleClearFilters} />
+        )}
+
+        {visibleRows.length > 0 && (
+          <div className={`mt-4 relative transition-opacity ${status === "loading" ? "opacity-60 pointer-events-none" : ""}`}>
             {/* Table: iPad (md) and up */}
             <div className="hidden md:block">
               <ReservationTable
-                data={filteredRows}
+                data={visibleRows}
                 activeTab={activeTab}
                 onViewDetails={handleViewDetails}
                 onCancel={handleRequestCancel}
@@ -355,9 +486,11 @@ export default function ReservationsPage() {
             {/* Cards: mobile only */}
             <div className="block md:hidden">
               <ReservationCards
-                data={filteredRows}
+                data={visibleRows}
                 onViewDetails={handleViewDetails}
                 onCancel={handleRequestCancel}
+                onAccept={handleRequestAccept}
+                onDecline={handleRequestDecline}
               />
             </div>
           </div>
@@ -403,7 +536,7 @@ export default function ReservationsPage() {
             <div className="px-6 py-5 flex flex-col gap-4">
               <p className="text-sm text-gray-500">
                 Accept <strong>{acceptTarget.name}</strong> from <strong>{acceptTarget.reservedBy}</strong>?<br />
-                The guest's card will be charged <strong>${acceptTarget.totalAmount}</strong> immediately.
+                The guest&apos;s card will be charged <strong>${acceptTarget.totalAmount}</strong> immediately.
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setAcceptTarget(null)} className="flex-1 py-3 border border-gray-200 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50">Cancel</button>
