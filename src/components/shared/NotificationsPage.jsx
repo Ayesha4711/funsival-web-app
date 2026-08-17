@@ -142,30 +142,25 @@ function NotificationItem({ notification, dispatch, router, isSelected, onSelect
   //   dispatch(deleteNotification(id));
   // };
 
-  const bgClass = isSelected
-    ? "bg-[#FDECC8] border-[#F5C842]"
-    : isNew
-    ? "border-[#F5E6C8]"
-    : "bg-white border-gray-100";
-
   return (
     <div
       onClick={handleClick}
-      className={`flex items-center gap-4 px-5 py-4 border transition-all cursor-pointer group ${bgClass}`}
+      className="flex items-center gap-3 px-5 py-4 border transition-all cursor-pointer group"
       style={{
         borderRadius: "104px",
         borderWidth: "1.04px",
+        borderStyle: "solid",
+        borderColor: isSelected ? "rgba(255, 255, 255, 1)" : "rgba(231, 231, 231, 1)",
         backgroundColor: isSelected ? "#FDECC8" : isNew ? "rgba(255, 240, 215, 1)" : "#ffffff",
       }}
     >
-      {isNew ? (
-        <span className="w-2.5 h-2.5 bg-[#F97316] rounded-full shrink-0" />
-      ) : (
-        <span className="w-2.5 shrink-0" />
-      )}
+      {isSelected && <span className="w-2.5 h-2.5 bg-[#F97316] rounded-full shrink-0" />}
 
-      <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${isNew ? "bg-white" : "bg-[#FFF8EE]"}`}>
-        <BellIcon />
+      <div
+        className={`flex items-center justify-center shrink-0 ${isNew ? "bg-white" : "bg-[#FFF8EE]"}`}
+        style={{ width: "45.77px", height: "45.77px", borderRadius: "520.06px", padding: "10.4px" }}
+      >
+        <BellIcon size={45.77 - 10.4 * 2} className="text-[rgba(254,181,56,1)]" />
       </div>
 
       <div className="flex-1 min-w-0">
