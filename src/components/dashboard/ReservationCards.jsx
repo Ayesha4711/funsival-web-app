@@ -3,13 +3,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
-import Pagination from "@/components/shared/Pagination";
 import { MoreVertIcon, CheckIcon, ClockIcon, RefundIcon } from "@/icons";
 
 /* ─── Action Dropdown ────────────────────────────────────────────────────────── */
-function ActionMenu({ item, onViewDetails, onCancel }) {
+function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const isActionNeeded = item.status === "Action Needed";
+  const isUpcoming = item.status === "Upcoming";
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -28,13 +29,29 @@ function ActionMenu({ item, onViewDetails, onCancel }) {
 
       {open && (
         <div className="absolute right-0 top-8 z-30 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[140px]">
+          {isActionNeeded && (
+            <>
+              <button
+                onClick={() => { setOpen(false); onAccept?.(item); }}
+                className="w-full text-left px-4 py-2.5 text-sm font-semibold text-green-600 hover:bg-green-50 transition-colors"
+              >
+                ✓ Accept Booking
+              </button>
+              <button
+                onClick={() => { setOpen(false); onDecline?.(item); }}
+                className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+              >
+                ✕ Decline
+              </button>
+            </>
+          )}
           <button
             onClick={() => { setOpen(false); onViewDetails(item); }}
             className="w-full text-left px-4 py-2.5 text-sm font-medium text-[var(--color-text)] hover:bg-gray-50 transition-colors"
           >
             View Details
           </button>
-          {item.status === "Upcoming" && (
+          {(isUpcoming || isActionNeeded) && (
             <button
               onClick={() => { setOpen(false); onCancel(item); }}
               className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
@@ -49,12 +66,15 @@ function ActionMenu({ item, onViewDetails, onCancel }) {
 }
 
 /* ─── Cards ──────────────────────────────────────────────────────────────────── */
-export default function ReservationCards({ data, onViewDetails, onCancel }) {
+export default function ReservationCards({ data, onViewDetails, onCancel, onAccept, onDecline }) {
   const getStatusStyle = (status) => {
     switch (status) {
-      case "Upcoming": return "bg-blue-50 text-blue-400 border border-blue-100";
+      case "Upcoming":
+      case "Active": return "bg-teal-50 text-[#168F8D] border border-teal-100";
       case "Completed": return "bg-green-50 text-green-400 border border-green-100";
-      case "Cancelled": return "bg-red-50 text-red-500 border border-red-100";
+      case "Cancelled":
+      case "Declined": return "bg-red-50 text-red-500 border border-red-100";
+      case "Action Needed": return "bg-amber-50 text-amber-700 border border-amber-100";
       default: return "bg-gray-100 text-gray-600";
     }
   };
@@ -83,7 +103,7 @@ export default function ReservationCards({ data, onViewDetails, onCancel }) {
         <div key={item.id} className="bg-white rounded-2xl p-4 border border-[var(--color-border)] relative">
           {/* Three-dot menu */}
           <div className="absolute top-4 right-4">
-            <ActionMenu item={item} onViewDetails={onViewDetails} onCancel={onCancel} />
+            <ActionMenu item={item} onViewDetails={onViewDetails} onCancel={onCancel} onAccept={onAccept} onDecline={onDecline} />
           </div>
 
           {/* Header Info */}
@@ -144,10 +164,6 @@ export default function ReservationCards({ data, onViewDetails, onCancel }) {
           </div>
         </div>
       ))}
-
-      <div className="py-4">
-        <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />
-      </div>
     </div>
   );
 }

@@ -17,11 +17,15 @@ export const fetchBookings = createAsyncThunk(
 
 export const fetchHostBookings = createAsyncThunk(
   "bookings/fetchHostBookings",
-  async ({ page = 1, limit = 10 } = {}, { rejectWithValue }) => {
+  async ({ tab = "all", search, date, page = 1, limit = 10 } = {}, { rejectWithValue, signal }) => {
     try {
-      const { data } = await axiosInstance.get(`/bookings/host?page=${page}&limit=${limit}`);
+      const params = { tab, page, limit };
+      if (search) params.search = search;
+      if (date) params.date = date;
+      const { data } = await axiosInstance.get("/bookings/host", { params, signal });
       return data;
     } catch (err) {
+      if (err?.code === "ERR_CANCELED") throw err;
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
   }
@@ -177,7 +181,8 @@ const bookingsSlice = createSlice({
     status: "idle",
     // host's incoming bookings
     hostItems: [],
-    hostPagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
+    hostPagination: { page: 1, limit: 10, total: 0, totalPages: 1, hasNextPage: false, hasPrevPage: false },
+    hostFilters: { tab: "all", search: "", date: "", counts: { all: 0, upcoming: 0, completed: 0, cancelled: 0 } },
     hostStatus: "idle",
     // shared
     selectedBooking: null,
@@ -227,8 +232,10 @@ const bookingsSlice = createSlice({
         state.hostStatus = "succeeded";
         state.hostItems = action.payload?.data?.bookings ?? [];
         state.hostPagination = action.payload?.data?.pagination ?? state.hostPagination;
+        state.hostFilters = action.payload?.data?.filters ?? state.hostFilters;
       })
       .addCase(fetchHostBookings.rejected, (state, action) => {
+        if (action.meta.aborted) return;
         state.hostStatus = "failed";
         state.hostError = action.payload;
       })
@@ -356,6 +363,7 @@ export const selectBookingsError = (state) => state.bookings.error;
 
 export const selectHostBookings = (state) => state.bookings.hostItems;
 export const selectHostBookingsPagination = (state) => state.bookings.hostPagination;
+export const selectHostBookingsFilters = (state) => state.bookings.hostFilters;
 export const selectHostBookingsStatus = (state) => state.bookings.hostStatus;
 export const selectHostBookingsError = (state) => state.bookings.hostError;
 

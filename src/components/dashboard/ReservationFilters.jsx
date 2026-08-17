@@ -20,7 +20,6 @@ export default function ReservationFilters({
     { id: "upcoming",  label: "Upcoming" },
     { id: "completed", label: "Completed" },
     { id: "cancelled", label: "Cancelled" },
-    { id: "pending",   label: "Pending Requests" },
   ];
 
   const [searchOpen, setSearchOpen] = useState(false);
@@ -89,7 +88,9 @@ export default function ReservationFilters({
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => onTabChange(tab.id)}
+              aria-pressed={activeTab === tab.id}
               style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
               className={`px-3 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex-1 sm:flex-none ${
                 activeTab === tab.id
@@ -115,11 +116,14 @@ export default function ReservationFilters({
                   value={search}
                   onChange={(e) => onSearchChange(e.target.value)}
                   placeholder="Search..."
+                  aria-label="Search reservations"
                   style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
                   className="w-28 sm:w-36 bg-transparent text-xs font-medium text-[var(--color-text)] placeholder-gray-400 focus:outline-none"
                 />
                 <button
+                  type="button"
                   onClick={() => { setSearchOpen(false); onSearchChange(""); }}
+                  aria-label="Clear search"
                   className="p-1.5 text-gray-400 hover:text-gray-600"
                 >
                   <CloseIcon />
@@ -127,7 +131,9 @@ export default function ReservationFilters({
               </div>
             ) : (
               <button
+                type="button"
                 onClick={() => setSearchOpen(true)}
+                aria-label="Open search"
                 className="w-10 h-10 bg-[#EDF6F6] rounded-full flex items-center justify-center text-[#1d8c82] hover:opacity-80 transition-opacity"
               >
                 <SearchIcon />
@@ -138,7 +144,9 @@ export default function ReservationFilters({
           {/* Calendar picker */}
           <div className="relative" ref={calRef}>
             <button
+              type="button"
               onClick={() => setCalOpen((v) => !v)}
+              aria-label={dateValue ? `Date filter: ${dateValue}` : "Filter by date"}
               style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}
               className={`flex items-center gap-2 h-10 px-3 sm:px-4 bg-[#EDF6F6] rounded-full text-xs font-medium transition-colors min-w-[110px] sm:min-w-[130px] ${
                 calOpen
@@ -150,7 +158,14 @@ export default function ReservationFilters({
                 {dateValue || "mm/dd/yy"}
               </span>
               {dateValue ? (
-                <span onClick={clearDate} className="cursor-pointer text-gray-400 hover:text-red-400 transition-colors">
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={clearDate}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") clearDate(e); }}
+                  aria-label="Clear date filter"
+                  className="cursor-pointer text-gray-400 hover:text-red-400 transition-colors"
+                >
                   <CloseIcon />
                 </span>
               ) : (

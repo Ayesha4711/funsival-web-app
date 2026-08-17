@@ -152,12 +152,16 @@ export function DropdownField({
 }) {
   const [open, setOpen] = useState(false);
   const [typedValue, setTypedValue] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
   const inputRef = useRef(null);
 
-  const filteredOptions = allowTyping && typedValue
+  // Only filter once the user has actually typed — the initial value
+  // pre-filled into the input on open (so it can be edited) shouldn't
+  // narrow the list down to just the already-selected option.
+  const filteredOptions = allowTyping && isTyping && typedValue
     ? options.filter(o => o.label.toLowerCase().includes(typedValue.toLowerCase()))
     : options;
 
@@ -244,17 +248,19 @@ export function DropdownField({
   const displayLabel = selected?.label || (value ? formatTimeDisplay(value) : "");
 
   const handleTypedChange = (e) => {
+    setIsTyping(true);
     setTypedValue(e.target.value);
   };
 
   const handleTypedKeyDown = (e) => {
     if (e.key === "Enter") { e.preventDefault(); closeDropdown(); }
-    if (e.key === "Escape") { setTypedValue(""); setOpen(false); }
+    if (e.key === "Escape") { setIsTyping(false); setTypedValue(""); setOpen(false); }
   };
 
   const toggle = () => {
     if (open) { closeDropdown(); return; }
     if (allowTyping) setTypedValue(displayLabel || "");
+    setIsTyping(false);
     computeMenuPos();
     setOpen(true);
   };
