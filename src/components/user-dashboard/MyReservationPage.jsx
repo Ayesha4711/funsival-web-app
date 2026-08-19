@@ -467,11 +467,13 @@ function RefundRequestModal({ booking, onClose, onSubmitted }) {
             <label className="text-sm font-semibold text-gray-700 mb-1 block">Reason for refund</label>
             <textarea
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e) => setReason(e.target.value.slice(0, 2000))}
               placeholder="e.g. Provider didn't show up"
               rows={4}
+              maxLength={2000}
               className="w-full px-4 py-3 text-sm text-gray-700 placeholder:text-gray-300 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4AA7A7] resize-none"
             />
+            <p className="text-xs text-gray-400 mt-1 text-right">{reason.length}/2000</p>
           </div>
           <div className="flex gap-3">
             <button onClick={onClose} className="flex-1 py-3 border border-gray-200 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50">
