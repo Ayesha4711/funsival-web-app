@@ -45,13 +45,17 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
   const cancelReason   = reservation._cancelReason;
 
   const PAYMENT_STATUS_CFG = {
-    requires_payment: { label: "Awaiting Payment",    bg: "bg-gray-100",   text: "text-gray-600"   },
-    processing:       { label: "Processing",           bg: "bg-blue-100",   text: "text-blue-700"   },
-    authorized:       { label: "Card Authorized",      bg: "bg-amber-100",  text: "text-amber-700"  },
-    held:             { label: "Payment Held",         bg: "bg-teal-100",   text: "text-teal-700"   },
-    released:         { label: "Released",             bg: "bg-green-100",  text: "text-green-700"  },
-    auth_released:    { label: "Auth Released",        bg: "bg-gray-100",   text: "text-gray-500"   },
-    refunded:         { label: "Refunded",             bg: "bg-purple-100", text: "text-purple-700" },
+    requires_payment: { label: "Payment required",             bg: "bg-gray-100",   text: "text-gray-600"   },
+    processing:       { label: "Processing payment",            bg: "bg-blue-100",   text: "text-blue-700"   },
+    authorized:       { label: "Waiting for host approval",     bg: "bg-amber-100",  text: "text-amber-700"  },
+    auth_released:    { label: "Authorization released",        bg: "bg-gray-100",   text: "text-gray-500"   },
+    held:             { label: "Payment pending release",       bg: "bg-teal-100",   text: "text-teal-700"   },
+    refunding:        { label: "Refund processing",             bg: "bg-orange-100", text: "text-orange-700" },
+    releasing:        { label: "Moving to current balance",     bg: "bg-teal-100",   text: "text-teal-700"   },
+    released:         { label: "Funds available",               bg: "bg-green-100",  text: "text-green-700"  },
+    refunded:         { label: "Refunded",                      bg: "bg-purple-100", text: "text-purple-700" },
+    failed:           { label: "Payment failed",                bg: "bg-red-100",    text: "text-red-700"    },
+    disputed:         { label: "Payment disputed",               bg: "bg-red-100",    text: "text-red-800"    },
   };
   const psCfg = PAYMENT_STATUS_CFG[reservation.paymentStatus] ?? null;
 
