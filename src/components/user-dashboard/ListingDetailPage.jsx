@@ -740,7 +740,7 @@ function HourlySlotBookingCard({
 
   const initialDate = saved.selectedDate || saved.startDate || listingDates[0] || "";
   const [selectedDate, setSelectedDate] = useState(initialDate);
-  const [selectionByDate, setSelectionByDate] = useState(saved.selectionByDate || {});
+  const [selectedSlots, setSelectedSlots] = useState([]);
   const [grid, setGrid] = useState({ slots: [], slotDurationMinutes: null, hourlyPrice: null, currency: "USD" });
   const [loadingGrid, setLoadingGrid] = useState(false);
   const [gridError, setGridError] = useState("");
@@ -774,7 +774,7 @@ function HourlySlotBookingCard({
   const activeSlots = grid.slots.length > 0 ? grid.slots : fallbackSlots;
   const effectiveSlotDurationMinutes = shouldMergeHourlySlots ? 60 : grid.slotDurationMinutes;
 
-  const currentSelection = selectionByDate[selectedDate] || [];
+  const currentSelection = selectedSlots;
   const hourlyPrice = Number(grid.hourlyPrice || listing.hourlyPrice || listing.price || 0);
   const currency = grid.currency || listing.currency || "USD";
   const selectedHours = React.useMemo(() => currentSelection.reduce((sum, slot) => {
@@ -796,6 +796,10 @@ function HourlySlotBookingCard({
       setSelectedDate(listingDates[0]);
     }
   }, [listingDates, selectedDate]);
+
+  useEffect(() => {
+    setSelectedSlots([]);
+  }, [selectedDate]);
 
   useEffect(() => {
     if (!selectedDate) return;
@@ -833,21 +837,8 @@ function HourlySlotBookingCard({
   }, [listingId, selectedDate, refreshTick, shouldMergeHourlySlots]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    sessionStorage.setItem(SKEY, JSON.stringify({
-      selectedDate,
-      selectionByDate,
-      listingId,
-      pricingMode: "hourly",
-      hourlyPrice,
-      currency,
-      slotDurationMinutes: effectiveSlotDurationMinutes,
-    }));
-  }, [SKEY, selectedDate, selectionByDate, listingId, hourlyPrice, currency, effectiveSlotDurationMinutes]);
-
-  useEffect(() => {
     if (!slotRefresh) return;
-    setSelectionByDate({});
+    setSelectedSlots([]);
     setRefreshTick((tick) => tick + 1);
   }, [slotRefresh]);
 
@@ -857,16 +848,15 @@ function HourlySlotBookingCard({
     .sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
 
   const handleRefresh = () => {
-    setSelectionByDate((prev) => ({ ...prev, [selectedDate]: [] }));
+    setSelectedSlots([]);
     setRefreshTick((tick) => tick + 1);
   };
 
   const toggleSlot = (slot) => {
     if (slot.available === false) return;
     const key = slotKey(slot);
-    setSelectionByDate((prev) => {
-      const existing = prev[selectedDate] || [];
-      const next = existing.some((item) => slotKey(item) === key)
+    setSelectedSlots((existing) => {
+      return existing.some((item) => slotKey(item) === key)
         ? existing.filter((item) => slotKey(item) !== key)
         : [...existing, {
           startTime: slot.startTime,
@@ -874,7 +864,6 @@ function HourlySlotBookingCard({
           durationMinutes: slot.durationMinutes || effectiveSlotDurationMinutes || calculateSlotMinutes(slot.startTime, slot.endTime) || null,
           price: slot.price || null,
         }];
-      return { ...prev, [selectedDate]: next };
     });
   };
 
@@ -905,7 +894,7 @@ function HourlySlotBookingCard({
       image: listing.images?.[0] || "",
       pricingMode: "hourly",
       bookingType: listing.bookingType,
-      selectionByDate,
+      selectionByDate: { [selectedDate]: currentSelection },
       totalHours: selectedHours,
       totalPrice: selectedPrice,
       listingType: listing.type,
