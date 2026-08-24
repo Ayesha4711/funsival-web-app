@@ -8,7 +8,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
   deleteNotification,
-  selectNotifications,
+  selectNotificationsWithinNinetyDays,
   selectNotificationsStatus,
   selectUnreadCount,
   selectHasNextPage,
@@ -199,7 +199,7 @@ function SkeletonItem() {
 export default function NotificationsPage() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const notifications = useSelector(selectNotifications);
+  const notifications = useSelector(selectNotificationsWithinNinetyDays);
   const status = useSelector(selectNotificationsStatus);
   const unreadCount = useSelector(selectUnreadCount);
   const hasNextPage = useSelector(selectHasNextPage);

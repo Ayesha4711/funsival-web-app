@@ -643,7 +643,7 @@ export default function UserExplorePage() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
   const [filterOpen, setFilterOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState({});
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 12;
   const pillsScrollRef = useRef(null);
 
   const searchQuery = searchParams.get('search') || '';

@@ -178,27 +178,6 @@ function RecentReservations({ reservations = [], loading = false, error = "", on
   );
 }
 
-function renderPerfLabel({ cx, cy, midAngle, outerRadius, name, value }) {
-  const RADIAN = Math.PI / 180;
-  const radius = outerRadius + 6;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  const offsets = {
-    Completed: { x: 6, y: 10 },
-    Pending: { x: -66, y: -6 },
-    Cancelled: { x: -10, y: -34 },
-  };
-  const { x: offsetX, y: offsetY } = offsets[name] ?? { x: -36, y: -20 };
-  return (
-    <foreignObject x={x + offsetX} y={y + offsetY} width={76} height={42}>
-      <div xmlns="http://www.w3.org/1999/xhtml" style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "3px 6px", boxShadow: "0 1px 4px rgba(15, 23, 42, 0.08)", whiteSpace: "nowrap" }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: "#111827", lineHeight: 1.1 }}>{value}%</span>
-        <span style={{ fontSize: 9, color: "#94a3b8", lineHeight: 1.1 }}>{name}</span>
-      </div>
-    </foreignObject>
-  );
-}
-
 function DonutChart({ data = [], loading = false, error = "", onRetry }) {
   const chartData = data.length
     ? data
@@ -238,8 +217,6 @@ function DonutChart({ data = [], loading = false, error = "", onRetry }) {
               outerRadius={112}
               paddingAngle={4}
               dataKey="value"
-              labelLine={false}
-              label={renderPerfLabel}
               className="sm:!innerRadius-[64] sm:!outerRadius-[98]"
             >
               {chartData.map((entry, i) => (

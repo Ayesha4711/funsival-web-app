@@ -7,7 +7,7 @@ import {
   fetchNotifications,
   markAllNotificationsRead,
   markNotificationRead,
-  selectNotifications,
+  selectRecentNotifications,
   selectNotificationsStatus,
 } from "@/store/slices/notificationsSlice";
 import { BellIcon } from "@/icons";
@@ -57,7 +57,7 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
   const panelRef = useRef(null);
   const [selectedId, setSelectedId] = React.useState(null);
 
-  const allNotifications = useSelector(selectNotifications);
+  const allNotifications = useSelector(selectRecentNotifications);
   const status           = useSelector(selectNotificationsStatus);
 
   useEffect(() => {
