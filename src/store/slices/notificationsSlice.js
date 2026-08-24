@@ -149,6 +149,21 @@ export const { prependNotification } = notificationsSlice.actions;
 
 export const selectNotifications       = (state) => state.notifications.items;
 export const selectNotificationsStatus = (state) => state.notifications.status;
+
+const getNotificationDate = (n) => new Date(n.createdAt ?? n.created_at ?? n.date ?? 0);
+
+const filterByMaxAge = (items, maxAgeDays) => {
+  const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+  return items.filter((n) => getNotificationDate(n).getTime() >= cutoff);
+};
+
+// Dropdown: hide notifications older than 30 days
+export const selectRecentNotifications = (state) =>
+  filterByMaxAge(state.notifications.items, 30);
+
+// Full notifications page: hide notifications older than 90 days
+export const selectNotificationsWithinNinetyDays = (state) =>
+  filterByMaxAge(state.notifications.items, 90);
 export const selectHasNextPage         = (state) => state.notifications.pagination?.hasNextPage ?? false;
 export const selectCurrentPage         = (state) => state.notifications.pagination?.page ?? 1;
 // Use server count as the authoritative badge; fall back to local count

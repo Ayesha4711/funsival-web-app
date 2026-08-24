@@ -112,62 +112,6 @@ const categoryData = [
   { name: "Services",   value: 10, color: COLORS.services   },
 ];
 
-function CalloutLabel({ cx, cy, midAngle, outerRadius, value, name }) {
-  const RADIAN = Math.PI / 180;
-  const angle = -midAngle * RADIAN;
-
-  // Increase line length for Services to make it more readable
-  const lineLen = name === "Services" ? 50 : 36;
-  const lineStartX = cx + (outerRadius + 4) * Math.cos(angle);
-  const lineStartY = cy + (outerRadius + 4) * Math.sin(angle);
-  const lineEndX   = cx + (outerRadius + 4 + lineLen) * Math.cos(angle);
-  const lineEndY   = cy + (outerRadius + 4 + lineLen) * Math.sin(angle);
-
-  const boxW = 70;
-  const boxH = 36;
-  const bx = lineEndX - boxW / 2;
-  const by = lineEndY - boxH / 2;
-
-  return (
-    <g>
-      <line
-        x1={lineStartX} y1={lineStartY}
-        x2={lineEndX}   y2={lineEndY}
-        stroke="#cbd5e1" strokeWidth={1}
-      />
-      <rect
-        x={bx} y={by}
-        width={boxW} height={boxH}
-        rx={7}
-        fill="white"
-        stroke="#e2e8f0"
-        strokeWidth={1}
-        style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.07))" }}
-      />
-      <text
-        x={lineEndX}
-        y={by + 13}
-        textAnchor="middle"
-        fill="#1e293b"
-        fontSize={11}
-        fontWeight={800}
-      >
-        {value}%
-      </text>
-      <text
-        x={lineEndX}
-        y={by + 25}
-        textAnchor="middle"
-        fill="#94a3b8"
-        fontSize={9.5}
-        fontWeight={500}
-      >
-        {name}
-      </text>
-    </g>
-  );
-}
-
 export function RevenueByCategory() {
   return (
     <div className="bg-white rounded-2xl sm:rounded-[32px] p-3 sm:p-5 lg:p-6 border border-[var(--color-border)] h-full flex flex-col">
@@ -179,17 +123,15 @@ export function RevenueByCategory() {
       </h2>
       <div className="flex-1 flex flex-col items-center justify-center gap-2">
         <ResponsiveContainer width="100%" height={260} className="sm:!h-[300px]">
-          <PieChart margin={{ top: 92, right: 60, bottom: 44, left: 60 }}>
+          <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
             <Pie
               data={categoryData}
               cx="50%"
-              cy="55%"
+              cy="50%"
               innerRadius={62}
               outerRadius={88}
               paddingAngle={2}
               dataKey="value"
-              labelLine={false}
-              label={CalloutLabel}
               startAngle={90}
               endAngle={-270}
             >

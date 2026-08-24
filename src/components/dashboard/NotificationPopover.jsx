@@ -8,7 +8,7 @@ import {
   fetchNotifications,
   markAllNotificationsRead,
   markNotificationRead,
-  selectNotifications,
+  selectRecentNotifications,
   selectNotificationsStatus,
   selectUnreadCount,
 } from "@/store/slices/notificationsSlice";
@@ -86,7 +86,7 @@ function formatRelativeTime(isoString) {
 export default function NotificationPopover({ onClose }) {
   const dispatch = useDispatch();
   const router = useRouter();
-  const allNotifications = useSelector(selectNotifications);
+  const allNotifications = useSelector(selectRecentNotifications);
   const status = useSelector(selectNotificationsStatus);
   const unreadCount = useSelector(selectUnreadCount);
 
