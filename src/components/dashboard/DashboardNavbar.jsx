@@ -110,7 +110,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
 
   return (
     <>
-    <header className="h-14 sm:h-16 bg-[#228E8A] flex items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4 shrink-0 z-50 sticky top-0">
+    <header className="h-14 sm:h-16 bg-[#228E8A] flex items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4 shrink-0 z-1100 sticky top-0">
       {/* Left: Logo — hidden on desktop only when sidebar is pinned there */}
       <Link href="/dashboard" className={`${noSidebar ? "flex" : "lg:hidden flex"} items-center shrink-0`}>
         <Image
@@ -210,7 +210,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
         <div className="relative hidden sm:block" ref={notifRef}>
           <button
             onClick={handleNotifClick}
-            className="text-white/90 hover:text-white transition-colors relative p-1"
+            className={`text-white/90 hover:text-white hover:bg-white/15 transition-colors relative p-1 rounded-full ${notifOpen ? "bg-white/15 text-white" : ""}`}
           >
             <BellIcon />
             <span className="absolute top-0 right-0 w-2 h-2 bg-[var(--color-secondary)] rounded-full border border-[var(--color-primary)]" />

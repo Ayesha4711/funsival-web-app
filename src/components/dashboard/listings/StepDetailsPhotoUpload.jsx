@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { MoreVertIcon, TrashIcon, PlusIcon, UploadIcon } from "@/icons";
+import { MoreVertIcon, TrashIcon, PlusIcon, UploadIcon, StarIcon } from "@/icons";
 
 function extractUploadedPhotoUrls(response) {
   const urls = [];
@@ -101,6 +101,17 @@ export default function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isU
     setOpenMenuIndex(null);
   };
 
+  const makeCoverImage = (index) => {
+    if (isUploading || index === 0) return;
+    onPhotosChange((prev) => {
+      const next = [...prev];
+      const [selected] = next.splice(index, 1);
+      next.unshift(selected);
+      return next;
+    });
+    setOpenMenuIndex(null);
+  };
+
   const triggerThumb = () => { if (!isUploading) thumbInputRef.current?.click(); };
   const triggerDrop = () => { if (!isUploading) dropInputRef.current?.click(); };
 
@@ -112,35 +123,51 @@ export default function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isU
 
       <div className="flex gap-3 flex-wrap">
         {photos.map((src, i) => (
-          <div key={i} className="relative w-32 h-24 sm:w-40 sm:h-28 rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-100 shrink-0 group">
-            {src.startsWith("blob:") || src.startsWith("http") || src.startsWith("data:") ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={src} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-sky-200 to-blue-300 flex items-center justify-center text-2xl">🪂</div>
-            )}
-            {i === 0 && <div className="absolute bottom-0 left-0 right-0 bg-[var(--color-secondary)] text-white text-[9px] font-bold text-center py-0.5">Cover Image</div>}
+          <div key={i} className="relative w-32 h-24 sm:w-45 sm:h-44.5 rounded-xl border-2 border-gray-200 bg-gray-100 shrink-0 group">
+            <div className="w-full h-full rounded-[10px] overflow-hidden">
+              {src.startsWith("blob:") || src.startsWith("http") || src.startsWith("data:") ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={src} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-sky-200 to-blue-300 flex items-center justify-center text-2xl">🪂</div>
+              )}
+              {i === 0 && <div className="absolute bottom-0 left-0 right-0 bg-[var(--color-secondary)] text-white text-[9px] font-bold text-center py-0.5">Cover Image</div>}
+            </div>
 
             {/* Three dots menu button */}
-            <div className="absolute top-2 right-2" ref={openMenuIndex === i ? menuRef : null}>
+            <div className="absolute top-2 right-2 left-2" ref={openMenuIndex === i ? menuRef : null}>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setOpenMenuIndex(openMenuIndex === i ? null : i); }}
-                className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white flex items-center justify-center transition-colors"
+                className="w-7 h-7 ml-auto rounded-full bg-white/90 backdrop-blur-sm hover:bg-white flex items-center justify-center transition-colors"
               >
                 <MoreVertIcon size={16} />
               </button>
 
               {/* Dropdown menu */}
               {openMenuIndex === i && (
-                <div className="absolute top-full right-0 mt-1 bg-white rounded-lg border border-gray-100 py-1 min-w-[120px] z-20">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-gray-100 shadow-lg py-1 z-20">
+                  {i !== 0 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => makeCoverImage(i)}
+                        disabled={isUploading}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                      >
+                        <StarIcon size={14} className="shrink-0" />
+                        Make Cover Image
+                      </button>
+                      <div className="h-px bg-gray-100 mx-1" />
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={() => deletePhoto(i)}
                     disabled={isUploading}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
                   >
-                    <TrashIcon size={14} />
+                    <TrashIcon size={14} className="shrink-0" />
                     Delete
                   </button>
                 </div>
@@ -153,7 +180,7 @@ export default function PhotoUpload({ photos, onPhotosChange, onUploadFiles, isU
           type="button"
           onClick={triggerThumb}
           disabled={isUploading}
-          className="flex flex-col items-center justify-center w-32 h-24 sm:w-40 sm:h-28 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex flex-col items-center justify-center w-32 h-24 sm:w-45 sm:h-44.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <PlusIcon size={20} className="text-gray-400" />
         </button>

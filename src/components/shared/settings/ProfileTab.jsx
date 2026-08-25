@@ -50,10 +50,11 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
   const [phoneCountryCode, setPhoneCountryCode] = useState("+92");
   const fileInputRef = useRef(null);
   const [profileImageFile, setProfileImageFile] = useState(null);
+  const [dirty, setDirty] = useState(false);
 
   const REQUIRED_FIELDS = role === "user"
     ? ["firstName", "lastName", "phoneNumber", "bio", "addressLine1", "state", "country", "postalCode"]
-    : ["firstName", "lastName", "email", "phoneNumber", "bio", "profileImage", "addressLine1", "dateOfBirth", "state", "country", "postalCode", "businessName", "businessType"];
+    : ["firstName", "lastName", "email", "phoneNumber", "bio", "profileImage", "addressLine1", "dateOfBirth", "state", "country", "postalCode", "businessType"];
 
   useEffect(() => {
     if (!profile) dispatch(fetchProfile());
@@ -88,6 +89,7 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
         setProfileImageFile(null);
         setPhoneCountryCode(code);
         setInitialized(true);
+        setDirty(false);
       }, 0);
       return () => clearTimeout(id);
     }
@@ -102,6 +104,7 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
       return;
     }
     setProfileImageFile(file);
+    setDirty(true);
     const reader = new FileReader();
     reader.onload = (ev) => {
       setForm((f) => ({ ...f, profileImage: ev.target.result }));
@@ -113,6 +116,7 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
 
   const set = (k) => (e) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
+    setDirty(true);
     if (fieldErrors[k]) setFieldErrors((fe) => ({ ...fe, [k]: undefined }));
   };
 
@@ -120,6 +124,7 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
     const digits = stripPhoneNumber(e.target.value).replace(/^0+/, "");
     if (digits.length > 15) return;
     setForm((f) => ({ ...f, phoneNumber: digits }));
+    setDirty(true);
     if (fieldErrors.phoneNumber) setFieldErrors((fe) => ({ ...fe, phoneNumber: undefined }));
   };
 
@@ -127,13 +132,11 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
     const next = typeof valueOrEvent === "string" ? valueOrEvent : valueOrEvent?.target?.value;
     if (!next) return;
     setPhoneCountryCode(next);
+    setDirty(true);
     if (fieldErrors.phoneNumber) setFieldErrors((fe) => ({ ...fe, phoneNumber: undefined }));
   };
 
-  const optionalText = (value) => {
-    const trimmed = value?.trim();
-    return trimmed ? trimmed : undefined;
-  };
+  const optionalText = (value) => value?.trim() ?? "";
 
   const handleSave = async () => {
     const localErrors = {};
@@ -196,13 +199,14 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
         const loc  = prov?.location ?? u?.location ?? {};
         const sp   = parsePhoneNumber(prov?.phoneNumber ?? u?.phoneNumber ?? u?.phone ?? "");
         const img  = u?.profileImage ?? prov?.profileImage ?? profileImage;
+        const dob  = u?.dateOfBirth  ?? prov?.dateOfBirth;
         setForm((prev) => ({
           ...prev,
           firstName:    u?.firstName   ?? prov?.firstName    ?? prev.firstName,
           lastName:     u?.lastName    ?? prov?.lastName     ?? prev.lastName,
           email:        u?.email       ?? prev.email,
           phoneNumber:  sp.number      || prev.phoneNumber,
-          dateOfBirth:  u?.dateOfBirth ?? prov?.dateOfBirth  ?? prev.dateOfBirth,
+          dateOfBirth:  dob ? dob.split("T")[0] : prev.dateOfBirth,
           bio:          u?.bio         ?? prov?.bio          ?? prev.bio,
           profileImage: img            ?? prev.profileImage,
           addressLine1: u?.addressLine1 ?? loc?.addressLine1 ?? prev.addressLine1,
@@ -220,6 +224,7 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
         setPhoneCountryCode(sp.countryCode || phoneCountryCode || "+92");
         toast.success("Profile updated successfully.");
         setFieldErrors({});
+        setDirty(false);
       } else {
         const ep = result.payload;
         if (ep?.errors && typeof ep.errors === "object") {
@@ -333,7 +338,7 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
             {phoneField()}
             <DatePickerField
               value={form.dateOfBirth}
-              onChange={(v) => { setForm((f) => ({ ...f, dateOfBirth: v })); if (fieldErrors.dateOfBirth) setFieldErrors((fe) => ({ ...fe, dateOfBirth: undefined })); }}
+              onChange={(v) => { setForm((f) => ({ ...f, dateOfBirth: v })); setDirty(true); if (fieldErrors.dateOfBirth) setFieldErrors((fe) => ({ ...fe, dateOfBirth: undefined })); }}
               hasError={!!fieldErrors.dateOfBirth}
               errorMsg={fieldErrors.dateOfBirth}
             />
@@ -384,7 +389,7 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
         )}
 
         <div className="flex justify-end">
-          <button onClick={handleSave} disabled={saving}
+          <button onClick={handleSave} disabled={saving || !dirty}
             className="bg-primary hover:opacity-90 text-white font-semibold text-sm px-8 py-2.5 rounded-xl transition-opacity disabled:opacity-60 flex items-center gap-2">
             {saving && <SpinnerIcon size={14} />}
             {saving ? "Saving..." : "Save Changes"}

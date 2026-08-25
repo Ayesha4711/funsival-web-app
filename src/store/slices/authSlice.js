@@ -247,10 +247,10 @@ export const resetPassword = createAsyncThunk(
 
 export const deleteAccount = createAsyncThunk(
   "auth/deleteAccount",
-  async ({ password }, { rejectWithValue }) => {
+  async ({ password, confirm }, { rejectWithValue }) => {
     try {
       const { data } = await axiosInstance.delete("/auth/account", {
-        data: { password },
+        data: { password, confirm },
       });
       return data;
     } catch (err) {
