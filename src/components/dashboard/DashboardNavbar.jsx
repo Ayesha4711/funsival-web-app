@@ -110,7 +110,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
 
   return (
     <>
-    <header className="h-14 sm:h-16 bg-[#228E8A] flex items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4 shrink-0 z-50 sticky top-0">
+    <header className="h-14 sm:h-16 bg-[#228E8A] flex items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4 shrink-0 z-1100 sticky top-0">
       {/* Left: Logo — hidden on desktop only when sidebar is pinned there */}
       <Link href="/dashboard" className={`${noSidebar ? "flex" : "lg:hidden flex"} items-center shrink-0`}>
         <Image

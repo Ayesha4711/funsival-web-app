@@ -116,7 +116,7 @@ function UserNavbar() {
 
   return (
     <>
-      <header className="h-16 bg-[#228E8A] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0 sticky top-0 z-50">
+      <header className="h-16 bg-[#228E8A] flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4 shrink-0 sticky top-0 z-1100">
         {/* Logo */}
         <Link href="/user-dashboard/explore" className="flex items-center shrink-0">
           <Image src={logo} alt="Funsival" width={110} height={32} className="h-7 sm:h-8 w-auto object-contain" />
@@ -310,13 +310,25 @@ function UserNavbar() {
 export default function UserDashboardShell({ children }) {
   const dispatch = useDispatch();
   const status = useSelector(selectProfileStatus);
+  const profile = useSelector(selectUser);
+  const router = useRouter();
 
   useEffect(() => {
     if (status === "idle") dispatch(fetchProfile());
   }, [dispatch, status]);
 
+  const role = profile?.role ?? profile?.data?.role ?? profile?.data?.user?.role ?? null;
+  const isProvider = role === "host" || role === "admin";
+
+  useEffect(() => {
+    if (status === "succeeded" && isProvider) {
+      router.replace("/dashboard");
+    }
+  }, [status, isProvider, router]);
+
   if (status === "idle" || status === "loading") return <FullPageLoader />;
   if (status === "failed") { window.location.replace("/"); return null; }
+  if (isProvider) return <FullPageLoader />;
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
