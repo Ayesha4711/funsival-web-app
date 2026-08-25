@@ -13,15 +13,17 @@ export default function DeleteAccountModal({ onClose }) {
   const dispatch = useDispatch();
   const router = useRouter();
   const [password, setPassword] = useState("");
+  const [confirmText, setConfirmText] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleDelete = async () => {
     if (!password) { setError("Please enter your password to confirm."); return; }
+    if (confirmText.trim().toUpperCase() !== "DELETE") { setError('Please type "DELETE" to confirm.'); return; }
     setLoading(true);
     setError("");
-    const result = await dispatch(deleteAccount({ password }));
+    const result = await dispatch(deleteAccount({ password, confirm: "DELETE" }));
     setLoading(false);
 
     if (deleteAccount.fulfilled.match(result)) {
@@ -71,6 +73,23 @@ export default function DeleteAccountModal({ onClose }) {
               {showPassword ? <EyeIcon /> : <EyeOffIcon />}
             </button>
           </div>
+        </div>
+
+        <div className="mb-5 text-left">
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+            Type <span className="font-bold text-text">DELETE</span> to confirm
+          </label>
+          <input
+            type="text"
+            placeholder="DELETE"
+            value={confirmText}
+            onChange={(e) => { setConfirmText(e.target.value); setError(""); }}
+            className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-colors placeholder-gray-400 ${
+              error
+                ? "border-red-400 focus:ring-red-200 focus:border-red-400"
+                : "border-gray-200 focus:ring-red-200 focus:border-red-400"
+            }`}
+          />
           {error && <p className="mt-1.5 text-xs text-red-500 font-medium">{error}</p>}
         </div>
 

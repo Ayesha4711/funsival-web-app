@@ -111,7 +111,7 @@ function NotificationMeta({ type, userId, data }) {
   );
 }
 
-function NotificationItem({ notification, dispatch, router, isSelected, onSelect }) {
+function NotificationItem({ notification, dispatch, router }) {
   const isNew = !notification.isRead && !notification.read;
   const id = notification._id ?? notification.id;
   const title = notification.title ?? "Notification";
@@ -120,7 +120,6 @@ function NotificationItem({ notification, dispatch, router, isSelected, onSelect
   const meta = notification.data ?? notification.metadata ?? null;
 
   const handleClick = () => {
-    onSelect(id);
     if (isNew) dispatch(markNotificationRead(id));
     // Navigate based on type
     const type = notification.type ?? "";
@@ -150,11 +149,11 @@ function NotificationItem({ notification, dispatch, router, isSelected, onSelect
         borderRadius: "104px",
         borderWidth: "1.04px",
         borderStyle: "solid",
-        borderColor: isSelected ? "rgba(255, 255, 255, 1)" : "rgba(231, 231, 231, 1)",
-        backgroundColor: isSelected ? "#FDECC8" : isNew ? "rgba(255, 240, 215, 1)" : "#ffffff",
+        borderColor: isNew ? "rgba(255, 255, 255, 1)" : "rgba(231, 231, 231, 1)",
+        backgroundColor: isNew ? "#FDECC8" : "#ffffff",
       }}
     >
-      {isSelected && <span className="w-2.5 h-2.5 bg-[#F97316] rounded-full shrink-0" />}
+      {isNew && <span className="w-2.5 h-2.5 bg-[#F97316] rounded-full shrink-0" />}
 
       <div
         className={`flex items-center justify-center shrink-0 ${isNew ? "bg-white" : "bg-[#FFF8EE]"}`}
@@ -204,8 +203,6 @@ export default function NotificationsPage() {
   const unreadCount = useSelector(selectUnreadCount);
   const hasNextPage = useSelector(selectHasNextPage);
   const currentPage = useSelector(selectCurrentPage);
-  const [selectedId, setSelectedId] = React.useState(null);
-  const handleSelect = (id) => setSelectedId((prev) => (prev === id ? null : id));
 
   useEffect(() => {
     dispatch(fetchNotifications({ page: 1 }));
@@ -278,7 +275,7 @@ export default function NotificationsPage() {
                 <h3 className="text-base font-extrabold text-[#111827]">{label}</h3>
               )}
               {groups[label].map((n) => (
-                <NotificationItem key={n._id ?? n.id} notification={n} dispatch={dispatch} router={router} isSelected={selectedId === (n._id ?? n.id)} onSelect={handleSelect} />
+                <NotificationItem key={n._id ?? n.id} notification={n} dispatch={dispatch} router={router} />
               ))}
             </section>
           ))}

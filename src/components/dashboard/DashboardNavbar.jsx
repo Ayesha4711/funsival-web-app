@@ -210,7 +210,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
         <div className="relative hidden sm:block" ref={notifRef}>
           <button
             onClick={handleNotifClick}
-            className="text-white/90 hover:text-white transition-colors relative p-1"
+            className={`text-white/90 hover:text-white hover:bg-white/15 transition-colors relative p-1 rounded-full ${notifOpen ? "bg-white/15 text-white" : ""}`}
           >
             <BellIcon />
             <span className="absolute top-0 right-0 w-2 h-2 bg-[var(--color-secondary)] rounded-full border border-[var(--color-primary)]" />

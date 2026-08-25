@@ -152,7 +152,7 @@ function UserNavbar() {
 
           {/* Bell */}
           <div className="relative" ref={notifRef}>
-            <button onClick={handleBellClick} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer">
+            <button onClick={handleBellClick} className={`relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer ${notifOpen ? "bg-white/20" : ""}`}>
               <BellIcon />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F5C842] rounded-full border border-[#228E8A]" />
             </button>
@@ -215,7 +215,7 @@ function UserNavbar() {
 
         {/* Mobile right: search icon + bell + hamburger */}
         <div className="flex sm:hidden items-center gap-2">
-          <button onClick={handleBellClick} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors">
+          <button onClick={handleBellClick} className={`relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors ${notifOpen ? "bg-white/20" : ""}`}>
             <BellIcon />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F5C842] rounded-full border border-[#228E8A]" />
           </button>
