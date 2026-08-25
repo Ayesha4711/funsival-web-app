@@ -17,6 +17,7 @@ export default function OTPVerificationPage() {
 
   const email = params.get("email") ?? "";
   const role = params.get("role") ?? "user";
+  const fromLogin = params.get("from") === "login";
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef([]);
@@ -70,6 +71,12 @@ export default function OTPVerificationPage() {
     }
     const data = result.payload?.data;
     toast.success("Email verified!", { description: data?.message ?? "Your account is ready." });
+    if (fromLogin) {
+      const verifiedRole = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? role;
+      if (verifiedRole === "admin") router.push("/admin/refund-requests");
+      else router.push(verifiedRole === "host" ? "/dashboard" : "/user-dashboard/explore");
+      return;
+    }
     router.push(`/signup/success?role=${role}`);
   };
 

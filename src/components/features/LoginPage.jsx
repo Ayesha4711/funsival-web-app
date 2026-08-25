@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
-import { loginUser, loginWithGoogle, selectAuthStatus } from "@/store/slices/authSlice";
+import { loginUser, loginWithGoogle, resendVerificationCode, selectAuthStatus } from "@/store/slices/authSlice";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import AuthLayout from "@/components/layout/AuthLayout";
@@ -71,7 +71,14 @@ function LoginForm() {
 
     const result = await dispatch(loginUser({ email: form.email, password: form.password }));
     if (loginUser.rejected.match(result)) {
-      toast.error("Login failed", { description: result.payload || "Invalid email or password." });
+      const message = typeof result.payload === "string" ? result.payload : "Invalid email or password.";
+      if (/not verified/i.test(message)) {
+        toast.error("Email not verified", { description: "We're sending a new verification code to your email." });
+        await dispatch(resendVerificationCode(form.email));
+        router.push(`/verify?email=${encodeURIComponent(form.email)}&from=login`);
+        return;
+      }
+      toast.error("Login failed", { description: message });
       return;
     }
 

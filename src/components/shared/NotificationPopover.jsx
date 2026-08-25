@@ -26,19 +26,20 @@ function formatRelativeTime(isoString) {
 }
 
 /* ─── NotificationItem ────────────────────────────────────────────────────────── */
-function NotificationItem({ n, onClick, isSelected, isLast }) {
+function NotificationItem({ n, onClick, isLast }) {
+  const isNew = !n.isRead && !n.read;
   const title = n.title ?? "Notification";
   const time  = formatRelativeTime(n.createdAt ?? n.created_at);
 
   return (
     <div
       onClick={() => onClick(n)}
-      className={`flex items-start gap-2 px-5 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${isLast ? "" : "border-b border-gray-100"}`}
+      className={`flex items-start gap-2 px-5 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${isLast ? "" : "border-b border-gray-100"} ${isNew ? "bg-[#FFF8EE]" : ""}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${isSelected ? "bg-[#F5C842]" : "bg-transparent"}`} />
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${isNew ? "bg-[#F5C842]" : "bg-transparent"}`} />
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-700 leading-snug">{title}</p>
+        <p className={`text-sm leading-snug ${isNew ? "font-bold text-gray-900" : "text-gray-700"}`}>{title}</p>
         <p className="text-xs text-gray-400 mt-1">{time}</p>
       </div>
     </div>
@@ -55,7 +56,6 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
   const dispatch = useDispatch();
   const router   = useRouter();
   const panelRef = useRef(null);
-  const [selectedId, setSelectedId] = React.useState(null);
 
   const allNotifications = useSelector(selectRecentNotifications);
   const status           = useSelector(selectNotificationsStatus);
@@ -83,7 +83,6 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
 
   const handleItemClick = (n) => {
     const id = n._id ?? n.id;
-    setSelectedId(id);
     if (!n.isRead && !n.read) dispatch(markNotificationRead(id));
     const data = n.data ?? n.metadata ?? {};
     const type = n.type ?? "";
@@ -107,11 +106,11 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
   return (
     <div
       ref={panelRef}
-      className="absolute right-0 top-full mt-3 bg-white rounded-2xl shadow-xl border border-gray-100 flex flex-col overflow-hidden z-50"
+      className="absolute right-0 top-full mt-3 bg-white rounded-2xl shadow-xl border border-[rgba(34,142,138,1)] flex flex-col overflow-hidden z-50"
       style={{ width: "517px", maxWidth: "calc(100vw - 2rem)", maxHeight: "402px" }}
     >
       {/* Header */}
-      <div className="px-5 pt-4 pb-3 border-b-2 border-[#228E8A]/15 shrink-0 flex items-center justify-between">
+      <div className="px-5 pt-4 pb-3 border-b border-[rgba(34,142,138,1)] shrink-0 flex items-center justify-between">
         <h3 className="text-sm font-bold text-gray-900">Notifications</h3>
         <button
           onClick={() => dispatch(markAllNotificationsRead())}
@@ -146,13 +145,11 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
 
         {preview.map((n, i) => {
           const id = n._id ?? n.id;
-          const isSelected = selectedId ? selectedId === id : i === 0;
           return (
             <NotificationItem
               key={id}
               n={n}
               onClick={handleItemClick}
-              isSelected={isSelected}
               isLast={i === preview.length - 1}
             />
           );
