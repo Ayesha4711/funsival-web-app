@@ -173,9 +173,9 @@ function UserSignupForm() {
             <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => toast.error("Google signup failed", { description: "Could not initialize Google login." })} />
           </div>
           <SocialButton type="google" label="Continue with Google" onClick={() => googleButtonRef.current?.querySelector("div[role=button]")?.click()} />
-          <SocialButton type="facebook" label="Continue with Facebook" />
+          {/* <SocialButton type="facebook" label="Continue with Facebook" /> */}
           <SocialButton type="apple" label="Continue with Apple" />
-          <SocialButton type="email" label="Continue with Email" />
+          {/* <SocialButton type="email" label="Continue with Email" /> */}
         </div>
       </form>
     </AuthLayout>
