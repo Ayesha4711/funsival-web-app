@@ -125,12 +125,6 @@ export function buildListingPayload(data) {
       instructorName: details.instructorName || "",
       cancellationPolicy: details.cancellationPolicy || "",
       whatsIncluded: details.included || [],
-      // Use requirementsList array directly if available, else fallback to splitting the string
-      requirements: (Array.isArray(details.requirementsList) && details.requirementsList.length > 0)
-        ? details.requirementsList
-        : (details.requirements
-            ? details.requirements.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-            : []),
     },
     placeLocation: {
       addressLine1: details.addressLine1 || "",
@@ -143,6 +137,17 @@ export function buildListingPayload(data) {
     availability,
     price: buildListingPricePayload(category, price),
   };
+
+  // Requirements is optional — only include it when the host actually provided some,
+  // since the backend rejects an explicit empty array for this field.
+  const requirementsList = (Array.isArray(details.requirementsList) && details.requirementsList.length > 0)
+    ? details.requirementsList
+    : (details.requirements
+        ? details.requirements.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+        : []);
+  if (requirementsList.length > 0) {
+    payload.serviceDetails.requirements = requirementsList;
+  }
 
   // AddListingWizard doesn't collect blob/data URLs; EditListingWizard passes photos through as-is
   payload.photos = Array.isArray(details.photos)

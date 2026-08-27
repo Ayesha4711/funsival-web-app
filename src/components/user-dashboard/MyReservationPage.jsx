@@ -22,11 +22,13 @@ import {
 import {
   fetchBookingReviewContext,
   submitReview,
+  deleteReview,
   clearReviewContext,
   selectReviewContext,
   selectReviewContextLoading,
   selectReviewSubmitLoading,
   selectReviewSubmitError,
+  selectReviewDeleteLoading,
 } from "@/store/slices/reviewsSlice";
 import { startOrGetConversation } from "@/store/slices/chatSlice";
 import AppFooter from "@/components/shared/AppFooter";
@@ -141,6 +143,8 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
   const contextLoading = useSelector(selectReviewContextLoading);
   const submitLoading = useSelector(selectReviewSubmitLoading);
   const submitError = useSelector(selectReviewSubmitError);
+  const deleteLoading = useSelector(selectReviewDeleteLoading);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const existingReview = context?.review ?? null;
   const isEdit = context?.reviewStatus?.canEdit && existingReview;
@@ -192,6 +196,17 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      await dispatch(deleteReview(bookingId)).unwrap();
+      toast.success("Review deleted.");
+      onSubmitted?.();
+      onClose();
+    } catch (err) {
+      toast.error(typeof err === "string" ? err : "Failed to delete review.");
+    }
+  };
+
   const b = context?.booking ?? null;
   const title = b?.listing?.basicInformation?.activityTitle
     || b?.listing?.basicInformation?.equipmentName
@@ -210,7 +225,7 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
       <div className="bg-white rounded-2xl w-full max-w-lg overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-5">
           <h2 className="text-xl font-bold text-gray-900">{isEdit ? "Edit Review" : "Leave a Review"}</h2>
@@ -269,6 +284,34 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
             >
               {submitLoading ? "Submitting…" : isEdit ? "Update Review" : "Submit Review"}
             </button>
+
+            {isEdit && (
+              confirmingDelete ? (
+                <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-100 rounded-xl">
+                  <p className="text-xs text-red-600 font-medium flex-1">Delete this review? This cannot be undone.</p>
+                  <button
+                    onClick={() => setConfirmingDelete(false)}
+                    className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleteLoading}
+                    className="px-3 py-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 rounded-full disabled:opacity-50"
+                  >
+                    {deleteLoading ? "Deleting…" : "Delete"}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmingDelete(true)}
+                  className="w-full py-3 text-red-500 hover:text-red-600 font-semibold text-sm transition-colors"
+                >
+                  Delete Review
+                </button>
+              )
+            )}
           </div>
         )}
       </div>
@@ -293,7 +336,7 @@ function CancelBookingModal({ onClose, onConfirm, loading }) {
   const [selected, setSelected] = useState("");
   const [details, setDetails] = useState("");
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
       <div className="bg-white rounded-2xl w-full max-w-sm overflow-y-auto max-h-[92vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-base font-bold text-gray-900">Cancel Booking</h2>
@@ -344,7 +387,7 @@ function ReportListingModal({ onClose }) {
   const [selected, setSelected] = useState(REPORT_LISTING_REASONS[0]);
   const [details, setDetails] = useState("");
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
       <div className="bg-white rounded-2xl w-full max-w-md overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="text-base font-bold text-gray-900">Reporting a Listing</h2>
@@ -451,7 +494,7 @@ function RefundRequestModal({ booking, onClose, onSubmitted }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
       <div className="bg-white rounded-2xl w-full max-w-md">
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900">Request a Refund</h2>
@@ -507,7 +550,7 @@ function WithdrawRefundModal({ booking, onClose, onWithdrawn }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
       <div className="bg-white rounded-2xl w-full max-w-sm">
         <div className="px-6 py-5 flex flex-col gap-4">
           <h2 className="text-lg font-bold text-gray-900">Withdraw Refund Request</h2>
@@ -610,7 +653,7 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
 
         {/* Action buttons — bottom right */}
         <div className="flex flex-wrap items-center justify-end gap-2 mt-auto" onClick={(e) => e.stopPropagation()}>
-          {booking.status === "completed" && getReviewButtonLabel(booking) && (
+          {getReviewButtonLabel(booking) && (
             <button
               onClick={() => onLeaveReview(booking)}
               style={{ width: 216, height: 58 }}
@@ -763,7 +806,7 @@ function BookingDetailView({ booking, onLeaveReview, onCancel, onContactHost, wi
             </div>
 
             <div className="flex justify-end mt-auto gap-2 flex-wrap">
-              {booking.status === "completed" && getReviewButtonLabel(booking) && (
+              {getReviewButtonLabel(booking) && (
                 <button onClick={onLeaveReview}
                   style={{ width: 216, height: 58 }}
                   className="bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-bold rounded-full text-sm transition-colors whitespace-nowrap flex items-center justify-center">

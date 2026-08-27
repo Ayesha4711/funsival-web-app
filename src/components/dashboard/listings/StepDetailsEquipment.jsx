@@ -445,7 +445,6 @@ export default function StepDetailsEquipment({ details, onChange, onNext, onBack
             const errs = {};
             if (!form.equipmentName?.trim()) errs.equipmentName = "Equipment name is required";
             if (!form.location?.trim()) errs.location = "Location is required";
-            if (!form.requirements?.trim()) errs.requirements = "At least one requirement is required";
 
             if (Object.keys(errs).length > 0) {
               setActiveErrors(errs);
