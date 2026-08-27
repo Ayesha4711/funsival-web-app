@@ -45,6 +45,37 @@ function formatDate(value) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function csvCell(value) {
+  const str = value == null ? "" : String(value);
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+/* ─── Client-side CSV export (no backend export endpoint yet) ───────────── */
+function buildTransactionsCsv(rows) {
+  const header = [
+    "Transaction ID", "Type", "Description", "Status",
+    "Gross Amount", "Platform Fee", "Net Amount", "Currency", "Date Received",
+  ];
+  const lines = [header.map(csvCell).join(",")];
+
+  rows.forEach((t) => {
+    const isWithdrawal = t.type === "withdrawal";
+    lines.push([
+      t.reference,
+      isWithdrawal ? "Withdrawal" : "Earning",
+      t.description,
+      t.status ?? "",
+      isWithdrawal ? "" : (t.gross ?? ""),
+      isWithdrawal ? "" : (t.fee ?? ""),
+      t.isDebit ? -Math.abs(Number(t.net || 0)) : Math.abs(Number(t.net || 0)),
+      t.currency,
+      formatDate(t.date),
+    ].map(csvCell).join(","));
+  });
+
+  return lines.join("\r\n");
+}
+
 function StatusBadge({ type, status }) {
   const raw = String(status || "").toLowerCase();
   const config = type === "withdrawal"
@@ -133,7 +164,7 @@ function TransactionCard({ tx }) {
       {expanded && (
         <div className="grid grid-cols-2 gap-x-2 gap-y-2 px-3 pb-3 pt-2 border-t border-gray-50">
           <div className="min-w-0">
-            <p className="text-[8px] font-extrabold text-gray-400 uppercase mb-0.5">Reference</p>
+            <p className="text-[8px] font-extrabold text-gray-400 uppercase mb-0.5">Transaction ID</p>
             <p className="text-[10px] font-bold text-[#111827] truncate">{tx.reference}</p>
           </div>
           {tx.type !== "withdrawal" ? (
@@ -275,6 +306,7 @@ function TransactionHistoryContent() {
   const [currentPage, setCurrentPage] = useState(() => getInitialUrlState(searchParams).page);
   const [limit] = useState(20);
   const [retryTick, setRetryTick] = useState(0);
+  const [exporting, setExporting] = useState(false);
 
   const [state, setState] = useState({
     loading: true,
@@ -372,15 +404,33 @@ function TransactionHistoryContent() {
     setCurrentPage(1);
   };
 
+  /**
+   * No backend export endpoint exists yet, so the CSV is assembled client-side:
+   * page through every result for the current type/currency filter, then
+   * build and download the file in the browser.
+   */
   const handleExportCSV = async () => {
+    if (exporting) return;
+    setExporting(true);
     try {
-      const params = new URLSearchParams();
-      params.set("type", activeType);
-      params.set("currency", currency);
-      const { data, headers } = await axiosInstance.get(`/payments/connect/transactions/export?${params.toString()}`, {
-        responseType: "blob",
-      });
-      const blob = new Blob([data], { type: headers?.["content-type"] || "text/csv;charset=utf-8;" });
+      const exportLimit = 100;
+      let page = 1;
+      let totalPages = 1;
+      const all = [];
+
+      do {
+        const { data } = await axiosInstance.get("/payments/connect/transactions", {
+          params: { page, limit: exportLimit, type: activeType, currency },
+        });
+        const payload = data?.data ?? data ?? {};
+        const batch = Array.isArray(payload.transactions) ? payload.transactions.map(mapTransaction) : [];
+        all.push(...batch);
+        totalPages = payload.pagination?.totalPages ?? 1;
+        page += 1;
+      } while (page <= totalPages);
+
+      const csv = buildTransactionsCsv(all);
+      const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -389,6 +439,8 @@ function TransactionHistoryContent() {
       URL.revokeObjectURL(url);
     } catch {
       // export failures are non-critical; surfaced via the button's disabled/error state is out of scope here
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -405,15 +457,16 @@ function TransactionHistoryContent() {
         <button
           type="button"
           onClick={handleExportCSV}
+          disabled={exporting}
           style={{
             fontFamily:      "var(--font-sofia-pro), Sofia Pro, sans-serif",
             fontWeight:      600,
             backgroundColor: "rgba(255, 114, 1, 0.1)",
           }}
-          className="flex items-center gap-2 px-5 py-2 border border-[#FF7201] text-[#FF7201] rounded-full text-sm hover:bg-[#FF7201]/20 transition-colors shrink-0"
+          className="flex items-center gap-2 px-5 py-2 border border-[#FF7201] text-[#FF7201] rounded-full text-sm hover:bg-[#FF7201]/20 transition-colors shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <ExportIcon />
-          <span>Export CSV</span>
+          <span>{exporting ? "Exporting…" : "Export CSV"}</span>
         </button>
       </div>
 
@@ -502,14 +555,18 @@ function TransactionHistoryContent() {
             <table className="w-full text-left border-collapse" style={{ minWidth: 900 }}>
               <thead className="sticky top-0 z-10">
                 <tr style={{ background: "#F9FAFB" }}>
-                  {["Date", "Description", "Type", "Reference", "Status", "Gross Amount", "Platform Fee", "Net Amount"].map((col, i) => (
+                  {[
+                    "Transaction ID", "Type", "Description", "Status",
+                    ...(activeType !== "withdrawal" ? ["Gross Amount", "Platform Fee"] : []),
+                    "Net Amount", "Date Received",
+                  ].map((col, i, cols) => (
                     <th
                       key={col}
                       className="px-5 py-3 whitespace-nowrap"
                       style={{
                         ...thStyle,
                         borderBottom: "0.88px solid #E5E7EB",
-                        borderRadius: i === 0 ? "12px 0 0 0" : i === 7 ? "0 12px 0 0" : 0,
+                        borderRadius: i === 0 ? "12px 0 0 0" : i === cols.length - 1 ? "0 12px 0 0" : 0,
                       }}
                     >
                       {col}
@@ -524,7 +581,10 @@ function TransactionHistoryContent() {
                     className="hover:bg-gray-50 transition-colors"
                     style={{ borderBottom: idx < rows.length - 1 ? "0.88px solid #F3F4F6" : "none" }}
                   >
-                    <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">{formatDate(t.date)}</td>
+                    <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">{t.reference}</td>
+                    <td className="px-5 py-3.5 text-[11px] font-bold uppercase text-gray-500 whitespace-nowrap">
+                      {t.type === "withdrawal" ? "Withdrawal" : "Earning"}
+                    </td>
                     <td className="px-5 py-3.5 text-[13px] font-medium text-[#111827] whitespace-nowrap max-w-[220px] truncate">
                       {t.description}
                       {t.type === "withdrawal" && t.failureReason && (
@@ -534,22 +594,26 @@ function TransactionHistoryContent() {
                         <span className="block text-[10px] font-medium text-gray-400 mt-0.5">Arrives {formatDate(t.arrivalDate)}</span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-[11px] font-bold uppercase text-gray-500 whitespace-nowrap">
-                      {t.type === "withdrawal" ? "Withdrawal" : "Earning"}
-                    </td>
-                    <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">{t.reference}</td>
                     <td className="px-5 py-3.5 whitespace-nowrap">
                       <StatusBadge type={t.type} status={t.status} />
                     </td>
-                    <td className="px-5 py-3.5 text-[11px] font-semibold text-[#111827] whitespace-nowrap">
-                      {t.type === "withdrawal" ? "—" : formatMoney(t.gross, t.currency)}
-                    </td>
-                    <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">
-                      {t.type === "withdrawal" ? "—" : formatMoney(t.fee, t.currency)}
-                    </td>
+                    {t.type !== "withdrawal" && (
+                      <>
+                        <td className="px-5 py-3.5 text-[11px] font-semibold text-[#111827] whitespace-nowrap">
+                          {formatMoney(t.gross, t.currency)}
+                        </td>
+                        <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">
+                          {formatMoney(t.fee, t.currency)}
+                        </td>
+                      </>
+                    )}
+                    {t.type === "withdrawal" && activeType !== "withdrawal" && (
+                      <td className="px-5 py-3.5 whitespace-nowrap" colSpan={2} />
+                    )}
                     <td className={`px-5 py-3.5 text-[11px] font-bold whitespace-nowrap ${t.isDebit ? "text-red-500" : "text-green-600"}`}>
                       {t.isDebit ? "-" : "+"}{formatMoney(Math.abs(Number(t.net || 0)), t.currency)}
                     </td>
+                    <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">{formatDate(t.date)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -575,9 +639,6 @@ function TransactionHistoryContent() {
             hasPrevPage={pagination.hasPrevPage}
             hasNextPage={pagination.hasNextPage}
           />
-          <p className="text-[11px] text-gray-400 font-medium">
-            {pagination.total} transaction{pagination.total === 1 ? "" : "s"}
-          </p>
         </div>
       )}
     </div>

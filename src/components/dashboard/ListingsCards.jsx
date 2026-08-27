@@ -6,6 +6,7 @@ import { formatListingPrice } from "./listings/listingPrice";
 import { StarFilledIcon, ImageIcon } from "@/icons";
 import ListingStatusDropdown from "./listings/ListingStatusDropdown";
 import ListingActionMenu     from "./listings/ListingActionMenu";
+import AvailabilityCell      from "./listings/AvailabilityCell";
 
 export default function ListingsCards({
   data,
@@ -76,7 +77,7 @@ export default function ListingsCards({
             </div>
             <div>
               <p className="text-[10px] font-extrabold text-gray-400 uppercase mb-1">Availability</p>
-              <p className="text-xs font-bold text-text">{item.date} — {item.time}</p>
+              <AvailabilityCell slots={item.slots || item.availability || []} />
             </div>
             <div>
               <p className="text-[10px] font-extrabold text-gray-400 uppercase mb-1">Rating</p>

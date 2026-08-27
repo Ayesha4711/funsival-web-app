@@ -431,11 +431,10 @@ export function ComboboxField({
         <div
           className={[
             "flex items-stretch rounded-xl border bg-[#F5F5F5] overflow-hidden transition-colors",
-            disabled
-              ? "opacity-60 cursor-not-allowed border-transparent"
-              : error
-                ? "border-red-400 ring-2 ring-red-200 cursor-pointer"
-                : "border-transparent hover:border-gray-200 cursor-pointer",
+            disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
+            error
+              ? "border-red-400 ring-2 ring-red-200"
+              : disabled ? "border-transparent" : "border-transparent hover:border-gray-200",
           ].join(" ")}
           onClick={openDropdown}
         >

@@ -11,6 +11,14 @@ import {
   selectHostCache,
 } from "@/store/slices/activitiesSlice";
 import { startOrGetConversation } from "@/store/slices/chatSlice";
+import { toggleWishlist, selectWishlistSummaryListingIds } from "@/store/slices/wishlistSlice";
+import {
+  fetchListingReviews,
+  selectListingReviews,
+  selectListingReviewsSummary,
+  selectListingReviewsPagination,
+  selectListingReviewsStatus,
+} from "@/store/slices/reviewsSlice";
 import AppFooter from "@/components/shared/AppFooter";
 import CustomCalendar from "@/components/shared/CustomCalendar";
 import { toast } from "sonner";
@@ -183,14 +191,17 @@ function adaptApiListing(api, urlType) {
     ? `${durationRaw.value} ${durationRaw.unit}`
     : durationRaw || "";
 
+  const reviewSummary = api.reviewSummary ?? {};
+
   return {
     _id: api._id ?? api.id,
     type: category,
     bookingType,
     title,
     location,
-    rating: api.rating ?? 4.4,
-    reviews: api.reviewCount ?? "21K",
+    rating: reviewSummary.overallRating ?? api.rating ?? 0,
+    reviews: reviewSummary.count ?? api.reviewCount ?? 0,
+    reviewSummary,
     price,
     hourlyPrice,
     dailyPrice,
@@ -213,7 +224,6 @@ function adaptApiListing(api, urlType) {
     availability: api.availability || [],
     mapLat: toNum(loc.latitude) ?? null,
     mapLng: toNum(loc.longitude) ?? null,
-    reviews_list: api.reviews ?? [],
   };
 }
 
@@ -1757,51 +1767,47 @@ function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
 }
 
 /* ─── Reviews Section ────────────────────────────────────────────────────────── */
-const HARDCODED_REVIEWS = [
-  {
-    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
-    name: "Alex",
-    date: "September 2023",
-    avatar: "https://i.pravatar.cc/80?img=11",
-  },
-  {
-    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
-    name: "Alexandrea",
-    date: "September 2023",
-    avatar: "https://i.pravatar.cc/80?img=5",
-  },
-  {
-    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
-    name: "Ana de",
-    date: "September 2023",
-    avatar: "https://i.pravatar.cc/80?img=9",
-  },
-  {
-    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
-    name: "James",
-    date: "October 2023",
-    avatar: "https://i.pravatar.cc/80?img=12",
-  },
-  {
-    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
-    name: "Maria",
-    date: "October 2023",
-    avatar: "https://i.pravatar.cc/80?img=20",
-  },
-  {
-    text: "Lorem ipsum dolor sit amet consectetur. Lacinia hendrerit tempus viverra quam. Iaculis nisl sed ipsum augue neque at donec nulla egestas. Etiam rhoncus id et viverra dictum enim leo. Vulputate sit pharetra non cras. In at aenean habitant maecenas. Velit ornare tempus ante leo urna.",
-    name: "Lucas",
-    date: "November 2023",
-    avatar: "https://i.pravatar.cc/80?img=7",
-  },
-];
-
 const REVIEWS_PER_PAGE_DESKTOP = 3;
 const REVIEWS_PER_PAGE_MOBILE = 1;
 
-function ReviewsSection() {
+function formatReviewDate(d) {
+  if (!d) return "";
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+function RatingDistributionBars({ distribution }) {
+  if (!Array.isArray(distribution) || distribution.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1.5 mb-6 max-w-sm">
+      {distribution.map((d) => (
+        <div key={d.stars} className="flex items-center gap-2">
+          <span className="w-3 text-xs font-semibold text-gray-500">{d.stars}</span>
+          <StarIconBase size={12} className="text-[#F5C842] fill-current shrink-0" />
+          <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className="h-full bg-[#F5C842] rounded-full"
+              style={{ width: `${d.percentage ?? 0}%` }}
+            />
+          </div>
+          <span className="w-8 text-right text-xs text-gray-400">{d.count ?? 0}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReviewsSection({ listingId }) {
+  const dispatch = useDispatch();
   const [page, setPage] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [apiPage, setApiPage] = useState(1);
+
+  const reviews = useSelector(selectListingReviews);
+  const summary = useSelector(selectListingReviewsSummary);
+  const pagination = useSelector(selectListingReviewsPagination);
+  const status = useSelector(selectListingReviewsStatus);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -1811,64 +1817,114 @@ function ReviewsSection() {
     return () => mq.removeEventListener("change", update);
   }, []);
 
-  const perPage = isMobile ? REVIEWS_PER_PAGE_MOBILE : REVIEWS_PER_PAGE_DESKTOP;
-  const totalPages = Math.ceil(HARDCODED_REVIEWS.length / perPage);
-  const visible = HARDCODED_REVIEWS.slice(page * perPage, page * perPage + perPage);
+  useEffect(() => {
+    if (listingId) dispatch(fetchListingReviews({ listingId, page: apiPage, limit: 5 }));
+  }, [dispatch, listingId, apiPage]);
 
-  const prev = () => setPage(p => Math.max(0, p - 1));
-  const next = () => setPage(p => Math.min(totalPages - 1, p + 1));
+  const reviewsWithText = reviews.filter((r) => r.comment && r.comment.trim());
+  const perPage = isMobile ? REVIEWS_PER_PAGE_MOBILE : REVIEWS_PER_PAGE_DESKTOP;
+  const totalPages = Math.max(1, Math.ceil(reviewsWithText.length / perPage));
+  const visible = reviewsWithText.slice(page * perPage, page * perPage + perPage);
+
+  const prev = () => {
+    if (page === 0) {
+      if (apiPage > 1) setApiPage((p) => p - 1);
+      return;
+    }
+    setPage((p) => Math.max(0, p - 1));
+  };
+  const next = () => {
+    if (page >= totalPages - 1) {
+      if (apiPage < (pagination?.totalPages ?? 1)) { setApiPage((p) => p + 1); setPage(0); }
+      return;
+    }
+    setPage((p) => Math.min(totalPages - 1, p + 1));
+  };
+
+  const hasPrev = page > 0 || apiPage > 1;
+  const hasNext = page < totalPages - 1 || apiPage < (pagination?.totalPages ?? 1);
+  const isLoading = status === "loading" && reviews.length === 0;
 
   return (
-    <div className="mt-6 rounded-[22px] border border-gray-200 bg-white p-6">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Reviews</h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={prev}
-            disabled={page === 0}
-            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${page === 0 ? "border-gray-200 text-gray-300" : "border-gray-300 text-gray-500 hover:border-[#4AA7A7] hover:text-[#4AA7A7]"}`}
-          >
-            <ChevronDownIcon size={16} className="rotate-90" />
-          </button>
-          <button
-            onClick={next}
-            disabled={page >= totalPages - 1}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${page >= totalPages - 1 ? "border border-gray-200 text-gray-300" : "bg-[#4AA7A7] text-white hover:bg-[#3d9090]"}`}
-          >
-            <ChevronDownIcon size={16} className="-rotate-90" />
-          </button>
-        </div>
+    <div
+      className="mt-6 rounded-xl border border-gray-200 bg-white p-6 flex flex-col w-full max-w-336"
+      style={{ gap: 24 }}
+    >
+      {/* Row 1: heading */}
+      <h2 className="text-xl font-bold text-gray-900">Reviews</h2>
+
+      {/* Row 2: prev/next controls */}
+      <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={prev}
+          disabled={!hasPrev}
+          className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${!hasPrev ? "border-gray-200 text-gray-300" : "border-gray-300 text-gray-500 hover:border-[#4AA7A7] hover:text-[#4AA7A7]"}`}
+        >
+          <ChevronDownIcon size={16} className="rotate-90" />
+        </button>
+        <button
+          onClick={next}
+          disabled={!hasNext}
+          className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${!hasNext ? "border border-gray-200 text-gray-300" : "bg-[#4AA7A7] text-white hover:bg-[#3d9090]"}`}
+        >
+          <ChevronDownIcon size={16} className="-rotate-90" />
+        </button>
       </div>
 
-      {/* Review cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-        {visible.map((r, i) => (
-          <div key={i} className="flex flex-col gap-4">
-            <p className="text-sm text-gray-500 leading-7">{r.text}</p>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#228E8A] flex items-center justify-center shrink-0 text-white font-bold text-sm">
-                {r.name?.[0]?.toUpperCase() ?? "U"}
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">{r.name}</p>
-                <p className="text-xs text-gray-400">{r.date}</p>
-              </div>
-            </div>
+      {isLoading ? (
+        <>
+          <RatingDistributionBars distribution={summary?.distribution} />
+          <div className="flex items-center justify-center py-12">
+            <div className="w-6 h-6 border-2 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
           </div>
-        ))}
-      </div>
+        </>
+      ) : reviews.length === 0 ? (
+        <>
+          <RatingDistributionBars distribution={summary?.distribution} />
+          <p className="text-sm text-gray-400 py-8 text-center">No reviews yet.</p>
+        </>
+      ) : reviewsWithText.length === 0 ? (
+        // No review text to show — fall back to the rating breakdown instead of an empty section.
+        <RatingDistributionBars distribution={summary?.distribution} />
+      ) : (
+        <>
+          {/* Review cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {visible.map((r) => (
+              <div key={r.id ?? r._id} className="flex flex-col gap-4">
+                <p className="text-sm text-gray-500 leading-7">{r.comment}</p>
+                <div className="flex items-center gap-3">
+                  {r.reviewer?.profileImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={r.reviewer.profileImage} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[#228E8A] flex items-center justify-center shrink-0 text-white font-bold text-sm">
+                      {r.reviewer?.name?.[0]?.toUpperCase() ?? "U"}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{r.reviewer?.name ?? "Guest"}</p>
+                    <p className="text-xs text-gray-400">{r.reviewer?.city ? `${r.reviewer.city} · ` : ""}{formatReviewDate(r.createdAt)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
-      {/* Dot pagination */}
-      <div className="flex items-center justify-center gap-2 mt-8">
-        {Array.from({ length: totalPages }).map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setPage(i)}
-            className={`rounded-full transition-all ${i === page ? "w-6 h-2.5 bg-[#F5C842]" : "w-2.5 h-2.5 bg-gray-200 hover:bg-gray-300"}`}
-          />
-        ))}
-      </div>
+          {/* Dot pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPage(i)}
+                  className={`rounded-full transition-all ${i === page ? "w-6 h-2.5 bg-[#F5C842]" : "w-2.5 h-2.5 bg-gray-200 hover:bg-gray-300"}`}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -2077,7 +2133,8 @@ export default function ListingDetailPage({ params: paramsPromise }) {
     }
     return rawActivity;
   }, [rawActivity, hostCache]);
-  const [wishlisted, setWishlisted] = useState(false);
+  const wishlistedIds = useSelector(selectWishlistSummaryListingIds);
+  const wishlisted = wishlistedIds.includes(rawId);
   const [contactingHost, setContactingHost] = useState(false);
 
   useEffect(() => {
@@ -2152,7 +2209,7 @@ export default function ListingDetailPage({ params: paramsPromise }) {
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <button
-              onClick={() => setWishlisted(w => !w)}
+              onClick={() => dispatch(toggleWishlist(rawId))}
               className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
             >
               {wishlisted ? <HeartFilledIcon size={20} className="text-red-500" /> : <HeartIcon size={20} />}
@@ -2251,7 +2308,7 @@ export default function ListingDetailPage({ params: paramsPromise }) {
         </div>
 
         {/* Reviews */}
-        <ReviewsSection />
+        <ReviewsSection listingId={listing._id} />
 
       </main>
 

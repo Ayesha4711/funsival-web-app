@@ -23,6 +23,7 @@ export const fetchListings = createAsyncThunk(
       minPrice,
       maxPrice,
       sort,
+      status,
     } = {},
     { rejectWithValue },
   ) => {
@@ -37,6 +38,7 @@ export const fetchListings = createAsyncThunk(
       if (minPrice != null) params.set("minPrice", minPrice);
       if (maxPrice != null) params.set("maxPrice", maxPrice);
       if (sort) params.set("sort", sort);
+      if (status && status !== "all") params.set("status", status);
 
       if (apiCategory) {
         params.set("category", apiCategory);
@@ -48,6 +50,18 @@ export const fetchListings = createAsyncThunk(
       const { data } = await axiosInstance.get(
         `/listings?${params.toString()}`,
       );
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  },
+);
+
+export const fetchHostListingStats = createAsyncThunk(
+  "listings/fetchHostListingStats",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.get("/listings/host/stats");
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
@@ -177,8 +191,10 @@ const listingsSlice = createSlice({
     selectedListing: null,
     draft: null,
     pagination: { page: 1, limit: 10, total: 0 },
+    stats: null,
     status: "idle",
     draftStatus: "idle",
+    statsStatus: "idle",
     error: null,
   },
   reducers: {
@@ -250,6 +266,18 @@ const listingsSlice = createSlice({
         state.items = state.items.filter((l) => l._id !== action.payload);
       })
 
+      .addCase(fetchHostListingStats.pending, (state) => {
+        state.statsStatus = "loading";
+      })
+      .addCase(fetchHostListingStats.fulfilled, (state, action) => {
+        state.statsStatus = "succeeded";
+        state.stats = action.payload?.data ?? action.payload;
+      })
+      .addCase(fetchHostListingStats.rejected, (state, action) => {
+        state.statsStatus = "failed";
+        state.error = action.payload;
+      })
+
       .addCase(saveDraft.fulfilled, (state, action) => {
         state.draft = action.payload;
       })
@@ -272,5 +300,7 @@ export const selectListingsDraft = (state) => state.listings.draft;
 export const selectListingsPagination = (state) => state.listings.pagination;
 export const selectListingsStatus = (state) => state.listings.status;
 export const selectListingsError = (state) => state.listings.error;
+export const selectHostListingStats = (state) => state.listings.stats;
+export const selectHostListingStatsStatus = (state) => state.listings.statsStatus;
 
 export default listingsSlice.reducer;

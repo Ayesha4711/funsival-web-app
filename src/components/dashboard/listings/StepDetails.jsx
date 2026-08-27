@@ -518,16 +518,14 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             if (!form.included || form.included.length === 0) errs.whatsIncluded = "What's Included must be a non-empty array";
             if (!form.addressLine1?.trim()) errs.addressLine1 = "Address is required";
             if (!form.countryCode) errs.country = "Country is required";
-            if (!form.stateCode && form.countryCode) {
-              const hasStates = State.getStatesOfCountry(form.countryCode).length > 0;
+            if (!form.stateCode) {
+              const hasStates = !form.countryCode || State.getStatesOfCountry(form.countryCode).length > 0;
               if (hasStates) errs.state = "State / Province is required";
             }
             if (!form.placeCity?.trim()) errs.placeCity = "City is required";
 
-            // Availability validation
-            if (!form.availabilityType) {
-              errs.availability = "Please select an activity type (One Time or Recurring).";
-            } else if (form.availabilityType === "one_time") {
+            // Availability is optional overall, but once the host picks a type, its slots must be complete.
+            if (form.availabilityType === "one_time") {
               const s = form.slots[0];
               if (!s?.day || !s?.startTime || !s?.endTime) {
                 errs.availability = "Please complete the date and time for the one-time slot.";

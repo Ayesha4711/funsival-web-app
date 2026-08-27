@@ -8,6 +8,8 @@ import chatReducer from "./slices/chatSlice";
 import notificationsReducer from "./slices/notificationsSlice";
 import paymentsReducer from "./slices/paymentsSlice";
 import reviewsReducer from "./slices/reviewsSlice";
+import adminReducer from "./slices/adminSlice";
+import wishlistReducer from "./slices/wishlistSlice";
 
 export const resetStore = createAction("store/reset");
 
@@ -30,6 +32,8 @@ export const store = configureStore({
     notifications: withReset(notificationsReducer),
     payments:      withReset(paymentsReducer),
     reviews:       withReset(reviewsReducer),
+    admin:         withReset(adminReducer),
+    wishlist:      withReset(wishlistReducer),
   },
 });
 

@@ -98,18 +98,22 @@ export default function AddListingWizard() {
     }
 
     async function loadDraft() {
-      // Read locally-cached details/price — backend draft doesn't persist these fields
+      // Read locally-cached details/price — backend draft doesn't reliably persist these fields
       let localDetails = {};
-      let localPrice = createEmptyPrice();
+      let localPrice = null;
+      let hasLocalCache = false;
       try {
         const raw = localStorage.getItem("listing_draft_local");
         if (raw) {
           const parsed = JSON.parse(raw);
+          hasLocalCache = true;
           localDetails = parsed.details ?? {};
           if (localDetails.slots) {
             localDetails = { ...localDetails, slots: normalizeSlots(localDetails.slots) };
           }
-          localPrice = normalizeListingPrice(parsed.category ?? "", parsed.price ?? createEmptyPrice(parsed.category ?? ""));
+          if (parsed.price) {
+            localPrice = normalizeListingPrice(parsed.category ?? "", parsed.price);
+          }
         }
       } catch { /* ignore */ }
 
@@ -117,14 +121,22 @@ export default function AddListingWizard() {
       if (fetchDraft.fulfilled.match(result) && result.payload) {
         const res = result.payload;
         const draft = res.data?.draft || res.data || res;
+        // The server's draft.details/price are unreliable (may come back empty, partial,
+        // or stale) — localStorage is written in full on every "Next" click, so prefer it
+        // and only use server fields to fill in anything localStorage is missing (e.g.
+        // a different browser/device with no local cache).
+        const serverDetails = draft.details && typeof draft.details === "object" ? draft.details : {};
+        const mergedDetails = hasLocalCache
+          ? { ...serverDetails, ...localDetails }
+          : serverDetails;
+        const mergedPrice = localPrice
+          ? { ...(draft.price ?? {}), ...localPrice }
+          : draft.price;
         const loaded = {
           category: draft.category ?? "",
           type: draft.type ?? "",
-          // Server doesn't return details — fall back to localStorage copy
-          details: (draft.details && Object.keys(draft.details).length > 0)
-            ? { ...draft.details, slots: normalizeSlots(draft.details.slots) }
-            : localDetails,
-          price: normalizeListingPrice(draft.category ?? "", draft.price ?? localPrice),
+          details: { ...mergedDetails, slots: normalizeSlots(mergedDetails.slots) },
+          price: normalizeListingPrice(draft.category ?? "", mergedPrice ?? createEmptyPrice(draft.category ?? "")),
         };
         pendingRef.current = loaded;
         setData(loaded);

@@ -88,7 +88,7 @@ export const fetchConnectLoginLink = createAsyncThunk(
   "payments/fetchConnectLoginLink",
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.get("/payments/login-link");
+      const { data } = await axiosInstance.post("/payments/connect/login-link");
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
