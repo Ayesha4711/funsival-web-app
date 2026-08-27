@@ -731,6 +731,7 @@ function HourlySlotBookingCard({
   bannerLabel,
   reserveLabel = "Continue to Payment",
   slotRefresh = "",
+  modeToggle = null,
 }) {
   const router = useRouter();
   const SKEY = `booking_hourly_${listingId}`;
@@ -935,21 +936,7 @@ function HourlySlotBookingCard({
       priceUnit="/Hr"
       rating={listing.rating}
       reviews={listing.reviews}
-      topSlot={(
-        <div className="rounded-[22px] bg-[#228E8A] bg-gradient-to-r from-[#228E8A] to-[#1D8C82] px-4 py-4 text-white shadow-[0_10px_24px_rgba(34,142,138,0.18)]">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20 text-white">
-              {bannerIcon}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{bannerLabel}</p>
-              <p className="text-xs text-white/80">
-                {selectedDate ? formatCompactDate(selectedDate).full : "Select a date"}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      topSlot={modeToggle}
       reserveButton={(
         <button
           onClick={handleContinue}
@@ -965,6 +952,19 @@ function HourlySlotBookingCard({
       )}
     >
       <div className="space-y-4">
+        <div className="rounded-[22px] bg-[#228E8A] bg-gradient-to-r from-[#228E8A] to-[#1D8C82] px-4 py-4 text-white shadow-[0_10px_24px_rgba(34,142,138,0.18)]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20 text-white">
+              {bannerIcon}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{bannerLabel}</p>
+              <p className="text-xs text-white/80">
+                {selectedDate ? formatCompactDate(selectedDate).full : "Select a date"}
+              </p>
+            </div>
+          </div>
+        </div>
         <div className="rounded-[22px] border border-gray-100 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -1356,6 +1356,12 @@ function PlacesBookingCard({ listing, listingId, slotRefresh = "" }) {
         bannerIcon={<CalendarIcon size={18} />}
         reserveLabel="Continue to Payment"
         slotRefresh={slotRefresh}
+        modeToggle={hasDaily ? (
+          <div className="grid grid-cols-2 gap-3">
+            <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
+            <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
+          </div>
+        ) : null}
       />
     );
   }
@@ -1595,6 +1601,12 @@ function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
         bannerIcon={<ClockIcon size={18} />}
         reserveLabel="Continue to Payment"
         slotRefresh={slotRefresh}
+        modeToggle={hasDaily ? (
+          <div className="grid grid-cols-2 gap-3">
+            <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
+            <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
+          </div>
+        ) : null}
       />
     );
   }
