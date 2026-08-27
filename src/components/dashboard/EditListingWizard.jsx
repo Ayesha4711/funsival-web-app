@@ -17,9 +17,9 @@ import { apiToWizardData, buildListingPayload } from "./listings/listingWizardUt
 import { SpinnerIcon, ArrowLeftIcon } from "@/icons";
 
 /* ─── Wizard ───────────────────────────────────────────────────────────────── */
-export default function EditListingWizard({ listing, onClose, onSaved }) {
+export default function EditListingWizard({ listing, onClose, onSaved, initialStep, onStepChange }) {
   const dispatch = useDispatch();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(initialStep && initialStep >= 1 && initialStep <= 5 ? initialStep : 1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -66,7 +66,8 @@ export default function EditListingWizard({ listing, onClose, onSaved }) {
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTo({ top: 0, behavior: "instant" });
-  }, [step]);
+    onStepChange?.(step);
+  }, [step, onStepChange]);
 
   const next = useCallback(() => { setStep(s => Math.min(s + 1, 5)); }, []);
   const back = useCallback(() => { setStep(s => Math.max(s - 1, 1)); }, []);

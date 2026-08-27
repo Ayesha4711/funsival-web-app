@@ -10,6 +10,7 @@ import {
   deleteDraft,
   deleteListing,
   selectListingsStatus,
+  selectHostListingStats,
 } from "@/store/slices/listingsSlice";
 import { BASE_URL } from "@/lib/api";
 import { NoListingIcon, NoListingFilteredIcon, SpinnerIcon, TrashIcon } from "@/icons";
@@ -59,6 +60,7 @@ export default function ListingsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
   const listingsStatus = useSelector(selectListingsStatus);
+  const hostStats = useSelector(selectHostListingStats);
 
   const [listings, setListings] = useState([]);
   const [page, setPage] = useState(1);
@@ -78,8 +80,46 @@ export default function ListingsPage() {
   const [deletingListing, setDeletingListing] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [detailsItem, setDetailsItem] = useState(null);
+  const pendingEditRef = useRef(
+    typeof window === "undefined"
+      ? null
+      : (() => {
+          const params = new URLSearchParams(window.location.search);
+          const editId = params.get("edit");
+          const editStep = parseInt(params.get("step"), 10);
+          return editId ? { id: editId, step: Number.isFinite(editStep) ? editStep : 1 } : null;
+        })()
+  );
 
   const loading = listingsStatus === "loading";
+
+  const capStatus = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s);
+
+  const updateEditUrlParams = useCallback((listingId, step) => {
+    const params = new URLSearchParams(window.location.search);
+    if (listingId) {
+      params.set("edit", listingId);
+      params.set("step", String(step ?? 1));
+    } else {
+      params.delete("edit");
+      params.delete("step");
+    }
+    router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+  }, [router]);
+
+  const openEditingListing = useCallback((item, extra = {}) => {
+    setEditingListing({ ...item, ...extra });
+    updateEditUrlParams(item.id, extra._initialStep ?? 1);
+  }, [updateEditUrlParams]);
+
+  const closeEditingListing = useCallback(() => {
+    setEditingListing(null);
+    updateEditUrlParams(null);
+  }, [updateEditUrlParams]);
+
+  const handleEditStepChange = useCallback((step) => {
+    if (editingListing) updateEditUrlParams(editingListing.id, step);
+  }, [editingListing, updateEditUrlParams]);
 
   const loadListings = useCallback(async () => {
     const [listingsResult, draftResult] = await Promise.all([
@@ -90,6 +130,7 @@ export default function ListingsPage() {
         minPrice: filters.minPrice > 0 ? filters.minPrice : undefined,
         maxPrice: filters.maxPrice < 5000 ? filters.maxPrice : undefined,
         sort: filters.sort || undefined,
+        status: activeTab !== "all" && activeTab !== "draft" ? activeTab : undefined,
       })),
       dispatch(fetchDraft()),
     ]);
@@ -137,14 +178,20 @@ export default function ListingsPage() {
         price: item.price ?? null,
         priceLabel: formatListingPrice(item.category, item.price),
         priceDetails: describeListingPrice(item.category, item.price),
-        bookings: item.bookings ?? 0,
-        rating: item.rating ?? "—",
-        reviews: item.reviews ?? 0,
-        status: item.status ?? (item._fromPublished ? "Active" : "Draft"),
+        bookings: item.bookingCount ?? item.bookings ?? 0,
+        rating: item.reviewSummary?.overallRating ?? item.rating ?? "—",
+        reviews: item.reviewSummary?.count ?? item.reviews ?? 0,
+        status: capStatus(item.status) ?? (item._fromPublished ? "Active" : "Draft"),
         image: imageUrl,
-        slots: Array.isArray(item.availability) ? item.availability : [],
-        date: item.availability?.[0]?.day ?? item.date ?? "—",
-        time: item.availability?.[0]
+        slots: Array.isArray(item.availability)
+          ? item.availability
+          : item.nextAvailability
+          ? [item.nextAvailability]
+          : [],
+        date: item.nextAvailability?.day ?? item.availability?.[0]?.day ?? item.date ?? "—",
+        time: item.nextAvailability
+          ? `${item.nextAvailability.startTime} – ${item.nextAvailability.endTime}`
+          : item.availability?.[0]
           ? `${item.availability[0].startTime} – ${item.availability[0].endTime}`
           : item.time ?? "—",
         currentStep: item._currentStep ?? null,
@@ -153,10 +200,21 @@ export default function ListingsPage() {
 
     setListings(normalized);
 
+    if (pendingEditRef.current) {
+      const { id, step } = pendingEditRef.current;
+      pendingEditRef.current = null;
+      const match = normalized.find((entry) => String(entry.id) === String(id));
+      if (match) {
+        setEditingListing({ ...match, _initialStep: step });
+      } else {
+        updateEditUrlParams(null);
+      }
+    }
+
     if (!fetchListings.fulfilled.match(listingsResult) && !fetchDraft.fulfilled.match(draftResult)) {
       toast.error("Failed to load listings.");
     }
-  }, [dispatch, page, limit, category, debouncedSearch, filters]);
+  }, [dispatch, page, limit, category, debouncedSearch, filters, activeTab, updateEditUrlParams]);
 
   const handleTabChange = useCallback((value) => {
     setActiveTab(value);
@@ -197,7 +255,7 @@ export default function ListingsPage() {
     if (!item) return;
 
     if (item.status?.toLowerCase() === "draft" && newStatus === "Active") {
-      setEditingListing({ ...item, _initialStep: item.currentStep ?? 1, _targetStatus: "Active" });
+      openEditingListing(item, { _initialStep: item.currentStep ?? 1, _targetStatus: "Active" });
       return;
     }
 
@@ -231,11 +289,17 @@ export default function ListingsPage() {
   };
 
   const countByStatus = (status) => listings.filter((item) => item.status?.toLowerCase() === status).length;
-  const tabCounts = {
-    active: countByStatus("active"),
-    inactive: countByStatus("inactive"),
-    draft: countByStatus("draft"),
-  };
+  const tabCounts = hostStats?.tabs
+    ? {
+        active: hostStats.tabs.active ?? 0,
+        inactive: hostStats.tabs.inactive ?? 0,
+        draft: hostStats.tabs.draft ?? 0,
+      }
+    : {
+        active: countByStatus("active"),
+        inactive: countByStatus("inactive"),
+        draft: countByStatus("draft"),
+      };
   const hasDraft = tabCounts.draft > 0;
 
   const filtered = listings.filter((item) =>
@@ -287,13 +351,13 @@ export default function ListingsPage() {
           ) : viewMode === "table" ? (
             <ListingsTable
               data={filtered} currentPage={page} totalPages={totalPages} onPageChange={setPage}
-              onStatusChange={handleStatusChange} onEdit={setEditingListing} onDelete={setDeletingListing}
+              onStatusChange={handleStatusChange} onEdit={openEditingListing} onDelete={setDeletingListing}
               onResumeDraft={handleResumeDraft} onViewDetails={setDetailsItem}
             />
           ) : (
             <ListingsCards
               data={filtered} currentPage={page} totalPages={totalPages} onPageChange={setPage}
-              onStatusChange={handleStatusChange} onEdit={setEditingListing} onDelete={setDeletingListing}
+              onStatusChange={handleStatusChange} onEdit={openEditingListing} onDelete={setDeletingListing}
               onResumeDraft={handleResumeDraft} onViewDetails={setDetailsItem}
             />
           )}
@@ -304,7 +368,7 @@ export default function ListingsPage() {
         <ListingDetailsPanel
           item={detailsItem}
           onClose={() => setDetailsItem(null)}
-          onEdit={(item) => { setDetailsItem(null); setEditingListing(item); }}
+          onEdit={(item) => { setDetailsItem(null); openEditingListing(item); }}
         />
       )}
 
@@ -313,8 +377,9 @@ export default function ListingsPage() {
           listing={editingListing}
           initialStep={editingListing._initialStep}
           targetStatus={editingListing._targetStatus}
-          onClose={() => setEditingListing(null)}
+          onClose={closeEditingListing}
           onSaved={handleEditSaved}
+          onStepChange={handleEditStepChange}
         />
       )}
 

@@ -8,6 +8,7 @@ import logo from "@/assets/images/logo.svg";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProfile, selectUser, selectProfileStatus } from "@/store/slices/profileSlice";
 import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
+import { fetchWishlistSummary, selectWishlistSummaryCount } from "@/store/slices/wishlistSlice";
 import { resetStore } from "@/store/store";
 import NotificationPopover from "@/components/shared/NotificationPopover";
 import FullPageLoader from "@/components/common/FullPageLoader";
@@ -25,6 +26,7 @@ function UserNavbar() {
   const profile = useSelector(selectUser);
   const currentUserId = profile?.id || profile?._id || null;
   const totalUnread = useSelector((state) => selectTotalUnreadCount(state, currentUserId));
+  const wishlistCount = useSelector(selectWishlistSummaryCount);
 
   // Start Firebase FCM listener so incoming messages update the badge in real-time
   useFCM();
@@ -74,6 +76,10 @@ function UserNavbar() {
     }, 15000);
     return () => clearInterval(timer);
   }, [dispatch, pathname, currentUserId]);
+
+  useEffect(() => {
+    if (currentUserId) dispatch(fetchWishlistSummary());
+  }, [dispatch, currentUserId]);
 
   useEffect(() => {
     const h = (e) => {
@@ -198,6 +204,11 @@ function UserNavbar() {
                   </button>
                   <button onClick={() => navigate("/user-dashboard/watchlist")} className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
                     <span className="text-gray-400"><WatchlistIcon /></span> My Wishlist
+                    {wishlistCount > 0 && (
+                      <span className="ml-auto min-w-4.5 h-4.5 px-1 bg-[#F5823A] rounded-full text-[10px] flex items-center justify-center text-white font-bold">
+                        {wishlistCount > 99 ? "99+" : wishlistCount}
+                      </span>
+                    )}
                   </button>
                   <button onClick={() => navigate("/user-dashboard/settings")} className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
                     <span className="text-gray-400"><SettingsIcon /></span> Settings
@@ -276,6 +287,11 @@ function UserNavbar() {
               </button>
               <button onClick={() => navigate("/user-dashboard/watchlist")} className="flex items-center gap-3 w-full text-left px-5 py-3.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                 <span className="text-gray-400"><WatchlistIcon /></span> My Wishlist
+                {wishlistCount > 0 && (
+                  <span className="ml-auto min-w-4.5 h-4.5 px-1 bg-[#F5823A] rounded-full text-[10px] flex items-center justify-center text-white font-bold">
+                    {wishlistCount > 99 ? "99+" : wishlistCount}
+                  </span>
+                )}
               </button>
               <button onClick={() => navigate("/user-dashboard/settings")} className="flex items-center gap-3 w-full text-left px-5 py-3.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                 <span className="text-gray-400"><SettingsIcon /></span> Settings

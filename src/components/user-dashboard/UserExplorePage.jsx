@@ -10,6 +10,11 @@ import {
   selectActivitiesStatus,
   setSelectedActivity,
 } from '@/store/slices/activitiesSlice';
+import {
+  fetchWishlistSummary,
+  toggleWishlist,
+  selectWishlistSummaryListingIds,
+} from '@/store/slices/wishlistSlice';
 import AppFooter from '@/components/shared/AppFooter';
 import MapView from '@/components/user-dashboard/MapView';
 import Pagination from '@/components/shared/Pagination';
@@ -97,12 +102,13 @@ function StarRating({ rating }) {
 }
 
 /* ─── Listing Card — matches design: image, title+tag row, rating, price pills, location ── */
-function ListingCard({ listing }) {
+export function ListingCard({ listing }) {
   const router = useRouter();
   const dispatch = useDispatch();
-  const [wishlisted, setWishlisted] = useState(false);
 
   const id = listing._id || listing.id;
+  const wishlistedIds = useSelector(selectWishlistSummaryListingIds);
+  const wishlisted = wishlistedIds.includes(id);
   const info = listing.basicInformation ?? {};
   const loc = listing.placeLocation ?? {};
   const category = listing.category ?? (listing.tab?.includes('places') ? 'places' : listing.tab?.includes('equipment') ? 'equipment' : 'activities');
@@ -187,7 +193,7 @@ function ListingCard({ listing }) {
         />
         {/* Wishlist toggle — top right */}
         <button
-          onClick={e => { e.stopPropagation(); setWishlisted(w => !w); }}
+          onClick={e => { e.stopPropagation(); dispatch(toggleWishlist(id)); }}
           className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow ${wishlisted ? 'bg-[#F5823A]' : 'bg-white/80 hover:bg-white'}`}
         >
           {wishlisted ? <HeartFilledIcon size={16} className="text-white" /> : <HeartIcon size={16} className="text-[#F5823A]" />}

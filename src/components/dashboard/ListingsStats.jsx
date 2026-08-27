@@ -1,58 +1,12 @@
-// "use client";
-
-// import React from "react";
-
-// function StatCard({ label, value, sub, subColor = "text-[#16A34A]" }) {
-//   return (
-//     <div className="bg-white rounded-2xl p-5 border border-[var(--color-border)] flex flex-col gap-1">
-//       <p className="text-xs text-[var(--color-text-muted)] font-medium">
-//         {label}
-//       </p>
-//       <p className="text-2xl lg:text-3xl font-extrabold text-[var(--color-text)]">
-//         {value}
-//       </p>
-//       {sub &&
-//         <p className={`text-xs font-medium ${subColor}`}>
-//           {sub}
-//         </p>}
-//     </div>
-//   );
-// }
-
-// export default function ListingsStats() {
-//   return (
-//     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-//       <StatCard
-//         label="Total Listings"
-//         value="12"
-//         sub="+15% this quarter"
-//         subColor="text-[#16A34A]"
-//       />
-//       <StatCard
-//         label="Listing Views"
-//         value="1331"
-//         sub="+2 this month"
-//         subColor="text-green-500"
-//       />
-//       <StatCard
-//         label="Total Bookings"
-//         value="1601"
-//         sub="+8% from last month"
-//         subColor="text-green-500"
-//       />
-//       <StatCard
-//         label="Avg. Rating"
-//         value="98%"
-//         sub="+0.3 from last month"
-//         subColor="text-green-500"
-//       />
-//     </div>
-//   );
-// }
-
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchHostListingStats,
+  selectHostListingStats,
+  selectHostListingStatsStatus,
+} from "@/store/slices/listingsSlice";
 
 // Semantic color map
 const SUB_COLORS = {
@@ -81,33 +35,57 @@ function StatCard({ label, value, sub, subType = "neutral" }) {
 }
 
 export default function ListingsStats() {
+  const dispatch = useDispatch();
+  const stats = useSelector(selectHostListingStats);
+  const statsStatus = useSelector(selectHostListingStatsStatus);
+
+  useEffect(() => {
+    dispatch(fetchHostListingStats());
+  }, [dispatch]);
+
+  const cards = stats?.cards ?? {};
+  const loading = statsStatus === "loading" && !stats;
+
+  const cardValue = (card) => {
+    if (card == null) return 0;
+    if (typeof card === "object") return card.total ?? 0;
+    return card;
+  };
+
+  const cardSub = (card, suffix) => {
+    if (!card || typeof card !== "object" || card.quarterChangePercentage == null) return null;
+    const pct = card.quarterChangePercentage;
+    const sign = pct > 0 ? "+" : "";
+    return `${sign}${pct}% ${suffix}`;
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
         label="Total Listings"
-        value="12"
-        sub="+15% this quarter"
+        value={loading ? "—" : cardValue(cards.totalListings)}
+        sub={loading ? null : cardSub(cards.totalListings, "this quarter")}
         subType="success"
       />
 
       <StatCard
         label="Listing Views"
-        value="1331"
-        sub="+2 this month"
+        value={loading ? "—" : cardValue(cards.listingViews)}
+        sub={loading ? null : cardSub(cards.listingViews, "this quarter")}
         subType="success"
       />
 
       <StatCard
         label="Total Bookings"
-        value="1601"
-        sub="+8% from last month"
+        value={loading ? "—" : cardValue(cards.totalBookings)}
+        sub={loading ? null : cardSub(cards.totalBookings, "this quarter")}
         subType="success"
       />
 
       <StatCard
         label="Avg. Rating"
-        value="98%"
-        sub="+0.3 from last month"
+        value={loading ? "—" : cardValue(cards.averageRating)}
+        sub={loading ? null : cardSub(cards.averageRating, "this quarter")}
         subType="success"
       />
     </div>

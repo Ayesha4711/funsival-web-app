@@ -3,7 +3,7 @@
 import React from "react";
 import Pagination from "@/components/shared/Pagination";
 import { formatListingPrice } from "./listings/listingPrice";
-import { LocationIcon, ImageIcon } from "@/icons";
+import { LocationIcon, ImageIcon, StarFilledIcon } from "@/icons";
 import AvailabilityCell      from "./listings/AvailabilityCell";
 import ListingStatusDropdown from "./listings/ListingStatusDropdown";
 import ListingActionMenu     from "./listings/ListingActionMenu";
@@ -68,11 +68,15 @@ export default function ListingsTable({
     <div className="flex flex-col flex-1 justify-between">
       <div className="rounded-2xl" style={{ border: "1px solid rgba(224,224,224,1)", overflow: "visible", minHeight: 596 }}>
         <div style={{ overflowX: "auto", overflowY: "auto" }}>
-        <table className="w-full text-left border-collapse min-w-[700px]">
+        <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-[#F8F9FA]" style={{ borderBottom: "2px solid rgba(224,224,224,1)" }}>
-              {["Activity", "Category", "Type", "Price", "Availability", "Status", "Actions"].map((h) => (
-                <th key={h} className="px-5 py-3.5 uppercase whitespace-nowrap" style={thStyle}>
+              {["Activity", "Category", "Type", "Price", "Bookings", "Availability", "Rating", "Status", "Actions"].map((h) => (
+                <th
+                  key={h}
+                  className={`px-5 py-3.5 uppercase whitespace-nowrap ${["Bookings", "Rating"].includes(h) ? "text-center" : ""}`}
+                  style={thStyle}
+                >
                   {h}
                 </th>
               ))}
@@ -82,7 +86,7 @@ export default function ListingsTable({
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-16 text-center text-sm text-gray-400 font-medium">
+                <td colSpan={9} className="px-6 py-16 text-center text-sm text-gray-400 font-medium">
                   No listings found.
                 </td>
               </tr>
@@ -135,9 +139,27 @@ export default function ListingsTable({
                     </span>
                   </td>
 
+                  {/* Bookings */}
+                  <td className="px-5 py-3.5 whitespace-nowrap text-center">
+                    <span className="text-xs font-bold text-text">{item.bookings ?? 0}</span>
+                  </td>
+
                   {/* Availability */}
                   <td className="px-5 py-3.5 min-w-[150px]">
                     <AvailabilityCell slots={item.slots || item.availability || []} />
+                  </td>
+
+                  {/* Rating */}
+                  <td className="px-5 py-3.5 whitespace-nowrap text-center">
+                    {item.rating != null && item.rating !== "—" ? (
+                      <div className="flex items-center justify-center gap-1 text-xs font-bold text-text">
+                        <StarFilledIcon size={12} className="text-yellow-400" />
+                        {typeof item.rating === "number" ? item.rating.toFixed(1) : item.rating}
+                        <span className="text-gray-300 font-medium">({item.reviews ?? 0})</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-300 text-xs">—</span>
+                    )}
                   </td>
 
                   {/* Status */}

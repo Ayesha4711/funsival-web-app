@@ -33,6 +33,37 @@ function formatEarningsAxisLabel(periodStart, interval) {
   return date.toLocaleDateString("en-US", { month: "short" });
 }
 
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * The backend returns a rolling 12-month window ending at the current month
+ * (e.g. Oct→Aug). The UI wants a fixed calendar-year Jan→Dec axis instead, so
+ * points are re-slotted by month into a full Jan–Dec frame, zero-filling any
+ * month the backend didn't return.
+ */
+function reorderToCalendarYear(points) {
+  const now = new Date();
+  const byMonth = new Map();
+  points.forEach((point) => {
+    const date = new Date(point.periodStart);
+    if (Number.isNaN(date.getTime())) return;
+    byMonth.set(date.getMonth(), point);
+  });
+
+  return MONTH_LABELS.map((label, month) => {
+    const existing = byMonth.get(month);
+    if (existing) return { ...existing, label };
+    return {
+      label,
+      periodStart: new Date(now.getFullYear(), month, 1).toISOString(),
+      availableEarnings: 0,
+      pendingEarnings: 0,
+      netEarnings: 0,
+      bookingCount: 0,
+    };
+  });
+}
+
 function normalizeEarningsResponse(payload, requestedCurrency) {
   const data = payload?.data && typeof payload.data === "object" && !Array.isArray(payload.data) ? payload.data : payload ?? {};
   const interval = String(data.interval || "month").toLowerCase();
@@ -45,7 +76,7 @@ function normalizeEarningsResponse(payload, requestedCurrency) {
     series = seriesList[0];
   }
 
-  const points = (series?.points ?? []).map((point) => ({
+  let points = (series?.points ?? []).map((point) => ({
     label: formatEarningsAxisLabel(point.periodStart, interval),
     periodStart: point.periodStart,
     availableEarnings: Number(point.availableEarnings ?? 0),
@@ -53,6 +84,10 @@ function normalizeEarningsResponse(payload, requestedCurrency) {
     netEarnings: Number(point.netEarnings ?? 0),
     bookingCount: Number(point.bookingCount ?? 0),
   }));
+
+  if ((interval === "month" || !interval) && points.length > 0) {
+    points = reorderToCalendarYear(points);
+  }
 
   return {
     interval: interval === "hour" || interval === "day" ? interval : "month",
@@ -230,7 +265,7 @@ export default function EarningsGraph({ title = "Earnings", initialCurrency = US
         </div>
       ) : (
         <ResponsiveContainer width="100%" height="100%" className="flex-1 min-h-[240px]">
-          <AreaChart data={chartData} margin={{ top: 24, right: 0, left: -28, bottom: 8 }} className="sm:!mt-[34px] sm:!mr-[4px] sm:!ml-0">
+          <AreaChart data={chartData} margin={{ top: 24, right: 0, left: 0, bottom: 8 }} className="sm:!mt-[34px] sm:!mr-[4px] sm:!ml-0">
             <defs>
               <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#1d8c82" stopOpacity={0.18} />
