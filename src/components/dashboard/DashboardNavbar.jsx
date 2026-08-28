@@ -31,12 +31,16 @@ import { firebaseAuth } from "@/lib/firebase";
 
 
 export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
+  // Only one of "role" | "notif" | "profile" can be open at a time.
+  const [openMenu, setOpenMenu] = useState(null);
+  const dropdownOpen = openMenu === "role";
+  const notifOpen = openMenu === "notif";
+  const profileOpen = openMenu === "profile";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const roleRef = useRef(null);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
+  const toggleMenu = (key) => setOpenMenu((cur) => (cur === key ? null : key));
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
@@ -70,23 +74,21 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
     return () => clearInterval(timer);
   }, [dispatch, pathname, currentUserId]);
 
-  // Close profile dropdown when clicking outside
+  // Close any open dropdown when clicking outside it
   useEffect(() => {
     function handleClickOutside(event) {
-      if (profileRef.current && !profileRef.current.contains(event.target)) {
-        setProfileOpen(false);
+      if (roleRef.current && !roleRef.current.contains(event.target) &&
+          notifRef.current && !notifRef.current.contains(event.target) &&
+          profileRef.current && !profileRef.current.contains(event.target)) {
+        setOpenMenu(null);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleNotifClick = () => {
-    setNotifOpen(o => !o);
-  };
-
   const handleLogout = async () => {
-    setProfileOpen(false);
+    setOpenMenu(null);
     const fcmToken = getStoredFcmToken();
     if (fcmToken) {
       await axiosInstance
@@ -139,7 +141,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
       </div>
 
       {/* Right controls */}
-      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         {/* Search icon — mobile only */}
         <button
           className="sm:hidden text-white/90 hover:text-white transition-colors p-1"
@@ -158,10 +160,10 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
         </button>
 
         {/* Provider/User dropdown — sm and up only */}
-        <div className="relative hidden sm:block">
+        <div className="relative hidden sm:block" ref={roleRef}>
           <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-1.5 text-white text-sm font-semibold hover:text-white/80 transition-colors"
+            onClick={() => toggleMenu("role")}
+            className={`flex items-center gap-1.5 text-white text-sm font-semibold hover:text-white/80 transition-colors px-2.5 py-1.5 rounded-full ${dropdownOpen ? "bg-white/15" : ""}`}
           >
             {roleLabel}
             <ChevronDownIcon />
@@ -172,7 +174,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
               <div className="flex flex-col gap-1 px-2">
                 <button
                   onClick={() => {
-                    setDropdownOpen(false);
+                    setOpenMenu(null);
                     setActiveView("provider");
                     router.push("/dashboard");
                   }}
@@ -186,7 +188,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
                 </button>
                 <button
                   onClick={() => {
-                    setDropdownOpen(false);
+                    setOpenMenu(null);
                     setActiveView("user");
                     router.push("/user-dashboard/explore");
                   }}
@@ -209,25 +211,25 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
         {/* Notification — sm and up only */}
         <div className="relative hidden sm:block" ref={notifRef}>
           <button
-            onClick={handleNotifClick}
-            className={`text-white/90 hover:text-white hover:bg-white/15 transition-colors relative p-1 rounded-full ${notifOpen ? "bg-white/15 text-white" : ""}`}
+            onClick={() => toggleMenu("notif")}
+            className={`w-11 h-11 flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 transition-colors relative rounded-full ${notifOpen ? "bg-white/15 text-white" : ""}`}
           >
             <BellIcon />
-            <span className="absolute top-0 right-0 w-2 h-2 bg-[var(--color-secondary)] rounded-full border border-[var(--color-primary)]" />
+            <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--color-secondary)] rounded-full border border-[var(--color-primary)]" />
           </button>
           {notifOpen &&
-            <NotificationPopover viewAllHref="/dashboard/notifications" onClose={() => setNotifOpen(false)} />}
+            <NotificationPopover viewAllHref="/dashboard/notifications" onClose={() => setOpenMenu(null)} triggerRef={notifRef} />}
         </div>
 
         {/* Message — sm and up only */}
         <button
           onClick={() => router.push("/dashboard/messages")}
-          className="hidden sm:flex relative text-white/90 hover:text-white transition-colors p-1"
+          className={`hidden sm:flex relative items-center justify-center w-11 h-11 rounded-full text-white/90 hover:text-white hover:bg-white/15 transition-colors ${pathname?.includes("/messages") ? "bg-white/15 text-white" : ""}`}
           aria-label="Messages"
         >
           <MessageIcon />
           {totalUnread > 0 && (
-            <span className="absolute top-0 right-0 min-w-3.5 h-3.5 bg-[var(--color-secondary)] rounded-full text-[8px] flex items-center justify-center text-white font-bold border border-[#228E8A] px-0.5">
+            <span className="absolute top-2 right-2 min-w-3.5 h-3.5 bg-[var(--color-secondary)] rounded-full text-[8px] flex items-center justify-center text-white font-bold border border-[#228E8A] px-0.5">
               {totalUnread > 9 ? "9+" : totalUnread}
             </span>
           )}
@@ -236,8 +238,8 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
         {/* Avatar + Profile Dropdown — sm and up only */}
         <div className="relative hidden sm:block" ref={profileRef}>
           <button
-            onClick={() => setProfileOpen(o => !o)}
-            className="w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden border-2 border-white/30 hover:border-white/60 transition-colors"
+            onClick={() => toggleMenu("profile")}
+            className={`w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden border-2 transition-colors ${profileOpen ? "border-white ring-2 ring-white/40" : "border-white/30 hover:border-white/60"}`}
             aria-label="Profile menu"
           >
             {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
@@ -261,14 +263,14 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
               )}
               <div className="py-2">
                 <button
-                  onClick={() => { setProfileOpen(false); router.push("/dashboard/settings?tab=profile"); }}
+                  onClick={() => { setOpenMenu(null); router.push("/dashboard/settings?tab=profile"); }}
                   className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-[var(--color-text)] hover:bg-gray-50 transition-colors"
                 >
                   <span className="text-gray-400"><UserIcon /></span>
                   My Profile
                 </button>
                 <button
-                  onClick={() => { setProfileOpen(false); router.push("/dashboard/settings"); }}
+                  onClick={() => { setOpenMenu(null); router.push("/dashboard/settings"); }}
                   className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-[var(--color-text)] hover:bg-gray-50 transition-colors"
                 >
                   <span className="text-gray-400"><SettingsIcon /></span>
@@ -276,7 +278,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
                 </button>
                 {profile?.role === "admin" && (
                   <button
-                    onClick={() => { setProfileOpen(false); router.push("/admin/refund-requests"); }}
+                    onClick={() => { setOpenMenu(null); router.push("/admin/refund-requests"); }}
                     className="flex items-center gap-3 w-full text-left px-5 py-3 text-sm text-[#228E8A] hover:bg-[#EBF6F6] transition-colors font-semibold"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

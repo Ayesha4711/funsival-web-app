@@ -12,7 +12,6 @@ const PERIODS = [
   { key: "12m", label: "12 months", range: "12m" },
   { key: "30d", label: "30 days", range: "30d" },
   { key: "7d", label: "7 days", range: "7d" },
-  { key: "24h", label: "24 hours", range: "24h" },
 ];
 
 function formatMoney(value, currency = USD) {
