@@ -1815,6 +1815,8 @@ function ReviewsSection({ listingId }) {
   const [page, setPage] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [apiPage, setApiPage] = useState(1);
+  const [slideDir, setSlideDir] = useState(1); // 1 = forward (next), -1 = backward (prev)
+  const [animKey, setAnimKey] = useState(0);
 
   const reviews = useSelector(selectListingReviews);
   const summary = useSelector(selectListingReviewsSummary);
@@ -1839,6 +1841,8 @@ function ReviewsSection({ listingId }) {
   const visible = reviewsWithText.slice(page * perPage, page * perPage + perPage);
 
   const prev = () => {
+    setSlideDir(-1);
+    setAnimKey((k) => k + 1);
     if (page === 0) {
       if (apiPage > 1) setApiPage((p) => p - 1);
       return;
@@ -1846,11 +1850,18 @@ function ReviewsSection({ listingId }) {
     setPage((p) => Math.max(0, p - 1));
   };
   const next = () => {
+    setSlideDir(1);
+    setAnimKey((k) => k + 1);
     if (page >= totalPages - 1) {
       if (apiPage < (pagination?.totalPages ?? 1)) { setApiPage((p) => p + 1); setPage(0); }
       return;
     }
     setPage((p) => Math.min(totalPages - 1, p + 1));
+  };
+  const goToPage = (i) => {
+    setSlideDir(i > page ? 1 : -1);
+    setAnimKey((k) => k + 1);
+    setPage(i);
   };
 
   const hasPrev = page > 0 || apiPage > 1;
@@ -1866,22 +1877,24 @@ function ReviewsSection({ listingId }) {
       <h2 className="text-xl font-bold text-gray-900">Reviews</h2>
 
       {/* Row 2: prev/next controls */}
-      <div className="flex items-center justify-end gap-2">
-        <button
-          onClick={prev}
-          disabled={!hasPrev}
-          className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${!hasPrev ? "border-gray-200 text-gray-300" : "border-gray-300 text-gray-500 hover:border-[#4AA7A7] hover:text-[#4AA7A7]"}`}
-        >
-          <ChevronDownIcon size={16} className="rotate-90" />
-        </button>
-        <button
-          onClick={next}
-          disabled={!hasNext}
-          className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${!hasNext ? "border border-gray-200 text-gray-300" : "bg-[#4AA7A7] text-white hover:bg-[#3d9090]"}`}
-        >
-          <ChevronDownIcon size={16} className="-rotate-90" />
-        </button>
-      </div>
+      {(hasPrev || hasNext) && (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={prev}
+            disabled={!hasPrev}
+            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${!hasPrev ? "border-gray-200 text-gray-300" : "border-gray-300 text-gray-500 hover:border-[#4AA7A7] hover:text-[#4AA7A7]"}`}
+          >
+            <ChevronDownIcon size={16} className="rotate-90" />
+          </button>
+          <button
+            onClick={next}
+            disabled={!hasNext}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${!hasNext ? "border border-gray-200 text-gray-300" : "bg-[#4AA7A7] text-white hover:bg-[#3d9090]"}`}
+          >
+            <ChevronDownIcon size={16} className="-rotate-90" />
+          </button>
+        </div>
+      )}
 
       {isLoading ? (
         <>
@@ -1891,37 +1904,50 @@ function ReviewsSection({ listingId }) {
           </div>
         </>
       ) : reviews.length === 0 ? (
-        <>
-          <RatingDistributionBars distribution={summary?.distribution} />
-          <p className="text-sm text-gray-400 py-8 text-center">No reviews yet.</p>
-        </>
+        <p className="text-sm text-gray-400 py-8 text-center">No reviews yet.</p>
       ) : reviewsWithText.length === 0 ? (
         // No review text to show — fall back to the rating breakdown instead of an empty section.
         <RatingDistributionBars distribution={summary?.distribution} />
       ) : (
         <>
           {/* Review cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-            {visible.map((r) => (
-              <div key={r.id ?? r._id} className="flex flex-col gap-4">
-                <p className="text-sm text-gray-500 leading-7">{r.comment}</p>
-                <div className="flex items-center gap-3">
-                  {r.reviewer?.profileImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={r.reviewer.profileImage} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-[#228E8A] flex items-center justify-center shrink-0 text-white font-bold text-sm">
-                      {r.reviewer?.name?.[0]?.toUpperCase() ?? "U"}
+          <div className="overflow-hidden">
+            <div
+              key={animKey}
+              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
+              style={{ animation: `reviews-slide-in-${slideDir > 0 ? "right" : "left"} 0.35s ease` }}
+            >
+              {visible.map((r) => (
+                <div key={r.id ?? r._id} className="flex flex-col gap-4">
+                  <p className="text-sm text-gray-500 leading-7">{r.comment}</p>
+                  <div className="flex items-center gap-3">
+                    {r.reviewer?.profileImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={r.reviewer.profileImage} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[#228E8A] flex items-center justify-center shrink-0 text-white font-bold text-sm">
+                        {r.reviewer?.name?.[0]?.toUpperCase() ?? "U"}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">{r.reviewer?.name ?? "Guest"}</p>
+                      <p className="text-xs text-gray-400">{r.reviewer?.city ? `${r.reviewer.city} · ` : ""}{formatReviewDate(r.createdAt)}</p>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">{r.reviewer?.name ?? "Guest"}</p>
-                    <p className="text-xs text-gray-400">{r.reviewer?.city ? `${r.reviewer.city} · ` : ""}{formatReviewDate(r.createdAt)}</p>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+          <style jsx>{`
+            @keyframes reviews-slide-in-right {
+              from { opacity: 0; transform: translateX(40px); }
+              to { opacity: 1; transform: translateX(0); }
+            }
+            @keyframes reviews-slide-in-left {
+              from { opacity: 0; transform: translateX(-40px); }
+              to { opacity: 1; transform: translateX(0); }
+            }
+          `}</style>
 
           {/* Dot pagination */}
           {totalPages > 1 && (
@@ -1929,7 +1955,7 @@ function ReviewsSection({ listingId }) {
               {Array.from({ length: totalPages }).map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => setPage(i)}
+                  onClick={() => goToPage(i)}
                   className={`rounded-full transition-all ${i === page ? "w-6 h-2.5 bg-[#F5C842]" : "w-2.5 h-2.5 bg-gray-200 hover:bg-gray-300"}`}
                 />
               ))}

@@ -30,7 +30,9 @@ export default function ResetPasswordPage({ initialToken = "" } = {}) {
     if (!password) return "Password is required.";
     if (/\s/.test(password)) return "Spaces are not allowed in password.";
     if (password.length < 8) return "Password must be at least 8 characters.";
-    if (!/^[A-Z]/.test(password)) return "Password must start with an uppercase letter.";
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password)) return "Password must contain uppercase and lowercase letters.";
+    if (!/[0-9]/.test(password)) return "Password must contain at least one number.";
+    if (!/[^A-Za-z0-9]/.test(password)) return "Password must contain at least one special character.";
     return "";
   };
 

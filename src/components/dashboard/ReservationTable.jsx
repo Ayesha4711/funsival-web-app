@@ -120,7 +120,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
 
   return (
     <div
-      className="rounded-2xl border border-[#E0E0E0] bg-white flex flex-col"
+      className="rounded-2xl border border-[#E0E0E0] bg-white flex flex-col overflow-hidden"
       style={{ minHeight: 596 }}
     >
       <div

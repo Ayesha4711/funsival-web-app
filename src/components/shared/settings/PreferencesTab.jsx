@@ -102,7 +102,7 @@ export default function PreferencesTab() {
             setTimezoneQuery("");
           }}
           onClose={closeCurrency}
-          menuClassName="max-h-[40vh]"
+          menuClassName="max-h-[60vh]"
           trigger={(
             <div className="flex items-center gap-3">
               <span className="text-2xl leading-none">{selectedCurrency.flag}</span>
@@ -179,7 +179,7 @@ export default function PreferencesTab() {
             setTimezoneQuery("");
           }}
           onClose={closeTimezone}
-          menuClassName="max-h-[40vh]"
+          menuClassName="max-h-[60vh]"
           trigger={(
             <div className="flex items-center gap-3">
               <span className="min-w-0 text-[15px] font-semibold text-text sm:text-[16px]">

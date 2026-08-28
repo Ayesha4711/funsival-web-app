@@ -66,7 +66,7 @@ export default function ListingsTable({
 }) {
   return (
     <div className="flex flex-col flex-1 justify-between">
-      <div className="rounded-2xl" style={{ border: "1px solid rgba(224,224,224,1)", overflow: "visible", minHeight: 596 }}>
+      <div className="rounded-2xl" style={{ border: "1px solid rgba(224,224,224,1)", overflow: "hidden", minHeight: 596 }}>
         <div style={{ overflowX: "auto", overflowY: "auto" }}>
         <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
