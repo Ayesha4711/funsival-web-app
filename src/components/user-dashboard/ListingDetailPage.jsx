@@ -1817,6 +1817,7 @@ function ReviewsSection({ listingId }) {
   const [apiPage, setApiPage] = useState(1);
   const [slideDir, setSlideDir] = useState(1); // 1 = forward (next), -1 = backward (prev)
   const [animKey, setAnimKey] = useState(0);
+  const [autoTick, setAutoTick] = useState(0); // bumped on manual navigation to reset the auto-advance timer
 
   const reviews = useSelector(selectListingReviews);
   const summary = useSelector(selectListingReviewsSummary);
@@ -1843,6 +1844,7 @@ function ReviewsSection({ listingId }) {
   const prev = () => {
     setSlideDir(-1);
     setAnimKey((k) => k + 1);
+    setAutoTick((t) => t + 1);
     if (page === 0) {
       if (apiPage > 1) setApiPage((p) => p - 1);
       return;
@@ -1852,6 +1854,7 @@ function ReviewsSection({ listingId }) {
   const next = () => {
     setSlideDir(1);
     setAnimKey((k) => k + 1);
+    setAutoTick((t) => t + 1);
     if (page >= totalPages - 1) {
       if (apiPage < (pagination?.totalPages ?? 1)) { setApiPage((p) => p + 1); setPage(0); }
       return;
@@ -1861,12 +1864,35 @@ function ReviewsSection({ listingId }) {
   const goToPage = (i) => {
     setSlideDir(i > page ? 1 : -1);
     setAnimKey((k) => k + 1);
+    setAutoTick((t) => t + 1);
     setPage(i);
   };
 
   const hasPrev = page > 0 || apiPage > 1;
   const hasNext = page < totalPages - 1 || apiPage < (pagination?.totalPages ?? 1);
   const isLoading = status === "loading" && reviews.length === 0;
+
+  // Auto-advance every 30s; loops back to the first slide after the last one.
+  // Manual navigation (prev/next/dot) bumps autoTick to restart the countdown.
+  useEffect(() => {
+    if (totalPages <= 1) return;
+    const timer = setInterval(() => {
+      setSlideDir(1);
+      setAnimKey((k) => k + 1);
+      if (hasNext) {
+        if (page >= totalPages - 1) {
+          setApiPage((p) => p + 1);
+          setPage(0);
+        } else {
+          setPage((p) => Math.min(totalPages - 1, p + 1));
+        }
+      } else {
+        setApiPage(1);
+        setPage(0);
+      }
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [totalPages, hasNext, page, apiPage, autoTick]);
 
   return (
     <div
@@ -1877,7 +1903,7 @@ function ReviewsSection({ listingId }) {
       <h2 className="text-xl font-bold text-gray-900">Reviews</h2>
 
       {/* Row 2: prev/next controls */}
-      {(hasPrev || hasNext) && (
+      {!isLoading && reviewsWithText.length > 0 && (
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={prev}
@@ -1950,17 +1976,16 @@ function ReviewsSection({ listingId }) {
           `}</style>
 
           {/* Dot pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => goToPage(i)}
-                  className={`rounded-full transition-all ${i === page ? "w-6 h-2.5 bg-[#F5C842]" : "w-2.5 h-2.5 bg-gray-200 hover:bg-gray-300"}`}
-                />
-              ))}
-            </div>
-          )}
+          <div className="flex items-center justify-center gap-2">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goToPage(i)}
+                disabled={totalPages <= 1}
+                className={`rounded-full transition-all ${i === page ? "w-6 h-2.5 bg-[#F5C842]" : "w-2.5 h-2.5 bg-gray-200 hover:bg-gray-300"}`}
+              />
+            ))}
+          </div>
         </>
       )}
     </div>
