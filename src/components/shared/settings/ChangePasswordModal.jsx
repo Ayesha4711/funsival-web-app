@@ -23,10 +23,18 @@ export default function ChangePasswordModal({ onClose }) {
   const toggleShow = (k) => setShow((s) => ({ ...s, [k]: !s[k] }));
   const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setError(""); };
 
+  const passwordChecks = [
+    { text: "At least 8 characters long", met: form.newPwd.length >= 8 },
+    { text: "Contains uppercase and lowercase letters", met: /[A-Z]/.test(form.newPwd) && /[a-z]/.test(form.newPwd) },
+    { text: "Contains at least one number", met: /[0-9]/.test(form.newPwd) },
+    { text: "Contains at least one special character", met: /[^A-Za-z0-9]/.test(form.newPwd) },
+  ];
+
   const handleSubmit = async () => {
     if (!form.current || !form.newPwd || !form.confirm) { setError("All fields are required."); return; }
+    if (/\s/.test(form.newPwd)) { setError("Spaces are not allowed in password."); return; }
+    if (!passwordChecks.every((c) => c.met)) { setError("Password does not meet all requirements."); return; }
     if (form.newPwd !== form.confirm) { setError("New passwords do not match."); return; }
-    if (form.newPwd.length < 8) { setError("New password must be at least 8 characters."); return; }
 
     setLoading(true);
     setError("");
@@ -81,15 +89,10 @@ export default function ChangePasswordModal({ onClose }) {
           <div className="bg-gray-50 rounded-xl px-4 py-3">
             <p className="text-xs font-semibold text-gray-600 mb-2">Password requirements:</p>
             <ul className="space-y-1">
-              {[
-                "At least 8 characters long",
-                "Contains uppercase and lowercase letters",
-                "Contains at least one number",
-                "Contains at least one special character",
-              ].map((req) => (
-                <li key={req} className="flex items-center gap-2 text-xs text-gray-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0" />
-                  {req}
+              {passwordChecks.map(({ text, met }) => (
+                <li key={text} className="flex items-center gap-2 text-xs">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${met ? "bg-green-500" : "bg-gray-300"}`} />
+                  <span className={met ? "text-green-600" : "text-gray-400"}>{text}</span>
                 </li>
               ))}
             </ul>

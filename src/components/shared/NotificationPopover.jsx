@@ -51,8 +51,11 @@ function NotificationItem({ n, onClick, isLast }) {
  * Props:
  *  onClose      {Function}  close the popover
  *  viewAllHref  {string}    "View All" navigation target
+ *  triggerRef   {Ref}       ref of the button that opens/closes this popover — clicks on it
+ *                            are ignored here so the trigger's own onClick handles the toggle
+ *                            instead of this outside-click effect fighting it
  */
-export default function NotificationPopover({ onClose, viewAllHref = "/dashboard/notifications" }) {
+export default function NotificationPopover({ onClose, viewAllHref = "/dashboard/notifications", triggerRef }) {
   const dispatch = useDispatch();
   const router   = useRouter();
   const panelRef = useRef(null);
@@ -68,6 +71,7 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
   useEffect(() => {
     const handleKey = (e) => { if (e.key === "Escape") onClose(); };
     const handleClick = (e) => {
+      if (triggerRef?.current && triggerRef.current.contains(e.target)) return;
       if (panelRef.current && !panelRef.current.contains(e.target)) onClose();
     };
     document.addEventListener("keydown", handleKey);
@@ -76,7 +80,7 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
       document.removeEventListener("keydown", handleKey);
       document.removeEventListener("mousedown", handleClick);
     };
-  }, [onClose]);
+  }, [onClose, triggerRef]);
 
   const preview = allNotifications.slice(0, 3);
   const isLoading = status === "loading" && allNotifications.length === 0;

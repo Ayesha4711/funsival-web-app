@@ -31,14 +31,17 @@ function UserNavbar() {
   // Start Firebase FCM listener so incoming messages update the badge in real-time
   useFCM();
 
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [roleOpen, setRoleOpen] = useState(false);
+  // Only one of "role" | "notif" | "profile" can be open at a time.
+  const [openMenu, setOpenMenu] = useState(null);
+  const notifOpen = openMenu === "notif";
+  const profileOpen = openMenu === "profile";
+  const roleOpen = openMenu === "role";
   const [mobileOpen, setMobileOpen] = useState(false);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
   const roleRef = useRef(null);
   const searchDebounce = useRef(null);
+  const toggleMenu = (key) => setOpenMenu((cur) => (cur === key ? null : key));
 
   const isExplorePage = pathname === "/user-dashboard/explore";
 
@@ -83,20 +86,20 @@ function UserNavbar() {
 
   useEffect(() => {
     const h = (e) => {
-      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
-      if (roleRef.current && !roleRef.current.contains(e.target)) setRoleOpen(false);
+      if (profileRef.current && !profileRef.current.contains(e.target) &&
+          roleRef.current && !roleRef.current.contains(e.target) &&
+          notifRef.current && !notifRef.current.contains(e.target)) {
+        setOpenMenu(null);
+      }
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const handleBellClick = () => {
-    setNotifOpen((v) => !v);
-    setProfileOpen(false);
-  };
+  const handleBellClick = () => toggleMenu("notif");
 
   const handleLogout = async () => {
-    setProfileOpen(false);
+    setOpenMenu(null);
     setMobileOpen(false);
     const fcmToken = getStoredFcmToken();
     if (fcmToken) {
@@ -115,7 +118,7 @@ function UserNavbar() {
   };
 
   const navigate = (path) => {
-    setProfileOpen(false);
+    setOpenMenu(null);
     setMobileOpen(false);
     router.push(path);
   };
@@ -140,15 +143,15 @@ function UserNavbar() {
         <div className="hidden sm:flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Role switcher */}
           <div className="relative" ref={roleRef}>
-            <button onClick={() => setRoleOpen((v) => !v)} className="flex items-center gap-1 text-white text-sm font-medium hover:text-white/80 transition-colors cursor-pointer">
+            <button onClick={() => toggleMenu("role")} className={`flex items-center gap-1.5 text-white text-sm font-medium hover:text-white/80 transition-colors cursor-pointer px-2.5 py-1.5 rounded-full ${roleOpen ? "bg-white/15" : ""}`}>
               User <ChevronDownIcon size={14} />
             </button>
             {roleOpen && (
               <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl py-3 z-50 shadow-lg border border-gray-100">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-4">Switch role</p>
                 <div className="flex flex-col gap-1 px-2">
-                  <button onClick={() => { setRoleOpen(false); router.push("/dashboard"); }} className="w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">Provider</button>
-                  <button onClick={() => { setRoleOpen(false); router.push("/user-dashboard/explore"); }} className="w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold bg-[#2FA39F] text-white cursor-pointer">User</button>
+                  <button onClick={() => { setOpenMenu(null); router.push("/dashboard"); }} className="w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">Provider</button>
+                  <button onClick={() => { setOpenMenu(null); router.push("/user-dashboard/explore"); }} className="w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold bg-[#2FA39F] text-white cursor-pointer">User</button>
                 </div>
               </div>
             )}
@@ -162,11 +165,11 @@ function UserNavbar() {
               <BellIcon />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F5C842] rounded-full border border-[#228E8A]" />
             </button>
-            {notifOpen && <NotificationPopover viewAllHref="/user-dashboard/notifications" onClose={() => setNotifOpen(false)} />}
+            {notifOpen && <NotificationPopover viewAllHref="/user-dashboard/notifications" onClose={() => setOpenMenu(null)} triggerRef={notifRef} />}
           </div>
 
           {/* Messages */}
-          <button onClick={() => router.push("/user-dashboard/messages")} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer" aria-label="Messages">
+          <button onClick={() => router.push("/user-dashboard/messages")} className={`relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer ${pathname?.includes("/messages") ? "bg-white/20" : ""}`} aria-label="Messages">
             <MessageIcon />
             {totalUnread > 0 && (
               <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 bg-[#F5C842] rounded-full text-[8px] flex items-center justify-center text-gray-900 font-bold border border-[#228E8A] px-0.5">
@@ -177,7 +180,7 @@ function UserNavbar() {
 
           {/* Avatar + profile dropdown */}
           <div className="relative" ref={profileRef}>
-            <button onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }} className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm border-2 border-white/40 hover:border-white/70 transition-colors cursor-pointer overflow-hidden" aria-label="Profile menu">
+            <button onClick={() => toggleMenu("profile")} className={`w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-gray-900 font-bold text-sm border-2 transition-colors cursor-pointer overflow-hidden ${profileOpen ? "border-white ring-2 ring-white/40" : "border-white/40 hover:border-white/70"}`} aria-label="Profile menu">
               {profileImage ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" /> : avatarLetter}
             </button>
             {profileOpen && (
@@ -230,7 +233,7 @@ function UserNavbar() {
             <BellIcon />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F5C842] rounded-full border border-[#228E8A]" />
           </button>
-          <button onClick={() => router.push("/user-dashboard/messages")} className="relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors">
+          <button onClick={() => router.push("/user-dashboard/messages")} className={`relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors ${pathname?.includes("/messages") ? "bg-white/20" : ""}`}>
             <MessageIcon />
             {totalUnread > 0 && (
               <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 bg-[#F5C842] rounded-full text-[8px] flex items-center justify-center text-gray-900 font-bold border border-[#228E8A] px-0.5">
