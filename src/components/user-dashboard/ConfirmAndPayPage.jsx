@@ -50,6 +50,34 @@ function parseStoredSlots(rawSlots) {
   return [];
 }
 
+/* ─── Trip Details field typography ──────────────────────────────────────────── */
+const SECTION_HEADING_STYLE = {
+  fontFamily: "var(--font-sofia-pro)",
+  fontWeight: 600,
+  fontSize: "20px",
+  lineHeight: "140%",
+  letterSpacing: "0px",
+  verticalAlign: "middle",
+};
+const FIELD_LABEL_STYLE = {
+  fontFamily: "var(--font-sofia-pro)",
+  fontWeight: 500,
+  fontSize: "18.48px",
+  lineHeight: "160%",
+  letterSpacing: "0%",
+  verticalAlign: "middle",
+  color: "#121D1D",
+};
+const FIELD_SUBTEXT_STYLE = {
+  fontFamily: "var(--font-sofia-pro)",
+  fontWeight: 300,
+  fontSize: "18.48px",
+  lineHeight: "160%",
+  letterSpacing: "0%",
+  verticalAlign: "middle",
+  color: "#717171",
+};
+
 function formatMoney(amount, currency = "USD", minimumFractionDigits = 2, maximumFractionDigits = 2) {
   const numeric = Number(amount);
   const value = Number.isFinite(numeric) ? numeric : 0;
@@ -396,7 +424,7 @@ function ConfirmAndPayInner() {
           >
             <BackIcon />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Confirm And Pay</h1>
+          <h1 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "22px" }}>Confirm And Pay</h1>
         </div>
       </div>
 
@@ -409,10 +437,13 @@ function ConfirmAndPayInner() {
             {/* Trip Details */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900">Trip Details</h2>
+                <h2 className="text-gray-900 capitalize" style={SECTION_HEADING_STYLE}>
+                  Trip Details
+                </h2>
                 <button
                   onClick={() => router.back()}
-                  className="flex items-center gap-1.5 text-sm font-medium text-[#4AA7A7] hover:text-[#3d9090] transition-colors"
+                  className="flex items-center gap-1.5 text-[#4AA7A7] hover:text-[#3d9090] transition-colors"
+                  style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 600, fontSize: "14px", lineHeight: "170%", letterSpacing: "0%", verticalAlign: "middle", textDecoration: "underline" }}
                 >
                   <EditIcon /> Edit Details
                 </button>
@@ -423,8 +454,8 @@ function ConfirmAndPayInner() {
                   (dateFrom || serverEndDate) && (
                     <>
                       <div>
-                        <p className="text-sm font-bold text-gray-900 mb-0.5">Dates</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Dates</p>
+                        <p style={FIELD_SUBTEXT_STYLE}>
                           {dateFrom && serverEndDate && dateFrom !== serverEndDate
                             ? `${formatDate(dateFrom)} – ${formatDate(serverEndDate)}`
                             : formatDate(dateFrom || serverEndDate)}
@@ -432,8 +463,8 @@ function ConfirmAndPayInner() {
                       </div>
                       {(startTime || endTime) && (
                         <div>
-                          <p className="text-sm font-bold text-gray-900 mb-0.5">Time</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Time</p>
+                          <p style={FIELD_SUBTEXT_STYLE}>
                             {startTime && endTime && startTime !== endTime
                               ? `${formatTime(startTime)} – ${formatTime(endTime)}`
                               : formatTime(startTime || endTime)}
@@ -465,8 +496,8 @@ function ConfirmAndPayInner() {
                   <>
                     {(dateFrom || serverEndDate) && (
                       <div>
-                        <p className="text-sm font-bold text-gray-900 mb-0.5">Dates</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Dates</p>
+                        <p style={FIELD_SUBTEXT_STYLE}>
                           {dateFrom && serverEndDate && dateFrom !== serverEndDate
                             ? `${formatDate(dateFrom)} – ${formatDate(serverEndDate)}`
                             : formatDate(dateFrom || serverEndDate)}
@@ -475,10 +506,10 @@ function ConfirmAndPayInner() {
                     )}
                     {storedSlots.length > 0 ? (
                       <div>
-                        <p className="text-sm font-bold text-gray-900 mb-0.5">Selected Slots</p>
+                        <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Selected Slots</p>
                         <div className="space-y-1">
                           {storedSlots.map((slot, index) => (
-                            <p key={`${slot.startTime}-${slot.endTime}-${index}`} className="text-sm text-gray-500">
+                            <p key={`${slot.startTime}-${slot.endTime}-${index}`} style={FIELD_SUBTEXT_STYLE}>
                               {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
                             </p>
                           ))}
@@ -487,8 +518,8 @@ function ConfirmAndPayInner() {
                     ) : (
                       (startTime || endTime) && (
                         <div>
-                          <p className="text-sm font-bold text-gray-900 mb-0.5">Time</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Time</p>
+                          <p style={FIELD_SUBTEXT_STYLE}>
                             {startTime && endTime && startTime !== endTime
                               ? `${formatTime(startTime)} – ${formatTime(endTime)}`
                               : formatTime(startTime || endTime)}
@@ -505,8 +536,8 @@ function ConfirmAndPayInner() {
                     : null;
                   return displayGuests ? (
                     <div>
-                      <p className="text-sm font-bold text-gray-900 mb-0.5">Guests</p>
-                      <p className="text-sm text-gray-500">{displayGuests}</p>
+                      <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Guests</p>
+                      <p style={FIELD_SUBTEXT_STYLE}>{displayGuests}</p>
                     </div>
                   ) : null;
                 })()}
@@ -516,7 +547,7 @@ function ConfirmAndPayInner() {
             {/* Payment + Policy + Rules */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col gap-6">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Select Payment Method</h2>
+                <h2 className="text-gray-900 capitalize mb-4" style={SECTION_HEADING_STYLE}>Select Payment Method</h2>
                 <PaymentSection
                   selectedPmId={selectedPmId}
                   onSelect={setSelectedPmId}
@@ -564,22 +595,42 @@ function ConfirmAndPayInner() {
 
               {/* Price breakdown */}
               <div>
-                <p className="text-base font-bold text-gray-900 mb-3">Price Details</p>
+                <p
+                  className="mb-3 capitalize"
+                  style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 600, fontSize: "20px", lineHeight: "140%", letterSpacing: "0px", verticalAlign: "middle", color: "#121D1D" }}
+                >
+                  Price Details
+                </p>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500">{priceLabel}</span>
-                  <span className="font-semibold text-gray-900">{formatMoney(subtotal, currency)}</span>
+                  <span style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 300, fontSize: "16px", lineHeight: "160%", letterSpacing: "0%", verticalAlign: "middle", color: "#424242" }}>{priceLabel}</span>
+                  <span style={{ color: "#424242" }}>{formatMoney(subtotal, currency)}</span>
                 </div>
               </div>
               <div>
-                <p className="text-base font-bold text-gray-900 mb-3">Taxes &amp; Fees</p>
+                <p
+                  className="mb-3 capitalize"
+                  style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 600, fontSize: "20px", lineHeight: "140%", letterSpacing: "0px", verticalAlign: "middle", color: "#121D1D" }}
+                >
+                  Taxes &amp; Fees
+                </p>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500">Funsival Fee</span>
-                  <span className="font-semibold text-gray-900">${serviceFee}.00</span>
+                  <span style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 300, fontSize: "16px", lineHeight: "160%", letterSpacing: "0%", verticalAlign: "middle", color: "#424242" }}>Funsival Fee</span>
+                  <span style={{ color: "#424242" }}>${serviceFee}.00</span>
                 </div>
               </div>
               <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                <span className="text-base font-bold text-gray-900">Total</span>
-                <span className="text-xl font-bold text-[#F5C842]">{formatMoney(total, currency)}</span>
+                <span
+                  className="capitalize"
+                  style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 600, fontSize: "24px", lineHeight: "140%", letterSpacing: "0%", textAlign: "right", color: "#FF7201" }}
+                >
+                  Total
+                </span>
+                <span
+                  className="capitalize"
+                  style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 600, fontSize: "24px", lineHeight: "140%", letterSpacing: "0%", textAlign: "right", color: "#FF7201" }}
+                >
+                  {formatMoney(total, currency)}
+                </span>
               </div>
             </div>
 
@@ -612,7 +663,8 @@ function ConfirmAndPayInner() {
               <button
                 onClick={handleConfirmAndPay}
                 disabled={!canPay}
-                className={`px-10 py-3.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${canPay ? "bg-[#FEB538] text-gray-900 hover:opacity-90" : "bg-[#F5C842]/40 text-gray-400 cursor-not-allowed"}`}
+                className={`rounded-full transition-all flex items-center justify-center gap-2 ${canPay ? "bg-[#FEB538] text-gray-900 hover:opacity-90" : "bg-[#FEB538] text-gray-900 cursor-not-allowed opacity-30"}`}
+                style={{ width: 300, height: 64, fontFamily: "var(--font-sofia-pro)", fontWeight: 500, fontSize: "20px", lineHeight: "160%", letterSpacing: "0%", verticalAlign: "middle" }}
               >
                 {submitting && <SpinnerIcon size={14} className="text-gray-600" />}
                 {submitting ? "Processing…" : "Confirm & Pay"}
