@@ -531,8 +531,10 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             }
             if (!form.placeCity?.trim()) errs.placeCity = "City is required";
 
-            // Availability is optional overall, but once the host picks a type, its slots must be complete.
-            if (form.availabilityType === "one_time") {
+            // Backend requires at least one availability slot, so a type must be selected and completed.
+            if (!form.availabilityType) {
+              errs.availability = "Please select an availability type and add at least one time slot.";
+            } else if (form.availabilityType === "one_time") {
               const s = form.slots[0];
               if (!s?.day || !s?.startTime || !s?.endTime) {
                 errs.availability = "Please complete the date and time for the one-time slot.";
