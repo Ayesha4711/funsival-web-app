@@ -55,7 +55,7 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
 
   const REQUIRED_FIELDS = role === "user"
     ? ["firstName", "lastName", "phoneNumber", "bio", "addressLine1", "state", "country", "postalCode"]
-    : ["firstName", "lastName", "email", "phoneNumber", "bio", "profileImage", "addressLine1", "dateOfBirth", "state", "country", "postalCode", "businessType"];
+    : ["firstName", "lastName", "email", "phoneNumber", "bio", "profileImage", "addressLine1", "dateOfBirth", "state", "country", "postalCode", "businessName", "businessType"];
 
   useEffect(() => {
     if (!profile) dispatch(fetchProfile());
