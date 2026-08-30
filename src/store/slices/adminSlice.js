@@ -30,6 +30,30 @@ export const fetchAdminUser = createAsyncThunk(
   }
 );
 
+export const updateAdminUser = createAsyncThunk(
+  "admin/updateAdminUser",
+  async ({ userId, payload }, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.patch(`/admin/users/${userId}`, payload);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const deleteAdminUser = createAsyncThunk(
+  "admin/deleteAdminUser",
+  async (userId, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.delete(`/admin/users/${userId}`);
+      return { userId, ...data };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
 // ─── Slice ───────────────────────────────────────────────────────────────────
 
 const adminSlice = createSlice({
@@ -44,12 +68,18 @@ const adminSlice = createSlice({
     selectedUser: null,
     selectedUserStatus: "idle",
     selectedUserError: null,
+
+    userActionStatus: "idle",
+    userActionError: null,
   },
   reducers: {
     clearSelectedAdminUser(state) {
       state.selectedUser = null;
       state.selectedUserStatus = "idle";
       state.selectedUserError = null;
+    },
+    clearAdminUserActionError(state) {
+      state.userActionError = null;
     },
   },
   extraReducers: (builder) => {
@@ -78,16 +108,48 @@ const adminSlice = createSlice({
       })
       .addCase(fetchAdminUser.fulfilled, (state, action) => {
         state.selectedUserStatus = "succeeded";
-        state.selectedUser = action.payload?.data ?? action.payload;
+        state.selectedUser = action.payload?.data?.user ?? action.payload?.data ?? action.payload;
       })
       .addCase(fetchAdminUser.rejected, (state, action) => {
         state.selectedUserStatus = "failed";
         state.selectedUserError = action.payload;
+      })
+
+      // updateAdminUser
+      .addCase(updateAdminUser.pending, (state) => {
+        state.userActionStatus = "loading";
+        state.userActionError = null;
+      })
+      .addCase(updateAdminUser.fulfilled, (state, action) => {
+        state.userActionStatus = "succeeded";
+        const updated = action.payload?.data?.user ?? action.payload?.data ?? action.payload;
+        if (state.selectedUser?.id === updated?.id) state.selectedUser = updated;
+        const idx = state.users.findIndex((u) => u.id === updated?.id);
+        if (idx !== -1) state.users[idx] = { ...state.users[idx], ...updated };
+      })
+      .addCase(updateAdminUser.rejected, (state, action) => {
+        state.userActionStatus = "failed";
+        state.userActionError = action.payload;
+      })
+
+      // deleteAdminUser
+      .addCase(deleteAdminUser.pending, (state) => {
+        state.userActionStatus = "loading";
+        state.userActionError = null;
+      })
+      .addCase(deleteAdminUser.fulfilled, (state, action) => {
+        state.userActionStatus = "succeeded";
+        state.users = state.users.filter((u) => u.id !== action.payload.userId);
+        if (state.selectedUser?.id === action.payload.userId) state.selectedUser = null;
+      })
+      .addCase(deleteAdminUser.rejected, (state, action) => {
+        state.userActionStatus = "failed";
+        state.userActionError = action.payload;
       });
   },
 });
 
-export const { clearSelectedAdminUser } = adminSlice.actions;
+export const { clearSelectedAdminUser, clearAdminUserActionError } = adminSlice.actions;
 
 // ─── Selectors ───────────────────────────────────────────────────────────────
 export const selectAdminUsers = (state) => state.admin.users;
@@ -99,5 +161,8 @@ export const selectAdminUsersError = (state) => state.admin.usersError;
 export const selectSelectedAdminUser = (state) => state.admin.selectedUser;
 export const selectSelectedAdminUserStatus = (state) => state.admin.selectedUserStatus;
 export const selectSelectedAdminUserError = (state) => state.admin.selectedUserError;
+
+export const selectAdminUserActionStatus = (state) => state.admin.userActionStatus;
+export const selectAdminUserActionError = (state) => state.admin.userActionError;
 
 export default adminSlice.reducer;

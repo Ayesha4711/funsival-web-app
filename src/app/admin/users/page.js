@@ -10,7 +10,12 @@ import {
   selectAdminUsersPagination,
   selectAdminUsersStatus,
 } from "@/store/slices/adminSlice";
+import { fetchProfile, selectUser } from "@/store/slices/profileSlice";
 import Pagination from "@/components/shared/Pagination";
+import EditUserModal from "@/components/admin/EditUserModal";
+// Delete user temporarily disabled on admin side
+// import DeleteUserModal from "@/components/admin/DeleteUserModal";
+import { EditIcon } from "@/icons";
 
 const ROLE_STYLES = {
   admin: "bg-purple-100 text-purple-700",
@@ -46,12 +51,16 @@ export default function AdminUsersPage() {
   const tabs = useSelector(selectAdminUsersTabs);
   const pagination = useSelector(selectAdminUsersPagination);
   const fetchStatus = useSelector(selectAdminUsersStatus);
+  const currentAdmin = useSelector(selectUser);
 
   const [activeTab, setActiveTab] = useState("all");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const searchDebounceRef = useRef(null);
+  const [editingUser, setEditingUser] = useState(null);
+  // Delete user temporarily disabled on admin side
+  // const [deletingUser, setDeletingUser] = useState(null);
 
   const ROLE_TABS = [
     { key: "all", label: `All${tabs.all != null ? ` (${tabs.all})` : ""}` },
@@ -72,6 +81,10 @@ export default function AdminUsersPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!currentAdmin) dispatch(fetchProfile());
+  }, [dispatch, currentAdmin]);
 
   const handleTabChange = (key) => {
     setActiveTab(key);
@@ -141,7 +154,7 @@ export default function AdminUsersPage() {
               <table className="w-full min-w-240 border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    {["User", "Role", "City", "Phone", "Verified", "Joined", ""].map((h) => (
+                    {["User", "Role", "City", "Phone", "Verified", "Joined", "Actions"].map((h) => (
                       <th key={h} className="px-5 2xl:px-8 py-3 2xl:py-5 text-left text-xs 2xl:text-sm font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {h}
                       </th>
@@ -204,14 +217,33 @@ export default function AdminUsersPage() {
                           <p className="text-sm 2xl:text-base text-gray-500">{formatDate(user.createdAt)}</p>
                         </td>
 
-                        {/* View */}
+                        {/* Actions */}
                         <td className="px-5 2xl:px-8 py-3.5 2xl:py-5">
-                          <Link
-                            href={`/admin/users/${user.id}`}
-                            className="text-xs 2xl:text-sm font-bold text-[#4AA7A7] hover:underline whitespace-nowrap"
-                          >
-                            View
-                          </Link>
+                          <div className="flex items-center gap-3 whitespace-nowrap">
+                            <Link
+                              href={`/admin/users/${user.id}`}
+                              className="text-xs 2xl:text-sm font-bold text-[#4AA7A7] hover:underline"
+                            >
+                              View
+                            </Link>
+                            <button
+                              onClick={() => setEditingUser(user)}
+                              className="flex items-center gap-1 text-xs 2xl:text-sm font-bold text-gray-500 hover:text-gray-700"
+                              title="Edit user"
+                            >
+                              <EditIcon size={14} />
+                            </button>
+                            {/* Delete user temporarily disabled on admin side
+                            <button
+                              onClick={() => setDeletingUser(user)}
+                              disabled={user.id === currentAdmin?.id}
+                              className="flex items-center gap-1 text-xs 2xl:text-sm font-bold text-red-500 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                              title={user.id === currentAdmin?.id ? "You cannot delete your own account" : "Delete user"}
+                            >
+                              <TrashIcon size={14} />
+                            </button>
+                            */}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -231,6 +263,26 @@ export default function AdminUsersPage() {
           />
         )}
       </div>
+
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          currentAdminId={currentAdmin?.id}
+          onClose={() => setEditingUser(null)}
+          onSaved={load}
+        />
+      )}
+
+      {/* Delete user temporarily disabled on admin side
+      {deletingUser && (
+        <DeleteUserModal
+          user={deletingUser}
+          currentAdminId={currentAdmin?.id}
+          onClose={() => setDeletingUser(null)}
+          onDeleted={load}
+        />
+      )}
+      */}
     </div>
   );
 }

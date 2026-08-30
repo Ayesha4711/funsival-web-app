@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { toast } from "sonner";
+import React from "react";
 import { SimpleMap } from "@/components/shared/MapControls";
 import { parseCalendarDate } from "@/components/shared/dateUtils";
 import { describeListingPrice, formatListingPrice, getPriceMode } from "./listingPrice";
@@ -117,17 +116,6 @@ export default function StepReview({
 }) {
   const { category, type, details = {}, price } = data;
 
-  useEffect(() => {
-    if (submitError) {
-      const errorEntries = fieldErrors ? Object.entries(fieldErrors) : [];
-      const errorMessage =
-        errorEntries.length > 0
-          ? `${submitError}\n${errorEntries.map(([field, msg]) => `• ${field.replace(/([A-Z])/g, " $1").trim()}: ${msg}`).join("\n")}`
-          : submitError;
-      toast.error(errorMessage);
-    }
-  }, [submitError, fieldErrors]);
-
   const title = details.title || "—";
   const location = [details.placeCity, details.state, details.country].filter(Boolean).join(", ")
     || details.addressLine1
@@ -148,7 +136,9 @@ export default function StepReview({
   // range, separately from one-time slots (details.slots) — show whichever type
   // the provider currently has selected, expanding recurring weekdays into actual
   // calendar dates so both cases display as concrete Select Date / Select Time rows.
-  const oneTimeSlots = details.slots?.filter((s) => s.day || s.startTime) || [];
+  // Must match the completeness check in buildAvailability/normalizeSlot (listingWizardUtils.js)
+  // so Review never displays a slot as filled when the submit payload would actually drop it.
+  const oneTimeSlots = details.slots?.filter((s) => s.day && s.startTime && s.endTime) || [];
   const recurringSlots = (() => {
     const start = parseCalendarDate(details.recurringStartDate);
     const end = parseCalendarDate(details.recurringEndDate);
@@ -159,7 +149,7 @@ export default function StepReview({
       const dayName = DAY_NAMES[d.getDay()];
       const daySlots = details.recurringSlots?.[dayName] || [];
       daySlots.forEach((s) => {
-        if (s.startTime || s.endTime) {
+        if (s.startTime && s.endTime) {
           rows.push({ day: new Date(d), startTime: s.startTime, endTime: s.endTime });
         }
       });

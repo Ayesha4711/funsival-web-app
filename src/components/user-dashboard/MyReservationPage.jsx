@@ -14,6 +14,7 @@ import {
   fetchRefundRequest,
   selectBookings,
   selectBookingsPagination,
+  selectBookingsFilters,
   selectBookingsStatus,
   selectBookingsCancelStatus,
   selectBookingsError,
@@ -966,11 +967,12 @@ function EmptyState({ onStartBooking }) {
 
 /* ─── Tab filter ─────────────────────────────────────────────────────────────── */
 const TABS = [
-  { key: "all",         label: "All" },
-  { key: "in-progress", label: "In progress" },
-  { key: "completed",   label: "Completed" },
-  { key: "cancelled",   label: "Cancelled" },
+  { key: "all",         label: "All",         apiTab: "all" },
+  { key: "in-progress", label: "In progress", apiTab: "in_progress" },
+  { key: "completed",   label: "Completed",   apiTab: "completed" },
+  { key: "cancelled",   label: "Cancelled",   apiTab: "cancelled" },
 ];
+const TAB_TO_API = Object.fromEntries(TABS.map((t) => [t.key, t.apiTab]));
 
 /* ─── Main page ──────────────────────────────────────────────────────────────── */
 export default function MyReservationPage() {
@@ -979,6 +981,7 @@ export default function MyReservationPage() {
 
   const bookings = useSelector(selectBookings);
   const pagination = useSelector(selectBookingsPagination);
+  const bookingFilters = useSelector(selectBookingsFilters);
   const status = useSelector(selectBookingsStatus);
   const cancelStatus = useSelector(selectBookingsCancelStatus);
   const error = useSelector(selectBookingsError);
@@ -995,8 +998,9 @@ export default function MyReservationPage() {
   });
 
   useEffect(() => {
-    dispatch(fetchBookings({ page: currentPage, limit: 10 }));
-  }, [dispatch, currentPage]);
+    const request = dispatch(fetchBookings({ tab: TAB_TO_API[activeTab] ?? "all", page: currentPage, limit: 10 }));
+    return () => request.abort?.();
+  }, [dispatch, activeTab, currentPage]);
 
   // Fetch refund requests for bookings that have one pending
   useEffect(() => {
@@ -1034,13 +1038,12 @@ export default function MyReservationPage() {
     }
   };
 
-  const hasData = bookings.length > 0;
+  const tabCounts = bookingFilters?.counts ?? {};
+  const hasAnyBookings = (tabCounts.all ?? bookings.length) > 0;
 
   const filtered = activeTab === "wishlists"
     ? bookings.filter((b) => wishlistIds.includes(b.id))
-    : activeTab === "all"
-      ? bookings
-      : bookings.filter((b) => getStatusKey(b) === activeTab);
+    : bookings;
 
   const openModal = (type, booking = null) => { setActiveBooking(booking); setModal(type); };
   const closeModal = () => { setModal(null); setActiveBooking(null); };
@@ -1050,7 +1053,7 @@ export default function MyReservationPage() {
     await dispatch(cancelBooking(activeBooking.id));
     closeModal();
     if (detailView?.id === activeBooking.id) setDetailView(null);
-    dispatch(fetchBookings({ page: currentPage, limit: 10 }));
+    dispatch(fetchBookings({ tab: TAB_TO_API[activeTab] ?? "all", page: currentPage, limit: 10 }));
   };
 
   const handleContactHost = async (booking) => {
@@ -1091,21 +1094,24 @@ export default function MyReservationPage() {
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 py-6">
 
         {/* Tabs — only when there is data and not in detail view */}
-        {hasData && !detailView && status === "succeeded" && (
+        {hasAnyBookings && !detailView && (
           <div className="flex items-center gap-2 mb-6 bg-[#EDF6F6] rounded-full p-1 w-fit">
-            {TABS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  activeTab === key
-                    ? "bg-white text-[#228E8A] shadow-sm font-semibold"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+            {TABS.map(({ key, label, apiTab }) => {
+              const count = tabCounts[apiTab];
+              return (
+                <button
+                  key={key}
+                  onClick={() => { setActiveTab(key); setCurrentPage(1); }}
+                  className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                    activeTab === key
+                      ? "bg-white text-[#228E8A] shadow-sm font-semibold"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {apiTab === "all" || !count ? label : `${label} (${count})`}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -1133,7 +1139,7 @@ export default function MyReservationPage() {
               onToggleWishlist={() => toggleWishlist(detailView.id)}
               onShare={() => handleShare(detailView)}
             />
-          ) : !hasData ? (
+          ) : !hasAnyBookings ? (
             <EmptyState onStartBooking={() => router.push("/user-dashboard/explore")} />
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
@@ -1197,7 +1203,7 @@ export default function MyReservationPage() {
         <LeaveReviewModal
           bookingId={activeBooking.id}
           onClose={closeModal}
-          onSubmitted={() => dispatch(fetchBookings({ page: currentPage, limit: 10 }))}
+          onSubmitted={() => dispatch(fetchBookings({ tab: TAB_TO_API[activeTab] ?? "all", page: currentPage, limit: 10 }))}
         />
       )}
       {modal === "cancel" && (
@@ -1216,7 +1222,7 @@ export default function MyReservationPage() {
           onClose={closeModal}
           onWithdrawn={() => {
             setRefundRequestMap((prev) => ({ ...prev, [activeBooking.id]: null }));
-            dispatch(fetchBookings({ page: currentPage, limit: 10 }));
+            dispatch(fetchBookings({ tab: TAB_TO_API[activeTab] ?? "all", page: currentPage, limit: 10 }));
           }}
         />
       )}

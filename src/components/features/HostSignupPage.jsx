@@ -76,7 +76,8 @@ function HostSignupForm() {
 
   const validate = () => {
     const errs = {};
-    if (form.agencyName.trim() && !/^[a-zA-Z\s]+$/.test(form.agencyName)) errs.agencyName = "Only alphabets are allowed";
+    if (!form.agencyName.trim()) errs.agencyName = "Business name is required";
+    else if (!/^[a-zA-Z\s]+$/.test(form.agencyName)) errs.agencyName = "Only alphabets are allowed";
     const emailError = validateEmail(form.email);
     if (emailError) errs.email = emailError;
     if (!form.city.trim()) errs.city = "City is required";
