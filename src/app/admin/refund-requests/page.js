@@ -16,10 +16,10 @@ import {
 import Pagination from "@/components/shared/Pagination";
 
 const STATUS_TABS = [
-  { key: "pending", label: "Pending" },
+  { key: "", label: "All" },
   { key: "approved", label: "Approved" },
   { key: "rejected", label: "Rejected" },
-  { key: "", label: "All" },
+  { key: "pending", label: "Pending" },
 ];
 
 const STATUS_STYLES = {

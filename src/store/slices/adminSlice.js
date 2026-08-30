@@ -108,7 +108,7 @@ const adminSlice = createSlice({
       })
       .addCase(fetchAdminUser.fulfilled, (state, action) => {
         state.selectedUserStatus = "succeeded";
-        state.selectedUser = action.payload?.data ?? action.payload;
+        state.selectedUser = action.payload?.data?.user ?? action.payload?.data ?? action.payload;
       })
       .addCase(fetchAdminUser.rejected, (state, action) => {
         state.selectedUserStatus = "failed";
@@ -122,7 +122,7 @@ const adminSlice = createSlice({
       })
       .addCase(updateAdminUser.fulfilled, (state, action) => {
         state.userActionStatus = "succeeded";
-        const updated = action.payload?.data ?? action.payload;
+        const updated = action.payload?.data?.user ?? action.payload?.data ?? action.payload;
         if (state.selectedUser?.id === updated?.id) state.selectedUser = updated;
         const idx = state.users.findIndex((u) => u.id === updated?.id);
         if (idx !== -1) state.users[idx] = { ...state.users[idx], ...updated };

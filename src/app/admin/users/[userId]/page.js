@@ -128,14 +128,16 @@ export default function AdminUserDetailPage() {
         </div>
 
         {/* Stats (host/user activity) */}
+        {/*
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatCard label="Total Listings" value={listingStats.total ?? 0} />
           <StatCard label="Active Listings" value={listingStats.active ?? 0} />
           <StatCard label="Bookings as Host" value={bookingStats.asHost ?? 0} />
           <StatCard label="Bookings as Guest" value={bookingStats.asGuest ?? 0} />
         </div>
+        */}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="flex flex-col gap-5">
           {/* Profile info */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-2">Profile</h2>
@@ -156,6 +158,7 @@ export default function AdminUserDetailPage() {
           </div>
 
           {/* Rating + Stripe Connect */}
+          {/*
           <div className="flex flex-col gap-5">
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
               <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-2">Rating</h2>
@@ -176,6 +179,7 @@ export default function AdminUserDetailPage() {
               <InfoRow label="Onboarded At" value={formatDate(stripe.onboardedAt)} />
             </div>
           </div>
+          */}
         </div>
       </div>
     </div>

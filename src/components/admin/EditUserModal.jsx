@@ -4,7 +4,15 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { updateAdminUser } from "@/store/slices/adminSlice";
-import { CloseIcon, SpinnerIcon } from "@/icons";
+import {
+  parsePhoneNumber,
+  formatPhoneNumber,
+  stripPhoneNumber,
+  validatePhoneNumber,
+} from "@/lib/phone";
+import { CloseIcon, SpinnerIcon, PhoneIcon } from "@/icons";
+import { PhoneCountryPicker } from "@/components/shared/settings/SettingsPrimitives";
+import DatePickerField from "@/components/shared/settings/DatePickerField";
 
 const ROLES = ["user", "host", "admin"];
 
@@ -19,12 +27,13 @@ function resolveDisplayName(user) {
 export default function EditUserModal({ user, currentAdminId, onClose, onSaved }) {
   const dispatch = useDispatch();
   const pp = user?.providerProfile ?? {};
+  const initialPhone = parsePhoneNumber(pp.phoneNumber ?? user?.phoneNumber ?? "");
 
   const [form, setForm] = useState({
     email: user?.email ?? "",
     firstName: pp.firstName ?? user?.firstName ?? "",
     lastName: pp.lastName ?? user?.lastName ?? "",
-    phoneNumber: pp.phoneNumber ?? user?.phoneNumber ?? "",
+    phoneNumber: initialPhone.number,
     bio: pp.bio ?? user?.bio ?? "",
     dateOfBirth: (pp.dateOfBirth ?? user?.dateOfBirth ?? "")?.split?.("T")[0] ?? "",
     addressLine1: pp.location?.addressLine1 ?? user?.addressLine1 ?? "",
@@ -40,13 +49,28 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
     isEmailVerified: !!user?.isEmailVerified,
     twoFactorEnabled: !!user?.twoFactorEnabled,
   });
+  const [phoneCountryCode, setPhoneCountryCode] = useState(initialPhone.countryCode || "+92");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const set = (key) => (e) => {
     const value = e?.target?.type === "checkbox" ? e.target.checked : e?.target?.value ?? e;
     setForm((f) => ({ ...f, [key]: value }));
     if (error) setError("");
+  };
+
+  const setPhoneNumber = (e) => {
+    const digits = stripPhoneNumber(e.target.value).replace(/^0+/, "");
+    setForm((f) => ({ ...f, phoneNumber: digits }));
+    if (error) setError("");
+    if (fieldErrors.phoneNumber) setFieldErrors((fe) => ({ ...fe, phoneNumber: undefined }));
+  };
+
+  const setPhoneCode = (valueOrEvent) => {
+    const next = typeof valueOrEvent === "string" ? valueOrEvent : valueOrEvent?.target?.value;
+    setPhoneCountryCode(next);
+    if (fieldErrors.phoneNumber) setFieldErrors((fe) => ({ ...fe, phoneNumber: undefined }));
   };
 
   const isSelf = currentAdminId && user?.id === currentAdminId;
@@ -56,6 +80,19 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
       setError("You cannot change your own role away from admin.");
       return;
     }
+
+    if (form.phoneNumber && !validatePhoneNumber(form.phoneNumber, { allowLeadingZero: false })) {
+      const digits = stripPhoneNumber(form.phoneNumber);
+      const msg = digits.length > 15
+        ? "Phone number cannot exceed 15 digits."
+        : digits.startsWith("0")
+          ? "Please enter the phone number without the leading 0."
+          : "Please enter a valid phone number.";
+      setFieldErrors((fe) => ({ ...fe, phoneNumber: msg }));
+      return;
+    }
+
+    const formattedPhone = formatPhoneNumber(phoneCountryCode, form.phoneNumber);
 
     // Only send fields that changed
     const original = {
@@ -81,8 +118,10 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
 
     const payload = {};
     for (const key of Object.keys(form)) {
+      if (key === "phoneNumber") continue;
       if (form[key] !== original[key]) payload[key] = form[key];
     }
+    if (formattedPhone !== original.phoneNumber) payload.phoneNumber = formattedPhone;
 
     if (Object.keys(payload).length === 0) {
       toast.error("No changes to save.");
@@ -147,8 +186,31 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
               {field("Email", "email", "email")}
               {field("First Name", "firstName")}
               {field("Last Name", "lastName")}
-              {field("Phone Number", "phoneNumber")}
-              {field("Date of Birth", "dateOfBirth", "date")}
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mb-1.5">
+                  <span className="text-gray-400"><PhoneIcon /></span>
+                  Phone Number
+                </label>
+                <div className={`flex items-stretch overflow-visible rounded-xl border bg-white transition-colors focus-within:ring-2 ${
+                  fieldErrors.phoneNumber
+                    ? "border-red-400 focus-within:ring-red-200"
+                    : "border-gray-200 focus-within:ring-[#4AA7A7]/20 focus-within:border-[#4AA7A7]"
+                }`}>
+                  <PhoneCountryPicker value={phoneCountryCode} onChange={setPhoneCode} />
+                  <input
+                    type="tel" placeholder="Enter phone number" maxLength={20}
+                    value={form.phoneNumber} onChange={setPhoneNumber}
+                    className="min-w-0 h-[42px] flex-1 rounded-r-xl px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+                  />
+                </div>
+                {fieldErrors.phoneNumber && <p className="mt-1 text-xs text-red-500 font-medium">{fieldErrors.phoneNumber}</p>}
+              </div>
+              <DatePickerField
+                value={form.dateOfBirth}
+                onChange={(v) => { setForm((f) => ({ ...f, dateOfBirth: v })); if (error) setError(""); }}
+                hasError={!!fieldErrors.dateOfBirth}
+                errorMsg={fieldErrors.dateOfBirth}
+              />
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Bio</label>
                 <textarea

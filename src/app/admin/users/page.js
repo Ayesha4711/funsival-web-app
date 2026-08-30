@@ -13,8 +13,9 @@ import {
 import { fetchProfile, selectUser } from "@/store/slices/profileSlice";
 import Pagination from "@/components/shared/Pagination";
 import EditUserModal from "@/components/admin/EditUserModal";
-import DeleteUserModal from "@/components/admin/DeleteUserModal";
-import { EditIcon, TrashIcon } from "@/icons";
+// Delete user temporarily disabled on admin side
+// import DeleteUserModal from "@/components/admin/DeleteUserModal";
+import { EditIcon } from "@/icons";
 
 const ROLE_STYLES = {
   admin: "bg-purple-100 text-purple-700",
@@ -58,7 +59,8 @@ export default function AdminUsersPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const searchDebounceRef = useRef(null);
   const [editingUser, setEditingUser] = useState(null);
-  const [deletingUser, setDeletingUser] = useState(null);
+  // Delete user temporarily disabled on admin side
+  // const [deletingUser, setDeletingUser] = useState(null);
 
   const ROLE_TABS = [
     { key: "all", label: `All${tabs.all != null ? ` (${tabs.all})` : ""}` },
@@ -152,7 +154,7 @@ export default function AdminUsersPage() {
               <table className="w-full min-w-240 border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    {["User", "Role", "City", "Phone", "Verified", "Joined", ""].map((h) => (
+                    {["User", "Role", "City", "Phone", "Verified", "Joined", "Actions"].map((h) => (
                       <th key={h} className="px-5 2xl:px-8 py-3 2xl:py-5 text-left text-xs 2xl:text-sm font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {h}
                       </th>
@@ -231,6 +233,7 @@ export default function AdminUsersPage() {
                             >
                               <EditIcon size={14} />
                             </button>
+                            {/* Delete user temporarily disabled on admin side
                             <button
                               onClick={() => setDeletingUser(user)}
                               disabled={user.id === currentAdmin?.id}
@@ -239,6 +242,7 @@ export default function AdminUsersPage() {
                             >
                               <TrashIcon size={14} />
                             </button>
+                            */}
                           </div>
                         </td>
                       </tr>
@@ -269,6 +273,7 @@ export default function AdminUsersPage() {
         />
       )}
 
+      {/* Delete user temporarily disabled on admin side
       {deletingUser && (
         <DeleteUserModal
           user={deletingUser}
@@ -277,6 +282,7 @@ export default function AdminUsersPage() {
           onDeleted={load}
         />
       )}
+      */}
     </div>
   );
 }
