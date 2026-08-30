@@ -38,6 +38,7 @@ const FIELD_LABELS = {
 export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) {
   const dispatch = useDispatch();
   const profile = useSelector(selectUser);
+  const hasLocalAuth = !Array.isArray(profile?.authProviders) || profile.authProviders.includes("local");
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", phoneNumber: "", dateOfBirth: "",
@@ -401,17 +402,29 @@ export default function ProfileTab({ role, onChangePassword, onDeleteAccount }) 
       <div className="bg-white rounded-2xl border border-gray-100 px-6 py-5">
         <p className="text-sm font-bold text-text mb-4">Account Settings</p>
         <div className="space-y-2">
-          <button onClick={onChangePassword}
-            className="w-full flex items-center gap-4 rounded-2xl border border-gray-200 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
-            <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
-              <span className="text-xl">🔑</span>
+          {hasLocalAuth ? (
+            <button onClick={onChangePassword}
+              className="w-full flex items-center gap-4 rounded-2xl border border-gray-200 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
+              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+                <span className="text-xl">🔑</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-text">Change password</p>
+                <p className="text-xs text-gray-400">Update your account password</p>
+              </div>
+              <span className="text-gray-400 shrink-0"><ChevronRightIcon /></span>
+            </button>
+          ) : (
+            <div className="w-full flex items-center gap-4 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
+              <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                <span className="text-xl">🔒</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-text">Signed up with Google</p>
+                <p className="text-xs text-gray-400">Password login is not available for this account</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-text">Change password</p>
-              <p className="text-xs text-gray-400">Update your account password</p>
-            </div>
-            <span className="text-gray-400 shrink-0"><ChevronRightIcon /></span>
-          </button>
+          )}
           <button onClick={onDeleteAccount}
             className="w-full flex items-center gap-4 rounded-2xl border border-red-100 bg-red-50/40 px-5 py-4 hover:bg-red-50 transition-colors text-left">
             <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">

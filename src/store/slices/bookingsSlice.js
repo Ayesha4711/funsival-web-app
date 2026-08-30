@@ -5,11 +5,12 @@ import axiosInstance from "../axiosInstance";
 
 export const fetchBookings = createAsyncThunk(
   "bookings/fetchBookings",
-  async ({ page = 1, limit = 10 } = {}, { rejectWithValue }) => {
+  async ({ tab = "all", page = 1, limit = 10 } = {}, { rejectWithValue, signal }) => {
     try {
-      const { data } = await axiosInstance.get(`/bookings?page=${page}&limit=${limit}`);
+      const { data } = await axiosInstance.get("/bookings", { params: { tab, page, limit }, signal });
       return data;
     } catch (err) {
+      if (err?.code === "ERR_CANCELED") throw err;
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
   }
@@ -26,6 +27,18 @@ export const fetchHostBookings = createAsyncThunk(
       return data;
     } catch (err) {
       if (err?.code === "ERR_CANCELED") throw err;
+      return rejectWithValue(err.response?.data?.message ?? err.message);
+    }
+  }
+);
+
+export const fetchHostBookingStats = createAsyncThunk(
+  "bookings/fetchHostBookingStats",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.get("/bookings/host/stats");
+      return data;
+    } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
   }
@@ -178,12 +191,17 @@ const bookingsSlice = createSlice({
     // user's own bookings
     items: [],
     pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
+    filters: { tab: "all", counts: { all: 0, in_progress: 0, completed: 0, cancelled: 0 } },
     status: "idle",
     // host's incoming bookings
     hostItems: [],
     hostPagination: { page: 1, limit: 10, total: 0, totalPages: 1, hasNextPage: false, hasPrevPage: false },
     hostFilters: { tab: "all", search: "", date: "", counts: { all: 0, upcoming: 0, completed: 0, cancelled: 0 } },
     hostStatus: "idle",
+    // host's dashboard stat cards
+    hostStats: null,
+    hostStatsStatus: "idle",
+    hostStatsError: null,
     // shared
     selectedBooking: null,
     cancelStatus: "idle",
@@ -218,8 +236,10 @@ const bookingsSlice = createSlice({
         state.status = "succeeded";
         state.items = action.payload?.data?.bookings ?? [];
         state.pagination = action.payload?.data?.pagination ?? state.pagination;
+        state.filters = action.payload?.data?.filters ?? state.filters;
       })
       .addCase(fetchBookings.rejected, (state, action) => {
+        if (action.meta.aborted) return;
         state.status = "failed";
         state.error = action.payload;
       })
@@ -238,6 +258,19 @@ const bookingsSlice = createSlice({
         if (action.meta.aborted) return;
         state.hostStatus = "failed";
         state.hostError = action.payload;
+      })
+      // fetchHostBookingStats
+      .addCase(fetchHostBookingStats.pending, (state) => {
+        state.hostStatsStatus = "loading";
+        state.hostStatsError = null;
+      })
+      .addCase(fetchHostBookingStats.fulfilled, (state, action) => {
+        state.hostStatsStatus = "succeeded";
+        state.hostStats = action.payload?.data ?? null;
+      })
+      .addCase(fetchHostBookingStats.rejected, (state, action) => {
+        state.hostStatsStatus = "failed";
+        state.hostStatsError = action.payload;
       })
       // fetchBooking
       .addCase(fetchBooking.pending, (state) => {
@@ -358,6 +391,7 @@ export const selectRefundRequestStatus = (state) => state.bookings.refundRequest
 // ─── Selectors ───────────────────────────────────────────────────────────────
 export const selectBookings = (state) => state.bookings.items;
 export const selectBookingsPagination = (state) => state.bookings.pagination;
+export const selectBookingsFilters = (state) => state.bookings.filters;
 export const selectBookingsStatus = (state) => state.bookings.status;
 export const selectBookingsError = (state) => state.bookings.error;
 
@@ -366,6 +400,10 @@ export const selectHostBookingsPagination = (state) => state.bookings.hostPagina
 export const selectHostBookingsFilters = (state) => state.bookings.hostFilters;
 export const selectHostBookingsStatus = (state) => state.bookings.hostStatus;
 export const selectHostBookingsError = (state) => state.bookings.hostError;
+
+export const selectHostBookingStats = (state) => state.bookings.hostStats;
+export const selectHostBookingStatsStatus = (state) => state.bookings.hostStatsStatus;
+export const selectHostBookingStatsError = (state) => state.bookings.hostStatsError;
 
 export const selectSelectedBooking = (state) => state.bookings.selectedBooking;
 export const selectBookingsCancelStatus = (state) => state.bookings.cancelStatus;

@@ -475,15 +475,21 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
         </section>
 
         {/* ── 4. Photos ──────────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6" data-field="photos">
           <SectionTitle num="4">Add Some Photos Of Your Activity</SectionTitle>
           <p className="text-xs text-gray-400 mb-4">Add at least 5 photos to increase your bookings. You can edit or add more later.</p>
           <PhotoUpload
             photos={form.photos}
-            onPhotosChange={handlePhotosChange}
+            onPhotosChange={(photos) => {
+              handlePhotosChange(photos);
+              if (activeErrors.photos) {
+                setActiveErrors(prev => { const n = { ...prev }; delete n.photos; return n; });
+              }
+            }}
             onUploadFiles={handleUploadFiles}
             isUploading={isUploadingPhotos}
           />
+          <FieldError msg={fe.photos} />
         </section>
 
         {/* ── 5. Availability ─────────────────────────────────────────────── */}
@@ -516,6 +522,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             if (!form.instructorName?.trim()) errs.instructorName = "Instructor name is required";
             if (!form.cancellationPolicy) errs.cancellationPolicy = "Cancellation policy is required";
             if (!form.included || form.included.length === 0) errs.whatsIncluded = "What's Included must be a non-empty array";
+            if (!form.photos || form.photos.length === 0) errs.photos = "Please add at least one photo of your activity";
             if (!form.addressLine1?.trim()) errs.addressLine1 = "Address is required";
             if (!form.countryCode) errs.country = "Country is required";
             if (!form.stateCode) {

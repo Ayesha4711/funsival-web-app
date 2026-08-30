@@ -238,7 +238,7 @@ export default function AddListingWizard() {
     "difficultyLevel", "instructorName", "cancellationPolicy", "whatsIncluded",
     "duration", "maxParticipants", "activityTitle", "description",
     "addressLine1", "city", "state", "country", "postalCode",
-    "startTime", "endTime",
+    "startTime", "endTime", "photos",
   ]);
 
   const handleSubmitListing = async () => {
