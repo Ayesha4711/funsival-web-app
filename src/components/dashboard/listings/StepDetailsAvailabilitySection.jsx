@@ -75,6 +75,9 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
             }}
           />
         </div>
+        {!form.availabilityType && fe.availability && (
+          <p className="mt-2 text-xs text-red-500 font-medium">{fe.availability}</p>
+        )}
       </div>
 
       {/* One Time UI */}
