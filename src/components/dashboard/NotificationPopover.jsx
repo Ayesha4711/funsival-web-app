@@ -112,11 +112,9 @@ export default function NotificationPopover({ onClose }) {
     } else if (type === "refund_approved" || type === "refund_rejected") {
       if (data.bookingId) router.push(`/user-dashboard/bookings`);
       onClose?.();
-    } else if (type === "booking_new") {
-      if (data.bookingId) router.push(`/dashboard/reservations`);
-      onClose?.();
-    } else if (type === "booking_cancelled") {
-      router.push("/dashboard/reservations");
+    } else if (type.startsWith("booking_") || data.bookingId) {
+      // Any booking/reservation-related notification — deep-link straight to it when we have an id
+      router.push(data.bookingId ? `/dashboard/reservations?bookingId=${data.bookingId}` : `/dashboard/reservations`);
       onClose?.();
     }
   };
