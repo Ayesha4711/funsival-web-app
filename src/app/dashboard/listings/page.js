@@ -9,6 +9,8 @@ import {
   fetchDraft,
   deleteDraft,
   deleteListing,
+  updateListing,
+  fetchHostListingStats,
   selectListingsStatus,
   selectHostListingStats,
 } from "@/store/slices/listingsSlice";
@@ -247,7 +249,7 @@ export default function ListingsPage() {
     void loadListings();
   }, [loadListings]);
 
-  const handleStatusChange = (itemOrId, newStatus) => {
+  const handleStatusChange = async (itemOrId, newStatus) => {
     const item = typeof itemOrId === "object"
       ? itemOrId
       : listings.find((entry) => entry.id === itemOrId);
@@ -259,7 +261,17 @@ export default function ListingsPage() {
       return;
     }
 
+    const previousStatus = item.status;
     setListings((prev) => prev.map((entry) => entry.id === item.id ? { ...entry, status: newStatus } : entry));
+
+    const result = await dispatch(updateListing({ listingId: item.id, payload: { status: newStatus } }));
+    if (updateListing.fulfilled.match(result)) {
+      dispatch(fetchHostListingStats());
+    } else {
+      setListings((prev) => prev.map((entry) => entry.id === item.id ? { ...entry, status: previousStatus } : entry));
+      const message = typeof result.payload === "string" ? result.payload : result.payload?.message;
+      toast.error(message ?? "Failed to update status.");
+    }
   };
 
   const handleEditSaved = (updated) => {
@@ -278,6 +290,7 @@ export default function ListingsPage() {
     if (action.fulfilled.match(result)) {
       toast.success(isDraft ? "Draft discarded." : "Listing deleted.");
       setListings((prev) => prev.filter((item) => item.id !== deletingListing.id));
+      dispatch(fetchHostListingStats());
     } else {
       toast.error(result.payload ?? (isDraft ? "Failed to discard draft." : "Failed to delete listing."));
     }

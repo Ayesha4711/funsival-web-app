@@ -234,6 +234,8 @@ function ReservationsPageContent() {
 
   /* detail panel */
   const [panelItem,    setPanelItem]    = useState(null);
+  const pendingBookingId = searchParams.get("bookingId");
+  const openedBookingIdRef = useRef(null);
 
   /* cancel modal */
   const [cancelTarget, setCancelTarget] = useState(null);
@@ -296,6 +298,17 @@ function ReservationsPageContent() {
   }, [currentPage]);
 
   const rows = useMemo(() => hostBookings.map(mapBookingToRow), [hostBookings]);
+
+  /* Deep-link: auto-open the detail panel for ?bookingId= (e.g. from a notification) */
+  useEffect(() => {
+    if (!pendingBookingId || openedBookingIdRef.current === pendingBookingId) return;
+    const match = rows.find((r) => r.id === pendingBookingId);
+    if (match) {
+      setPanelItem(match);
+      openedBookingIdRef.current = pendingBookingId;
+    }
+  }, [pendingBookingId, rows]);
+
   const counts = hostFilters?.counts ?? {};
   const hasActiveFilters = activeTab !== "all" || Boolean(debouncedSearch) || Boolean(selectedDate);
 
@@ -319,7 +332,15 @@ function ReservationsPageContent() {
   }, []);
 
   const handleViewDetails = (item) => setPanelItem(item);
-  const handleClosePanel  = ()     => setPanelItem(null);
+  const handleClosePanel  = () => {
+    setPanelItem(null);
+    if (searchParams.get("bookingId")) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("bookingId");
+      const query = params.toString();
+      window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
+    }
+  };
 
   /* Accept booking */
   const handleRequestAccept = (item) => setAcceptTarget(item);

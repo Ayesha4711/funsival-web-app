@@ -687,7 +687,7 @@ function ModePill({ active, label, icon, onClick }) {
 /* ─── Booking Shell ──────────────────────────────────────────────────────────── */
 function BookingShell({ children, topSlot, reserveButton, title, price, priceUnit, rating, reviews }) {
   const ratingNum = Number(rating);
-  const ratingText = Number.isFinite(ratingNum) ? ratingNum.toFixed(1) : "4.4";
+  const ratingText = Number.isFinite(ratingNum) ? ratingNum.toFixed(1) : "0.0";
   return (
     <div className="w-full bg-white flex flex-col h-auto xl:h-full rounded-[20px] border border-gray-200 p-4 sm:p-7">
 
@@ -750,8 +750,13 @@ function HourlySlotBookingCard({
   const shouldMergeHourlySlots = listing.bookingType === "per_hour";
 
   const initialDate = saved.selectedDate || saved.startDate || listingDates[0] || "";
+  const initialSlots = saved.selectionByDate?.[initialDate] || saved.slots || [];
   const [selectedDate, setSelectedDate] = useState(initialDate);
-  const [selectedSlots, setSelectedSlots] = useState([]);
+  const [selectedSlots, setSelectedSlots] = useState(initialSlots);
+  // Tracks which date `selectedSlots` currently belongs to, so the "clear on date change"
+  // effect below only fires for genuine user-driven date changes — never for the restored
+  // initial selection, regardless of how many renders it takes to settle.
+  const selectionDateRef = React.useRef(initialDate);
   const [grid, setGrid] = useState({ slots: [], slotDurationMinutes: null, hourlyPrice: null, currency: "USD" });
   const [loadingGrid, setLoadingGrid] = useState(false);
   const [gridError, setGridError] = useState("");
@@ -809,6 +814,8 @@ function HourlySlotBookingCard({
   }, [listingDates, selectedDate]);
 
   useEffect(() => {
+    if (selectionDateRef.current === selectedDate) return;
+    selectionDateRef.current = selectedDate;
     setSelectedSlots([]);
   }, [selectedDate]);
 

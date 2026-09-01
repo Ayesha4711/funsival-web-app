@@ -85,6 +85,8 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
   const preview = allNotifications.slice(0, 3);
   const isLoading = status === "loading" && allNotifications.length === 0;
 
+  const isUserContext = viewAllHref.startsWith("/user-dashboard");
+
   const handleItemClick = (n) => {
     const id = n._id ?? n.id;
     if (!n.isRead && !n.read) dispatch(markNotificationRead(id));
@@ -96,8 +98,13 @@ export default function NotificationPopover({ onClose, viewAllHref = "/dashboard
     } else if (type === "refund_approved" || type === "refund_rejected") {
       router.push("/user-dashboard/bookings");
       onClose();
-    } else if (type === "booking_new" || type === "booking_cancelled") {
-      router.push("/dashboard/reservations");
+    } else if (type.startsWith("booking_") || data.bookingId) {
+      // Any booking/reservation-related notification — deep-link straight to it when we have an id
+      router.push(
+        isUserContext
+          ? "/user-dashboard/bookings"
+          : data.bookingId ? `/dashboard/reservations?bookingId=${data.bookingId}` : "/dashboard/reservations"
+      );
       onClose();
     }
   };

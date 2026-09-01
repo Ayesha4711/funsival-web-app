@@ -132,8 +132,9 @@ export function ListingCard({ listing }) {
   const perPersonPrice = toNum(priceObj?.perPerson ?? info.pricePerPerson);
   const fallbackPrice = toNum(priceObj?.amount) ?? (typeof listing.price === 'number' ? toNum(listing.price) : null);
 
-  const rating = listing.rating ?? 4.4;
-  const reviews = listing.reviewCount ?? listing.reviews ?? '21K';
+  const reviewSummary = listing.reviewSummary ?? {};
+  const rating = reviewSummary.overallRating ?? listing.rating ?? 0;
+  const reviews = reviewSummary.count ?? listing.reviewCount ?? listing.reviews ?? 0;
 
   const rawType = listing.type || info.category || listing.categoryLabel;
   const categoryLabel = rawType
@@ -643,16 +644,27 @@ export default function UserExplorePage() {
   const listingsStatus = useSelector(selectActivitiesStatus);
   const pagination = useSelector(selectActivitiesPagination);
 
-  const [activeTab, setActiveTab] = useState('all');
-  const [activeSubFilter, setActiveSubFilter] = useState('all');
+  const urlCategory = searchParams.get('category');
+  const urlType = searchParams.get('type');
+
+  const [activeTab, setActiveTab] = useState(() =>
+    Object.keys(TAB_TO_CATEGORY).includes(urlCategory) ? urlCategory : 'all'
+  );
+  const [activeSubFilter, setActiveSubFilter] = useState(() => urlType || 'all');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
   const [filterOpen, setFilterOpen] = useState(false);
-  const [appliedFilters, setAppliedFilters] = useState({});
+  const [appliedFilters, setAppliedFilters] = useState(() => {
+    const city = searchParams.get('location') || '';
+    return city ? { city } : {};
+  });
   const ITEMS_PER_PAGE = 12;
   const pillsScrollRef = useRef(null);
 
   const searchQuery = searchParams.get('search') || '';
+  const locationQuery = searchParams.get('location') || '';
+  const fromQuery = searchParams.get('from') || '';
+  const untilQuery = searchParams.get('until') || '';
 
   const scrollPills = (dir) => {
     if (pillsScrollRef.current) {
@@ -675,11 +687,15 @@ export default function UserExplorePage() {
       page: currentPage,
       limit: ITEMS_PER_PAGE,
       category,
+      type: activeSubFilter !== 'all' ? activeSubFilter : undefined,
       search: searchQuery || undefined,
       city: city || undefined,
+      location: !city ? locationQuery || undefined : undefined,
       minPrice,
       maxPrice,
       sort: sort || undefined,
+      from: fromQuery || undefined,
+      until: untilQuery || undefined,
     };
 
     // Add additional filters if present
@@ -689,7 +705,7 @@ export default function UserExplorePage() {
     if (instantBook && instantBook !== 'any') filterParams.instantBook = instantBook;
 
     dispatch(fetchBrowseListings(filterParams));
-  }, [dispatch, currentPage, activeTab, appliedFilters, searchQuery]);
+  }, [dispatch, currentPage, activeTab, activeSubFilter, appliedFilters, searchQuery, locationQuery, fromQuery, untilQuery]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -712,12 +728,8 @@ export default function UserExplorePage() {
     setCurrentPage(1);
   };
 
-  // API already filters by category; apply sub-filter (type) client-side
-  const allListings = apiListings || [];
-  const filteredListings =
-    activeSubFilter === 'all'
-      ? allListings
-      : allListings.filter((l) => l.type === activeSubFilter);
+  // API already filters by category and type server-side
+  const filteredListings = apiListings || [];
 
   const totalPages = pagination.totalPages || 1;
   // Pagination is server-side — show whatever the API returned
