@@ -542,7 +542,7 @@ function TimeDropdown({ value, onChange, placeholder = "Select time", options })
 
 
 /* ─── Calendar Dropdown ──────────────────────────────────────────────────────── */
-function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy", align = "left", availableDates }) {
+function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy", align = "left", availableDates, minDate }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -576,6 +576,7 @@ function CalendarDropdown({ value, onChange, placeholder = "mm/dd/yyyy", align =
             onChange={(v) => { onChange(v); setOpen(false); }}
             onClose={() => setOpen(false)}
             availableDates={availableDates}
+            minDate={minDate}
           />
         </div>
       )}
@@ -1174,6 +1175,7 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
   const availableDates = React.useMemo(() => {
     return [...new Set(availability.map(a => a.date.split("T")[0]))];
   }, [availability]);
+  const today = React.useMemo(() => new Date().toISOString().split("T")[0], []);
 
   const formatTime = (timeStr) => {
     if (!timeStr) return "";
@@ -1252,6 +1254,7 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
           }}
           placeholder="mm/dd/yyyy"
           availableDates={availableDates}
+          minDate={today}
         />
       </BookingField>
 
@@ -1313,6 +1316,7 @@ function PlacesBookingCard({ listing, listingId, slotRefresh = "" }) {
   const availableDates = React.useMemo(() => {
     return [...new Set(availability.map(a => a.date.split("T")[0]))];
   }, [availability]);
+  const today = React.useMemo(() => new Date().toISOString().split("T")[0], []);
 
   // For hourly mode, options for 'date'. For daily mode, options for 'checkIn'.
   const targetDate = mode === "hourly" ? date : checkIn;
@@ -1434,6 +1438,7 @@ function PlacesBookingCard({ listing, listingId, slotRefresh = "" }) {
               }}
               placeholder="Select date"
               availableDates={availableDates}
+              minDate={today}
             />
           </BookingField>
           <TimeRangeField
@@ -1470,11 +1475,12 @@ function PlacesBookingCard({ listing, listingId, slotRefresh = "" }) {
                 }}
                 placeholder="Start date"
                 availableDates={availableDates}
+                minDate={today}
               />
             </div>
             <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkOut ? "border-red-400" : "border-gray-200"}`}>
               <span className="shrink-0"><CalendarIcon /></span>
-              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" availableDates={availableDates} />
+              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" availableDates={availableDates} minDate={checkIn || today} />
             </div>
           </div>
           {(errors.checkIn || errors.checkOut) && (
@@ -1558,6 +1564,7 @@ function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
   const availableDates = React.useMemo(() => {
     return [...new Set(availability.map(a => a.date.split("T")[0]))];
   }, [availability]);
+  const today = React.useMemo(() => new Date().toISOString().split("T")[0], []);
 
   // For hourly mode, options for 'date'. For daily mode, options for 'checkIn'.
   const targetDate = mode === "hourly" ? date : checkIn;
@@ -1679,6 +1686,7 @@ function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
               }}
               placeholder="Select date"
               availableDates={availableDates}
+              minDate={today}
             />
           </BookingField>
           <TimeRangeField
@@ -1715,11 +1723,12 @@ function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
                 }}
                 placeholder="Start date"
                 availableDates={availableDates}
+                minDate={today}
               />
             </div>
             <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkOut ? "border-red-400" : "border-gray-200"}`}>
               <span className="shrink-0"><CalendarIcon /></span>
-              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" availableDates={availableDates} />
+              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" availableDates={availableDates} minDate={checkIn || today} />
             </div>
           </div>
           {(errors.checkIn || errors.checkOut) && (

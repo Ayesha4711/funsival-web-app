@@ -51,6 +51,7 @@ function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
           >
             View Details
           </button>
+          {/* Cancel temporarily disabled — commented out for now
           {(isUpcoming || isActionNeeded) && (
             <button
               onClick={() => { setOpen(false); onCancel(item); }}
@@ -59,6 +60,7 @@ function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
               Cancel
             </button>
           )}
+          */}
         </div>
       )}
     </div>

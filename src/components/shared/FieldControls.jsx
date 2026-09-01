@@ -574,7 +574,7 @@ function toIsoDate(val) {
   return s;
 }
 
-export function CalendarField({ value, placeholder = "Select date", onChange, align = "left" }) {
+export function CalendarField({ value, placeholder = "Select date", onChange, align = "left", minDate }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -640,6 +640,7 @@ export function CalendarField({ value, placeholder = "Select date", onChange, al
             value={isoValue}
             onChange={handleCalendarChange}
             onClose={() => setOpen(false)}
+            minDate={toIsoDate(minDate)}
           />
         </div>
       )}
