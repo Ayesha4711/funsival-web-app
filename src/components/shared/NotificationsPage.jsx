@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchNotifications,
@@ -111,7 +111,7 @@ function NotificationMeta({ type, userId, data }) {
   );
 }
 
-function NotificationItem({ notification, dispatch, router }) {
+function NotificationItem({ notification, dispatch, router, isUserContext }) {
   const isNew = !notification.isRead && !notification.read;
   const id = notification._id ?? notification.id;
   const title = notification.title ?? "Notification";
@@ -129,10 +129,13 @@ function NotificationItem({ notification, dispatch, router }) {
       else router.push("/admin/refund-requests");
     } else if (type === "refund_approved" || type === "refund_rejected") {
       router.push("/user-dashboard/bookings");
-    } else if (type === "booking_new") {
-      router.push("/dashboard/reservations");
-    } else if (type === "booking_cancelled") {
-      router.push("/dashboard/reservations");
+    } else if (type.startsWith("booking_") || data.bookingId) {
+      // Any booking/reservation-related notification — deep-link straight to it when we have an id
+      router.push(
+        isUserContext
+          ? "/user-dashboard/bookings"
+          : data.bookingId ? `/dashboard/reservations?bookingId=${data.bookingId}` : "/dashboard/reservations"
+      );
     }
   };
 
@@ -197,6 +200,8 @@ function SkeletonItem() {
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const isUserContext = pathname?.startsWith("/user-dashboard") ?? false;
   const dispatch = useDispatch();
   const notifications = useSelector(selectNotificationsWithinNinetyDays);
   const status = useSelector(selectNotificationsStatus);
@@ -275,7 +280,7 @@ export default function NotificationsPage() {
                 <h3 className="text-base font-extrabold text-[#111827]">{label}</h3>
               )}
               {groups[label].map((n) => (
-                <NotificationItem key={n._id ?? n.id} notification={n} dispatch={dispatch} router={router} />
+                <NotificationItem key={n._id ?? n.id} notification={n} dispatch={dispatch} router={router} isUserContext={isUserContext} />
               ))}
             </section>
           ))}

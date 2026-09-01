@@ -89,19 +89,47 @@ function HostSignupForm() {
     return errs;
   };
 
+  const validateGoogleSignup = () => {
+    const errs = {};
+    if (!form.agencyName.trim()) errs.agencyName = "Business name is required";
+    else if (!/^[a-zA-Z\s]+$/.test(form.agencyName)) errs.agencyName = "Only alphabets are allowed";
+    if (!form.city.trim()) errs.city = "City is required";
+    else if (!/^[a-zA-Z\s]+$/.test(form.city)) errs.city = "Only alphabets are allowed";
+    return errs;
+  };
+
+  const handleGoogleButtonClick = () => {
+    const errs = validateGoogleSignup();
+    if (Object.keys(errs).length > 0) {
+      setClientErrors((prev) => ({ ...prev, ...errs }));
+      toast.error(errs.agencyName || errs.city || "Please review the form.");
+      return;
+    }
+    googleButtonRef.current?.querySelector("div[role=button]")?.click();
+  };
+
   const handleGoogleSuccess = async (credentialResponse) => {
+    const errs = validateGoogleSignup();
+    if (Object.keys(errs).length > 0) {
+      setClientErrors((prev) => ({ ...prev, ...errs }));
+      toast.error(errs.agencyName || errs.city || "Please review the form.");
+      return;
+    }
+
     const result = await dispatch(loginWithGoogle({
       idToken: credentialResponse.credential,
       role: "host",
       city: form.city,
-      businessName: form.agencyName,
+      businessName: form.agencyName.trim(),
     }));
     if (loginWithGoogle.rejected.match(result)) {
       toast.error("Google login failed", { description: result.payload || "Failed to authenticate with Google." });
       return;
     }
     toast.success("Login successful!", { description: "Welcome to Funsival." });
-    router.push("/dashboard");
+    const data = result.payload?.data;
+    const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "host";
+    router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
   };
 
   const handleSubmit = async (e) => {
@@ -209,7 +237,7 @@ function HostSignupForm() {
           <div ref={googleButtonRef} className="hidden">
             <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => toast.error("Google login failed", { description: "Could not initialize Google login." })} />
           </div>
-          <SocialButton type="google" label="Continue with Google" onClick={() => googleButtonRef.current?.querySelector("div[role=button]")?.click()} />
+          <SocialButton type="google" label="Continue with Google" onClick={handleGoogleButtonClick} />
           {/* <SocialButton type="facebook" label="Continue with Facebook" /> */}
           <SocialButton type="apple" label="Continue with Apple" />
           {/* <SocialButton type="email" label="Continue with Email" /> */}

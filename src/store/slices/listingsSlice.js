@@ -5,10 +5,10 @@ import axiosInstance from "../axiosInstance";
 
 const CATEGORY_API_MAP = {
   Equipment: "equipment",
-  Activity: "activities",
-  Activities: "activities",
-  Place: "places",
-  Places: "places",
+  Activity: "activity",
+  Activities: "activity",
+  Place: "place",
+  Places: "place",
 };
 
 export const fetchListings = createAsyncThunk(
