@@ -71,7 +71,7 @@ export default function ListingsTable({
         <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-[#F8F9FA]" style={{ borderBottom: "2px solid rgba(224,224,224,1)" }}>
-              {["Activity", "Category", "Type", "Price", "Bookings", "Availability", "Rating", "Status", "Actions"].map((h) => (
+              {["Activity", "Category", /* "Type", */ "Price", "Bookings", "Availability", /* "Rating", */ "Status", "Actions"].map((h) => (
                 <th
                   key={h}
                   className={`px-5 py-3.5 uppercase whitespace-nowrap ${["Bookings", "Rating"].includes(h) ? "text-center" : ""}`}
@@ -86,7 +86,7 @@ export default function ListingsTable({
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-6 py-16 text-center text-sm text-gray-400 font-medium">
+                <td colSpan={7} className="px-6 py-16 text-center text-sm text-gray-400 font-medium">
                   No listings found.
                 </td>
               </tr>
@@ -128,9 +128,9 @@ export default function ListingsTable({
                   </td>
 
                   {/* Type */}
-                  <td className="px-5 py-3.5 whitespace-nowrap">
+                  {/* <td className="px-5 py-3.5 whitespace-nowrap">
                     <TypeBadge type={item.type} />
-                  </td>
+                  </td> */}
 
                   {/* Price */}
                   <td className="px-5 py-3.5 whitespace-nowrap">
@@ -150,7 +150,7 @@ export default function ListingsTable({
                   </td>
 
                   {/* Rating */}
-                  <td className="px-5 py-3.5 whitespace-nowrap text-center">
+                  {/* <td className="px-5 py-3.5 whitespace-nowrap text-center">
                     {item.rating != null && item.rating !== "—" ? (
                       <div className="flex items-center justify-center gap-1 text-xs font-bold text-text">
                         <StarFilledIcon size={12} className="text-yellow-400" />
@@ -160,7 +160,7 @@ export default function ListingsTable({
                     ) : (
                       <span className="text-gray-300 text-xs">—</span>
                     )}
-                  </td>
+                  </td> */}
 
                   {/* Status */}
                   <td className="px-5 py-3.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>

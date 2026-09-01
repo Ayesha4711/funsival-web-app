@@ -132,8 +132,9 @@ export function ListingCard({ listing }) {
   const perPersonPrice = toNum(priceObj?.perPerson ?? info.pricePerPerson);
   const fallbackPrice = toNum(priceObj?.amount) ?? (typeof listing.price === 'number' ? toNum(listing.price) : null);
 
-  const rating = listing.rating ?? 4.4;
-  const reviews = listing.reviewCount ?? listing.reviews ?? '21K';
+  const reviewSummary = listing.reviewSummary ?? {};
+  const rating = reviewSummary.overallRating ?? listing.rating ?? 0;
+  const reviews = reviewSummary.count ?? listing.reviewCount ?? listing.reviews ?? 0;
 
   const rawType = listing.type || info.category || listing.categoryLabel;
   const categoryLabel = rawType

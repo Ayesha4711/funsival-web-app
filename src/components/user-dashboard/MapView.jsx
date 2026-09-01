@@ -60,11 +60,11 @@ export default function MapView({ listings }) {
   };
 
   const getRating = (l) => {
-    const r = Number(l?.rating);
-    return !isNaN(r) && r > 0 ? r.toFixed(1) : "4.4";
+    const r = Number(l?.reviewSummary?.overallRating ?? l?.rating);
+    return !isNaN(r) && r > 0 ? r.toFixed(1) : "0.0";
   };
 
-  const getReviews = (l) => l?.reviewCount ?? l?.reviews ?? "21K";
+  const getReviews = (l) => l?.reviewSummary?.count ?? l?.reviewCount ?? l?.reviews ?? 0;
 
   async function geocodeCity(query) {
     try {

@@ -19,6 +19,7 @@ export default function DeleteAccountModal({ onClose }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const isConfirmed = confirmText.trim().toUpperCase() === "DELETE";
 
   const handleDelete = async () => {
     if (hasLocalAuth && !password) { setError("Please enter your password to confirm."); return; }
@@ -102,8 +103,8 @@ export default function DeleteAccountModal({ onClose }) {
             className="flex-1 border-2 border-primary text-primary font-semibold text-sm py-3 rounded-full hover:bg-primary/5 transition-colors disabled:opacity-50">
             Return
           </button>
-          <button onClick={handleDelete} disabled={loading}
-            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold text-sm py-3 rounded-full transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+          <button onClick={handleDelete} disabled={loading || !isConfirmed}
+            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold text-sm py-3 rounded-full transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
             {loading && <SpinnerIcon size={14} />}
             {loading ? "Deleting..." : "Delete Account"}
           </button>

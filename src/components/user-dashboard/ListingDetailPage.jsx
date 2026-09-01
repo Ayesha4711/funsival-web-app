@@ -687,7 +687,7 @@ function ModePill({ active, label, icon, onClick }) {
 /* ─── Booking Shell ──────────────────────────────────────────────────────────── */
 function BookingShell({ children, topSlot, reserveButton, title, price, priceUnit, rating, reviews }) {
   const ratingNum = Number(rating);
-  const ratingText = Number.isFinite(ratingNum) ? ratingNum.toFixed(1) : "4.4";
+  const ratingText = Number.isFinite(ratingNum) ? ratingNum.toFixed(1) : "0.0";
   return (
     <div className="w-full bg-white flex flex-col h-auto xl:h-full rounded-[20px] border border-gray-200 p-4 sm:p-7">
 
