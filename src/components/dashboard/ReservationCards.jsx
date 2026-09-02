@@ -75,7 +75,8 @@ export default function ReservationCards({ data, onViewDetails, onCancel, onAcce
       case "Active": return "bg-teal-50 text-[#168F8D] border border-teal-100";
       case "Completed": return "bg-green-50 text-green-400 border border-green-100";
       case "Cancelled":
-      case "Declined": return "bg-red-50 text-red-500 border border-red-100";
+      case "Declined":
+      case "Listing Deleted": return "bg-red-50 text-red-500 border border-red-100";
       case "Action Needed": return "bg-amber-50 text-amber-700 border border-amber-100";
       default: return "bg-gray-100 text-gray-600";
     }

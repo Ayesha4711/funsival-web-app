@@ -231,6 +231,12 @@ export default function AddListingWizard() {
     postalCode: "postalCode",
     startTime: "availability",
     endTime: "availability",
+    parkingSpace: "parkingSpace",
+    amenities: "amenities",
+    minRentalTime: "minRentalTime",
+    maxRentalTime: "maxRentalTime",
+    brand: "brand",
+    model: "model",
   };
 
   // Fields that live in StepDetails (step 3) vs StepReview/other steps
@@ -239,6 +245,7 @@ export default function AddListingWizard() {
     "duration", "maxParticipants", "activityTitle", "description",
     "addressLine1", "city", "state", "country", "postalCode",
     "startTime", "endTime", "photos", "availability",
+    "parkingSpace", "amenities", "minRentalTime", "maxRentalTime", "brand", "model",
   ]);
 
   const handleSubmitListing = async () => {
@@ -465,6 +472,7 @@ export default function AddListingWizard() {
               />}
             {step === 3 &&
               <StepDetails
+                category={data.category}
                 details={data.details}
                 onChange={handleDetailsChange}
                 onNext={handleDetailsNext}

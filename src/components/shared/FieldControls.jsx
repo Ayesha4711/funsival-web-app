@@ -571,7 +571,55 @@ function toIsoDate(val) {
     const [m, d, y] = s.split("/");
     return `${y}-${m}-${d}`;
   }
-  return s;
+  // Incomplete/invalid (e.g. mid-typing) — no valid ISO date yet
+  return "";
+}
+
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+// Mask free-typed input into a valid, in-progress mm/dd/yyyy string —
+// clamps month to 01-12 and day to the valid range for that month as each digit lands.
+function maskDateInput(raw) {
+  // Backspacing over a "/" (auto-inserted, not typed) should remove the digit before it too
+  const trimmed = raw.endsWith("/") ? raw.slice(0, -1) : raw;
+  const digits = trimmed.replace(/\D/g, "").slice(0, 8);
+  if (digits.length === 0) return "";
+
+  // Work off the raw digit count throughout — padding a field for display must
+  // never change how many digits we consumed from `digits`, or later digits
+  // (e.g. a typed year) end up parsed as if they belonged to an earlier field.
+  let month = digits.slice(0, 2);
+  let day = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+
+  if (month.length === 2) {
+    const mNum = parseInt(month, 10);
+    if (mNum === 0) month = "01";
+    else if (mNum > 12) month = "12";
+  }
+
+  if (day.length === 2) {
+    const mNum = parseInt(month, 10) || 1;
+    const maxDay = DAYS_IN_MONTH[mNum - 1] ?? 31;
+    const dNum = parseInt(day, 10);
+    if (dNum === 0) day = "01";
+    else if (dNum > maxDay) day = String(maxDay);
+  }
+
+  let result = month;
+  if (digits.length > 2) result += `/${day}`;
+  if (digits.length > 4) result += `/${year}`;
+
+  return result;
+}
+
+// True once the typed value is a complete mm/dd/yyyy date earlier than minDate (also mm/dd/yyyy or yyyy-mm-dd)
+function isBeforeMinDate(displayValue, minDate) {
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(displayValue)) return false;
+  const minIso = toIsoDate(minDate);
+  if (!minIso) return false;
+  const valueIso = toIsoDate(displayValue);
+  return valueIso < minIso;
 }
 
 export function CalendarField({ value, placeholder = "Select date", onChange, align = "left", minDate }) {
@@ -601,6 +649,7 @@ export function CalendarField({ value, placeholder = "Select date", onChange, al
 
   const displayValue = toDisplayDate(value);
   const isoValue = toIsoDate(value);
+  const pastDateError = isBeforeMinDate(displayValue, minDate);
 
   const handleCalendarChange = (isoDate) => {
     // Store as mm/dd/yyyy upstream (consistent with form state)
@@ -609,8 +658,7 @@ export function CalendarField({ value, placeholder = "Select date", onChange, al
   };
 
   const handleInputChange = (e) => {
-    // Let user type freely — pass raw value upstream
-    onChange(e.target.value);
+    onChange(maskDateInput(e.target.value));
   };
 
   return (
@@ -622,7 +670,12 @@ export function CalendarField({ value, placeholder = "Select date", onChange, al
           placeholder={placeholder}
           onChange={handleInputChange}
           onFocus={() => setOpen(true)}
-          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
+          aria-invalid={pastDateError}
+          className={`w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-[var(--color-text)] placeholder-gray-400 focus:outline-none focus:ring-2 ${
+            pastDateError
+              ? "border-red-300 focus:ring-red-200"
+              : "border-gray-200 focus:ring-[var(--color-primary)]/20"
+          }`}
         />
         <button
           type="button"
@@ -633,6 +686,10 @@ export function CalendarField({ value, placeholder = "Select date", onChange, al
           <CalendarIcon />
         </button>
       </div>
+
+      {pastDateError && (
+        <p className="mt-1 text-xs text-red-500 font-medium">This date has already passed. Please choose a later date.</p>
+      )}
 
       {open && (
         <div className={`absolute top-full mt-2 z-[9999] ${align === "right" ? "right-0" : "left-0"}`}>

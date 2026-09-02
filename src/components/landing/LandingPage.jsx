@@ -8,6 +8,7 @@ import BrowseByDestination from "./BrowseByDestination";
 import MobileAdventureSection from "./MobileAdventureSection";
 // import PromotionalSections from "./PromotionalSections";
 import FAQSection from "./FAQSection";
+import NewsletterSection from "./NewsletterSection";
 import AppFooter from "@/components/shared/AppFooter";
 
 export default function LandingPage() {
@@ -25,6 +26,7 @@ export default function LandingPage() {
         <MobileAdventureSection />
         {/* <PromotionalSections /> */}
         <FAQSection />
+        <NewsletterSection />
 
       </main>
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser, loginWithGoogle, resendVerificationCode, selectAuthStatus } from "@/store/slices/authSlice";
@@ -20,6 +20,8 @@ const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 function LoginForm() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
   const authStatus = useSelector(selectAuthStatus);
   const isPending = authStatus === "loading";
 
@@ -31,9 +33,11 @@ function LoginForm() {
 
   useEffect(() => {
     // Rewrite history so back always goes to / (landing page), never a protected route.
-    // replaceState rewrites the current entry to /, then pushState puts /login on top.
+    // replaceState rewrites the current entry to /, then pushState puts /login (with any
+    // returnTo query string preserved) on top.
+    const loginUrl = `/login${window.location.search}`;
     window.history.replaceState(null, "", "/");
-    window.history.pushState(null, "", "/login");
+    window.history.pushState(null, "", loginUrl);
 
     const handlePopState = () => setNavigatingBack(true);
     window.addEventListener("popstate", handlePopState);
@@ -41,7 +45,7 @@ function LoginForm() {
   }, []);
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    const result = await dispatch(loginWithGoogle({ idToken: credentialResponse.credential }));
+    const result = await dispatch(loginWithGoogle({ idToken: credentialResponse.credential, mode: "login" }));
     if (loginWithGoogle.rejected.match(result)) {
       toast.error("Google login failed", { description: result.payload || "Failed to authenticate with Google." });
       return;
@@ -49,7 +53,8 @@ function LoginForm() {
     const data = result.payload?.data;
     toast.success("Signed in successfully", { description: "Welcome back!" });
     const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "user";
-    if (role === "admin") router.push("/admin/refund-requests");
+    if (returnTo) router.push(returnTo);
+    else if (role === "admin") router.push("/admin/refund-requests");
     else router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
   };
 
@@ -88,13 +93,15 @@ function LoginForm() {
 
     if (innerData?.twoFactorRequired === true) {
       const emailForOtp = innerData?.email || form.email;
-      router.push(`/login/2fa?email=${encodeURIComponent(emailForOtp)}`);
+      const returnToParam = returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : "";
+      router.push(`/login/2fa?email=${encodeURIComponent(emailForOtp)}${returnToParam}`);
       return;
     }
 
     toast.success("Signed in successfully", { description: data?.message ?? "Welcome back! You're signed in." });
     const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "user";
-    if (role === "admin") router.push("/admin/refund-requests");
+    if (returnTo) router.push(returnTo);
+    else if (role === "admin") router.push("/admin/refund-requests");
     else router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
   };
 

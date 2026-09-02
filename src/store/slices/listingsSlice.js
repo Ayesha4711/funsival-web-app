@@ -135,13 +135,32 @@ export const updateListing = createAsyncThunk(
   },
 );
 
+export const setListingStatus = createAsyncThunk(
+  "listings/setListingStatus",
+  async ({ listingId, isActive }, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.patch(
+        `/listings/${listingId}/status`,
+        { isActive },
+      );
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data ?? err.message);
+    }
+  },
+);
+
 export const deleteListing = createAsyncThunk(
   "listings/deleteListing",
-  async (listingId, { rejectWithValue }) => {
+  async ({ listingId, confirm = false } = {}, { rejectWithValue }) => {
     try {
-      await axiosInstance.delete(`/listings/${listingId}`);
+      await axiosInstance.delete(`/listings/${listingId}${confirm ? "?confirm=true" : ""}`);
       return listingId;
     } catch (err) {
+      const upcomingCount = err.response?.data?.errors?.upcomingCount;
+      if (upcomingCount != null) {
+        return rejectWithValue({ requiresConfirmation: true, upcomingCount, listingId });
+      }
       return rejectWithValue(err.response?.data?.message ?? err.message);
     }
   },
@@ -249,6 +268,20 @@ const listingsSlice = createSlice({
       })
 
       .addCase(updateListing.fulfilled, (state, action) => {
+        const updated =
+          action.payload?.data?.listing ??
+          action.payload?.data ??
+          action.payload;
+        if (Array.isArray(state.items)) {
+          const idx = state.items.findIndex((l) => l._id === updated?._id);
+          if (idx !== -1) state.items[idx] = updated;
+        }
+        if (state.selectedListing?._id === updated?._id) {
+          state.selectedListing = updated;
+        }
+      })
+
+      .addCase(setListingStatus.fulfilled, (state, action) => {
         const updated =
           action.payload?.data?.listing ??
           action.payload?.data ??

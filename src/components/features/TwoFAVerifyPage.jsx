@@ -17,6 +17,7 @@ export default function TwoFAVerifyPage() {
 
   const email = params.get("email") ?? "";
   const role  = params.get("role")  ?? "user";
+  const returnTo = params.get("returnTo");
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef([]);
@@ -63,7 +64,8 @@ export default function TwoFAVerifyPage() {
     const data = result.payload?.data;
     toast.success("Signed in successfully", { description: data?.message ?? "Welcome back!" });
     const resolvedRole = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? role;
-    router.push(resolvedRole === "host" ? "/dashboard" : "/user-dashboard/explore");
+    if (returnTo) router.push(returnTo);
+    else router.push(resolvedRole === "host" ? "/dashboard" : "/user-dashboard/explore");
   };
 
   useEffect(() => {

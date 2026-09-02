@@ -742,9 +742,11 @@ function HourlySlotBookingCard({
   }, [SKEY]);
 
   const listingDates = React.useMemo(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
     const dates = (listing.availability || [])
       .map((slot) => slot?.date?.split("T")[0] || slot?.day || "")
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter((d) => d >= todayStr);
     return [...new Set(dates)].sort();
   }, [listing.availability]);
 
@@ -1185,11 +1187,27 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
     return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
   };
 
+  // Recurring activity slots can span several hours (e.g. 1:00 AM – 8:00 AM);
+  // offer one option per hour within the slot rather than a single option
+  // for the whole range, so the guest can pick which hour they want.
   const startTimeOptions = React.useMemo(() => {
     if (!date) return [];
-    return availability
+    const options = [];
+    availability
       .filter(a => a.date.split("T")[0] === date && a.isAvailable !== false)
-      .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
+      .forEach(a => {
+        const slotMinutes = calculateSlotMinutes(a.startTime, a.endTime);
+        const hourCount = Math.max(1, Math.floor(slotMinutes / 60));
+        const startMinutes = timeToMinutes(a.startTime);
+        for (let i = 0; i < hourCount; i += 1) {
+          const minutes = (startMinutes + i * 60) % (24 * 60);
+          const hh = String(Math.floor(minutes / 60)).padStart(2, "0");
+          const mm = String(minutes % 60).padStart(2, "0");
+          const value = `${hh}:${mm}`;
+          options.push({ label: formatTime(value), value });
+        }
+      });
+    return options;
   }, [date, availability]);
 
   useEffect(() => {
@@ -1246,7 +1264,13 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
           onChange={v => {
             setDate(v);
             setErrors(e => ({ ...e, date: false }));
-            const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
+            const startMinutes = timeToMinutes(startTime);
+            const valid = availability.some(a => {
+              if (a.date.split("T")[0] !== v || a.isAvailable === false) return false;
+              const slotStart = timeToMinutes(a.startTime);
+              const slotDuration = calculateSlotMinutes(a.startTime, a.endTime);
+              return startMinutes >= slotStart && startMinutes < slotStart + slotDuration;
+            });
             if (!valid) {
               setStartTime("");
               setEndTime("");
@@ -1265,9 +1289,24 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
           onChange={v => {
             setStartTime(v);
             setErrors(e => ({ ...e, startTime: false }));
-            const slot = availability.find(a => a.date.split("T")[0] === date && a.startTime === v && a.isAvailable !== false);
-            if (slot) setEndTime(slot.endTime);
-            else setEndTime("");
+            // Find the parent slot this hourly option was generated from, then
+            // book a single hour starting at v (clamped to the slot's actual end).
+            const startMinutes = timeToMinutes(v);
+            const slot = availability.find(a => {
+              if (a.date.split("T")[0] !== date || a.isAvailable === false) return false;
+              const slotStart = timeToMinutes(a.startTime);
+              const slotDuration = calculateSlotMinutes(a.startTime, a.endTime);
+              return startMinutes >= slotStart && startMinutes < slotStart + slotDuration;
+            });
+            if (slot) {
+              const slotEndMinutes = timeToMinutes(slot.startTime) + calculateSlotMinutes(slot.startTime, slot.endTime);
+              const endMinutes = Math.min(startMinutes + 60, slotEndMinutes) % (24 * 60);
+              const hh = String(Math.floor(endMinutes / 60)).padStart(2, "0");
+              const mm = String(endMinutes % 60).padStart(2, "0");
+              setEndTime(`${hh}:${mm}`);
+            } else {
+              setEndTime("");
+            }
           }}
           placeholder="Start time"
           options={startTimeOptions}

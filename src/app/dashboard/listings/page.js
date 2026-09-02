@@ -9,7 +9,7 @@ import {
   fetchDraft,
   deleteDraft,
   deleteListing,
-  updateListing,
+  setListingStatus,
   fetchHostListingStats,
   selectListingsStatus,
   selectHostListingStats,
@@ -81,6 +81,8 @@ export default function ListingsPage() {
   const [editingListing, setEditingListing] = useState(null);
   const [deletingListing, setDeletingListing] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [bookingWarning, setBookingWarning] = useState(null);
+  const [bookingWarningLoading, setBookingWarningLoading] = useState(false);
   const [detailsItem, setDetailsItem] = useState(null);
   const pendingEditRef = useRef(
     typeof window === "undefined"
@@ -264,8 +266,8 @@ export default function ListingsPage() {
     const previousStatus = item.status;
     setListings((prev) => prev.map((entry) => entry.id === item.id ? { ...entry, status: newStatus } : entry));
 
-    const result = await dispatch(updateListing({ listingId: item.id, payload: { status: newStatus } }));
-    if (updateListing.fulfilled.match(result)) {
+    const result = await dispatch(setListingStatus({ listingId: item.id, isActive: newStatus === "Active" }));
+    if (setListingStatus.fulfilled.match(result)) {
       dispatch(fetchHostListingStats());
     } else {
       setListings((prev) => prev.map((entry) => entry.id === item.id ? { ...entry, status: previousStatus } : entry));
@@ -283,8 +285,17 @@ export default function ListingsPage() {
     setDeleteLoading(true);
 
     const isDraft = deletingListing.status === "Draft";
-    const result = await dispatch(isDraft ? deleteDraft() : deleteListing(deletingListing.id));
+    const result = await dispatch(
+      isDraft ? deleteDraft() : deleteListing({ listingId: deletingListing.id, confirm: false })
+    );
     setDeleteLoading(false);
+
+    if (!isDraft && deleteListing.rejected.match(result) && result.payload?.requiresConfirmation) {
+      const name = deletingListing.name;
+      setDeletingListing(null);
+      setBookingWarning({ listingId: result.payload.listingId, name, upcomingCount: result.payload.upcomingCount });
+      return;
+    }
 
     const action = isDraft ? deleteDraft : deleteListing;
     if (action.fulfilled.match(result)) {
@@ -295,6 +306,24 @@ export default function ListingsPage() {
       toast.error(result.payload ?? (isDraft ? "Failed to discard draft." : "Failed to delete listing."));
     }
     setDeletingListing(null);
+  };
+
+  const handleBookingWarningConfirm = async () => {
+    if (!bookingWarning) return;
+    setBookingWarningLoading(true);
+
+    const result = await dispatch(deleteListing({ listingId: bookingWarning.listingId, confirm: true }));
+    setBookingWarningLoading(false);
+
+    if (deleteListing.fulfilled.match(result)) {
+      toast.success("Listing deleted and reservations cancelled.");
+      setListings((prev) => prev.filter((item) => item.id !== bookingWarning.listingId));
+      dispatch(fetchHostListingStats());
+    } else {
+      const message = typeof result.payload === "string" ? result.payload : "Failed to delete listing.";
+      toast.error(message);
+    }
+    setBookingWarning(null);
   };
 
   const handleResumeDraft = (item) => {
@@ -426,6 +455,38 @@ export default function ListingsPage() {
                 {deleteLoading
                   ? (deletingListing.status === "Draft" ? "Discarding…" : "Deleting…")
                   : (deletingListing.status === "Draft" ? "Discard" : "Delete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bookingWarning && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setBookingWarning(null); }}
+        >
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 sm:p-8">
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-500">
+                <TrashIcon size={26} />
+              </div>
+            </div>
+            <h2 className="text-base font-extrabold text-[var(--color-text)] mb-1">
+              Delete listing with upcoming reservations?
+            </h2>
+            <p className="text-sm text-gray-400 font-medium mb-6">
+              {`"${bookingWarning.name}" has ${bookingWarning.upcomingCount} upcoming reservation${bookingWarning.upcomingCount === 1 ? "" : "s"}. Deleting it will cancel ${bookingWarning.upcomingCount === 1 ? "it" : "them"} and refund the guest${bookingWarning.upcomingCount === 1 ? "" : "s"}. This cannot be undone.`}
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setBookingWarning(null)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleBookingWarningConfirm} disabled={bookingWarningLoading}
+                className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-60">
+                {bookingWarningLoading ? "Cancelling & Deleting…" : "Delete & Cancel Reservations"}
               </button>
             </div>
           </div>

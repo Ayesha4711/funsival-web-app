@@ -644,7 +644,10 @@ export default function UserExplorePage() {
   const listingsStatus = useSelector(selectActivitiesStatus);
   const pagination = useSelector(selectActivitiesPagination);
 
-  const urlCategory = searchParams.get('category');
+  // The landing page's Activity Type filter sends the backend's singular
+  // category values (place/activity/equipment); tabs here are keyed plural.
+  const SINGULAR_TO_TAB = { place: 'places', activity: 'activities', equipment: 'equipment' };
+  const urlCategory = SINGULAR_TO_TAB[searchParams.get('category')] || searchParams.get('category');
   const urlType = searchParams.get('type');
 
   const [activeTab, setActiveTab] = useState(() =>

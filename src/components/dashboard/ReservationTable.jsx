@@ -15,9 +15,9 @@ function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
   const isUpcoming     = item.status === "Upcoming";
 
   const getHeight = useCallback(() => {
-    const itemCount = (isActionNeeded ? 2 : 0) + 1 + (isUpcoming || isActionNeeded ? 1 : 0);
+    const itemCount = (isActionNeeded ? 2 : 0) + 1;
     return itemCount * 44 + 12;
-  }, [isActionNeeded, isUpcoming]);
+  }, [isActionNeeded]);
 
   const { open, toggle, close, pos, btnRef, menuRef } = useDropdownPosition({
     width: MENU_WIDTH,
@@ -53,6 +53,7 @@ function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
       >
         View Details
       </button>
+      {/* Cancel temporarily disabled — commented out for now
       {(isUpcoming || isActionNeeded) && (
         <button
           onClick={() => { close(); onCancel(item); }}
@@ -61,6 +62,7 @@ function ActionMenu({ item, onViewDetails, onCancel, onAccept, onDecline }) {
           Cancel
         </button>
       )}
+      */}
     </div>
   );
 
@@ -86,6 +88,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
       case "Completed":     return "bg-[#DDFBE7] text-[#12A84A]";
       case "Cancelled":     return "bg-[#FFE0DE] text-[#FF1F1F]";
       case "Declined":      return "bg-[#FFE0DE] text-[#FF1F1F]";
+      case "Listing Deleted": return "bg-[#FFE0DE] text-[#FF1F1F]";
       case "Action Needed": return "bg-amber-100 text-amber-700";
       case "Pending":       return "bg-[#FFF3CD] text-[#D97706]";
       default:              return "bg-gray-100 text-gray-500";

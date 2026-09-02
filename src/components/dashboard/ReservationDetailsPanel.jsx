@@ -39,9 +39,9 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
 
   if (!reservation) return null;
 
-  const isCancelled    = reservation.status === "Cancelled" || reservation.status === "Declined";
+  const isCancelled    = reservation.status === "Cancelled" || reservation.status === "Declined" || reservation.status === "Listing Deleted";
   const isActionNeeded = reservation.status === "Action Needed";
-  const cancelledBy    = reservation._cancelledBy || reservation.reservedBy;
+  const cancelledBy    = reservation.cancelledBy || reservation.reservedBy;
   const cancelReason   = reservation._cancelReason;
 
   const PAYMENT_STATUS_CFG = {
@@ -59,7 +59,7 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
   };
   const psCfg = PAYMENT_STATUS_CFG[reservation.paymentStatus] ?? null;
 
-  const rawPhoto    = reservation._raw?.listing?.photos?.[0];
+  const rawPhoto    = reservation._raw?.listing?.photos?.[0] || reservation._raw?.listingSnapshot?.photo;
   const hasRealPhoto = rawPhoto && !rawPhoto.startsWith("blob:");
 
   return (
@@ -154,12 +154,20 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
               style={{ backgroundColor: "#FFF7ED", border: "1px solid #FED7AA" }}
             >
               <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14, color: "#EA580C" }} className="mb-1">
-                {reservation.status === "Declined" ? "Booking Was Declined" : "Booking Was Canceled"}
+                {reservation.status === "Declined"
+                  ? "Booking Was Declined"
+                  : reservation.status === "Listing Deleted"
+                    ? "Listing Deleted"
+                    : "Booking Was Canceled"}
               </p>
               <p style={{ fontFamily: FONT, fontWeight: 500, fontSize: 13, color: "#EA580C" }} className="mb-0.5">
                 {reservation.status === "Declined"
                   ? "The host declined this booking. No charge was made."
-                  : `This booking was canceled by ${cancelledBy}${reservation._raw?.cancelledAt ? `, on ${new Date(reservation._raw.cancelledAt).toLocaleDateString("en-GB")}` : ""}`
+                  : reservation.status === "Listing Deleted"
+                    ? "You deleted this listing. The guest was notified and refunded."
+                    : cancelledBy === "You"
+                      ? `You cancelled this booking${reservation._raw?.cancelledAt ? `, on ${new Date(reservation._raw.cancelledAt).toLocaleDateString("en-GB")}` : ""}`
+                      : `This booking was canceled by ${cancelledBy}${reservation._raw?.cancelledAt ? `, on ${new Date(reservation._raw.cancelledAt).toLocaleDateString("en-GB")}` : ""}`
                 }
               </p>
               {cancelReason && (
@@ -177,7 +185,7 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
                 Action Required
               </p>
               <p style={{ fontFamily: FONT, fontWeight: 400, fontSize: 12, color: "#B45309" }} className="mt-0.5 leading-relaxed">
-                Guest's card is authorized. Accept to charge it, or decline to void the hold. You have up to 6 days.
+                Guest&apos;s card is authorized. Accept to charge it, or decline to void the hold. You have up to 6 days.
               </p>
             </div>
           )}

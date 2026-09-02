@@ -51,17 +51,22 @@ const TYPE_MAP = {
   equipment: EQUIPMENT_TYPES,
 };
 
+export { ACTIVITY_TYPES, PLACE_TYPES, EQUIPMENT_TYPES, TYPE_MAP };
+
 /* ─── Type tile ────────────────────────────────────────────────────────────── */
-function TypeTile({ item, selected, onClick }) {
+function TypeTile({ item, selected, onClick, readOnly = false }) {
   return (
     <button
-      onClick={() => onClick(item.id)}
+      onClick={() => !readOnly && onClick(item.id)}
+      disabled={readOnly}
       className={[
         "relative flex flex-col items-center justify-center gap-2 p-3 w-full aspect-[4/3]",
-        "rounded-[12px] border-2 transition-all duration-150 cursor-pointer text-center",
+        "rounded-[12px] border-2 transition-all duration-150 text-center",
+        readOnly ? "cursor-not-allowed" : "cursor-pointer",
         selected
           ? "border-[#1d8c82] bg-[var(--color-primary-light)]"
           : "border-gray-200 bg-white",
+        readOnly && !selected ? "opacity-40" : "",
       ].join(" ")}
     >
       {selected && (
@@ -76,7 +81,7 @@ function TypeTile({ item, selected, onClick }) {
 }
 
 /* ─── Step ─────────────────────────────────────────────────────────────────── */
-export default function StepType({ category, selected, onSelect, onNext, onBack }) {
+export default function StepType({ category, selected, onSelect, onNext, onBack, readOnly = false }) {
   const [search, setSearch] = useState("");
   const types = TYPE_MAP[category] ?? ACTIVITY_TYPES;
 
@@ -95,22 +100,26 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
       </h2>
 
       <p className="text-[#475467] text-[13px] sm:text-[14px] leading-[20px] sm:leading-[22px] text-center max-w-[260px] sm:max-w-md mb-8 font-normal font-sofia">
-        In this step, we&apos;ll ask you which type of property you have and if guests will book the entire place or just a room. Then let us know the location and how many guests can stay.
+        {readOnly
+          ? "The type can't be changed after a listing is created."
+          : "In this step, we’ll ask you which type of property you have and if guests will book the entire place or just a room. Then let us know the location and how many guests can stay."}
       </p>
 
       {/* Search */}
-      <div className="relative w-full max-w-2xl mb-6 px-0">
-        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
-          <SearchIcon size={16} />
-        </span>
-        <input
-          type="text"
-          placeholder="Search here"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-12 pr-5 py-3 sm:py-3.5 rounded-full border border-gray-200 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
-        />
-      </div>
+      {!readOnly && (
+        <div className="relative w-full max-w-2xl mb-6 px-0">
+          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
+            <SearchIcon size={16} />
+          </span>
+          <input
+            type="text"
+            placeholder="Search here"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-12 pr-5 py-3 sm:py-3.5 rounded-full border border-gray-200 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
+          />
+        </div>
+      )}
 
       {/* Cards — 3 cols on mobile, 4 cols on tablet/desktop */}
       <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 w-full max-w-3xl mb-12 sm:mb-16">
@@ -120,6 +129,7 @@ export default function StepType({ category, selected, onSelect, onNext, onBack 
             item={item}
             selected={selected === item.id}
             onClick={onSelect}
+            readOnly={readOnly}
           />
         ))}
         {filtered.length === 0 && (

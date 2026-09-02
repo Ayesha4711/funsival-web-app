@@ -3,7 +3,7 @@
 import React from "react";
 import { SimpleMap } from "@/components/shared/MapControls";
 import { parseCalendarDate } from "@/components/shared/dateUtils";
-import { describeListingPrice, formatListingPrice, getPriceMode } from "./listingPrice";
+import { formatListingPrice } from "./listingPrice";
 import { MapPinIcon, DollarIcon, ClockIcon, UsersIcon, CalendarIcon, InfoIcon, SpinnerIcon } from "@/icons";
 
 function fmt12(timeStr) {
@@ -115,6 +115,8 @@ export default function StepReview({
   submitLabel = "Submit",
 }) {
   const { category, type, details = {}, price } = data;
+  const isPlace = category === "places";
+  const isEquipment = category === "equipment";
 
   const title = details.title || "—";
   const location = [details.placeCity, details.state, details.country].filter(Boolean).join(", ")
@@ -131,6 +133,15 @@ export default function StepReview({
   const wifi = details.wifi;
   const requirements = details.requirements || "—";
   const cancellationPolicy = details.cancellationPolicy || "—";
+  const maxGuests = details.maxGuests || "—";
+  const parkingSpace = details.parkingSpace ? cap(details.parkingSpace) : "—";
+  const amenities = details.amenities?.length ? details.amenities : [];
+  const minRentalTime = details.minRentalTime ? cap(details.minRentalTime) : "—";
+  const maxRentalTime = details.maxRentalTime ? cap(details.maxRentalTime) : "—";
+  const brand = details.brand || "—";
+  const model = details.model || "—";
+  const hourlyPrice = price?.hourly ? `$${price.hourly}` : "—";
+  const dailyPrice = price?.daily ? `$${price.daily}` : "—";
 
   // Recurring slots are stored per-weekday (details.recurringSlots) across a date
   // range, separately from one-time slots (details.slots) — show whichever type
@@ -165,8 +176,6 @@ export default function StepReview({
   const photos = details.photos || [];
   const serviceCategory = cap(type) || "—";
   const displayPrice = formatListingPrice(category, price);
-  const priceLines = describeListingPrice(category, price);
-  const priceMode = getPriceMode(category);
 
   const addressLine1 = details.addressLine1 || "";
   const addressLine2 = details.addressLine2 || "";
@@ -200,9 +209,9 @@ export default function StepReview({
       <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-7">
 
         {/* Row 1 — title / location / price / category */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
+        <div className={isEquipment ? "grid grid-cols-2 lg:grid-cols-5 gap-x-6 gap-y-5" : "grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5"}>
           <div>
-            <FieldLabel>Activity Title</FieldLabel>
+            <FieldLabel>{isPlace ? "Place Name" : isEquipment ? "Equipment Name" : "Activity Title"}</FieldLabel>
             <FieldValue>{title}</FieldValue>
           </div>
           <div>
@@ -212,15 +221,34 @@ export default function StepReview({
               {location}
             </FieldValue>
           </div>
+          {isPlace || isEquipment ? (
+            <>
+              <div>
+                <FieldLabel>Price per Hour</FieldLabel>
+                <FieldValue className="flex items-start gap-1">
+                  <DollarIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
+                  {hourlyPrice}
+                </FieldValue>
+              </div>
+              <div>
+                <FieldLabel>Price per Day</FieldLabel>
+                <FieldValue className="flex items-start gap-1">
+                  <DollarIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
+                  {dailyPrice}
+                </FieldValue>
+              </div>
+            </>
+          ) : (
+            <div>
+              <FieldLabel>Price per Person</FieldLabel>
+              <FieldValue className="flex items-start gap-1">
+                <DollarIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
+                {displayPrice}
+              </FieldValue>
+            </div>
+          )}
           <div>
-            <FieldLabel>{priceMode === "activities" ? "Price per Person" : priceMode === "equipment" ? "Equipment Price" : "Place Price"}</FieldLabel>
-            <FieldValue className="flex items-start gap-1">
-              <DollarIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
-              {displayPrice}
-            </FieldValue>
-          </div>
-          <div>
-            <FieldLabel>Service Category</FieldLabel>
+            <FieldLabel>{isPlace ? "Place Type" : isEquipment ? "Equipment Category" : "Service Category"}</FieldLabel>
             <FieldValue>{serviceCategory}</FieldValue>
           </div>
         </div>
@@ -235,33 +263,89 @@ export default function StepReview({
 
         <Divider />
 
-        {/* Row 2 — difficulty / duration / max / instructor */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
-          <div>
-            <FieldLabel>Difficulty level</FieldLabel>
-            <FieldValue>{cap(difficulty)}</FieldValue>
+        {/* Row 2 — category-specific details */}
+        {isPlace ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
+            <div>
+              <FieldLabel>Capacity Per Person</FieldLabel>
+              <FieldValue className="flex items-center gap-1.5">
+                <UsersIcon size={15} className="shrink-0 mt-0.5 text-gray-400" />
+                {maxGuests}
+              </FieldValue>
+            </div>
+            <div>
+              <FieldLabel>Parking Space</FieldLabel>
+              <FieldValue>{parkingSpace}</FieldValue>
+            </div>
+            <div>
+              <FieldLabel>Minimum Rental Time</FieldLabel>
+              <FieldValue className="flex items-center gap-1.5">
+                <ClockIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
+                {minRentalTime}
+              </FieldValue>
+            </div>
+            <div>
+              <FieldLabel>Maximum Rental Time</FieldLabel>
+              <FieldValue className="flex items-center gap-1.5">
+                <ClockIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
+                {maxRentalTime}
+              </FieldValue>
+            </div>
           </div>
-          <div>
-            <FieldLabel>Duration</FieldLabel>
-            <FieldValue className="flex items-center gap-1.5">
-              <ClockIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
-              {cap(duration)}
-            </FieldValue>
+        ) : isEquipment ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
+            <div>
+              <FieldLabel>Brand</FieldLabel>
+              <FieldValue>{brand}</FieldValue>
+            </div>
+            <div>
+              <FieldLabel>Model</FieldLabel>
+              <FieldValue>{model}</FieldValue>
+            </div>
           </div>
-          <div>
-            <FieldLabel>Max Participants</FieldLabel>
-            <FieldValue className="flex items-center gap-1.5">
-              <UsersIcon size={15} className="shrink-0 mt-0.5 text-gray-400" />
-              {maxParticipants}
-            </FieldValue>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
+            <div>
+              <FieldLabel>Difficulty level</FieldLabel>
+              <FieldValue>{cap(difficulty)}</FieldValue>
+            </div>
+            <div>
+              <FieldLabel>Duration</FieldLabel>
+              <FieldValue className="flex items-center gap-1.5">
+                <ClockIcon size={14} className="shrink-0 mt-0.5 text-gray-400" />
+                {cap(duration)}
+              </FieldValue>
+            </div>
+            <div>
+              <FieldLabel>Max Participants</FieldLabel>
+              <FieldValue className="flex items-center gap-1.5">
+                <UsersIcon size={15} className="shrink-0 mt-0.5 text-gray-400" />
+                {maxParticipants}
+              </FieldValue>
+            </div>
+            <div>
+              <FieldLabel>Instructor Guide name</FieldLabel>
+              <FieldValue>{instructorName}</FieldValue>
+            </div>
           </div>
-          <div>
-            <FieldLabel>Instructor Guide name</FieldLabel>
-            <FieldValue>{instructorName}</FieldValue>
-          </div>
-        </div>
+        )}
 
         <Divider />
+
+        {/* Amenities (Places only) */}
+        {isPlace && amenities.length > 0 && (
+          <>
+            <div>
+              <FieldLabel>Ameneties</FieldLabel>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {amenities.map((item, i) => (
+                  <IncludedTag key={i}>{item}</IncludedTag>
+                ))}
+              </div>
+            </div>
+            <Divider />
+          </>
+        )}
 
         {/* What's Included */}
         {allIncluded.length > 0 && (
