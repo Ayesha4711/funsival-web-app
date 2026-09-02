@@ -1,41 +1,60 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { MapPinIcon, SearchIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "@/icons";
 import CalendarMonth from "@/components/shared/CalendarMonth";
+import {
+  fetchBrowseDestinations,
+  selectBrowseDestinations,
+  setLandingSearch,
+} from "@/store/slices/activitiesSlice";
 
-const cities = [
-  "Denver",
-  "New York",
-  "Los Angeles",
-  "Hawaii",
-  "Aurora",
-  "Boulder",
-  "Asper",
-  "Pearl City",
+const CATEGORY_OPTIONS = [
+  { category: "place", label: "Places", icon: "🏝️" },
+  { category: "activity", label: "Activities", icon: "🪂" },
+  { category: "equipment", label: "Equipment", icon: "🎒" },
 ];
 
-const activities = [
-  { name: "Sky Diving", icon: "🪂" },
-  { name: "Jet Skiing", icon: "🚤" },
-  { name: "Scuba Diving", icon: "🤿" },
-  { name: "Jeep Rally", icon: "🚙" },
-];
+function toDateInput(d) {
+  if (!d) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 export default function HeroSection() {
+  const dispatch = useDispatch();
+  const destinations = useSelector(selectBrowseDestinations);
+
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [searchData, setSearchData] = useState({
-    location: "",
-    activity: "",
-    from: "",
-    unit: ""
-  });
+  const [locationInput, setLocationInput] = useState("");
+  const [activity, setActivity] = useState(null); // { category, label }
   const [selectedStart, setSelectedStart] = useState(null);
   const [selectedEnd, setSelectedEnd] = useState(null);
   const [hovered, setHovered] = useState(null);
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const searchRef = useRef(null);
+
+  useEffect(() => {
+    dispatch(fetchBrowseDestinations({ limit: 50 }));
+  }, [dispatch]);
+
+  const cityOptions = React.useMemo(() => {
+    const seen = new Set();
+    const out = [];
+    destinations.forEach((d) => {
+      const label = [d.city, d.state].filter(Boolean).join(", ") || d.city;
+      const key = label.toLowerCase();
+      if (label && !seen.has(key)) {
+        seen.add(key);
+        out.push(label);
+      }
+    });
+    return out;
+  }, [destinations]);
 
   useEffect(() => {
     function handleClick(e) {
@@ -96,6 +115,33 @@ export default function HeroSection() {
   const secondMonth = calMonth === 11 ? 0 : calMonth + 1;
   const secondYear = calMonth === 11 ? calYear + 1 : calYear;
 
+  const handleSearch = () => {
+    if (selectedStart && selectedEnd && selectedEnd < selectedStart) return;
+
+    const location = locationInput.trim();
+    const category = activity?.category ?? null;
+    const from = selectedStart ? toDateInput(selectedStart) : "";
+    const until = selectedEnd ? toDateInput(selectedEnd) : "";
+
+    dispatch(setLandingSearch({ location, category, from, until }));
+    setOpenDropdown(null);
+
+    // Stay on the landing page and scroll to whichever section can show
+    // results for this search — Browse by Adventure only has activity-type
+    // cards, so an Activities search (or no category at all) goes there;
+    // otherwise a location search goes to Browse by Destination.
+    const targetId =
+      category === "activity" || (!category && !location)
+        ? "browse-by-adventure"
+        : location
+          ? "browse-by-destination"
+          : "browse-by-adventure";
+
+    requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   return (
     <section className="relative w-full">
       {/* Hero image — height auto on mobile so content determines size, fixed on desktop */}
@@ -139,8 +185,8 @@ export default function HeroSection() {
                 onClick={() => setOpenDropdown(openDropdown === "city" ? null : "city")}
               >
                 <MapPinIcon size={20} className="text-gray-400 shrink-0" />
-                <span className={`text-sm ${searchData.location ? "text-gray-900 font-medium" : "text-gray-400"}`}>
-                  {searchData.location || "Where are you going?"}
+                <span className={`text-sm ${locationInput ? "text-gray-900 font-medium" : "text-gray-400"}`}>
+                  {locationInput || "Where are you going?"}
                 </span>
               </button>
               {openDropdown === "city" && (
@@ -148,14 +194,14 @@ export default function HeroSection() {
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
                       <MapPinIcon size={16} className="text-gray-400 shrink-0" />
-                      <input autoFocus type="text" placeholder="Select City" className="flex-1 text-sm bg-transparent focus:outline-none text-gray-700"
-                        value={searchData.location} onChange={e => setSearchData({ ...searchData, location: e.target.value })} />
+                      <input autoFocus type="text" placeholder="Search city, state, country" className="flex-1 text-sm bg-transparent focus:outline-none text-gray-700"
+                        value={locationInput} onChange={e => setLocationInput(e.target.value)} />
                     </div>
                   </div>
                   <div className="py-1 max-h-52 overflow-y-auto">
-                    {cities.filter(c => c.toLowerCase().includes(searchData.location.toLowerCase())).map(city => (
-                      <button key={city} onClick={() => { setSearchData({ ...searchData, location: city }); setOpenDropdown(null); }}
-                        className={`w-full text-left px-4 py-3 text-sm transition-colors ${searchData.location === city ? "bg-[#4AA7A7] text-white" : "text-gray-700 hover:bg-gray-50"}`}>
+                    {cityOptions.filter(c => c.toLowerCase().includes(locationInput.toLowerCase())).map(city => (
+                      <button key={city} onClick={() => { setLocationInput(city); setOpenDropdown(null); }}
+                        className={`w-full text-left px-4 py-3 text-sm transition-colors ${locationInput === city ? "bg-[#4AA7A7] text-white" : "text-gray-700 hover:bg-gray-50"}`}>
                         {city}
                       </button>
                     ))}
@@ -171,17 +217,17 @@ export default function HeroSection() {
                 onClick={() => setOpenDropdown(openDropdown === "activity" ? null : "activity")}
               >
                 <SearchIcon size={20} className="text-gray-400 shrink-0" />
-                <span className={`text-sm ${searchData.activity ? "text-gray-900 font-medium" : "text-gray-400"}`}>
-                  {searchData.activity || "Activity type"}
+                <span className={`text-sm ${activity ? "text-gray-900 font-medium" : "text-gray-400"}`}>
+                  {activity?.label || "Activity type"}
                 </span>
               </button>
               {openDropdown === "activity" && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl border border-gray-100 z-50 overflow-hidden">
-                  <div className="py-1">
-                    {activities.map(act => (
-                      <button key={act.name} onClick={() => { setSearchData({ ...searchData, activity: act.name }); setOpenDropdown(null); }}
-                        className={`w-full text-left px-4 py-3 text-sm flex items-center gap-3 transition-colors ${searchData.activity === act.name ? "bg-[#4AA7A7] text-white" : "text-gray-700 hover:bg-gray-50"}`}>
-                        <span>{act.icon}</span><span>{act.name}</span>
+                  <div className="py-1 max-h-64 overflow-y-auto">
+                    {CATEGORY_OPTIONS.map(t => (
+                      <button key={t.category} onClick={() => { setActivity(t); setOpenDropdown(null); }}
+                        className={`w-full text-left px-4 py-3 text-sm flex items-center gap-3 transition-colors ${activity?.category === t.category ? "bg-[#4AA7A7] text-white" : "text-gray-700 hover:bg-gray-50"}`}>
+                        <span>{t.icon}</span><span>{t.label}</span>
                       </button>
                     ))}
                   </div>
@@ -245,7 +291,7 @@ export default function HeroSection() {
             {/* Search Adventures button */}
             <div className="p-3">
               <button
-                onClick={() => console.log("Search", searchData)}
+                onClick={handleSearch}
                 className="w-full h-12 bg-[#4AA7A7] hover:bg-[#3d8f8f] text-white rounded-full flex items-center justify-center transition-colors font-semibold text-sm"
               >
                 Search Adventures
@@ -280,21 +326,21 @@ export default function HeroSection() {
                 <MapPinIcon size={16} className="text-gray-400 shrink-0" />
                 <div className="text-left min-w-0">
                   <p className="text-[10px] text-gray-400 font-medium">Where?</p>
-                  <p className="text-sm font-semibold text-gray-800 truncate">{searchData.location || "Add location, state"}</p>
+                  <p className="text-sm font-semibold text-gray-800 truncate">{locationInput || "Add location, state"}</p>
                 </div>
               </button>
               {openDropdown === "city" && (
                 <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-white rounded-2xl border border-gray-100 z-50 overflow-hidden">
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
-                      <input autoFocus type="text" placeholder="Select City" className="flex-1 text-xs bg-transparent focus:outline-none text-gray-700"
-                        value={searchData.location} onChange={e => setSearchData({ ...searchData, location: e.target.value })} />
+                      <input autoFocus type="text" placeholder="Search city, state, country" className="flex-1 text-xs bg-transparent focus:outline-none text-gray-700"
+                        value={locationInput} onChange={e => setLocationInput(e.target.value)} />
                     </div>
                   </div>
                   <div className="py-1 max-h-52 overflow-y-auto">
-                    {cities.filter(c => c.toLowerCase().includes(searchData.location.toLowerCase())).map(city => (
-                      <button key={city} onClick={() => { setSearchData({ ...searchData, location: city }); setOpenDropdown(null); }}
-                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${searchData.location === city ? "bg-[#4AA7A7] text-white" : "text-gray-700 hover:bg-gray-50"}`}>
+                    {cityOptions.filter(c => c.toLowerCase().includes(locationInput.toLowerCase())).map(city => (
+                      <button key={city} onClick={() => { setLocationInput(city); setOpenDropdown(null); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${locationInput === city ? "bg-[#4AA7A7] text-white" : "text-gray-700 hover:bg-gray-50"}`}>
                         {city}
                       </button>
                     ))}
@@ -312,16 +358,16 @@ export default function HeroSection() {
                 <SearchIcon size={16} className="text-gray-400 shrink-0" />
                 <div className="text-left min-w-0">
                   <p className="text-[10px] text-gray-400 font-medium">Activity Type</p>
-                  <p className="text-sm font-semibold text-gray-800 truncate">{searchData.activity || "Skydiving, jet skiing"}</p>
+                  <p className={`text-sm truncate ${activity ? "font-semibold text-gray-800" : "text-gray-400"}`}>{activity?.label || "Activity type"}</p>
                 </div>
               </button>
               {openDropdown === "activity" && (
                 <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-white rounded-2xl border border-gray-100 z-50 overflow-hidden">
-                  <div className="py-1">
-                    {activities.map(act => (
-                      <button key={act.name} onClick={() => { setSearchData({ ...searchData, activity: act.name }); setOpenDropdown(null); }}
-                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors ${searchData.activity === act.name ? "bg-[#4AA7A7] text-white" : "text-gray-700 hover:bg-gray-50"}`}>
-                        <span>{act.icon}</span><span>{act.name}</span>
+                  <div className="py-1 max-h-64 overflow-y-auto">
+                    {CATEGORY_OPTIONS.map(t => (
+                      <button key={t.category} onClick={() => { setActivity(t); setOpenDropdown(null); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors ${activity?.category === t.category ? "bg-[#4AA7A7] text-white" : "text-gray-700 hover:bg-gray-50"}`}>
+                        <span>{t.icon}</span><span>{t.label}</span>
                       </button>
                     ))}
                   </div>
@@ -342,7 +388,7 @@ export default function HeroSection() {
                     <p className="text-sm font-semibold text-gray-800 whitespace-nowrap">
                       {selectedStart
                         ? `${String(selectedStart.getMonth()+1).padStart(2,"0")}/${String(selectedStart.getDate()).padStart(2,"0")}/${selectedStart.getFullYear()}`
-                        : <span className="text-gray-400 font-normal">01/01/2025</span>}
+                        : <span className="text-gray-400 font-normal">mm/dd/yyyy</span>}
                     </p>
                   </div>
                   <span className="text-gray-300 text-xs shrink-0">—</span>
@@ -351,7 +397,7 @@ export default function HeroSection() {
                     <p className="text-sm font-semibold text-gray-800 whitespace-nowrap">
                       {selectedEnd
                         ? `${String(selectedEnd.getMonth()+1).padStart(2,"0")}/${String(selectedEnd.getDate()).padStart(2,"0")}/${selectedEnd.getFullYear()}`
-                        : <span className="text-gray-400 font-normal">04/01/2025</span>}
+                        : <span className="text-gray-400 font-normal">mm/dd/yyyy</span>}
                     </p>
                   </div>
                 </div>
@@ -379,9 +425,9 @@ export default function HeroSection() {
                     <div className="flex items-center justify-between border-t border-gray-100 pt-3 gap-3">
                       <button onClick={() => { setSelectedStart(new Date()); setSelectedEnd(null); }} className="text-xs text-gray-500 hover:text-gray-700 font-medium">Today</button>
                       <div className="flex items-center gap-2 text-xs font-medium text-gray-700">
-                        <span className="border border-gray-200 rounded-lg px-2 py-1.5">{selectedStart ? fmt(selectedStart) : "Jan 6, 2024"}</span>
+                        <span className="border border-gray-200 rounded-lg px-2 py-1.5">{selectedStart ? fmt(selectedStart) : "Start"}</span>
                         <span className="text-gray-400">—</span>
-                        <span className="border border-gray-200 rounded-lg px-2 py-1.5">{selectedEnd ? fmt(selectedEnd) : "Jan 12, 2024"}</span>
+                        <span className="border border-gray-200 rounded-lg px-2 py-1.5">{selectedEnd ? fmt(selectedEnd) : "End"}</span>
                       </div>
                     </div>
                   </div>
@@ -391,7 +437,7 @@ export default function HeroSection() {
             <div className="w-px h-10 bg-gray-200 shrink-0" />
             {/* ── Search Button ── */}
             <button
-              onClick={() => console.log("Search", searchData)}
+              onClick={handleSearch}
               className="w-12 h-12 bg-[#4AA7A7] hover:bg-[#3d8f8f] text-white rounded-full flex items-center justify-center transition-colors ml-1 shrink-0"
             >
               <SearchIcon size={20} />

@@ -1,47 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { PlusIcon, MinusIcon } from '@/icons';
-
-const faqs = [
-  {
-    id: 1,
-    question: 'Lorem ipsum dolor sit amet, consectetur',
-    answer: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'
-  },
-  {
-    id: 2,
-    question: 'Lorem ipsum dolor sit amet, consectetur',
-    answer: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-  },
-  {
-    id: 3,
-    question: 'Lorem ipsum dolor sit amet, consectetur',
-    answer: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-  },
-  {
-    id: 4,
-    question: 'Lorem ipsum dolor sit amet, consectetur',
-    answer: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-  },
-  {
-    id: 5,
-    question: 'Lorem ipsum dolor sit amet, consectetur',
-    answer: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-  },
-  {
-    id: 6,
-    question: 'Lorem ipsum dolor sit amet, consectetur',
-    answer: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-  }
-];
+import { fetchFaqs, selectFaqs, selectFaqsStatus } from '@/store/slices/faqsSlice';
 
 export default function FAQSection() {
+  const dispatch = useDispatch();
+  const faqs = useSelector(selectFaqs);
+  const status = useSelector(selectFaqsStatus);
   const [openId, setOpenId] = useState(null);
+
+  useEffect(() => {
+    dispatch(fetchFaqs());
+  }, [dispatch]);
 
   const toggleFAQ = (id) => {
     setOpenId(openId === id ? null : id);
   };
+
+  if (status !== 'loading' && faqs.length === 0) return null;
 
   return (
     <section className="py-12 md:py-16 lg:py-20 2xl:py-28 bg-white">
@@ -51,45 +29,57 @@ export default function FAQSection() {
           Frequently Asked Questions
         </h2>
 
-        {/* FAQ Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 items-start">
-          {faqs.map((faq) => (
-            <div
-              key={faq.id}
-              className={`rounded-2xl p-5 md:p-6 transition-all duration-200 cursor-pointer ${
-                openId === faq.id ? 'bg-[#FFF8E6]' : 'bg-white border border-gray-100'
-              }`}
-              onClick={() => toggleFAQ(faq.id)}
-            >
-              <div className="flex items-center justify-between gap-4">
-                <h3 className="text-base md:text-lg font-medium text-[#1C1F2E]">
-                  {faq.question}
-                </h3>
-
-                <button
-                  className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                    openId === faq.id
-                      ? 'bg-[#F5C842] text-white'
-                      : 'bg-transparent text-[#1C1F2E]'
+        {status === 'loading' && faqs.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="rounded-2xl p-5 md:p-6 bg-gray-50 animate-pulse h-16" />
+            ))}
+          </div>
+        ) : (
+          /* FAQ Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 items-start">
+            {faqs.map((faq) => {
+              const id = faq.id ?? faq._id;
+              const isOpen = openId === id;
+              return (
+                <div
+                  key={id}
+                  className={`rounded-2xl p-5 md:p-6 transition-all duration-200 cursor-pointer ${
+                    isOpen ? 'bg-[#FFF8E6]' : 'bg-white border border-gray-100'
                   }`}
-                  aria-label={openId === faq.id ? 'Collapse' : 'Expand'}
+                  onClick={() => toggleFAQ(id)}
                 >
-                  {openId === faq.id ? (
-                    <MinusIcon size={16} />
-                  ) : (
-                    <PlusIcon size={16} />
-                  )}
-                </button>
-              </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <h3 className="text-base md:text-lg font-medium text-[#1C1F2E]">
+                      {faq.question}
+                    </h3>
 
-              {openId === faq.id && (
-                <p className="text-sm text-gray-600 leading-relaxed mt-3">
-                  {faq.answer}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+                    <button
+                      className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                        isOpen
+                          ? 'bg-[#F5C842] text-white'
+                          : 'bg-transparent text-[#1C1F2E]'
+                      }`}
+                      aria-label={isOpen ? 'Collapse' : 'Expand'}
+                    >
+                      {isOpen ? (
+                        <MinusIcon size={16} />
+                      ) : (
+                        <PlusIcon size={16} />
+                      )}
+                    </button>
+                  </div>
+
+                  {isOpen && (
+                    <p className="text-sm text-gray-600 leading-relaxed mt-3">
+                      {faq.answer}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

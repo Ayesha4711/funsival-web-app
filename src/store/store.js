@@ -10,6 +10,8 @@ import paymentsReducer from "./slices/paymentsSlice";
 import reviewsReducer from "./slices/reviewsSlice";
 import adminReducer from "./slices/adminSlice";
 import wishlistReducer from "./slices/wishlistSlice";
+import faqsReducer from "./slices/faqsSlice";
+import newsletterReducer from "./slices/newsletterSlice";
 
 export const resetStore = createAction("store/reset");
 
@@ -34,6 +36,8 @@ export const store = configureStore({
     reviews:       withReset(reviewsReducer),
     admin:         withReset(adminReducer),
     wishlist:      withReset(wishlistReducer),
+    faqs:          withReset(faqsReducer),
+    newsletter:    withReset(newsletterReducer),
   },
 });
 

@@ -107,7 +107,9 @@ function formatDateRange(startDate, endDate) {
 function mapReservationStatus(b) {
   const raw = String(b.status || b.bookingStatus || b.state || "").toLowerCase();
   if (raw === "completed") return "Completed";
-  if (raw === "cancelled" || raw === "canceled" || raw === "declined") return "Cancelled";
+  if (raw === "declined") return "Declined";
+  if (raw === "listing_deleted") return "Listing Deleted";
+  if (raw === "cancelled" || raw === "canceled") return "Cancelled";
   if (raw === "pending" || raw === "awaiting_host_approval") return "Action Needed";
   if (raw === "confirmed" || raw === "upcoming" || raw === "active") return "Upcoming";
   return "Action Needed";
@@ -131,9 +133,14 @@ function mapPaymentStatus(paymentStatus) {
 function mapBookingToRow(b) {
   const info = b.listing?.basicInformation ?? {};
   const loc = b.listing?.placeLocation ?? {};
-  const title = info.activityTitle || info.equipmentName || info.placeName || b.listing?.title || "Booking";
-  const location = info.location || [loc.city, loc.state, loc.country].filter(Boolean).join(", ") || "—";
-  const category = b.listing?.category ? b.listing.category.charAt(0).toUpperCase() + b.listing.category.slice(1) : "—";
+  const snapshot = b.listingSnapshot ?? {};
+  const title = info.activityTitle || info.equipmentName || info.placeName || b.listing?.title || snapshot.title || "Booking";
+  const location = info.location || [loc.city, loc.state, loc.country].filter(Boolean).join(", ") || snapshot.location || "—";
+  const category = b.listing?.category
+    ? b.listing.category.charAt(0).toUpperCase() + b.listing.category.slice(1)
+    : snapshot.category
+      ? snapshot.category.charAt(0).toUpperCase() + snapshot.category.slice(1)
+      : "—";
   const status = mapReservationStatus(b);
   const invoice = mapPaymentStatus(b.paymentStatus);
   const startDate = b.startDate ? new Date(b.startDate) : null;
@@ -149,7 +156,16 @@ function mapBookingToRow(b) {
       || bookedBy?.name
       || bookedBy?.id
       || "Guest";
-  const image = b.listing?.photos?.[0] ?? b.listing?.images?.[0] ?? null;
+  const image = b.listing?.photos?.[0] ?? b.listing?.images?.[0] ?? snapshot.photo ?? null;
+
+  // cancelledBy/declinedBy are populated with { id, email } by the API —
+  // attribute to "You" when the current host is the one who acted,
+  // otherwise show the actual actor's email (could be the guest).
+  const closedByUser = b.cancelledBy || b.declinedBy;
+  const closedByHost = closedByUser?.id && b.host && closedByUser.id === b.host;
+  const cancelledBy = closedByUser
+    ? (closedByHost ? "You" : closedByUser.email || reservedBy)
+    : null;
 
   return {
     id: b.id,
@@ -168,7 +184,7 @@ function mapBookingToRow(b) {
     totalAmount: b.totalAmount,
     currency: b.currency,
     cancelledAt: b.cancelledAt,
-    cancelledBy: b.cancelledBy,
+    cancelledBy,
     image,
     _raw: b,
   };
@@ -405,7 +421,7 @@ function ReservationsPageContent() {
     }));
     setPanelItem((prev) =>
       prev?.id === cancelTarget.id
-        ? { ...prev, status: "Cancelled", invoice: "Refunded", _cancelReason: reason, _cancelledBy: prev.reservedBy }
+        ? { ...prev, status: "Cancelled", invoice: "Refunded", _cancelReason: reason, cancelledBy: "You" }
         : prev
     );
     setCancelTarget(null);

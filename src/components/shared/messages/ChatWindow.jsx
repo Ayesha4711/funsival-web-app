@@ -190,12 +190,13 @@ export default function ChatWindow({ conv, onBack, showBackBtn, currentUserId })
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Header — name/avatar always shown; back button only on mobile/tablet,
+          where the conversation list isn't visible alongside the chat */}
       <div className="flex items-center gap-3 px-4 sm:px-6 py-4 border-b border-gray-100 shrink-0">
         {showBackBtn && (
           <button
             onClick={onBack}
-            className="mr-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+            className="mr-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors lg:hidden"
           >
             <BackIcon />
           </button>

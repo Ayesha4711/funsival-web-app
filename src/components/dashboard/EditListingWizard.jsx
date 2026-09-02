@@ -19,6 +19,12 @@ import { SpinnerIcon, ArrowLeftIcon } from "@/icons";
 /* ─── Wizard ───────────────────────────────────────────────────────────────── */
 export default function EditListingWizard({ listing, onClose, onSaved, initialStep, onStepChange }) {
   const dispatch = useDispatch();
+  // Category (1) and Type (2) determine which fields the rest of the wizard
+  // renders, so an already-published listing can't have them changed —
+  // only a draft (still being created for the first time) may edit them.
+  // Published listings still start at step 1, but those two steps render
+  // read-only (see StepCategory/StepType `readOnly` prop below).
+  const isDraft = listing.status?.toLowerCase() === "draft";
   const [step, setStep] = useState(initialStep && initialStep >= 1 && initialStep <= 5 ? initialStep : 1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -165,6 +171,7 @@ export default function EditListingWizard({ listing, onClose, onSaved, initialSt
               selected={data.category}
               onSelect={v => update("category", v)}
               onNext={next}
+              readOnly={!isDraft}
             />}
           {step === 2 &&
             <StepType
@@ -173,9 +180,11 @@ export default function EditListingWizard({ listing, onClose, onSaved, initialSt
               onSelect={v => update("type", v)}
               onNext={next}
               onBack={back}
+              readOnly={!isDraft}
             />}
           {step === 3 &&
             <StepDetails
+              category={data.category}
               details={data.details}
               onChange={val => update("details", val)}
               onNext={next}

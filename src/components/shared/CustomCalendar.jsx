@@ -64,7 +64,7 @@ function InlineSelect({ value, options, onChange, width = 110 }) {
   );
 }
 
-export default function CustomCalendar({ value, onChange, onClose, availableDates }) {
+export default function CustomCalendar({ value, onChange, onClose, availableDates, minDate }) {
   const today   = new Date();
   const initial = value ? new Date(value) : today;
 
@@ -92,11 +92,16 @@ export default function CustomCalendar({ value, onChange, onClose, availableDate
     else setViewMonth((m) => m + 1);
   };
 
+  const minDateObj = minDate ? new Date(`${minDate}T00:00:00`) : null;
+
   const handleSelect = (day) => {
     const d = new Date(viewYear, viewMonth, day);
     const formatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    
+
     if (availableDates && !availableDates.includes(formatted)) {
+      return;
+    }
+    if (minDateObj && d < minDateObj) {
       return;
     }
 
@@ -116,6 +121,7 @@ export default function CustomCalendar({ value, onChange, onClose, availableDate
     today.getDate() === day;
 
   const isAvailable = (day) => {
+    if (minDateObj && new Date(viewYear, viewMonth, day) < minDateObj) return false;
     if (!availableDates) return true;
     const formatted = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return availableDates.includes(formatted);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -31,6 +31,10 @@ export default function MessagesPage() {
 
   const [mobileView, setMobileView] = useState(null);
   const currentUserId = profile?.id || profile?._id || null;
+  // Set right before clearing activeConvId from the mobile/tablet back
+  // button, so the auto-select-first-conversation effect below doesn't
+  // immediately re-open a chat and defeat the "go back to the list" action.
+  const suppressAutoSelectRef = useRef(false);
 
   // Clear active conversation on unmount
   useEffect(() => {
@@ -84,8 +88,15 @@ export default function MessagesPage() {
     }
   }, [activeConvId, conversations]);
 
-  // Auto-select first conversation on desktop if none active
+  // Auto-select first conversation on desktop if none active. Skipped once
+  // right after the mobile/tablet back button explicitly cleared the
+  // selection — otherwise this immediately re-opens a chat and the back
+  // button would appear to do nothing on narrow screens.
   useEffect(() => {
+    if (suppressAutoSelectRef.current) {
+      suppressAutoSelectRef.current = false;
+      return;
+    }
     if (!activeConvId && conversations.length > 0) {
       const first = conversations[0];
       dispatch(setActiveConversation(first.id));
@@ -104,6 +115,7 @@ export default function MessagesPage() {
   };
 
   const handleBack = () => {
+    suppressAutoSelectRef.current = true;
     setMobileView(null);
     dispatch(setActiveConversation(null));
   };
@@ -111,12 +123,8 @@ export default function MessagesPage() {
   return (
     <>
       <div className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
-        {/* Page header */}
-        <div
-          className={`px-4 sm:px-6 lg:px-8 py-5 shrink-0 bg-white border-b border-gray-100 ${
-            mobileView ? "hidden lg:flex" : "flex"
-          } items-center gap-3`}
-        >
+        {/* Page header — stays visible at every breakpoint, same as desktop */}
+        <div className="px-4 sm:px-6 lg:px-8 py-5 shrink-0 bg-white border-b border-gray-100 flex items-center gap-3">
           <button
             onClick={() => router.back()}
             className="text-text hover:text-text-muted transition-colors"
