@@ -118,6 +118,7 @@ function HostSignupForm() {
 
     const result = await dispatch(loginWithGoogle({
       idToken: credentialResponse.credential,
+      mode: "signup",
       role: "host",
       city: form.city,
       businessName: form.agencyName.trim(),

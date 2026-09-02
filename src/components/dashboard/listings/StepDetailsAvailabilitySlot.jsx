@@ -6,6 +6,8 @@ import { TrashIcon } from "@/icons";
 
 /* ─── Availability slot ──────────────────────────────────────────────────────── */
 export default function AvailabilitySlot({ slot, index, onChange, onRemove, canRemove }) {
+  const today = new Date().toISOString().split("T")[0];
+
   const getOneHourLater = (timeStr) => {
     if (!timeStr) return "";
     const [h] = String(timeStr).split(":").map(Number);
@@ -40,6 +42,7 @@ export default function AvailabilitySlot({ slot, index, onChange, onRemove, canR
             value={slot.day || ""}
             placeholder="Pick a date"
             onChange={(value) => onChange(index, "day", value)}
+            minDate={today}
           />
         </div>
 
@@ -97,6 +100,7 @@ export default function AvailabilitySlot({ slot, index, onChange, onRemove, canR
             value={slot.day || ""}
             placeholder="Pick a date"
             onChange={(value) => onChange(index, "day", value)}
+            minDate={today}
           />
         </div>
 

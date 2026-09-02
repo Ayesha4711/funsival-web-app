@@ -35,7 +35,7 @@ function NextBtn({ disabled, onClick }) {
 }
 
 /* ─── Step ─────────────────────────────────────────────────────────────────── */
-export default function StepCategory({ selected, onSelect, onNext }) {
+export default function StepCategory({ selected, onSelect, onNext, readOnly = false }) {
   return (
     <div className="flex flex-col items-center">
       <h2 className="text-2xl sm:text-3xl font-bold text-[var(--color-text)] mb-2 text-center">
@@ -46,7 +46,9 @@ export default function StepCategory({ selected, onSelect, onNext }) {
       </h2>
 
       <p className="text-[#475467] text-[13px] sm:text-[14px] leading-[20px] sm:leading-[22px] text-center max-w-[260px] sm:max-w-md mb-8 font-normal font-sofia">
-        In this step, we&apos;ll ask you which type of property you have and if guests will book the entire place or just a room. Then let us know the location and how many guests can stay.
+        {readOnly
+          ? "The category can't be changed after a listing is created."
+          : "In this step, we’ll ask you which type of property you have and if guests will book the entire place or just a room. Then let us know the location and how many guests can stay."}
       </p>
 
       {/* Cards grid — 3 col on desktop/tablet, 1 col on mobile (stacked, reduced width) */}
@@ -54,13 +56,16 @@ export default function StepCategory({ selected, onSelect, onNext }) {
         {CATEGORIES.map(({ id, label, img }) =>
           <button
             key={id}
-            onClick={() => onSelect(id)}
+            onClick={() => !readOnly && onSelect(id)}
+            disabled={readOnly}
             className={[
-              "relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-200 cursor-pointer",
+              "relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 transition-all duration-200",
               "w-[200px] min-[320px]:w-[220px] h-[110px] sm:w-full sm:h-[180px]",
+              readOnly ? "cursor-not-allowed" : "cursor-pointer",
               selected === id
                 ? "border-[#1d8c82] bg-[var(--color-primary-light)]"
-                : "border-gray-200 bg-white"
+                : "border-gray-200 bg-white",
+              readOnly && selected !== id ? "opacity-40" : ""
             ].join(" ")}
           >
             {selected === id && (

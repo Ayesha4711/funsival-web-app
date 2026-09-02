@@ -50,6 +50,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
   const timeOptions = buildHourlyOptions();
   const activeDays = getActiveDays(form.recurringStartDate, form.recurringEndDate);
   const hasRange = !!(form.recurringStartDate && form.recurringEndDate);
+  const today = new Date().toISOString().split("T")[0];
 
   return (
     <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 overflow-visible" data-field="availability">
@@ -91,6 +92,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
                   value={form.slots[0]?.day || ""}
                   placeholder="Pick a date"
                   onChange={(value) => updateSlot(0, "day", value)}
+                  minDate={today}
                 />
               </div>
               <div className="flex-1">
@@ -142,6 +144,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
                 value={form.recurringStartDate || ""}
                 placeholder="September 25, 2025"
                 onChange={(value) => set("recurringStartDate", value)}
+                minDate={today}
               />
             </div>
             <div className="flex-1">
@@ -151,6 +154,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
                 placeholder="September 30, 2025"
                 onChange={(value) => set("recurringEndDate", value)}
                 align="right"
+                minDate={form.recurringStartDate || today}
               />
             </div>
           </div>

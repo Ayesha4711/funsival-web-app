@@ -12,6 +12,7 @@ import { fetchWishlistSummary, selectWishlistSummaryCount } from "@/store/slices
 import { resetStore } from "@/store/store";
 import NotificationPopover from "@/components/shared/NotificationPopover";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import BecomeProviderModal from "@/components/user-dashboard/BecomeProviderModal";
 import axiosInstance from "@/store/axiosInstance";
 import { useFCM, getStoredFcmToken } from "@/hooks/useFCM";
 import { firebaseAuth } from "@/lib/firebase";
@@ -37,6 +38,7 @@ function UserNavbar() {
   const profileOpen = openMenu === "profile";
   const roleOpen = openMenu === "role";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [becomeProviderOpen, setBecomeProviderOpen] = useState(false);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
   const roleRef = useRef(null);
@@ -44,6 +46,18 @@ function UserNavbar() {
   const toggleMenu = (key) => setOpenMenu((cur) => (cur === key ? null : key));
 
   const isExplorePage = pathname === "/user-dashboard/explore";
+  const currentRole = profile?.role ?? profile?.data?.role ?? profile?.data?.user?.role ?? null;
+  const isAlreadyProvider = currentRole === "host" || currentRole === "admin";
+
+  const handleProviderClick = () => {
+    setOpenMenu(null);
+    setMobileOpen(false);
+    if (isAlreadyProvider) {
+      router.push("/dashboard");
+    } else {
+      setBecomeProviderOpen(true);
+    }
+  };
 
   const handleSearchChange = (e) => {
     if (!isExplorePage) return;
@@ -150,7 +164,7 @@ function UserNavbar() {
               <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl py-3 z-50 shadow-lg border border-gray-100">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-4">Switch role</p>
                 <div className="flex flex-col gap-1 px-2">
-                  <button onClick={() => { setOpenMenu(null); router.push("/dashboard"); }} className="w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">Provider</button>
+                  <button onClick={handleProviderClick} className="w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">Provider</button>
                   <button onClick={() => { setOpenMenu(null); router.push("/user-dashboard/explore"); }} className="w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold bg-[#2FA39F] text-white cursor-pointer">User</button>
                 </div>
               </div>
@@ -306,7 +320,7 @@ function UserNavbar() {
               <div className="px-5 py-3">
                 <p className="text-xs text-gray-400 font-medium mb-2 uppercase tracking-wide">Switch role</p>
                 <div className="flex gap-2">
-                  <button onClick={() => navigate("/dashboard")} className="flex-1 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-600 hover:border-[#228E8A] hover:text-[#228E8A] transition-colors">Provider</button>
+                  <button onClick={handleProviderClick} className="flex-1 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-600 hover:border-[#228E8A] hover:text-[#228E8A] transition-colors">Provider</button>
                   <button className="flex-1 py-2 rounded-full bg-[#228E8A] text-white text-sm font-medium">User</button>
                 </div>
               </div>
@@ -321,33 +335,38 @@ function UserNavbar() {
           </div>
         </div>
       )}
+      {becomeProviderOpen && (
+        <BecomeProviderModal onClose={() => setBecomeProviderOpen(false)} />
+      )}
     </>
   );
+}
+
+// Publicly browsable without being logged in — booking/account actions inside
+// these pages are individually gated (e.g. navigateToListingOrLogin).
+const PUBLIC_PATHS = ["/user-dashboard/explore"];
+const PUBLIC_PATH_PREFIXES = ["/user-dashboard/listing/"];
+function isPublicPath(pathname) {
+  if (!pathname) return false;
+  if (PUBLIC_PATHS.includes(pathname)) return true;
+  return PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 /* ─── Shell ──────────────────────────────────────────────────────────────────── */
 export default function UserDashboardShell({ children }) {
   const dispatch = useDispatch();
   const status = useSelector(selectProfileStatus);
-  const profile = useSelector(selectUser);
-  const router = useRouter();
+  const pathname = usePathname();
+  const isPublic = isPublicPath(pathname);
 
   useEffect(() => {
     if (status === "idle") dispatch(fetchProfile());
   }, [dispatch, status]);
 
-  const role = profile?.role ?? profile?.data?.role ?? profile?.data?.user?.role ?? null;
-  const isProvider = role === "host" || role === "admin";
-
-  useEffect(() => {
-    if (status === "succeeded" && isProvider) {
-      router.replace("/dashboard");
-    }
-  }, [status, isProvider, router]);
-
-  if (status === "idle" || status === "loading") return <FullPageLoader />;
-  if (status === "failed") { window.location.replace("/"); return null; }
-  if (isProvider) return <FullPageLoader />;
+  if (!isPublic) {
+    if (status === "idle" || status === "loading") return <FullPageLoader />;
+    if (status === "failed") { window.location.replace("/"); return null; }
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">

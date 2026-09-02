@@ -26,8 +26,10 @@ import StepDetailsAvailabilitySection from "./StepDetailsAvailabilitySection";
 import { geocodeSearch, reverseGeocodeToAddressFields } from "./locationGeocoding";
 
 /* ─── Step ─────────────────────────────────────────────────────────────────── */
-export default function StepDetails({ details, onChange, onNext, onBack, fieldErrors = null }) {
+export default function StepDetails({ category, details, onChange, onNext, onBack, fieldErrors = null }) {
   const dispatch = useDispatch();
+  const isPlace = category === "places";
+  const isEquipment = category === "equipment";
   // Local copy of field errors — cleared per-field as the user edits
   const [activeErrors, setActiveErrors] = useState(fieldErrors || {});
   const [photoUploadsPending, setPhotoUploadsPending] = useState(0);
@@ -69,6 +71,13 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
     wifi: false,
     requirements: "",
     requirementsList: [],
+    maxGuests: 2,
+    parkingSpace: "",
+    amenities: [],
+    minRentalTime: "",
+    maxRentalTime: "",
+    brand: "",
+    model: "",
     photos: [],
     slots: [{ day: "", startTime: "", endTime: "" }],
     availabilityType: "",
@@ -254,90 +263,150 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
           <SectionTitle num="1">Basic Information</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div data-field="activityTitle">
-              <Label required>Activity Title</Label>
-              <TextInput placeholder="Give your activity a clear name so guests instantly understand what you offer" value={form.title} error={!!fe.activityTitle} onChange={(e) => setWithClear("title", e.target.value, "activityTitle")} />
+              <Label required>{isPlace ? "Place Name" : isEquipment ? "Equipment Name" : "Activity Title"}</Label>
+              <TextInput
+                placeholder={
+                  isPlace
+                    ? "Give your place a clear name so guests instantly understand what you offer"
+                    : isEquipment
+                      ? "Give your equipment a clear name and highlight what makes it unique"
+                      : "Give your activity a clear name so guests instantly understand what you offer"
+                }
+                value={form.title}
+                error={!!fe.activityTitle}
+                onChange={(e) => setWithClear("title", e.target.value, "activityTitle")}
+              />
               <FieldError msg={fe.activityTitle} />
             </div>
             <div className="sm:col-span-2">
               <Label required>Description</Label>
-              <Textarea placeholder="Tell guests what your experience includes and why it's unique" value={form.description} error={!!fe.description} onChange={(e) => setWithClear("description", e.target.value, "description")} maxLength={DESCRIPTION_MAX} rows={4} />
+              <Textarea
+                placeholder={
+                  isPlace
+                    ? "Describe your place in detail and highlight what makes it unique"
+                    : isEquipment
+                      ? "Describe your equipment in detail and highlight what makes it unique"
+                      : "Tell guests what your experience includes and why it's unique"
+                }
+                value={form.description}
+                error={!!fe.description}
+                onChange={(e) => setWithClear("description", e.target.value, "description")}
+                maxLength={DESCRIPTION_MAX}
+                rows={4}
+              />
               <FieldError msg={fe.description} />
             </div>
           </div>
         </section>
 
-        {/* ── 2. Service Details ────────────────────────────────────────────── */}
-        <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
-          <SectionTitle num="2">Service Details</SectionTitle>
+        {/* ── 2. Place / Equipment / Service Details ──────────────────────── */}
+        {isPlace ? (
+          <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
+            <SectionTitle num="2">Place Details</SectionTitle>
 
-          {/* Row 1: Difficulty | Duration | Max Participants */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-            <div data-field="difficulty">
-              <Label required>Difficulty Level</Label>
-              <DropdownField
-                value={form.difficulty}
-                placeholder="Select the experience level best suited for this activity"
-                error={!!fe.difficulty}
-                options={[
-                  { value: "beginner", label: "Beginner" },
-                  { value: "intermediate", label: "Intermediate" },
-                  { value: "advanced", label: "Advanced" },
-                  { value: "all_levels", label: "All Levels" },
-                ]}
-                onChange={(value) => setWithClear("difficulty", value, "difficulty")}
-              />
-              <FieldError msg={fe.difficulty} />
-            </div>
-            <div data-field="duration">
-              <Label required>Duration</Label>
-              <DropdownField
-                value={form.duration}
-                placeholder="How long does it take?"
-                error={!!fe.duration}
-                options={[
-                  { value: "30min", label: "30 minutes" },
-                  { value: "1h", label: "1 hour" },
-                  { value: "2h", label: "2 hours" },
-                  { value: "half_day", label: "Half day" },
-                  { value: "full_day", label: "Full day" },
-                ]}
-                onChange={(value) => setWithClear("duration", value, "duration")}
-              />
-              <FieldError msg={fe.duration} />
-            </div>
-            <div>
-              <Label>Max Participants</Label>
-              <div className="flex items-center h-[42px] rounded-xl border border-transparent bg-[#F5F5F5] overflow-hidden">
-                <div className="flex items-center gap-2 flex-1 px-3">
-                  <UsersIcon size={14} className="shrink-0 text-gray-400" />
-                  <span className="text-sm font-bold text-gray-700">{form.maxParticipants}</span>
-                </div>
-                <div className="flex flex-col h-full border-l border-gray-200">
-                  <button type="button" onClick={() => set("maxParticipants", form.maxParticipants + 1)} className="flex-1 w-8 flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 transition-colors border-b border-gray-200">
-                    <ChevronUpIcon size={10} />
-                  </button>
-                  <button type="button" onClick={() => set("maxParticipants", Math.max(1, form.maxParticipants - 1))} className="flex-1 w-8 flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 transition-colors">
-                    <ChevronDownIcon size={10} />
-                  </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label>Maximum Guest Capacity</Label>
+                <div className="flex items-center h-[42px] rounded-xl border border-transparent bg-[#F5F5F5] overflow-hidden">
+                  <div className="flex items-center gap-2 flex-1 px-3">
+                    <UsersIcon size={14} className="shrink-0 text-gray-400" />
+                    <span className="text-sm font-bold text-gray-700">{form.maxGuests}</span>
+                  </div>
+                  <div className="flex flex-col h-full border-l border-gray-200">
+                    <button type="button" onClick={() => set("maxGuests", form.maxGuests + 1)} className="flex-1 w-8 flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 transition-colors border-b border-gray-200">
+                      <ChevronUpIcon size={10} />
+                    </button>
+                    <button type="button" onClick={() => set("maxGuests", Math.max(1, form.maxGuests - 1))} className="flex-1 w-8 flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 transition-colors">
+                      <ChevronDownIcon size={10} />
+                    </button>
+                  </div>
                 </div>
               </div>
+              <div data-field="parkingSpace">
+                <Label required>Parking Space</Label>
+                <DropdownField
+                  value={form.parkingSpace}
+                  placeholder="e.g., Available"
+                  error={!!fe.parkingSpace}
+                  options={[
+                    { value: "available", label: "Available" },
+                    { value: "not_available", label: "Not Available" },
+                    { value: "street_parking", label: "Street Parking" },
+                  ]}
+                  onChange={(value) => setWithClear("parkingSpace", value, "parkingSpace")}
+                />
+                <FieldError msg={fe.parkingSpace} />
+              </div>
             </div>
-          </div>
 
-          {/* Row 2: Instructor Name | Cancellation Policy */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div data-field="instructorName">
-              <Label required>Instructor Name</Label>
-              <TextInput placeholder="Enter the name of the guide or instructor leading this activity" value={form.instructorName} error={!!fe.instructorName} onChange={(e) => setWithClear("instructorName", e.target.value, "instructorName")} />
-              <FieldError msg={fe.instructorName} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label>Minimum Rental Time</Label>
+                <DropdownField
+                  value={form.minRentalTime}
+                  placeholder="e.g., 1 hr"
+                  options={[
+                    { value: "30min", label: "30 minutes" },
+                    { value: "1h", label: "1 hour" },
+                    { value: "2h", label: "2 hours" },
+                    { value: "half_day", label: "Half day" },
+                    { value: "full_day", label: "Full day" },
+                  ]}
+                  onChange={(value) => set("minRentalTime", value)}
+                />
+              </div>
+              <div>
+                <Label>Maximum Rental Time</Label>
+                <DropdownField
+                  value={form.maxRentalTime}
+                  placeholder="e.g., 3 hrs"
+                  options={[
+                    { value: "1h", label: "1 hour" },
+                    { value: "2h", label: "2 hours" },
+                    { value: "half_day", label: "Half day" },
+                    { value: "full_day", label: "Full day" },
+                    { value: "multi_day", label: "Multiple days" },
+                  ]}
+                  onChange={(value) => set("maxRentalTime", value)}
+                />
+              </div>
             </div>
+
+            <div className="mb-4">
+              <Label>Add Amenities</Label>
+              <TagInputField
+                tags={form.amenities}
+                placeholder="Add an Amenities..."
+                onAdd={(value) => set("amenities", [...form.amenities, value])}
+                onRemove={(index) => set("amenities", form.amenities.filter((_, i) => i !== index))}
+              />
+            </div>
+
+            <div className="mb-4">
+              <Label>Rules & Requirements</Label>
+              <TagInputField
+                tags={form.requirementsList}
+                placeholder="What do you need from the client to get started?..."
+                onAdd={(value) => {
+                  const next = [...form.requirementsList, value];
+                  set("requirementsList", next);
+                  set("requirements", next.join(", "));
+                }}
+                onRemove={(index) => {
+                  const next = form.requirementsList.filter((_, i) => i !== index);
+                  set("requirementsList", next);
+                  set("requirements", next.join(", "));
+                }}
+              />
+            </div>
+
             <div data-field="cancellationPolicy">
               <Label required>Cancellation Policy</Label>
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <DropdownField
                     value={form.cancellationPolicy}
-                    placeholder="Moderate"
+                    placeholder="How will customers receive this equipment?"
                     error={!!fe.cancellationPolicy}
                     options={[
                       { value: "flexible", label: "Flexible" },
@@ -353,50 +422,213 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               </div>
               <FieldError msg={fe.cancellationPolicy} />
             </div>
-          </div>
+          </section>
+        ) : isEquipment ? (
+          <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
+            <SectionTitle num="2">Equipment Details</SectionTitle>
 
-          {/* Row 3: What's Included (full width) */}
-          <div className="mb-4" data-field="whatsIncluded">
-            <Label required>What&apos;s Included</Label>
-            <TagInputField
-              tags={form.included}
-              placeholder="List everything provided — gear, equipment, or snacks"
-              onAdd={(value) => {
-                set("included", [...form.included, value]);
-                if (activeErrors.whatsIncluded) {
-                  setActiveErrors(prev => { const n = { ...prev }; delete n.whatsIncluded; return n; });
-                }
-              }}
-              onRemove={(index) => set("included", form.included.filter((_, i) => i !== index))}
-              error={!!fe.whatsIncluded}
-            />
-            <FieldError msg={fe.whatsIncluded} />
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label>Brand</Label>
+                <TextInput placeholder="Enter the manufacturer or brand name" value={form.brand} onChange={(e) => set("brand", e.target.value)} />
+              </div>
+              <div>
+                <Label>Model</Label>
+                <TextInput placeholder="Provide the model number or version if available" value={form.model} onChange={(e) => set("model", e.target.value)} />
+              </div>
+            </div>
 
-          {/* Row 4: Requirements (full width) */}
-          <div className="mb-4">
-            <Label>Requirements</Label>
-            <TagInputField
-              tags={form.requirementsList}
-              placeholder="Let guests know what they need to bring or prepare"
-              onAdd={(value) => {
-                const next = [...form.requirementsList, value];
-                set("requirementsList", next);
-                set("requirements", next.join(", "));
-                if (activeErrors.requirements) {
-                  setActiveErrors(prev => { const n = { ...prev }; delete n.requirements; return n; });
-                }
-              }}
-              onRemove={(index) => {
-                const next = form.requirementsList.filter((_, i) => i !== index);
-                set("requirementsList", next);
-                set("requirements", next.join(", "));
-              }}
-            />
-            <FieldError msg={fe.requirements} />
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div data-field="whatsIncluded">
+                <Label>What&apos;s Included</Label>
+                <TagInputField
+                  tags={form.included}
+                  placeholder="List everything that comes with your equipment — accessories, attachments"
+                  onAdd={(value) => {
+                    set("included", [...form.included, value]);
+                    if (activeErrors.whatsIncluded) {
+                      setActiveErrors(prev => { const n = { ...prev }; delete n.whatsIncluded; return n; });
+                    }
+                  }}
+                  onRemove={(index) => set("included", form.included.filter((_, i) => i !== index))}
+                  error={!!fe.whatsIncluded}
+                />
+                <FieldError msg={fe.whatsIncluded} />
+              </div>
+              <div>
+                <Label>Rules &amp; Requirements</Label>
+                <TagInputField
+                  tags={form.requirementsList}
+                  placeholder="Let guests know any rules they must follow or things they must bring"
+                  onAdd={(value) => {
+                    const next = [...form.requirementsList, value];
+                    set("requirementsList", next);
+                    set("requirements", next.join(", "));
+                  }}
+                  onRemove={(index) => {
+                    const next = form.requirementsList.filter((_, i) => i !== index);
+                    set("requirementsList", next);
+                    set("requirements", next.join(", "));
+                  }}
+                />
+              </div>
+            </div>
 
-        </section>
+            <div data-field="cancellationPolicy">
+              <Label required>Cancellation Policy</Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <DropdownField
+                    value={form.cancellationPolicy}
+                    placeholder="Explain how customers can cancel or modify their reservation"
+                    error={!!fe.cancellationPolicy}
+                    options={[
+                      { value: "flexible", label: "Flexible" },
+                      { value: "moderate", label: "Moderate" },
+                      { value: "strict", label: "Strict" },
+                    ]}
+                    onChange={(value) => setWithClear("cancellationPolicy", value, "cancellationPolicy")}
+                  />
+                </div>
+                <button type="button" className="shrink-0" title="Learn about cancellation policies">
+                  <InfoIcon size={28} className="text-gray-400" />
+                </button>
+              </div>
+              <FieldError msg={fe.cancellationPolicy} />
+            </div>
+          </section>
+        ) : (
+          <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
+            <SectionTitle num="2">Service Details</SectionTitle>
+
+            {/* Row 1: Difficulty | Duration | Max Participants */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              <div data-field="difficulty">
+                <Label required>Difficulty Level</Label>
+                <DropdownField
+                  value={form.difficulty}
+                  placeholder="Select the experience level best suited for this activity"
+                  error={!!fe.difficulty}
+                  options={[
+                    { value: "beginner", label: "Beginner" },
+                    { value: "intermediate", label: "Intermediate" },
+                    { value: "advanced", label: "Advanced" },
+                    { value: "all_levels", label: "All Levels" },
+                  ]}
+                  onChange={(value) => setWithClear("difficulty", value, "difficulty")}
+                />
+                <FieldError msg={fe.difficulty} />
+              </div>
+              <div data-field="duration">
+                <Label required>Duration</Label>
+                <DropdownField
+                  value={form.duration}
+                  placeholder="How long does it take?"
+                  error={!!fe.duration}
+                  options={[
+                    { value: "30min", label: "30 minutes" },
+                    { value: "1h", label: "1 hour" },
+                    { value: "2h", label: "2 hours" },
+                    { value: "half_day", label: "Half day" },
+                    { value: "full_day", label: "Full day" },
+                  ]}
+                  onChange={(value) => setWithClear("duration", value, "duration")}
+                />
+                <FieldError msg={fe.duration} />
+              </div>
+              <div>
+                <Label>Max Participants</Label>
+                <div className="flex items-center h-[42px] rounded-xl border border-transparent bg-[#F5F5F5] overflow-hidden">
+                  <div className="flex items-center gap-2 flex-1 px-3">
+                    <UsersIcon size={14} className="shrink-0 text-gray-400" />
+                    <span className="text-sm font-bold text-gray-700">{form.maxParticipants}</span>
+                  </div>
+                  <div className="flex flex-col h-full border-l border-gray-200">
+                    <button type="button" onClick={() => set("maxParticipants", form.maxParticipants + 1)} className="flex-1 w-8 flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 transition-colors border-b border-gray-200">
+                      <ChevronUpIcon size={10} />
+                    </button>
+                    <button type="button" onClick={() => set("maxParticipants", Math.max(1, form.maxParticipants - 1))} className="flex-1 w-8 flex items-center justify-center text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-100 transition-colors">
+                      <ChevronDownIcon size={10} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 2: Instructor Name | Cancellation Policy */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div data-field="instructorName">
+                <Label required>Instructor Name</Label>
+                <TextInput placeholder="Enter the name of the guide or instructor leading this activity" value={form.instructorName} error={!!fe.instructorName} onChange={(e) => setWithClear("instructorName", e.target.value, "instructorName")} />
+                <FieldError msg={fe.instructorName} />
+              </div>
+              <div data-field="cancellationPolicy">
+                <Label required>Cancellation Policy</Label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <DropdownField
+                      value={form.cancellationPolicy}
+                      placeholder="Moderate"
+                      error={!!fe.cancellationPolicy}
+                      options={[
+                        { value: "flexible", label: "Flexible" },
+                        { value: "moderate", label: "Moderate" },
+                        { value: "strict", label: "Strict" },
+                      ]}
+                      onChange={(value) => setWithClear("cancellationPolicy", value, "cancellationPolicy")}
+                    />
+                  </div>
+                  <button type="button" className="shrink-0" title="Learn about cancellation policies">
+                    <InfoIcon size={28} className="text-gray-400" />
+                  </button>
+                </div>
+                <FieldError msg={fe.cancellationPolicy} />
+              </div>
+            </div>
+
+            {/* Row 3: What's Included (full width) */}
+            <div className="mb-4" data-field="whatsIncluded">
+              <Label>What&apos;s Included</Label>
+              <TagInputField
+                tags={form.included}
+                placeholder="List everything provided — gear, equipment, or snacks"
+                onAdd={(value) => {
+                  set("included", [...form.included, value]);
+                  if (activeErrors.whatsIncluded) {
+                    setActiveErrors(prev => { const n = { ...prev }; delete n.whatsIncluded; return n; });
+                  }
+                }}
+                onRemove={(index) => set("included", form.included.filter((_, i) => i !== index))}
+                error={!!fe.whatsIncluded}
+              />
+              <FieldError msg={fe.whatsIncluded} />
+            </div>
+
+            {/* Row 4: Requirements (full width) */}
+            <div className="mb-4">
+              <Label>Requirements</Label>
+              <TagInputField
+                tags={form.requirementsList}
+                placeholder="Let guests know what they need to bring or prepare"
+                onAdd={(value) => {
+                  const next = [...form.requirementsList, value];
+                  set("requirementsList", next);
+                  set("requirements", next.join(", "));
+                  if (activeErrors.requirements) {
+                    setActiveErrors(prev => { const n = { ...prev }; delete n.requirements; return n; });
+                  }
+                }}
+                onRemove={(index) => {
+                  const next = form.requirementsList.filter((_, i) => i !== index);
+                  set("requirementsList", next);
+                  set("requirements", next.join(", "));
+                }}
+              />
+              <FieldError msg={fe.requirements} />
+            </div>
+
+          </section>
+        )}
 
         {/* ── 3. Location Map ──────────────────────────────────────────────── */}
         <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
@@ -404,7 +636,7 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
           <p className="text-xs text-gray-400 mb-4">Your address is only shown to guests after they&apos;ve made a booking.</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div data-field="addressLine1">
+            <div data-field="addressLine1" className="relative">
               <Label required>Address Line 1</Label>
               <TextInput
                 placeholder="Street address"
@@ -424,6 +656,21 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
                 }}
               />
               <FieldError msg={fe.addressLine1} />
+              {mapSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden max-h-60 overflow-y-auto z-20">
+                  {mapSuggestions.map((s) => (
+                    <button
+                      key={s.place_id}
+                      type="button"
+                      onClick={() => handleMapSelect(s)}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0 flex flex-col gap-0.5"
+                    >
+                      <span className="font-bold text-gray-900 line-clamp-1">{s.display_name.split(',')[0]}</span>
+                      <span className="text-[10px] text-gray-400 line-clamp-1">{s.display_name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <Label>Address Line 2</Label>
@@ -514,14 +761,20 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
               toast.error("Please wait for image uploads to finish.");
               return;
             }
-            if (!form.title?.trim()) errs.activityTitle = "Activity title is required";
+            if (!form.title?.trim()) errs.activityTitle = isPlace ? "Place name is required" : isEquipment ? "Equipment name is required" : "Activity title is required";
             if (!form.description?.trim()) errs.description = "Description is required";
             else if (form.description.length > DESCRIPTION_MAX) errs.description = `Description must be ${DESCRIPTION_MAX} characters or less`;
-            if (!form.difficulty) errs.difficulty = "Difficulty level is required";
-            if (!form.duration) errs.duration = "Duration is required";
-            if (!form.instructorName?.trim()) errs.instructorName = "Instructor name is required";
-            if (!form.cancellationPolicy) errs.cancellationPolicy = "Cancellation policy is required";
-            if (!form.included || form.included.length === 0) errs.whatsIncluded = "What's Included must be a non-empty array";
+            if (isPlace) {
+              if (!form.parkingSpace) errs.parkingSpace = "Parking space is required";
+              if (!form.cancellationPolicy) errs.cancellationPolicy = "Cancellation policy is required";
+            } else if (isEquipment) {
+              if (!form.cancellationPolicy) errs.cancellationPolicy = "Cancellation policy is required";
+            } else {
+              if (!form.difficulty) errs.difficulty = "Difficulty level is required";
+              if (!form.duration) errs.duration = "Duration is required";
+              if (!form.instructorName?.trim()) errs.instructorName = "Instructor name is required";
+              if (!form.cancellationPolicy) errs.cancellationPolicy = "Cancellation policy is required";
+            }
             if (!form.photos || form.photos.length === 0) errs.photos = "Please add at least one photo of your activity";
             if (!form.addressLine1?.trim()) errs.addressLine1 = "Address is required";
             if (!form.countryCode) errs.country = "Country is required";
@@ -532,16 +785,32 @@ export default function StepDetails({ details, onChange, onNext, onBack, fieldEr
             if (!form.placeCity?.trim()) errs.placeCity = "City is required";
 
             // Backend requires at least one availability slot, so a type must be selected and completed.
+            const toIsoForCompare = (val) => {
+              if (!val) return "";
+              const s = String(val).trim().split("T")[0];
+              if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+              if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+                const [m, d, y] = s.split("/");
+                return `${y}-${m}-${d}`;
+              }
+              return "";
+            };
+            const todayIso = new Date().toISOString().split("T")[0];
+
             if (!form.availabilityType) {
               errs.availability = "Please select an availability type and add at least one time slot.";
             } else if (form.availabilityType === "one_time") {
               const s = form.slots[0];
               if (!s?.day || !s?.startTime || !s?.endTime) {
                 errs.availability = "Please complete the date and time for the one-time slot.";
+              } else if (toIsoForCompare(s.day) < todayIso) {
+                errs.availability = "The selected date has already passed. Please choose a later date.";
               }
             } else if (form.availabilityType === "recurring") {
               if (!form.recurringStartDate || !form.recurringEndDate) {
                 errs.availability = "Please select a start and end date for the recurring schedule.";
+              } else if (toIsoForCompare(form.recurringStartDate) < todayIso) {
+                errs.availability = "The start date has already passed. Please choose a later date.";
               } else {
                 const allDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
                 const dayJsIndex = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };

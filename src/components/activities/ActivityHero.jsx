@@ -5,7 +5,10 @@ import Image from "next/image";
 
 export default function ActivityHero({ title, subtitle, backgroundImage }) {
   return (
-    <section className="relative w-full h-[300px] md:h-[400px] lg:h-[450px] overflow-hidden bg-[#4AA7A7]">
+    <section
+      className="relative w-full h-[300px] md:h-[400px] lg:h-[450px] overflow-hidden"
+      style={backgroundImage ? undefined : { background: "linear-gradient(135deg, #1d8c82 0%, #4AA7A7 55%, #F5C842 130%)" }}
+    >
       {backgroundImage &&
         <Image
           src={backgroundImage}

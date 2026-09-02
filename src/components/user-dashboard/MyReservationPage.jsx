@@ -21,6 +21,10 @@ import {
   selectRefundRequestStatus,
 } from "@/store/slices/bookingsSlice";
 import {
+  toggleWishlist as toggleWishlistThunk,
+  selectWishlistSummaryListingIds,
+} from "@/store/slices/wishlistSlice";
+import {
   fetchBookingReviewContext,
   submitReview,
   deleteReview,
@@ -38,14 +42,14 @@ import SharedPagination from "@/components/shared/Pagination";
 /* ─── Data helpers ───────────────────────────────────────────────────────────── */
 function getTitle(b) {
   const info = b.listing?.basicInformation ?? {};
-  return info.activityTitle || info.equipmentName || info.placeName || "Booking";
+  return info.activityTitle || info.equipmentName || info.placeName || b.listingSnapshot?.title || "Booking";
 }
 function getImage(b) {
-  return b.listing?.photos?.[0] || "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80";
+  return b.listing?.photos?.[0] || b.listingSnapshot?.photo || "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80";
 }
 function getLocation(b) {
   const loc = b.listing?.placeLocation ?? {};
-  return [loc.city, loc.state, loc.country].filter(Boolean).join(", ") || b.listing?.basicInformation?.location || "";
+  return [loc.city, loc.state, loc.country].filter(Boolean).join(", ") || b.listing?.basicInformation?.location || b.listingSnapshot?.location || "";
 }
 function formatDate(d) {
   if (!d) return "";
@@ -83,12 +87,19 @@ function getBookingTime(b) {
   }
   return null;
 }
+function isAwaitingHost(b) {
+  return b.status === "pending" || b.status === "awaiting_host_approval";
+}
 function getStatusKey(b) {
+  if (b.status === "listing_deleted") return "listing-deleted";
+  if (isAwaitingHost(b)) return "pending";
   if (b.status === "confirmed") return "in-progress";
   if (b.status === "cancelled") return "cancelled";
   return b.status;
 }
-function canCancel(b) { return b.status === "confirmed"; }
+// Guests can cancel while awaiting host approval, or after the host has confirmed —
+// just not once the host has declined, it's already cancelled, or it's completed.
+function canCancel(b) { return isAwaitingHost(b) || b.status === "confirmed"; }
 function getReviewButtonLabel(b) {
   if (b.reviewStatus?.canEdit) return "Edit Review";
   if (b.reviewStatus?.canSubmit) return "Leave a Review";
@@ -111,6 +122,8 @@ const STATUS_CFG = {
   "in-progress":{ label: "In-progress", bg: "bg-[#F9C234]",  text: "text-white" },
   cancelled:    { label: "Cancelled",   bg: "bg-red-500",    text: "text-white" },
   confirmed:    { label: "In-progress", bg: "bg-[#F9C234]",  text: "text-white" },
+  pending:      { label: "Awaiting Host", bg: "bg-[#94A3B8]", text: "text-white" },
+  "listing-deleted": { label: "Listing Removed", bg: "bg-red-600", text: "text-white" },
 };
 function StatusBadge({ status }) {
   const cfg = STATUS_CFG[status] ?? STATUS_CFG.confirmed;
@@ -212,8 +225,10 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
   const title = b?.listing?.basicInformation?.activityTitle
     || b?.listing?.basicInformation?.equipmentName
     || b?.listing?.basicInformation?.placeName
+    || b?.listingSnapshot?.title
     || "Booking";
   const photo = b?.listing?.photos?.[0]
+    ?? b?.listingSnapshot?.photo
     ?? "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80";
   const confirmationNo = b?.confirmationNumber ?? b?.id?.slice(-8)?.toUpperCase();
 
@@ -825,6 +840,14 @@ function BookingDetailView({ booking, onLeaveReview, onCancel, onContactHost, wi
         </div>
       </div>
 
+      {/* Listing-deleted banner */}
+      {statusKey === "listing-deleted" && (
+        <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: "#FFF7ED", border: "1px solid #FED7AA" }}>
+          <p className="font-bold text-sm text-[#EA580C] mb-1">LISTING DELETED BY PROVIDER</p>
+          <p className="text-sm text-[#EA580C]">This listing is no longer available. Your booking has been cancelled and any payment has been refunded.</p>
+        </div>
+      )}
+
       {/* Host */}
       {booking.host && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center justify-between gap-4">
@@ -993,9 +1016,7 @@ export default function MyReservationPage() {
   const [activeTab, setActiveTab] = useState("all");
   // refundRequests: { [bookingId]: refundRequestObject | null }
   const [refundRequestMap, setRefundRequestMap] = useState({});
-  const [wishlistIds, setWishlistIds] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("reservation_wishlists") || "[]"); } catch { return []; }
-  });
+  const wishlistListingIds = useSelector(selectWishlistSummaryListingIds);
 
   useEffect(() => {
     const request = dispatch(fetchBookings({ tab: TAB_TO_API[activeTab] ?? "all", page: currentPage, limit: 10 }));
@@ -1018,13 +1039,16 @@ export default function MyReservationPage() {
     });
   }, [bookings, dispatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggleWishlist = (id) => {
-    setWishlistIds(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-      localStorage.setItem("reservation_wishlists", JSON.stringify(next));
-      toast.success(prev.includes(id) ? "Removed from Wishlists" : "Added to Wishlists");
-      return next;
-    });
+  const getListingId = (b) => b.listingId || b.listing?._id || b.listing?.id;
+
+  const handleToggleWishlist = (booking) => {
+    const listingId = getListingId(booking);
+    if (!listingId) return;
+    const wasWishlisted = wishlistListingIds.includes(listingId);
+    dispatch(toggleWishlistThunk(listingId))
+      .unwrap()
+      .then(() => toast.success(wasWishlisted ? "Removed from Wishlists" : "Added to Wishlists"))
+      .catch(() => toast.error("Could not update wishlist. Please try again."));
   };
 
   const handleShare = (booking) => {
@@ -1041,9 +1065,7 @@ export default function MyReservationPage() {
   const tabCounts = bookingFilters?.counts ?? {};
   const hasAnyBookings = (tabCounts.all ?? bookings.length) > 0;
 
-  const filtered = activeTab === "wishlists"
-    ? bookings.filter((b) => wishlistIds.includes(b.id))
-    : bookings;
+  const filtered = bookings;
 
   const openModal = (type, booking = null) => { setActiveBooking(booking); setModal(type); };
   const closeModal = () => { setModal(null); setActiveBooking(null); };
@@ -1135,8 +1157,8 @@ export default function MyReservationPage() {
               onLeaveReview={() => openModal("review", detailView)}
               onCancel={() => openModal("cancel", detailView)}
               onContactHost={() => handleContactHost(detailView)}
-              wishlisted={wishlistIds.includes(detailView.id)}
-              onToggleWishlist={() => toggleWishlist(detailView.id)}
+              wishlisted={wishlistListingIds.includes(getListingId(detailView))}
+              onToggleWishlist={() => handleToggleWishlist(detailView)}
               onShare={() => handleShare(detailView)}
             />
           ) : !hasAnyBookings ? (
@@ -1180,8 +1202,8 @@ export default function MyReservationPage() {
                   onRequestRefund={(bk) => openModal("refund-request", bk)}
                   onWithdrawRefund={(bk) => openModal("withdraw-refund", bk)}
                   refundRequest={refundRequestMap[b.id] ?? null}
-                  wishlisted={wishlistIds.includes(b.id)}
-                  onToggleWishlist={() => toggleWishlist(b.id)}
+                  wishlisted={wishlistListingIds.includes(getListingId(b))}
+                  onToggleWishlist={() => handleToggleWishlist(b)}
                   onShare={() => handleShare(b)}
                 />
               ))}

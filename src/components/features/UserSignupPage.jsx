@@ -33,6 +33,7 @@ function UserSignupForm() {
   const handleGoogleSuccess = async (credentialResponse) => {
     const result = await dispatch(loginWithGoogle({
       idToken: credentialResponse.credential,
+      mode: "signup",
       role: "user",
       city: form.city,
     }));
