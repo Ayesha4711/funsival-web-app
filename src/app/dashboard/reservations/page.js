@@ -16,7 +16,7 @@ import {
 } from "@/store/slices/bookingsSlice";
 import axiosInstance from "@/store/axiosInstance";
 import { toast } from "sonner";
-import { NoListingIcon } from "@/icons";
+import Image from "next/image";
 import ReservationStats from "@/components/dashboard/ReservationStats";
 import ReservationFilters from "@/components/dashboard/ReservationFilters";
 import ReservationTable from "@/components/dashboard/ReservationTable";
@@ -29,13 +29,13 @@ import Pagination from "@/components/shared/Pagination";
 function EmptyState({ hasActiveFilters = false, onClearFilters }) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 gap-5 py-16">
-      <div className="relative flex items-center justify-center w-52 h-52">
-        <div className="w-52 h-52 rounded-full bg-gray-50 absolute top-0 left-0" />
-        <div className="w-36 h-36 rounded-full bg-gray-100 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-        <div className="relative w-24 h-24 rounded-full bg-[#e8f4f0] flex items-center justify-center z-10">
-          <NoListingIcon size={42} />
-        </div>
-      </div>
+      <Image
+        src="/images/No reservations.png"
+        alt="No reservations"
+        width={200}
+        height={200}
+        className="object-contain"
+      />
       <p
         className="text-lg font-bold text-gray-800 relative z-10"
         style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}

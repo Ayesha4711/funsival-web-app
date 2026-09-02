@@ -19,6 +19,7 @@ import AppFooter from '@/components/shared/AppFooter';
 import MapView from '@/components/user-dashboard/MapView';
 import Pagination from '@/components/shared/Pagination';
 import CustomCalendar from '@/components/shared/CustomCalendar';
+import EmptyState from '@/components/shared/EmptyState';
 import { HeartFilledIcon, HeartIcon, LocationIcon, CloseIcon, ChevronDownIcon, SearchIcon, GridIcon, EmojiIcon, StarIcon, FilterIcon, ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from '@/icons';
 
 /* ─── Tab → API category mapping ────────────────────────────────────────────── */
@@ -847,13 +848,13 @@ export default function UserExplorePage() {
               )}
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <EmojiIcon size={32} className="text-gray-400" />
-              </div>
-              <p className="text-lg font-semibold text-gray-700 mb-1">No listings found</p>
-              <p className="text-sm text-gray-400">Try a different category or filter</p>
-            </div>
+            <EmptyState
+              image="/images/No listings.png"
+              imageAlt="No listings"
+              title="No listings found"
+              description="Try a different category or filter"
+              className="flex-1"
+            />
           )}
           </div>
 

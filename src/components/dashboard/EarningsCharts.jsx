@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
@@ -118,6 +119,7 @@ export function EarningsTrend({ currency: initialCurrency }) {
   const currency = series?.currency ?? initialCurrency ?? "USD";
   const maxValue = Math.max(1, ...trendData.map((d) => d.value));
   const yMax = Math.ceil(maxValue / 4) * 4 || 4;
+  const hasData = trendData.some((d) => d.value > 0);
 
   return (
     <div className="bg-white rounded-2xl sm:rounded-[32px] p-3 sm:p-5 lg:p-6 border border-[var(--color-border)] flex-1 flex flex-col">
@@ -132,8 +134,11 @@ export function EarningsTrend({ currency: initialCurrency }) {
           <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">Loading…</div>
         ) : error ? (
           <div className="w-full h-full flex items-center justify-center text-sm text-red-500 text-center px-4">{error}</div>
-        ) : trendData.length === 0 ? (
-          <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">No earnings data available</div>
+        ) : !hasData ? (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-sm text-gray-400">
+            <Image src="/images/No earnings.png" alt="No earnings" width={100} height={100} className="object-contain" />
+            No earnings data available
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%" minHeight={200}>
             <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import {
   selectConversations,
@@ -83,7 +84,7 @@ export default function ContactPanel({ activeConvId, onSelect, currentUserId }) 
 
         {convStatus !== "loading" && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <span className="text-3xl">💬</span>
+            <Image src="/images/No messaging.png" alt="No conversations" width={64} height={64} className="object-contain" />
             <p className="text-sm font-medium text-gray-400 bg-gray-50 border border-gray-100 px-4 py-1.5 rounded-full">
               No conversations yet
             </p>

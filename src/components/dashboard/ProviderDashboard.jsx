@@ -254,11 +254,10 @@ export function RecentReservations({ reservations = [], loading = false, error =
 
       <div className="mt-5 flex flex-1 flex-col gap-3">
         {!reservations.length ? (
-          <div className="flex flex-1 items-center justify-center rounded-[22px] border border-dashed border-gray-200 bg-gray-50 px-4 py-10 text-center">
-            <div>
-              <p className="text-sm font-semibold text-gray-900">No reservations yet</p>
-              <p className="mt-1 text-sm text-gray-500">New reservations will appear here once guests start booking.</p>
-            </div>
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed border-gray-200 bg-gray-50 px-4 py-10 text-center">
+            <Image src="/images/No reservations.png" alt="No reservations" width={100} height={100} className="object-contain" />
+            <p className="text-sm font-semibold text-gray-900">No reservations yet</p>
+            <p className="mt-1 text-sm text-gray-500">New reservations will appear here once guests start booking.</p>
           </div>
         ) : (
           reservations.map((reservation, index) => {
@@ -670,7 +669,8 @@ export function EarningsChart({ currency = USD_CURRENCY, onViewReport }) {
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex h-full items-center justify-center rounded-[24px] border border-dashed border-gray-200 bg-gray-50 px-4 py-10 text-center text-sm text-gray-500">
+          <div className="flex h-full flex-col items-center justify-center gap-2 rounded-[24px] border border-dashed border-gray-200 bg-gray-50 px-4 py-10 text-center text-sm text-gray-500">
+            <Image src="/images/No earnings.png" alt="No earnings" width={100} height={100} className="object-contain" />
             No earnings found for this range.
           </div>
         )}

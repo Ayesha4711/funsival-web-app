@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAdminUsers,
@@ -144,9 +145,7 @@ export default function AdminUsersPage() {
             </div>
           ) : users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              </svg>
+              <Image src="/images/No data [dashboard].png" alt="No users found" width={140} height={140} className="object-contain" />
               <p className="text-gray-400 font-medium text-sm">No users found</p>
             </div>
           ) : (
