@@ -12,6 +12,7 @@ const FONT = "var(--font-sofia-pro), Sofia Pro, sans-serif";
 
 export default function BecomeProviderModal({ onClose }) {
   const [agencyName, setAgencyName] = useState("");
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
@@ -29,10 +30,13 @@ export default function BecomeProviderModal({ onClose }) {
 
   const handleConfirm = async () => {
     if (submitting) return;
+    if (!agencyName.trim()) {
+      setError("Business name is required");
+      return;
+    }
+    setError("");
     setSubmitting(true);
-    const result = await dispatch(
-      becomeProvider(agencyName.trim() ? { agencyName: agencyName.trim() } : {})
-    );
+    const result = await dispatch(becomeProvider({ agencyName: agencyName.trim() }));
     setSubmitting(false);
 
     if (becomeProvider.rejected.match(result)) {
@@ -82,16 +86,19 @@ export default function BecomeProviderModal({ onClose }) {
             style={{ fontFamily: FONT, fontWeight: 600, fontSize: 13, color: "#374151" }}
             className="block mb-2"
           >
-            Business name <span className="text-gray-400 font-normal">(optional)</span>
+            Business name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={agencyName}
-            onChange={(e) => setAgencyName(e.target.value)}
+            onChange={(e) => { setAgencyName(e.target.value); setError(""); }}
             placeholder="e.g. Skyline Adventures"
             style={{ fontFamily: FONT, fontSize: 14 }}
-            className="w-full px-5 py-4 rounded-2xl border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#1d8c82] transition-colors mb-7"
+            className={`w-full px-5 py-4 rounded-2xl border text-gray-900 placeholder:text-gray-400 focus:outline-none transition-colors mb-1 ${error ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-[#1d8c82]"}`}
           />
+          <p style={{ fontFamily: FONT, fontSize: 12 }} className="text-red-500 mb-6 min-h-[16px]">
+            {error}
+          </p>
 
           <div className="flex justify-center">
             <button
