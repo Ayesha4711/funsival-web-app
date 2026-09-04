@@ -807,6 +807,17 @@ export const SkydivingIcon = ({ size = 20, className }) => (
   </svg>
 );
 
+export const SkierIcon = ({ size = 20, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="15.5" cy="4.5" r="1.6" fill="currentColor" stroke="none" />
+    <path d="M11 9l3-1.5 3 3-2.5 2 3 2.5-1 3" />
+    <path d="M14 10.5L9 13l-3 5.5" />
+    <path d="M14 12.5l3.5 1.5" />
+    <path d="M3 20h9" />
+    <path d="M17 20h4" />
+  </svg>
+);
+
 export const JetSkiingIcon = ({ size = 20, className }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M3 17c2-2 4-3 6-3s4 2 6 2 4-1 6-3" />

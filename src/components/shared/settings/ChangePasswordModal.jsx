@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { changePassword } from "@/store/slices/authSlice";
@@ -19,6 +20,7 @@ export default function ChangePasswordModal({ onClose }) {
   const [show, setShow] = useState({ current: false, newPwd: false, confirm: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const toggleShow = (k) => setShow((s) => ({ ...s, [k]: !s[k] }));
   const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setError(""); };
@@ -47,11 +49,29 @@ export default function ChangePasswordModal({ onClose }) {
 
     if (changePassword.fulfilled.match(result)) {
       toast.success("Password updated successfully.");
-      onClose();
+      setSuccess(true);
+      setTimeout(onClose, 1500);
     } else {
       setError(result.payload || "Failed to update password.");
     }
   };
+
+  if (success) {
+    return (
+      <ModalOverlay onClose={onClose}>
+        <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+          <Image
+            src="/images/Mini-success [password change].png"
+            alt="Password updated"
+            width={140}
+            height={140}
+            className="object-contain"
+          />
+          <p className="text-base font-bold text-text">Password updated successfully!</p>
+        </div>
+      </ModalOverlay>
+    );
+  }
 
   return (
     <ModalOverlay onClose={onClose}>

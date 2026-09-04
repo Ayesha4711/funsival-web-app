@@ -163,7 +163,10 @@ function RecentReservations({ reservations = [], loading = false, error = "", on
       </div>
 
       {reservations.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-[var(--color-text-muted)] text-sm">No reservations yet.</div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 text-[var(--color-text-muted)] text-sm py-6">
+          <Image src="/images/No reservations.png" alt="No reservations" width={100} height={100} className="object-contain" />
+          No reservations yet.
+        </div>
       ) : (
         <div className="flex flex-col gap-3 sm:gap-4 flex-1">
           <ReservationRow r={reservations[safeMobileIndex] ?? reservations[0]} className="flex md:hidden" />
@@ -186,6 +189,7 @@ function DonutChart({ data = [], loading = false, error = "", onRetry }) {
         { name: "Pending", value: 0, color: "#FEB538" },
         { name: "Cancelled", value: 0, color: "#f97316" },
       ];
+  const hasData = chartData.some((s) => Number(s.value) > 0);
 
   if (loading) {
     return (
@@ -206,35 +210,43 @@ function DonutChart({ data = [], loading = false, error = "", onRetry }) {
           </button>
         ) : null}
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center px-2 py-2">
-        <ResponsiveContainer width="100%" height={320} className="sm:!h-[380px]">
-          <PieChart margin={{ top: 32, right: 32, bottom: 0, left: 32 }}>
-            <Pie
-              data={chartData}
-              cx="50%"
-              cy="50%"
-              innerRadius={72}
-              outerRadius={112}
-              paddingAngle={4}
-              dataKey="value"
-              className="sm:!innerRadius-[64] sm:!outerRadius-[98]"
-            >
-              {chartData.map((entry, i) => (
-                <Cell key={i} fill={entry.color} />
-              ))}
-            </Pie>
-            <PieTooltip formatter={(value, name) => [`${value}%`, name]} contentStyle={{ borderRadius: 12, border: "1px solid #f1f5f9", fontSize: 12 }} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="flex items-center justify-center gap-4 sm:gap-6 px-4 sm:px-5 pb-4 sm:pb-5 flex-wrap">
-        {chartData.map((s) => (
-          <div key={s.name} className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-            <span className="text-[13px] sm:text-sm font-semibold text-[var(--color-text-muted)]">{s.name}</span>
+      {hasData ? (
+        <>
+          <div className="flex-1 flex flex-col items-center justify-center px-2 py-2">
+            <ResponsiveContainer width="100%" height={320} className="sm:!h-[380px]">
+              <PieChart margin={{ top: 32, right: 32, bottom: 0, left: 32 }}>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={72}
+                  outerRadius={112}
+                  paddingAngle={4}
+                  dataKey="value"
+                  className="sm:!innerRadius-[64] sm:!outerRadius-[98]"
+                >
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <PieTooltip formatter={(value, name) => [`${value}%`, name]} contentStyle={{ borderRadius: 12, border: "1px solid #f1f5f9", fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-        ))}
-      </div>
+          <div className="flex items-center justify-center gap-4 sm:gap-6 px-4 sm:px-5 pb-4 sm:pb-5 flex-wrap">
+            {chartData.map((s) => (
+              <div key={s.name} className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                <span className="text-[13px] sm:text-sm font-semibold text-[var(--color-text-muted)]">{s.name}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center px-4 py-6 text-sm text-gray-400">
+          No listing performance data available
+        </div>
+      )}
       {error ? <p className="px-5 pb-4 text-sm text-red-600">{error}</p> : null}
     </div>
   );

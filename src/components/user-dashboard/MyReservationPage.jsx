@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
-import reservationImg from "@/assets/images/reservationImg.png";
 import {
   fetchBookings,
   cancelBooking,
@@ -966,7 +965,7 @@ function EmptyState({ onStartBooking }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 gap-6 2xl:min-h-[600px]">
       <div className="relative flex items-end justify-center w-72 h-64 2xl:w-96 2xl:h-80">
-        <Image src={reservationImg} alt="No reservations" width={280} height={256} className="relative z-10 object-contain 2xl:scale-125" />
+        <Image src="/images/No bookings [User Flow].png" alt="No reservations" width={280} height={256} className="relative z-10 object-contain 2xl:scale-125" />
       </div>
       <div className="text-center 2xl:mt-8">
         <h2 className="text-2xl font-bold text-gray-900 2xl:text-3xl">No Reservation Booked...Yet!</h2>

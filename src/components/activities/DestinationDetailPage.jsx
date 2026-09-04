@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import LandingNavbar from "@/components/landing/LandingNavbar";
 import FAQSection from "@/components/landing/FAQSection";
 import AppFooter from "@/components/shared/AppFooter";
+import EmptyState from "@/components/shared/EmptyState";
 import ActivityHero from "@/components/activities/ActivityHero";
 import PublicListingCard from "@/components/activities/PublicListingCard";
 import {
@@ -91,7 +92,11 @@ export default function DestinationDetailPage({ params: paramsPromise }) {
               ))}
             </div>
           ) : listings.length === 0 ? (
-            <p className="text-center text-gray-400 py-16">No listings available in this destination yet.</p>
+            <EmptyState
+              image="/images/No listings.png"
+              imageAlt="No listings"
+              title="No listings available in this destination yet."
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {listings.map((listing) => (

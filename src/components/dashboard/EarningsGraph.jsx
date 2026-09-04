@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
@@ -88,12 +89,16 @@ function normalizeEarningsResponse(payload, requestedCurrency) {
     points = reorderToCalendarYear(points);
   }
 
+  const hasData = points.some(
+    (p) => p.availableEarnings > 0 || p.pendingEarnings > 0 || p.netEarnings > 0 || p.bookingCount > 0
+  );
+
   return {
     interval: interval === "hour" || interval === "day" ? interval : "month",
     currency: String(series?.currency || requestedCurrency || "").toUpperCase(),
     availableCurrencies: seriesList.map((s) => String(s?.currency || "").toUpperCase()).filter(Boolean),
     points,
-    hasSeries: seriesList.length > 0,
+    hasSeries: seriesList.length > 0 && hasData,
   };
 }
 
@@ -259,7 +264,8 @@ export default function EarningsGraph({ title = "Earnings", initialCurrency = US
           </div>
         </div>
       ) : !state.data.hasSeries ? (
-        <div className="flex-1 min-h-[240px] flex items-center justify-center text-sm text-gray-400">
+        <div className="flex-1 min-h-[240px] flex flex-col items-center justify-center gap-2 text-sm text-gray-400">
+          <Image src="/images/No earnings.png" alt="No earnings" width={100} height={100} className="object-contain" />
           No earnings data available
         </div>
       ) : (

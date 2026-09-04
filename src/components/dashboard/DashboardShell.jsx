@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchProfile, selectProfileStatus, selectUser } from "@/store/slices/profileSlice";
+import { fetchProfile, selectProfileStatus, selectUser, selectProfileUnauthenticated } from "@/store/slices/profileSlice";
 import DashboardNavbar from "@/components/dashboard/DashboardNavbar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import AppFooter from "@/components/shared/AppFooter";
@@ -22,6 +22,7 @@ export default function DashboardShell({ children }) {
   const dispatch = useDispatch();
   const status = useSelector(selectProfileStatus);
   const profile = useSelector(selectUser);
+  const unauthenticated = useSelector(selectProfileUnauthenticated);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -33,6 +34,10 @@ export default function DashboardShell({ children }) {
     [dispatch, status]
   );
 
+  useEffect(() => {
+    if (unauthenticated) window.location.replace("/");
+  }, [unauthenticated]);
+
   const role = profile?.role ?? profile?.data?.role ?? profile?.data?.user?.role ?? null;
   const isProvider = role === "host" || role === "admin";
 
@@ -43,7 +48,24 @@ export default function DashboardShell({ children }) {
   }, [status, role, isProvider, router]);
 
   if (status === "idle" || status === "loading") return <FullPageLoader />;
-  if (status === "failed") { window.location.replace("/"); return null; }
+  if (unauthenticated) return null;
+  if (status === "failed") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F3F4F6] px-4">
+        <div className="text-center">
+          <p className="text-[var(--color-text)] font-semibold mb-3">
+            Couldn&apos;t load your dashboard.
+          </p>
+          <button
+            onClick={() => dispatch(fetchProfile())}
+            className="px-6 py-2.5 rounded-full bg-[var(--color-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
   if (role && !isProvider) return <FullPageLoader />;
 
   const isWizard = pathname === "/dashboard/listings/add";

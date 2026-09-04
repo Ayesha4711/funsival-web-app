@@ -2,6 +2,7 @@
 
 import React from "react";
 import Pagination from "@/components/shared/Pagination";
+import EmptyState from "@/components/shared/EmptyState";
 import { formatListingPrice } from "./listings/listingPrice";
 import { StarFilledIcon, ImageIcon } from "@/icons";
 import ListingStatusDropdown from "./listings/ListingStatusDropdown";
@@ -21,7 +22,11 @@ export default function ListingsCards({
   return (
     <div className="flex flex-col gap-4">
       {data.length === 0 && (
-        <p className="text-center text-sm text-gray-400 font-medium py-12">No listings found.</p>
+        <EmptyState
+          image="/images/No listings.png"
+          imageAlt="No listings"
+          title="No listings found"
+        />
       )}
 
       {data.map((item) => (

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { savePreferences, selectProfileStatus } from "@/store/slices/profileSlice";
+import { savePreferences, dismissOnboarding, selectProfileStatus } from "@/store/slices/profileSlice";
 import { toast } from "sonner";
 import { CloseIcon } from "@/icons";
 
@@ -87,10 +87,15 @@ export default function PreferenceModal({ onClose, role = "user" }) {
       return;
     }
     toast.success("Preferences saved!");
+    onClose();
     router.push(dashboardPath);
   };
 
-  const handleLater = () => router.push(dashboardPath);
+  const handleLater = () => {
+    dispatch(dismissOnboarding());
+    onClose();
+    router.push(dashboardPath);
+  };
 
   return (
     <div

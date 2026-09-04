@@ -32,7 +32,7 @@ export default function AppFooter() {
   };
 
   return (
-    <footer className="bg-[#FBFBFB] w-full">
+    <footer className="bg-[#FBFBFB] w-full border-t border-gray-200">
       {/* Newsletter */}
       <div className="px-6 sm:px-10 lg:px-16 py-10 flex flex-col md:flex-row items-center justify-between gap-6 border-b border-gray-200">
         <div>

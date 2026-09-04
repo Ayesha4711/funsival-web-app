@@ -51,6 +51,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
   const activeDays = getActiveDays(form.recurringStartDate, form.recurringEndDate);
   const hasRange = !!(form.recurringStartDate && form.recurringEndDate);
   const today = new Date().toISOString().split("T")[0];
+  const slot0 = form.slots?.[0] || {};
 
   return (
     <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 overflow-visible" data-field="availability">
@@ -89,7 +90,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
               <div className="flex-1">
                 <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Select Date</p>
                 <CalendarField
-                  value={form.slots[0]?.day || ""}
+                  value={slot0.day || ""}
                   placeholder="Pick a date"
                   onChange={(value) => updateSlot(0, "day", value)}
                   minDate={today}
@@ -100,7 +101,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <DropdownField
-                      value={form.slots[0]?.startTime || ""}
+                      value={slot0.startTime || ""}
                       placeholder="When the activity begins"
                       options={timeOptions}
                       onChange={(value) => {
@@ -114,7 +115,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
                   </div>
                   <div className="flex-1">
                     <DropdownField
-                      value={form.slots[0]?.endTime || ""}
+                      value={slot0.endTime || ""}
                       placeholder="When the activity ends"
                       options={timeOptions}
                       onChange={(value) => updateSlot(0, "endTime", value)}

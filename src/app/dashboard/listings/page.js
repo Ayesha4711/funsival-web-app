@@ -15,7 +15,8 @@ import {
   selectHostListingStats,
 } from "@/store/slices/listingsSlice";
 import { BASE_URL } from "@/lib/api";
-import { NoListingIcon, NoListingFilteredIcon, SpinnerIcon, TrashIcon } from "@/icons";
+import Image from "next/image";
+import { SpinnerIcon, TrashIcon } from "@/icons";
 import ListingsStats from "@/components/dashboard/ListingsStats";
 import ListingsFilters, { DEFAULT_FILTERS } from "@/components/dashboard/ListingsFilters";
 import ListingsTable from "@/components/dashboard/ListingsTable";
@@ -28,17 +29,13 @@ import { describeListingPrice, formatListingPrice } from "@/components/dashboard
 function EmptyState({ hasFilters, onClearFilters }) {
   return (
     <div className="flex flex-col items-center justify-center py-28 gap-5">
-      <div className="relative flex items-center justify-center w-52 h-52 mb-4">
-        <div className="w-52 h-52 rounded-full bg-gray-50 absolute top-0 left-0" />
-        <div className="w-36 h-36 rounded-full bg-gray-100 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-        <div className="relative w-24 h-24 rounded-full bg-[#e8f4f0] flex items-center justify-center z-10">
-          {hasFilters ? (
-            <NoListingFilteredIcon size={42} />
-          ) : (
-            <NoListingIcon size={42} />
-          )}
-        </div>
-      </div>
+      <Image
+        src="/images/No listings.png"
+        alt="No listings"
+        width={200}
+        height={200}
+        className="object-contain mb-4"
+      />
       {hasFilters ? (
         <>
           <p className="text-lg font-bold text-gray-800 relative z-10">No results match your filters</p>
