@@ -2,19 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { toast } from "sonner";
-import { becomeProvider } from "@/store/slices/authSlice";
-import { fetchProfile, selectUser } from "@/store/slices/profileSlice";
+import { becomeUser } from "@/store/slices/authSlice";
+import { fetchProfile } from "@/store/slices/profileSlice";
 import { CloseIcon } from "@/icons";
 
 const FONT = "var(--font-sofia-pro), Sofia Pro, sans-serif";
 
-export default function BecomeProviderModal({ onClose }) {
-  const profile = useSelector(selectUser);
-  const hasAgencyName = Boolean(profile?.agencyName?.trim());
-  const [agencyName, setAgencyName] = useState("");
-  const [error, setError] = useState("");
+export default function BecomeUserModal({ onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
@@ -32,24 +28,19 @@ export default function BecomeProviderModal({ onClose }) {
 
   const handleConfirm = async () => {
     if (submitting) return;
-    if (!hasAgencyName && !agencyName.trim()) {
-      setError("Business name is required");
-      return;
-    }
-    setError("");
     setSubmitting(true);
-    const result = await dispatch(becomeProvider({ agencyName: agencyName.trim() }));
+    const result = await dispatch(becomeUser());
     setSubmitting(false);
 
-    if (becomeProvider.rejected.match(result)) {
-      toast.error("Couldn't become a provider", { description: result.payload || "Please try again." });
+    if (becomeUser.rejected.match(result)) {
+      toast.error("Couldn't switch to a user account", { description: result.payload || "Please try again." });
       return;
     }
 
     dispatch(fetchProfile());
-    toast.success("You're now a provider!", { description: "Welcome to Funsival hosting." });
+    toast.success("You're now a user!", { description: "Welcome back to exploring Funsival." });
     onClose();
-    router.push("/dashboard");
+    router.push("/user-dashboard/explore?onboarding=true");
   };
 
   return (
@@ -65,7 +56,7 @@ export default function BecomeProviderModal({ onClose }) {
       >
         <div className="flex items-center justify-between px-8 pt-7 pb-6">
           <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 22, color: "#111827" }}>
-            Become a Provider
+            Become a User
           </span>
           <button
             onClick={onClose}
@@ -80,32 +71,9 @@ export default function BecomeProviderModal({ onClose }) {
             style={{ fontFamily: FONT, fontWeight: 400, fontSize: 14, color: "#6B7280" }}
             className="mb-6 leading-relaxed"
           >
-            {hasAgencyName
-              ? `List places, equipment, or activities on Funsival again as ${profile.agencyName}. Your bookings, reviews, and wishlist stay exactly as they are.`
-              : "List places, equipment, or activities on Funsival using your existing account. Your bookings, reviews, and wishlist stay exactly as they are."}
+            Switch back to exploring places, equipment, and services using your existing
+            account. Your listings stay saved — you can become a provider again anytime.
           </p>
-
-          {!hasAgencyName && (
-            <>
-              <label
-                style={{ fontFamily: FONT, fontWeight: 600, fontSize: 13, color: "#374151" }}
-                className="block mb-2"
-              >
-                Business name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={agencyName}
-                onChange={(e) => { setAgencyName(e.target.value); setError(""); }}
-                placeholder="e.g. Skyline Adventures"
-                style={{ fontFamily: FONT, fontSize: 14 }}
-                className={`w-full px-5 py-4 rounded-2xl border text-gray-900 placeholder:text-gray-400 focus:outline-none transition-colors mb-1 ${error ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-[#1d8c82]"}`}
-              />
-              <p style={{ fontFamily: FONT, fontSize: 12 }} className="text-red-500 mb-6 min-h-[16px]">
-                {error}
-              </p>
-            </>
-          )}
 
           <div className="flex justify-center">
             <button
@@ -121,7 +89,7 @@ export default function BecomeProviderModal({ onClose }) {
               }}
               className="py-4 px-10 rounded-full text-white transition-all hover:opacity-90 disabled:cursor-not-allowed"
             >
-              {submitting ? "Setting up…" : "Become a Provider"}
+              {submitting ? "Setting up…" : "Become a User"}
             </button>
           </div>
         </div>

@@ -10,9 +10,10 @@ export const fetchProfile = createAsyncThunk(
       const { data } = await axiosInstance.get("/auth/profile");
       return data?.data?.user ?? null;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message ?? err.message
-      );
+      return rejectWithValue({
+        status: err.response?.status ?? null,
+        message: err.response?.data?.message ?? err.message,
+      });
     }
   }
 );
@@ -108,6 +109,22 @@ export const savePreferences = createAsyncThunk(
   }
 );
 
+// Marks the user-onboarding preferences screen as seen without saving any
+// selections, so "I'll do this later" also counts as asked-once.
+export const dismissOnboarding = createAsyncThunk(
+  "profile/dismissOnboarding",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/users/preferences/dismiss");
+      return data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message ?? err.message
+      );
+    }
+  }
+);
+
 // ─── Slice ───────────────────────────────────────────────────────────────────
 
 const profileSlice = createSlice({
@@ -186,6 +203,13 @@ const profileSlice = createSlice({
       .addCase(savePreferences.fulfilled, (state, action) => {
         if (state.user) {
           state.user.preferences = action.payload;
+          state.user.hasCompletedUserOnboarding = true;
+        }
+      })
+
+      .addCase(dismissOnboarding.fulfilled, (state) => {
+        if (state.user) {
+          state.user.hasCompletedUserOnboarding = true;
         }
       });
   },
@@ -197,6 +221,9 @@ export const { setProfile, clearProfile } = profileSlice.actions;
 export const selectUser = (state) => state.profile.user;
 export const selectProfileStatus = (state) => state.profile.status;
 export const selectProfileError = (state) => state.profile.error;
+export const selectProfileUnauthenticated = (state) =>
+  state.profile.status === "failed" &&
+  (state.profile.error?.status === 401 || state.profile.error?.status === 403);
 export const selectProfileSaveStatus = (state) => state.profile.saveStatus;
 export const selectProfileSaveError = (state) => state.profile.saveError;
 

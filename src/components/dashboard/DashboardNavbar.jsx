@@ -21,10 +21,13 @@ import {
   EarningsIcon,
 } from "@/icons";
 import { useSelector, useDispatch } from "react-redux";
-import { selectUser } from "@/store/slices/profileSlice";
+import { toast } from "sonner";
+import { fetchProfile, selectUser } from "@/store/slices/profileSlice";
+import { becomeUser } from "@/store/slices/authSlice";
 import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
 import { resetStore } from "@/store/store";
 import NotificationPopover from "@/components/shared/NotificationPopover";
+import BecomeUserModal from "@/components/dashboard/BecomeUserModal";
 import axiosInstance from "@/store/axiosInstance";
 import { useFCM, getStoredFcmToken } from "@/hooks/useFCM";
 import { firebaseAuth } from "@/lib/firebase";
@@ -37,6 +40,8 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
   const notifOpen = openMenu === "notif";
   const profileOpen = openMenu === "profile";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [becomeUserOpen, setBecomeUserOpen] = useState(false);
+  const [switchingUser, setSwitchingUser] = useState(false);
   const roleRef = useRef(null);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
@@ -108,6 +113,34 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
   const handleMobileNav = (path) => {
     setMobileOpen(false);
     router.push(path);
+  };
+
+  const currentRole = profile?.role ?? profile?.data?.role ?? profile?.data?.user?.role ?? null;
+  const isAlreadyUser = currentRole === "user";
+  const hasCompletedUserOnboarding = Boolean(profile?.hasCompletedUserOnboarding);
+
+  const handleUserClick = async () => {
+    setOpenMenu(null);
+    setMobileOpen(false);
+    if (isAlreadyUser) {
+      router.push("/user-dashboard/explore");
+      return;
+    }
+    if (!hasCompletedUserOnboarding) {
+      setBecomeUserOpen(true);
+      return;
+    }
+    // Returning user — onboarding already completed once, switch instantly, no modal/popup.
+    if (switchingUser) return;
+    setSwitchingUser(true);
+    const result = await dispatch(becomeUser());
+    setSwitchingUser(false);
+    if (becomeUser.rejected.match(result)) {
+      toast.error("Couldn't switch to a user account", { description: result.payload || "Please try again." });
+      return;
+    }
+    dispatch(fetchProfile());
+    router.push("/user-dashboard/explore");
   };
 
   return (
@@ -188,9 +221,8 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
                 </button>
                 <button
                   onClick={() => {
-                    setOpenMenu(null);
                     setActiveView("user");
-                    router.push("/user-dashboard/explore");
+                    handleUserClick();
                   }}
                   className={`w-full text-left px-4 py-2.5 rounded-full text-sm font-semibold transition-colors ${
                     activeView === "user"
@@ -367,7 +399,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
                 <p className="text-xs text-gray-400 font-medium mb-2 uppercase tracking-wide">Switch role</p>
                 <div className="flex gap-2">
                   <button className="flex-1 py-2 rounded-full bg-[#228E8A] text-white text-sm font-medium">Provider</button>
-                  <button onClick={() => handleMobileNav("/user-dashboard/explore")} className="flex-1 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-600 hover:border-[#228E8A] hover:text-[#228E8A] transition-colors">User</button>
+                  <button onClick={handleUserClick} className="flex-1 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-600 hover:border-[#228E8A] hover:text-[#228E8A] transition-colors">User</button>
                 </div>
               </div>
             </nav>
@@ -381,6 +413,9 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
           </div>
           
         </div>
+      )}
+      {becomeUserOpen && (
+        <BecomeUserModal onClose={() => setBecomeUserOpen(false)} />
       )}
     </>
   );

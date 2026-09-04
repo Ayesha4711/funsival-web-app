@@ -70,13 +70,13 @@ export default function AddListingWizard() {
     didInitRef.current = true;
 
     const normalizeSlots = (slots) =>
-      Array.isArray(slots)
+      Array.isArray(slots) && slots.length > 0
         ? slots.map((slot) => (
             slot
               ? { ...slot, day: normalizeDateValue(slot.day) }
               : slot
           ))
-        : slots;
+        : [{ day: "", startTime: "", endTime: "" }];
 
     if (isFreshCreate) {
       // Clear any previously abandoned draft so this explicit "new listing" click

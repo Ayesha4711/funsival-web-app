@@ -1,18 +1,21 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import logo from "@/assets/images/logo.svg";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchProfile, selectUser, selectProfileStatus } from "@/store/slices/profileSlice";
+import { toast } from "sonner";
+import { becomeProvider } from "@/store/slices/authSlice";
+import { fetchProfile, selectUser, selectProfileStatus, selectProfileUnauthenticated } from "@/store/slices/profileSlice";
 import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
 import { fetchWishlistSummary, selectWishlistSummaryCount } from "@/store/slices/wishlistSlice";
 import { resetStore } from "@/store/store";
 import NotificationPopover from "@/components/shared/NotificationPopover";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import BecomeProviderModal from "@/components/user-dashboard/BecomeProviderModal";
+import PreferenceModal from "@/components/features/PreferenceModal";
 import axiosInstance from "@/store/axiosInstance";
 import { useFCM, getStoredFcmToken } from "@/hooks/useFCM";
 import { firebaseAuth } from "@/lib/firebase";
@@ -48,15 +51,31 @@ function UserNavbar() {
   const isExplorePage = pathname === "/user-dashboard/explore";
   const currentRole = profile?.role ?? profile?.data?.role ?? profile?.data?.user?.role ?? null;
   const isAlreadyProvider = currentRole === "host" || currentRole === "admin";
+  const hasAgencyName = Boolean(profile?.agencyName?.trim());
+  const [switchingProvider, setSwitchingProvider] = useState(false);
 
-  const handleProviderClick = () => {
+  const handleProviderClick = async () => {
     setOpenMenu(null);
     setMobileOpen(false);
     if (isAlreadyProvider) {
       router.push("/dashboard");
-    } else {
-      setBecomeProviderOpen(true);
+      return;
     }
+    if (!hasAgencyName) {
+      setBecomeProviderOpen(true);
+      return;
+    }
+    // Returning provider — agencyName already on file, switch instantly, no modal.
+    if (switchingProvider) return;
+    setSwitchingProvider(true);
+    const result = await dispatch(becomeProvider({}));
+    setSwitchingProvider(false);
+    if (becomeProvider.rejected.match(result)) {
+      toast.error("Couldn't switch to a provider account", { description: result.payload || "Please try again." });
+      return;
+    }
+    dispatch(fetchProfile());
+    router.push("/dashboard");
   };
 
   const handleSearchChange = (e) => {
@@ -356,16 +375,39 @@ function isPublicPath(pathname) {
 export default function UserDashboardShell({ children }) {
   const dispatch = useDispatch();
   const status = useSelector(selectProfileStatus);
+  const unauthenticated = useSelector(selectProfileUnauthenticated);
   const pathname = usePathname();
   const isPublic = isPublicPath(pathname);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (status === "idle") dispatch(fetchProfile());
   }, [dispatch, status]);
 
+  useEffect(() => {
+    if (!isPublic && unauthenticated) window.location.replace("/");
+  }, [isPublic, unauthenticated]);
+
   if (!isPublic) {
     if (status === "idle" || status === "loading") return <FullPageLoader />;
-    if (status === "failed") { window.location.replace("/"); return null; }
+    if (unauthenticated) return null;
+    if (status === "failed") {
+      return (
+        <div className="flex h-screen items-center justify-center bg-gray-50 px-4">
+          <div className="text-center">
+            <p className="text-[var(--color-text)] font-semibold mb-3">
+              Couldn&apos;t load your account.
+            </p>
+            <button
+              onClick={() => dispatch(fetchProfile())}
+              className="px-6 py-2.5 rounded-full bg-[var(--color-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      );
+    }
   }
 
   return (
@@ -374,6 +416,31 @@ export default function UserDashboardShell({ children }) {
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
         <div className="flex-1 flex flex-col">{children}</div>
       </div>
+      <Suspense fallback={null}>
+        <OnboardingTrigger onTrigger={() => setShowOnboarding(true)} />
+      </Suspense>
+      {showOnboarding && (
+        <PreferenceModal role="user" onClose={() => setShowOnboarding(false)} />
+      )}
     </div>
   );
+}
+
+// Isolated so only this leaf needs the Suspense boundary useSearchParams requires.
+function OnboardingTrigger({ onTrigger }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("onboarding") === "true") {
+      onTrigger();
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("onboarding");
+      router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  return null;
 }

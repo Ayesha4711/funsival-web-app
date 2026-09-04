@@ -121,7 +121,7 @@ function HostSignupForm() {
       mode: "signup",
       role: "host",
       city: form.city,
-      businessName: form.agencyName.trim(),
+      agencyName: form.agencyName.trim(),
     }));
     if (loginWithGoogle.rejected.match(result)) {
       toast.error("Google login failed", { description: result.payload || "Failed to authenticate with Google." });
@@ -146,7 +146,7 @@ function HostSignupForm() {
     }
 
     const result = await dispatch(signupHost({
-      businessName: form.agencyName.trim(),
+      agencyName: form.agencyName.trim(),
       email: form.email,
       city: form.city,
       password: form.password,
