@@ -54,7 +54,7 @@ function parseStoredSlots(rawSlots) {
 const SECTION_HEADING_STYLE = {
   fontFamily: "var(--font-sofia-pro)",
   fontWeight: 600,
-  fontSize: "20px",
+  fontSize: "24px",
   lineHeight: "140%",
   letterSpacing: "0px",
   verticalAlign: "middle",
@@ -62,7 +62,7 @@ const SECTION_HEADING_STYLE = {
 const FIELD_LABEL_STYLE = {
   fontFamily: "var(--font-sofia-pro)",
   fontWeight: 500,
-  fontSize: "18.48px",
+  fontSize: "18px",
   lineHeight: "160%",
   letterSpacing: "0%",
   verticalAlign: "middle",
@@ -71,7 +71,7 @@ const FIELD_LABEL_STYLE = {
 const FIELD_SUBTEXT_STYLE = {
   fontFamily: "var(--font-sofia-pro)",
   fontWeight: 300,
-  fontSize: "18.48px",
+  fontSize: "18px",
   lineHeight: "160%",
   letterSpacing: "0%",
   verticalAlign: "middle",
@@ -424,7 +424,7 @@ function ConfirmAndPayInner() {
           >
             <BackIcon />
           </button>
-          <h1 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "22px" }}>Confirm And Pay</h1>
+          <h1 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "24px" }}>Confirm And Pay</h1>
         </div>
       </div>
 
@@ -443,7 +443,7 @@ function ConfirmAndPayInner() {
                 <button
                   onClick={() => router.back()}
                   className="flex items-center gap-1.5 text-[#4AA7A7] hover:text-[#3d9090] transition-colors"
-                  style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 600, fontSize: "14px", lineHeight: "170%", letterSpacing: "0%", verticalAlign: "middle", textDecoration: "underline" }}
+                  style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 600, fontSize: "18px", lineHeight: "170%", letterSpacing: "0%", verticalAlign: "middle", textDecoration: "underline" }}
                 >
                   <EditIcon /> Edit Details
                 </button>
@@ -558,8 +558,8 @@ function ConfirmAndPayInner() {
               <div className="h-px bg-gray-100" />
 
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Cancellation Policy</h2>
-                <p className="text-sm text-gray-500 leading-relaxed">
+                <h2 className="font-bold text-gray-900 mb-2" style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "24px" }}>Cancellation Policy</h2>
+                <p className="text-gray-500 leading-relaxed" style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "18px" }}>
                   If you cancel before the host accepts, your card will not be charged.
                   If you cancel after the host accepts, the standard cancellation policy applies.
                 </p>
@@ -568,8 +568,8 @@ function ConfirmAndPayInner() {
               <div className="h-px bg-gray-100" />
 
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Ground Rules</h2>
-                <p className="text-sm text-gray-500 leading-relaxed">
+                <h2 className="font-bold text-gray-900 mb-2" style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "24px" }}>Ground Rules</h2>
+                <p className="text-gray-500 leading-relaxed" style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "18px" }}>
                   Please treat all spaces and equipment with respect. Follow the host&apos;s house rules
                   and communicate any issues promptly.
                 </p>
@@ -588,8 +588,8 @@ function ConfirmAndPayInner() {
                   <img src={image} alt={title} className="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-                  {description && <p className="text-sm text-gray-500 mt-1 leading-relaxed">{description}</p>}
+                  <h3 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "28px" }}>{title}</h3>
+                  {description && <p className="text-gray-500 mt-1 leading-relaxed" style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "16px" }}>{description}</p>}
                 </div>
               </div>
 
@@ -603,7 +603,7 @@ function ConfirmAndPayInner() {
                 </p>
                 <div className="flex justify-between items-center text-sm">
                   <span style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 300, fontSize: "16px", lineHeight: "160%", letterSpacing: "0%", verticalAlign: "middle", color: "#424242" }}>{priceLabel}</span>
-                  <span style={{ color: "#424242" }}>{formatMoney(subtotal, currency)}</span>
+                  <span style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "16px", color: "#424242" }}>{formatMoney(subtotal, currency)}</span>
                 </div>
               </div>
               <div>
@@ -615,7 +615,7 @@ function ConfirmAndPayInner() {
                 </p>
                 <div className="flex justify-between items-center text-sm">
                   <span style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 300, fontSize: "16px", lineHeight: "160%", letterSpacing: "0%", verticalAlign: "middle", color: "#424242" }}>Funsival Fee</span>
-                  <span style={{ color: "#424242" }}>${serviceFee}.00</span>
+                  <span style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "16px", color: "#424242" }}>${serviceFee}.00</span>
                 </div>
               </div>
               <div className="flex justify-between items-center pt-3 border-t border-gray-100">
@@ -653,7 +653,7 @@ function ConfirmAndPayInner() {
                   {agreed && <CheckIcon size={10} className="text-white" />}
                 </div>
               </div>
-              <span className="text-[12px] text-gray-600 leading-relaxed">
+              <span className="text-[14px] text-gray-600 leading-relaxed">
                 I agree to the Cancellation Policy, Ground Rules, and Terms of Service
               </span>
             </label>

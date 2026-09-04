@@ -339,6 +339,7 @@ export default function StepDetails({ category, details, onChange, onNext, onBac
               </div>
             </div>
 
+            {/* Minimum/Maximum Rental Time — temporarily hidden from step 3, revisit before re-enabling
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <Label>Minimum Rental Time</Label>
@@ -371,6 +372,7 @@ export default function StepDetails({ category, details, onChange, onNext, onBac
                 />
               </div>
             </div>
+            */}
 
             <div className="mb-4">
               <Label>Add Amenities</Label>

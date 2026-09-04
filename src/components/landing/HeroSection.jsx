@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { MapPinIcon, SearchIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "@/icons";
+import { MapPinIcon, SearchIcon, SkierIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "@/icons";
 import CalendarMonth from "@/components/shared/CalendarMonth";
 import {
   fetchBrowseDestinations,
@@ -15,6 +15,23 @@ const CATEGORY_OPTIONS = [
   { category: "activity", label: "Activities", icon: "🪂" },
   { category: "equipment", label: "Equipment", icon: "🎒" },
 ];
+
+const SEARCH_LABEL_STYLE = {
+  fontFamily: "var(--font-sofia-pro), 'Sofia Pro', sans-serif",
+  fontWeight: 300,
+  fontSize: "16px",
+  lineHeight: "100%",
+  letterSpacing: "0%",
+  color: "#000000",
+};
+const SEARCH_SUBTEXT_STYLE = {
+  fontFamily: "var(--font-sofia-pro), 'Sofia Pro', sans-serif",
+  fontWeight: 300,
+  fontSize: "16px",
+  lineHeight: "100%",
+  letterSpacing: "0%",
+  color: "#ADADAD",
+};
 
 function toDateInput(d) {
   if (!d) return "";
@@ -323,10 +340,10 @@ export default function HeroSection() {
                 className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${openDropdown === "city" ? "bg-gray-50 ring-2 ring-[#4AA7A7]" : ""}`}
                 onClick={() => setOpenDropdown(openDropdown === "city" ? null : "city")}
               >
-                <MapPinIcon size={16} className="text-gray-400 shrink-0" />
+                <MapPinIcon size={20} className="text-gray-400 shrink-0" />
                 <div className="text-left min-w-0">
-                  <p className="text-[10px] text-gray-400 font-medium">Where?</p>
-                  <p className="text-sm font-semibold text-gray-800 truncate">{locationInput || "Add location, state"}</p>
+                  <p style={SEARCH_LABEL_STYLE}>Where?</p>
+                  <p style={SEARCH_SUBTEXT_STYLE} className="truncate">{locationInput || "City, address, state"}</p>
                 </div>
               </button>
               {openDropdown === "city" && (
@@ -355,10 +372,10 @@ export default function HeroSection() {
                 className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${openDropdown === "activity" ? "bg-gray-50 ring-2 ring-[#4AA7A7]" : ""}`}
                 onClick={() => setOpenDropdown(openDropdown === "activity" ? null : "activity")}
               >
-                <SearchIcon size={16} className="text-gray-400 shrink-0" />
+                <SkierIcon size={20} className="text-gray-800 shrink-0" />
                 <div className="text-left min-w-0">
-                  <p className="text-[10px] text-gray-400 font-medium">Activity Type</p>
-                  <p className={`text-sm truncate ${activity ? "font-semibold text-gray-800" : "text-gray-400"}`}>{activity?.label || "Activity type"}</p>
+                  <p style={SEARCH_LABEL_STYLE}>Activity Type</p>
+                  <p style={SEARCH_SUBTEXT_STYLE} className="truncate">{activity?.label || "Skydiving, jet skiing"}</p>
                 </div>
               </button>
               {openDropdown === "activity" && (
@@ -381,23 +398,23 @@ export default function HeroSection() {
                 className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${openDropdown === "date" ? "bg-gray-50 ring-2 ring-[#4AA7A7]" : ""}`}
                 onClick={() => setOpenDropdown(openDropdown === "date" ? null : "date")}
               >
-                <CalendarIcon size={16} className="text-gray-400 shrink-0" />
+                <CalendarIcon size={20} className="text-gray-800 shrink-0" />
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="text-left">
-                    <p className="text-[10px] text-gray-400 font-medium">From</p>
-                    <p className="text-sm font-semibold text-gray-800 whitespace-nowrap">
+                    <p style={SEARCH_LABEL_STYLE}>From</p>
+                    <p style={SEARCH_SUBTEXT_STYLE} className="whitespace-nowrap">
                       {selectedStart
                         ? `${String(selectedStart.getMonth()+1).padStart(2,"0")}/${String(selectedStart.getDate()).padStart(2,"0")}/${selectedStart.getFullYear()}`
-                        : <span className="text-gray-400 font-normal">mm/dd/yyyy</span>}
+                        : "01/01/2025"}
                     </p>
                   </div>
                   <span className="text-gray-300 text-xs shrink-0">—</span>
                   <div className="text-left">
-                    <p className="text-[10px] text-gray-400 font-medium">Until</p>
-                    <p className="text-sm font-semibold text-gray-800 whitespace-nowrap">
+                    <p style={SEARCH_LABEL_STYLE}>Until</p>
+                    <p style={SEARCH_SUBTEXT_STYLE} className="whitespace-nowrap">
                       {selectedEnd
                         ? `${String(selectedEnd.getMonth()+1).padStart(2,"0")}/${String(selectedEnd.getDate()).padStart(2,"0")}/${selectedEnd.getFullYear()}`
-                        : <span className="text-gray-400 font-normal">mm/dd/yyyy</span>}
+                        : "04/01/2025"}
                     </p>
                   </div>
                 </div>

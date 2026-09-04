@@ -7,6 +7,7 @@ import ActivityFilters from './ActivityFilters';
 import ActivityCard from './ActivityCard';
 import FAQSection from '../landing/FAQSection';
 import AppFooter from '@/components/shared/AppFooter';
+import EmptyState from '@/components/shared/EmptyState';
 
 const MOCK_LISTINGS = [
   {
@@ -105,7 +106,11 @@ export default function ActivityListingPage({
         <section className="py-8 md:py-12 bg-white">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1600px] xl:px-12 2xl:px-16">
             {filteredListings.length === 0 ? (
-              <p className="text-center text-gray-400 py-10">No listings found.</p>
+              <EmptyState
+                image="/images/No listings.png"
+                imageAlt="No listings"
+                title="No listings found"
+              />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
                 {filteredListings.map((listing) => (

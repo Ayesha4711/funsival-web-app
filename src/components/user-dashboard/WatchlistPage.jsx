@@ -3,6 +3,7 @@
 import React, { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
+import Image from "next/image";
 import AppFooter from "@/components/shared/AppFooter";
 import Pagination from "@/components/shared/Pagination";
 import { ListingCard } from "@/components/user-dashboard/UserExplorePage";
@@ -12,7 +13,7 @@ import {
   selectWishlistPagination,
   selectWishlistStatus,
 } from "@/store/slices/wishlistSlice";
-import { HeartIcon, ArrowLeftIcon as BackIcon } from "@/icons";
+import { ArrowLeftIcon as BackIcon } from "@/icons";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -74,9 +75,7 @@ export default function WatchlistPage() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mb-5">
-              <HeartIcon size={40} className="text-[#F5823A]" />
-            </div>
+            <Image src="/images/No favorites.png" alt="No favorites" width={200} height={200} className="object-contain mb-5" />
             <p className="text-lg font-semibold text-gray-700 mb-1">Your wishlist is empty</p>
             <p className="text-sm text-gray-400 mb-6">Save listings you love and find them here anytime</p>
             <button

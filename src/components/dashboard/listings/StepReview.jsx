@@ -277,6 +277,7 @@ export default function StepReview({
               <FieldLabel>Parking Space</FieldLabel>
               <FieldValue>{parkingSpace}</FieldValue>
             </div>
+            {/* Minimum/Maximum Rental Time — temporarily hidden, matches StepDetails (step 3), revisit before re-enabling
             <div>
               <FieldLabel>Minimum Rental Time</FieldLabel>
               <FieldValue className="flex items-center gap-1.5">
@@ -291,6 +292,7 @@ export default function StepReview({
                 {maxRentalTime}
               </FieldValue>
             </div>
+            */}
           </div>
         ) : isEquipment ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">

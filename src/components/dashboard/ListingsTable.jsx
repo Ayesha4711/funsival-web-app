@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import Pagination from "@/components/shared/Pagination";
 import { formatListingPrice } from "./listings/listingPrice";
 import { LocationIcon, ImageIcon, StarFilledIcon } from "@/icons";
@@ -86,8 +87,17 @@ export default function ListingsTable({
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-16 text-center text-sm text-gray-400 font-medium">
-                  No listings found.
+                <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400 font-medium">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Image
+                      src="/images/No listings.png"
+                      alt="No listings"
+                      width={120}
+                      height={120}
+                      className="object-contain"
+                    />
+                    No listings found.
+                  </div>
                 </td>
               </tr>
             ) : (

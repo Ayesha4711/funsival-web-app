@@ -280,6 +280,25 @@ export const becomeProvider = createAsyncThunk(
   }
 );
 
+export const becomeUser = createAsyncThunk(
+  "auth/becomeUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosInstance.post("/users/become-user");
+      const token = data?.data?.token;
+      if (token) {
+        document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+        localStorage.setItem("auth-token", token);
+      }
+      return { token, data };
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message ?? err.response?.data?.error ?? err.message
+      );
+    }
+  }
+);
+
 export const logoutUser = createAsyncThunk(
   "auth/logoutUser",
   async (_, { rejectWithValue }) => {
@@ -405,7 +424,14 @@ const authSlice = createSlice({
         state.status = "succeeded";
         state.token = action.payload?.token ?? null;
       })
-      .addCase(becomeProvider.rejected, setFailed);
+      .addCase(becomeProvider.rejected, setFailed)
+
+      .addCase(becomeUser.pending, setLoading)
+      .addCase(becomeUser.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.token = action.payload?.token ?? null;
+      })
+      .addCase(becomeUser.rejected, setFailed);
   }
 });
 
