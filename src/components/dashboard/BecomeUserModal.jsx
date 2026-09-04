@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { becomeUser } from "@/store/slices/authSlice";
-import { fetchProfile } from "@/store/slices/profileSlice";
+import { fetchProfile, selectUser } from "@/store/slices/profileSlice";
 import { CloseIcon } from "@/icons";
 
 const FONT = "var(--font-sofia-pro), Sofia Pro, sans-serif";
@@ -14,6 +14,7 @@ export default function BecomeUserModal({ onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
+  const profile = useSelector(selectUser);
 
   useEffect(() => {
     const h = (e) => { if (e.key === "Escape") onClose(); };
@@ -40,7 +41,11 @@ export default function BecomeUserModal({ onClose }) {
     dispatch(fetchProfile());
     toast.success("You're now a user!", { description: "Welcome back to exploring Funsival." });
     onClose();
-    router.push("/user-dashboard/explore?onboarding=true");
+    router.push(
+      profile?.hasCompletedUserOnboarding
+        ? "/user-dashboard/explore"
+        : "/user-dashboard/explore?onboarding=true"
+    );
   };
 
   return (
