@@ -42,10 +42,6 @@ export const fetchListings = createAsyncThunk(
 
       if (apiCategory) {
         params.set("category", apiCategory);
-        const { data } = await axiosInstance.get(
-          `/listings/browse?${params.toString()}`,
-        );
-        return data;
       }
       const { data } = await axiosInstance.get(
         `/listings?${params.toString()}`,

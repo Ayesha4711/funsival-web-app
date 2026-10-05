@@ -14,6 +14,7 @@ const footerLinks = {
     "Terms & Conditions",
     "FAQ's",
     "Report",
+    "Photo credits",
   ],
   Hosting: [
     "Funsival your home",
@@ -91,7 +92,7 @@ export default function AppFooter() {
               {links.map((link) => (
                 <li key={link}>
                   <Link
-                    href="#"
+                    href={link === "Photo credits" ? "/photo-credits" : "#"}
                     className="text-sm text-gray-500 hover:text-[var(--color-primary)] transition-colors"
                   >
                     {link}

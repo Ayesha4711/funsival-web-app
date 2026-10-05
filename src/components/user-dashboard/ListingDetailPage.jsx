@@ -1136,7 +1136,6 @@ function useNavigateToConfirm(listing, listingId) {
       bookingType: listing.bookingType,
       listingType,
       pricePerUnit: String(listing.price),
-      funsivalFee: "8",
       ...(sessionKey ? { _skey: sessionKey } : {}),
       ...fields,
     });
@@ -1216,7 +1215,7 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
 
   const units = Number(persons) || 1;
   const subtotal = listing.price * units;
-  const fee = Math.max(8, Math.round(subtotal * 0.067));
+  const fee = 10;
   const total = subtotal + fee;
 
   const pillLabel = "Per Person";
@@ -1393,7 +1392,7 @@ function PlacesBookingCard({ listing, listingId, slotRefresh = "" }) {
   const days = checkIn && checkOut ? calculateDaysBetween(checkIn, checkOut) : 1;
   const span = mode === "daily" ? days : hours;
   const subtotal = modePrice * span;
-  const fee = Math.max(8, Math.round(subtotal * 0.067));
+  const fee = 10;
   const total = subtotal + fee;
 
   if (mode === "hourly") {
@@ -1641,7 +1640,7 @@ function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
   const days = checkIn && checkOut ? calculateDaysBetween(checkIn, checkOut) : 1;
   const span = mode === "daily" ? days : hours;
   const subtotal = modePrice * span;
-  const fee = Math.max(8, Math.round(subtotal * 0.067));
+  const fee = 10;
   const total = subtotal + fee;
 
   if (mode === "hourly") {

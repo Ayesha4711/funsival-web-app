@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { MapPinIcon, SearchIcon, SkierIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "@/icons";
 import CalendarMonth from "@/components/shared/CalendarMonth";
+import HeroSlideshow from "./HeroSlideshow";
 import {
   fetchBrowseDestinations,
   selectBrowseDestinations,
@@ -162,22 +163,10 @@ export default function HeroSection() {
   return (
     <section className="relative w-full">
       {/* Hero image — height auto on mobile so content determines size, fixed on desktop */}
-      <div className="relative w-full md:h-[560px] lg:h-[620px]">
-        {/* Background image — absolute fills the whole container */}
-        <picture className="absolute inset-0 w-full h-full">
-          <source srcSet="/images/optimized/hero.webp" type="image/webp" />
-          <img
-            src="/images/optimized/hero.jpg"
-            alt="Hero background"
-            fetchPriority="high"
-            decoding="sync"
-            className="absolute inset-0 w-full h-full object-cover object-center"
-          />
-        </picture>
-        <div className="absolute inset-0 bg-black/20" />
+      <HeroSlideshow>
 
         {/* Mobile: stack btn + text + search card ON TOP of image */}
-        <div className="relative z-10 md:hidden flex flex-col items-center pt-24 pb-6 px-4 gap-4">
+        <div className="relative z-10 md:hidden flex flex-col items-center pt-24 pb-20 px-4 gap-4">
           {/* Book Your Jump button */}
           <a href="/signup/role-selection">
             <button className="px-6 py-2.5 bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-semibold rounded-full text-sm transition-colors whitespace-nowrap">
@@ -320,15 +309,15 @@ export default function HeroSection() {
         {/* Desktop: text over image */}
         <div className="relative z-10 h-full hidden md:flex flex-col justify-center px-4 -translate-y-10">
           <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-medium text-[#000000] mb-2 leading-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-medium text-white mb-2 leading-tight">
               All the fun, none of the commitment.
             </h1>
-            <p className="text-sm sm:text-base text-[#000000]">
+            <p className="text-sm sm:text-base text-white/90">
               Find new fun. Leave the hassle.
             </p>
           </div>
         </div>
-      </div>{/* end hero image wrapper */}
+      </HeroSlideshow>
 
       {/* Desktop search bar — floats up over image bottom edge */}
       <div className="hidden md:block relative z-20 -mt-10 lg:-mt-12">

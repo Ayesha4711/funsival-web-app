@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { fetchProfile, selectUser } from "@/store/slices/profileSlice";
 import { becomeUser } from "@/store/slices/authSlice";
 import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
+import { fetchUnreadCount, selectUnreadCount } from "@/store/slices/notificationsSlice";
 import { resetStore } from "@/store/store";
 import NotificationPopover from "@/components/shared/NotificationPopover";
 import BecomeUserModal from "@/components/dashboard/BecomeUserModal";
@@ -52,6 +53,7 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
   const profile = useSelector(selectUser);
   const currentUserId = profile?.id || profile?._id || null;
   const totalUnread = useSelector((state) => selectTotalUnreadCount(state, currentUserId));
+  const unreadNotificationCount = useSelector(selectUnreadCount);
 
   // Start Firebase FCM listener so incoming messages update the badge in real-time
   useFCM();
@@ -78,6 +80,15 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
     }, 15000);
     return () => clearInterval(timer);
   }, [dispatch, pathname, currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    dispatch(fetchUnreadCount());
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden") dispatch(fetchUnreadCount());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [dispatch, currentUserId]);
 
   // Close any open dropdown when clicking outside it
   useEffect(() => {
@@ -247,7 +258,9 @@ export default function DashboardNavbar({ onMenuToggle, noSidebar = false }) {
             className={`w-11 h-11 flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 transition-colors relative rounded-full ${notifOpen ? "bg-white/15 text-white" : ""}`}
           >
             <BellIcon />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--color-secondary)] rounded-full border border-[var(--color-primary)]" />
+            {unreadNotificationCount > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--color-secondary)] rounded-full border border-[var(--color-primary)]" />
+            )}
           </button>
           {notifOpen &&
             <NotificationPopover viewAllHref="/dashboard/notifications" onClose={() => setOpenMenu(null)} triggerRef={notifRef} />}

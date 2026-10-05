@@ -2,7 +2,23 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Run the backend in a separate terminal first:
+
+```bash
+cd ../funsival-backend
+npm run dev
+```
+
+Use `PORT=4000` in the backend `.env`, and set the frontend `.env` to:
+
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+```
+
+The frontend runs on port `3000`; API requests go to the backend on port `4000`.
+Restart the frontend development server after changing its API URL.
+
+Then, from `funsival-dev`, run the development server:
 
 ```bash
 npm run dev

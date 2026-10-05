@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { selectUser } from "@/store/slices/profileSlice";
 import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
+import { fetchUnreadCount, selectUnreadCount } from "@/store/slices/notificationsSlice";
 import axiosInstance from "@/store/axiosInstance";
 import { resetStore } from "@/store/store";
 import { getStoredFcmToken, useFCM } from "@/hooks/useFCM";
@@ -38,6 +39,7 @@ export default function WizardNavbar() {
 
   const currentUserId = profile?.id || profile?._id || null;
   const totalUnread   = useSelector((state) => selectTotalUnreadCount(state, currentUserId));
+  const unreadNotificationCount = useSelector(selectUnreadCount);
 
   const displayFirstName = profile?.firstName || profile?.providerProfile?.firstName || "";
   const displayLastName  = profile?.lastName  || profile?.providerProfile?.lastName  || "";
@@ -58,6 +60,15 @@ export default function WizardNavbar() {
     }, 15000);
     return () => clearInterval(timer);
   }, [dispatch, pathname, currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    dispatch(fetchUnreadCount());
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden") dispatch(fetchUnreadCount());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [dispatch, currentUserId]);
 
   // Close popovers on outside click
   useEffect(() => {
@@ -152,7 +163,9 @@ export default function WizardNavbar() {
             aria-label="Notifications"
           >
             <BellIcon size={20} />
-            <span className="absolute top-0 right-0 w-2 h-2 bg-[#FEB538] rounded-full border border-[#228E8A]" />
+            {unreadNotificationCount > 0 && (
+              <span className="absolute top-0 right-0 w-2 h-2 bg-[#FEB538] rounded-full border border-[#228E8A]" />
+            )}
           </button>
           {notifOpen && <NotificationPopover onClose={() => setNotifOpen(false)} />}
         </div>

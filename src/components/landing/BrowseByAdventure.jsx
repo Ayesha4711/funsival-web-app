@@ -16,26 +16,7 @@ import {
 // so a type always renders identically on both sides.
 const EMOJI_BY_TYPE = Object.fromEntries(ACTIVITY_TYPES.map((t) => [t.id, t.emoji]));
 
-const BG_BY_TYPE = {
-  skydiving: "bg-[#FFE8D6]",
-  horse_riding: "bg-[#F3E6D8]",
-  scuba_diving: "bg-[#D5F5E3]",
-  paragliding: "bg-[#D6EAF8]",
-  zipline: "bg-[#FDEBD0]",
-  jeep_rally: "bg-[#E8DAEF]",
-  hang_glider: "bg-[#D6EAF8]",
-  bungee: "bg-[#FDE2E2]",
-  bowling: "bg-[#E3E8FD]",
-  trampoline: "bg-[#FDEBD0]",
-  golf: "bg-[#D5F5E3]",
-  boating: "bg-[#D6EAF8]",
-  snowboarding: "bg-[#E8EEF4]",
-  surfing: "bg-[#D6EAF8]",
-  adventure_atvs: "bg-[#E8DAEF]",
-  jetski: "bg-[#D6EAF8]",
-};
-
-const FALLBACK_BG = ["bg-[#FFE8D6]", "bg-[#D6EAF8]", "bg-[#D5F5E3]", "bg-[#E8DAEF]", "bg-[#FDEBD0]", "bg-[#D6DBDF]"];
+const CARD_BACKGROUNDS = ["bg-[#FFF0D7]", "bg-[#FFE3CC]", "bg-[#D3E8E8]", "bg-[#DFDAEF]"];
 
 function tileHref(t) {
   return `/activities/${encodeURIComponent(t.type)}`;
@@ -66,7 +47,7 @@ export default function BrowseByAdventure() {
       ...t,
       href: tileHref(t),
       emoji: EMOJI_BY_TYPE[t.type] || "✨",
-      bg: BG_BY_TYPE[t.type] || FALLBACK_BG[i % FALLBACK_BG.length],
+      bg: CARD_BACKGROUNDS[i % CARD_BACKGROUNDS.length],
     }));
 
   const pageCount = Math.max(1, Math.ceil(tiles.length / PAGE_SIZE));
@@ -98,6 +79,7 @@ export default function BrowseByAdventure() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => goTo("prev")}
+              aria-label="Previous adventures"
               className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center hover:border-[#4AA7A7] transition-colors disabled:opacity-40"
               disabled={clampedPage === 0}
             >
@@ -105,6 +87,7 @@ export default function BrowseByAdventure() {
             </button>
             <button
               onClick={() => goTo("next")}
+              aria-label="Next adventures"
               className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center hover:border-[#4AA7A7] transition-colors disabled:opacity-40"
               disabled={clampedPage === pageCount - 1}
             >
@@ -129,6 +112,7 @@ export default function BrowseByAdventure() {
                 <Link
                   key={`${tab.category}-${tab.type}`}
                   href={tab.href}
+                  prefetch={true}
                   className={`shrink-0 flex flex-col justify-between p-3 sm:p-4 lg:p-6 rounded-2xl ${tab.bg} hover:opacity-90 transition-all duration-200 group w-40 h-[130px] sm:w-55 sm:h-40 lg:w-auto lg:h-52 xl:h-56 2xl:h-64 relative overflow-hidden`}
                 >
                   <div className="relative bg-white rounded-xl flex items-center justify-center w-12 h-12 sm:w-15 sm:h-15 lg:w-16 lg:h-16 xl:w-[70px] xl:h-[70px]">

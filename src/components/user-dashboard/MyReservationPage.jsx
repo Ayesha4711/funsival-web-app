@@ -86,20 +86,32 @@ function getBookingTime(b) {
   }
   return null;
 }
+function hasBookingEnded(b) {
+  const date = new Date(b.endDate || b.startDate);
+  if (Number.isNaN(date.getTime())) return false;
+  const match = /^(\d{2}):(\d{2})$/.exec(String(b.endTime || "23:59"));
+  date.setUTCHours(match ? Number(match[1]) : 23, match ? Number(match[2]) : 59, 0, 0);
+  return date <= new Date();
+}
 function isAwaitingHost(b) {
   return b.status === "pending" || b.status === "awaiting_host_approval";
 }
-function getStatusKey(b) {
+function getStatusKey(b, refundRequest = b.refundStatus) {
+  if (b.paymentStatus === "refunded") return "refunded";
+  if (b.paymentStatus === "refunding" || ["pending", "processing"].includes(refundRequest?.status)) return "refund-pending";
+  if (refundRequest?.status === "approved") return "refund-approved";
   if (b.status === "listing_deleted") return "listing-deleted";
+  if (b.status === "cancelled" || b.status === "declined") return "cancelled";
+  if (b.status === "completed" || (b.status === "confirmed" && hasBookingEnded(b))) return "completed";
   if (isAwaitingHost(b)) return "pending";
   if (b.status === "confirmed") return "in-progress";
-  if (b.status === "cancelled") return "cancelled";
   return b.status;
 }
 // Guests can cancel while awaiting host approval, or after the host has confirmed —
 // just not once the host has declined, it's already cancelled, or it's completed.
-function canCancel(b) { return isAwaitingHost(b) || b.status === "confirmed"; }
+function canCancel(b) { return !hasBookingEnded(b) && (isAwaitingHost(b) || b.status === "confirmed"); }
 function getReviewButtonLabel(b) {
+  if (b.status !== "completed") return null;
   if (b.reviewStatus?.canEdit) return "Edit Review";
   if (b.reviewStatus?.canSubmit) return "Leave a Review";
   return null;
@@ -117,6 +129,9 @@ const StarIcon = ({ filled }) => (
 
 /* ─── Status badge ───────────────────────────────────────────────────────────── */
 const STATUS_CFG = {
+  refunded: { label: "Refunded", bg: "bg-green-100", text: "text-green-700" },
+  "refund-pending": { label: "Refund Pending", bg: "bg-yellow-100", text: "text-yellow-700" },
+  "refund-approved": { label: "Refund Approved", bg: "bg-green-100", text: "text-green-700" },
   completed:    { label: "Completed",   bg: "bg-[#29A329]",  text: "text-white" },
   "in-progress":{ label: "In-progress", bg: "bg-[#F9C234]",  text: "text-white" },
   cancelled:    { label: "Cancelled",   bg: "bg-red-500",    text: "text-white" },
@@ -467,6 +482,7 @@ function DotsMenu({ onReportListing, onContactHost }) {
 
 /* ─── Refund helpers ─────────────────────────────────────────────────────────── */
 function canRequestRefund(booking) {
+  if (booking.reviewStatus?.hasSubmitted) return false;
   if (booking.paymentStatus !== "held") return false;
   if (!booking.payoutEligibleAt) return false;
   if (booking.activeRefundRequest) return false;
@@ -519,7 +535,7 @@ function RefundRequestModal({ booking, onClose, onSubmitted }) {
         </div>
         <div className="px-6 py-5 flex flex-col gap-4">
           <p className="text-xs text-gray-400">
-            You can request a refund within 7 days of payment. Provide a reason below and our team will review it.
+            You can request a refund before funds are released to the provider. Provide a reason below and our team will review it.
           </p>
           <div>
             <label className="text-sm font-semibold text-gray-700 mb-1 block">Reason for refund</label>
@@ -587,7 +603,9 @@ function WithdrawRefundModal({ booking, onClose, onWithdrawn }) {
 
 /* ─── Booking card row ───────────────────────────────────────────────────────── */
 function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportListing, onContactHost, onRequestRefund, onWithdrawRefund, wishlisted, onToggleWishlist, onShare, refundRequest }) {
-  const statusKey = getStatusKey(booking);
+  const visibleRefundRequest = refundRequest || booking.refundStatus;
+  const statusKey = getStatusKey(booking, visibleRefundRequest);
+  const hasActiveRefundRequest = ["pending", "processing"].includes(visibleRefundRequest?.status);
   const guests = booking.numberOfGuests ? `${booking.numberOfGuests} Adult${booking.numberOfGuests > 1 ? "s" : ""}` : null;
 
   return (
@@ -657,11 +675,11 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
         </div>
 
         {/* Refund badge */}
-        {refundRequest && (
+        {visibleRefundRequest && !["refunded", "refund-pending", "refund-approved"].includes(statusKey) && (
           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <RefundStatusBadge request={refundRequest} />
-            {refundRequest.status === "rejected" && refundRequest.note && (
-              <span className="text-xs text-gray-400 truncate max-w-xs">"{refundRequest.note}"</span>
+            <RefundStatusBadge request={visibleRefundRequest} />
+            {visibleRefundRequest.status === "rejected" && visibleRefundRequest.note && (
+              <span className="text-xs text-gray-400 truncate max-w-xs">"{visibleRefundRequest.note}"</span>
             )}
           </div>
         )}
@@ -687,7 +705,7 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
               Cancel Reservation
             </button>
           )}
-          {booking.status !== "completed" && canRequestRefund(booking) && !refundRequest && (
+          {booking.status !== "completed" && canRequestRefund(booking) && !hasActiveRefundRequest && (
             <button
               onClick={() => onRequestRefund(booking)}
               style={{ width: 188 }}
@@ -696,7 +714,7 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
               Request Refund
             </button>
           )}
-          {booking.status !== "completed" && refundRequest?.status === "pending" && (
+          {booking.status !== "completed" && visibleRefundRequest?.status === "pending" && (
             <button
               onClick={() => onWithdrawRefund(booking)}
               style={{ width: 188 }}
@@ -753,12 +771,12 @@ function LocationMap({ location, booking }) {
   );
 }
 
-function BookingDetailView({ booking, onLeaveReview, onCancel, onContactHost, wishlisted, onToggleWishlist, onShare }) {
+function BookingDetailView({ booking, refundRequest, onLeaveReview, onCancel, onContactHost, wishlisted, onToggleWishlist, onShare }) {
   const listing = booking.listing ?? {};
   const info = listing.basicInformation ?? {};
   const service = listing.serviceDetails ?? {};
   const equipment = listing.equipmentDetails ?? {};
-  const statusKey = getStatusKey(booking);
+  const statusKey = getStatusKey(booking, refundRequest || booking.refundStatus);
   const guests = booking.numberOfGuests ? `${booking.numberOfGuests} Adult${booking.numberOfGuests > 1 ? "s" : ""}` : null;
 
   return (
@@ -1152,6 +1170,7 @@ export default function MyReservationPage() {
         {status === "succeeded" && (
           detailView ? (
             <BookingDetailView
+              refundRequest={refundRequestMap[detailView.id]}
               booking={detailView}
               onLeaveReview={() => openModal("review", detailView)}
               onCancel={() => openModal("cancel", detailView)}

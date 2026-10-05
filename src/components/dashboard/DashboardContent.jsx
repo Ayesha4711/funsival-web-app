@@ -322,6 +322,8 @@ function normalizeOverviewResponse(payload) {
   const totalEarningsEntry = normalizeCurrencyEntry(cards.totalEarnings, USD);
   const totalEarningsAmount = Number(totalEarningsEntry?.amount ?? totalEarningsEntry?.value ?? totalEarningsEntry?.total ?? totalEarningsEntry?.earnings ?? 0);
   const quarterChange = totalEarningsEntry?.quarterChangePercentage ?? cards.totalEarnings?.quarterChangePercentage ?? null;
+  const pendingPaymentsEntry = normalizeCurrencyEntry(cards.pendingPayments, USD);
+  const pendingPaymentsAmount = Number(pendingPaymentsEntry?.amount ?? pendingPaymentsEntry?.value ?? pendingPaymentsEntry?.total ?? 0);
   const performance = data.listingPerformance ?? {};
   const utilization = data.utilization ?? {};
   return {
@@ -341,10 +343,10 @@ function normalizeOverviewResponse(payload) {
         sub: `${Number(cards.reservations?.pending ?? 0)} pending`,
         subClassName: "text-[#228E8A]",
       },
-      completed: {
-        value: Number(cards.completed?.total ?? 0).toLocaleString("en-US"),
-        sub: `${cards.completed?.successRate ?? "0%"} success rate`,
-        subClassName: "text-[#16A34A]",
+      pendingPayments: {
+        value: formatMoney(pendingPaymentsAmount, USD),
+        sub: "Held until the activity ends",
+        subClassName: "text-[#F5A623]",
       },
     },
     reservations: Array.isArray(data.recentReservations) ? data.recentReservations : [],
@@ -444,7 +446,7 @@ export default function DashboardContent() {
         <StatCard label="Total Earning" value={data?.stats.totalEarnings.value ?? "—"} sub={data?.stats.totalEarnings.sub} subClassName={data?.stats.totalEarnings.subClassName} />
         <StatCard label="Active Listings" value={data?.stats.activeListings.value ?? "—"} sub={data?.stats.activeListings.sub} subClassName={data?.stats.activeListings.subClassName} />
         <StatCard label="Reservations" value={data?.stats.reservations.value ?? "—"} sub={data?.stats.reservations.sub} subClassName={data?.stats.reservations.subClassName} />
-        <StatCard label="Completed" value={data?.stats.completed.value ?? "—"} sub={data?.stats.completed.sub} subClassName={data?.stats.completed.subClassName} />
+        <StatCard label="Pending Payments" value={data?.stats.pendingPayments.value ?? "—"} sub={data?.stats.pendingPayments.sub} subClassName={data?.stats.pendingPayments.subClassName} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(0,0.72fr)] gap-3 sm:gap-4 items-stretch">

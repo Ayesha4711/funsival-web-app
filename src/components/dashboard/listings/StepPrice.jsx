@@ -102,7 +102,7 @@ export default function StepPrice({ category, price, onChange, onNext, onBack })
 
           <p className="text-sm text-gray-400 text-center leading-relaxed">
             Funsival fee is{" "}
-            <span className="text-[#228E8A] font-bold">15%</span>.{" "}
+            <span className="text-[#228E8A] font-bold">$10</span>.{" "}
             Customers will see the final price before booking.
           </p>
         </div>
