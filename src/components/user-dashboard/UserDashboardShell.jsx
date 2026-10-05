@@ -11,6 +11,7 @@ import { becomeProvider } from "@/store/slices/authSlice";
 import { fetchProfile, selectUser, selectProfileStatus, selectProfileUnauthenticated } from "@/store/slices/profileSlice";
 import { fetchConversations, selectTotalUnreadCount } from "@/store/slices/chatSlice";
 import { fetchWishlistSummary, selectWishlistSummaryCount } from "@/store/slices/wishlistSlice";
+import { fetchUnreadCount, selectUnreadCount } from "@/store/slices/notificationsSlice";
 import { resetStore } from "@/store/store";
 import NotificationPopover from "@/components/shared/NotificationPopover";
 import FullPageLoader from "@/components/common/FullPageLoader";
@@ -30,6 +31,7 @@ function UserNavbar() {
   const profile = useSelector(selectUser);
   const currentUserId = profile?.id || profile?._id || null;
   const totalUnread = useSelector((state) => selectTotalUnreadCount(state, currentUserId));
+  const unreadNotificationCount = useSelector(selectUnreadCount);
   const wishlistCount = useSelector(selectWishlistSummaryCount);
 
   // Start Firebase FCM listener so incoming messages update the badge in real-time
@@ -114,6 +116,15 @@ function UserNavbar() {
   }, [dispatch, pathname, currentUserId]);
 
   useEffect(() => {
+    if (!currentUserId) return;
+    dispatch(fetchUnreadCount());
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden") dispatch(fetchUnreadCount());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [dispatch, currentUserId]);
+
+  useEffect(() => {
     if (currentUserId) dispatch(fetchWishlistSummary());
   }, [dispatch, currentUserId]);
 
@@ -196,7 +207,9 @@ function UserNavbar() {
           <div className="relative" ref={notifRef}>
             <button onClick={handleBellClick} className={`relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors cursor-pointer ${notifOpen ? "bg-white/20" : ""}`}>
               <BellIcon />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F5C842] rounded-full border border-[#228E8A]" />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F5C842] rounded-full border border-[#228E8A]" />
+              )}
             </button>
             {notifOpen && <NotificationPopover viewAllHref="/user-dashboard/notifications" onClose={() => setOpenMenu(null)} triggerRef={notifRef} />}
           </div>
@@ -264,7 +277,9 @@ function UserNavbar() {
         <div className="flex sm:hidden items-center gap-2">
           <button onClick={handleBellClick} className={`relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors ${notifOpen ? "bg-white/20" : ""}`}>
             <BellIcon />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F5C842] rounded-full border border-[#228E8A]" />
+            {unreadNotificationCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F5C842] rounded-full border border-[#228E8A]" />
+            )}
           </button>
           <button onClick={() => router.push("/user-dashboard/messages")} className={`relative w-9 h-9 flex items-center justify-center rounded-full text-white hover:bg-white/20 transition-colors ${pathname?.includes("/messages") ? "bg-white/20" : ""}`}>
             <MessageIcon />

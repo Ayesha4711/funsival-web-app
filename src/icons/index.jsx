@@ -200,8 +200,10 @@ export const ListingsIcon = ({ size = 20, className }) => (
 
 export const EarningsIcon = ({ size = 20, className }) => (
   <svg {...svgProps(size, className)}>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 6v6l4 2" />
+    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <rect x="3" y="6" width="18" height="16" rx="4" />
+    <path d="M3 12h4m10 0h4" />
+    <path d="M14 11.5h-3a1.5 1.5 0 0 0 0 3h2a1.5 1.5 0 0 1 0 3h-3M12 10v9" />
   </svg>
 );
 

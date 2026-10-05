@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import MobileSection from '@/assets/images/mobilesection.svg';
 
 export default function MobileAdventureSection() {
@@ -21,6 +22,12 @@ export default function MobileAdventureSection() {
                 className="w-full h-auto object-contain"
                 loading="lazy"
               />
+              <Link
+                href="/login"
+                className="absolute left-[61.59%] top-[87.4%] -translate-y-1/2 w-[32.06%] h-[8.94%] min-h-11 rounded-full hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#228E8A]"
+              >
+                <span className="sr-only">Become a Provider</span>
+              </Link>
             </div>
           </div>
 
@@ -35,6 +42,12 @@ export default function MobileAdventureSection() {
                 decoding="async"
                 className="w-full h-auto object-contain"
               />
+              <Link
+                href="/login"
+                className="absolute left-[54.13%] top-[87.4%] -translate-y-1/2 w-[39.52%] h-[8.94%] min-h-11 rounded-full hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#228E8A]"
+              >
+                <span className="sr-only">Book your next adventure</span>
+              </Link>
             </div>
           </div>
         </div>

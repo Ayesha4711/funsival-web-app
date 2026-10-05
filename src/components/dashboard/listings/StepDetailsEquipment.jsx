@@ -86,7 +86,8 @@ function AvailabilitySlot({ slot, index, onChange, onRemove, showDelete }) {
     if (!timeStr) return "";
     const [h] = String(timeStr).split(":").map(Number);
     if (!Number.isFinite(h)) return "";
-    const nextHour = (h + 1) % 24;
+    const nextHour = h + 1;
+    if (nextHour > 23) return "";
     return `${String(nextHour).padStart(2, "0")}:00`;
   };
 
@@ -126,7 +127,7 @@ function AvailabilitySlot({ slot, index, onChange, onRemove, showDelete }) {
         <DropdownField
           value={slot.endTime || ""}
           placeholder="Ends"
-          options={timeOptions}
+          options={timeOptions.filter(({ value }) => value > (slot.startTime || ""))}
           onChange={(value) => onChange(index, "endTime", value)}
         />
       </div>

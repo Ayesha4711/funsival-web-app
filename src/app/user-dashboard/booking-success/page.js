@@ -31,7 +31,7 @@ export default function BookingSuccessPage() {
   const destroyed   = useRef(false);
 
   useEffect(() => {
-    if (!bookingId) { setPolling(false); return; }
+    if (!bookingId) return;
     destroyed.current = false;
 
     const poll = async () => {
@@ -39,8 +39,11 @@ export default function BookingSuccessPage() {
       try {
         const result = await dispatch(fetchBooking(bookingId)).unwrap();
         if (destroyed.current) return;
-        const bStatus = result?.data?.status        ?? result?.status;
-        const pStatus = result?.data?.paymentStatus ?? result?.paymentStatus;
+        // GET /bookings/:id returns { data: { booking } }. Read the booking
+        // record itself so an authorized payment immediately settles this UI.
+        const booking = result?.data?.booking ?? result?.booking ?? result?.data ?? result;
+        const bStatus = booking?.status;
+        const pStatus = booking?.paymentStatus;
         setBookingStatus(bStatus);
         setPaymentStatus(pStatus);
 
@@ -124,7 +127,7 @@ export default function BookingSuccessPage() {
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
                 <p className="text-xs text-blue-700 leading-relaxed">
-                  The host has up to <strong>6 days</strong> to respond. If they don't act, your booking is auto-declined and no charge occurs.
+                  The host has up to <strong>6 days</strong> to respond. If they don&apos;t act, your booking is auto-declined and no charge occurs.
                 </p>
               </div>
             )}

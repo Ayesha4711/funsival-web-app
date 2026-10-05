@@ -175,6 +175,7 @@ function mapBookingToRow(b) {
     invoice,
     paymentStatus: b.paymentStatus ?? null,
     activeRefundRequest: b.activeRefundRequest ?? null,
+    refundStatus: b.refundStatus ?? null,
     reservedBy,
     date: formatDateRange(startDate, startDate),
     dateRange,
@@ -308,6 +309,15 @@ function ReservationsPageContent() {
     requestRef.current = request;
     return () => request.abort?.();
   }, [dispatch, activeTab, debouncedSearch, selectedDate, currentPage, limit, retryTick]);
+
+  // Refresh while this page is open so a reservation moves into Completed as
+  // soon as its end time passes, without the provider needing to reload.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden") setRetryTick((tick) => tick + 1);
+    }, 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (tableAreaRef.current) tableAreaRef.current.scrollIntoView({ block: "start" });

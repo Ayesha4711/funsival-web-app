@@ -12,7 +12,8 @@ export default function AvailabilitySlot({ slot, index, onChange, onRemove, canR
     if (!timeStr) return "";
     const [h] = String(timeStr).split(":").map(Number);
     if (!Number.isFinite(h)) return "";
-    const nextHour = (h + 1) % 24;
+    const nextHour = h + 1;
+    if (nextHour > 23) return "";
     return `${String(nextHour).padStart(2, "0")}:00`;
   };
 
@@ -30,6 +31,7 @@ export default function AvailabilitySlot({ slot, index, onChange, onRemove, canR
     onChange(index, "startTime", value);
     onChange(index, "endTime", getOneHourLater(value));
   };
+  const endTimeOptions = timeOptions.filter(({ value }) => value > (slot.startTime || ""));
 
   return (
     <div className="rounded-2xl border border-[#CEE6E5] bg-[#f0faf9]">
@@ -67,7 +69,7 @@ export default function AvailabilitySlot({ slot, index, onChange, onRemove, canR
               <DropdownField
                 value={slot.endTime || ""}
                 placeholder="When the activity ends"
-                options={timeOptions}
+                options={endTimeOptions}
                 onChange={(value) => onChange(index, "endTime", value)}
                 splitDisplay
                 teal

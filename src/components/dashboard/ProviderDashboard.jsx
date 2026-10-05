@@ -684,6 +684,7 @@ function formatOverviewCards(data, currency = USD_CURRENCY) {
   const totalEarningsEntry = pickCurrencyRecord(cards.totalEarnings, currency);
   const totalEarningsAmount = currencyAmount(totalEarningsEntry, currency);
   const quarterChange = totalEarningsEntry?.quarterChangePercentage ?? cards.totalEarnings?.quarterChangePercentage ?? null;
+  const pendingPaymentsAmount = currencyAmount(pickCurrencyRecord(cards.pendingPayments, currency), currency);
 
   return {
     totalEarnings: {
@@ -701,10 +702,10 @@ function formatOverviewCards(data, currency = USD_CURRENCY) {
       subtitle: String(cards.reservations?.pending ?? "0 pending"),
       tone: "warning",
     },
-    completed: {
-      value: Number(cards.completed?.total ?? 0).toLocaleString("en-US"),
-      subtitle: String(cards.completed?.successRate ?? "0% success rate"),
-      tone: "success",
+    pendingPayments: {
+      value: formatMoney(pendingPaymentsAmount, currency),
+      subtitle: "Held until the activity ends",
+      tone: "warning",
     },
   };
 }
@@ -766,7 +767,7 @@ export default function ProviderDashboard() {
           <DashboardStatCard label="Total Earnings" value={cards.totalEarnings.value} subtitle={cards.totalEarnings.subtitle} tone={cards.totalEarnings.tone} />
           <DashboardStatCard label="Active Listings" value={cards.activeListings.value} subtitle={cards.activeListings.subtitle} tone={cards.activeListings.tone} />
           <DashboardStatCard label="Reservations" value={cards.reservations.value} subtitle={cards.reservations.subtitle} tone={cards.reservations.tone} />
-          <DashboardStatCard label="Completed" value={cards.completed.value} subtitle={cards.completed.subtitle} tone={cards.completed.tone} />
+          <DashboardStatCard label="Pending Payments" value={cards.pendingPayments.value} subtitle={cards.pendingPayments.subtitle} tone={cards.pendingPayments.tone} />
         </div>
       )}
 
