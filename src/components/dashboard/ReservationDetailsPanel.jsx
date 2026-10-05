@@ -39,10 +39,8 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
 
   if (!reservation) return null;
 
-  const isCancelled    = reservation.status === "Cancelled" || reservation.status === "Declined" || reservation.status === "Listing Deleted";
+  const isCancelled = ["Cancelled", "Declined", "Listing Deleted"].includes(reservation.status);
   const isActionNeeded = reservation.status === "Action Needed";
-  const cancelledBy    = reservation.cancelledBy || reservation.reservedBy;
-  const cancelReason   = reservation._cancelReason;
 
   const PAYMENT_STATUS_CFG = {
     requires_payment: { label: "Payment required",             bg: "bg-gray-100",   text: "text-gray-600"   },
@@ -135,48 +133,27 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
             )}
 
             {/* Active refund request */}
-            {reservation.activeRefundRequest && (
+            {(reservation.refundStatus || reservation.activeRefundRequest) && (
               <div className="flex items-center justify-between py-3.5 border-b border-gray-100 last:border-0">
                 <span style={{ fontFamily: FONT, fontWeight: 500, fontSize: 14, color: "#374151" }}>
                   Refund Request
                 </span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-                  Pending Review
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  reservation.refundStatus?.status === "approved"
+                    ? "bg-green-100 text-green-700"
+                    : reservation.refundStatus?.status === "rejected"
+                      ? "bg-red-100 text-red-700"
+                      : reservation.refundStatus?.status === "withdrawn" || reservation.refundStatus?.status === "expired"
+                        ? "bg-gray-100 text-gray-600"
+                        : "bg-yellow-100 text-yellow-700"
+                }`}>
+                  {reservation.refundStatus?.status
+                    ? `Refund ${reservation.refundStatus.status.charAt(0).toUpperCase() + reservation.refundStatus.status.slice(1)}`
+                    : "Refund Pending"}
                 </span>
               </div>
             )}
           </div>
-
-          {/* Cancelled / Declined banner */}
-          {isCancelled && (
-            <div
-              className="mx-4 sm:mx-6 mb-6 rounded-2xl px-4 sm:px-5 py-4"
-              style={{ backgroundColor: "#FFF7ED", border: "1px solid #FED7AA" }}
-            >
-              <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14, color: "#EA580C" }} className="mb-1">
-                {reservation.status === "Declined"
-                  ? "Booking Was Declined"
-                  : reservation.status === "Listing Deleted"
-                    ? "Listing Deleted"
-                    : "Booking Was Canceled"}
-              </p>
-              <p style={{ fontFamily: FONT, fontWeight: 500, fontSize: 13, color: "#EA580C" }} className="mb-0.5">
-                {reservation.status === "Declined"
-                  ? "The host declined this booking. No charge was made."
-                  : reservation.status === "Listing Deleted"
-                    ? "You deleted this listing. The guest was notified and refunded."
-                    : cancelledBy === "You"
-                      ? `You cancelled this booking${reservation._raw?.cancelledAt ? `, on ${new Date(reservation._raw.cancelledAt).toLocaleDateString("en-GB")}` : ""}`
-                      : `This booking was canceled by ${cancelledBy}${reservation._raw?.cancelledAt ? `, on ${new Date(reservation._raw.cancelledAt).toLocaleDateString("en-GB")}` : ""}`
-                }
-              </p>
-              {cancelReason && (
-                <p style={{ fontFamily: FONT, fontWeight: 500, fontSize: 13, color: "#EA580C" }}>
-                  Reason: {cancelReason}
-                </p>
-              )}
-            </div>
-          )}
 
           {/* Action Needed banner */}
           {isActionNeeded && (

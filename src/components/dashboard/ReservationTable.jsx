@@ -184,9 +184,17 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
                       {getInvoiceIcon(item.invoice)}
                       <span>{item.invoice}</span>
                     </div>
-                    {item.activeRefundRequest && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-50 text-yellow-700 w-fit">
-                        Refund Pending
+                    {item.refundStatus && (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit ${
+                        item.refundStatus.status === "approved"
+                          ? "bg-green-50 text-green-700"
+                          : item.refundStatus.status === "rejected"
+                            ? "bg-red-50 text-red-700"
+                            : item.refundStatus.status === "withdrawn" || item.refundStatus.status === "expired"
+                              ? "bg-gray-100 text-gray-600"
+                              : "bg-yellow-50 text-yellow-700"
+                      }`}>
+                        Refund {item.refundStatus.status.charAt(0).toUpperCase() + item.refundStatus.status.slice(1)}
                       </span>
                     )}
                   </div>

@@ -13,7 +13,8 @@ function getOneHourLater(timeStr) {
   if (!timeStr) return "";
   const [h] = String(timeStr).split(":").map(Number);
   if (!Number.isFinite(h)) return "";
-  const nextHour = (h + 1) % 24;
+  const nextHour = h + 1;
+  if (nextHour > 23) return "";
   return `${String(nextHour).padStart(2, "0")}:00`;
 }
 
@@ -117,7 +118,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
                     <DropdownField
                       value={slot0.endTime || ""}
                       placeholder="When the activity ends"
-                      options={timeOptions}
+                      options={timeOptions.filter(({ value }) => value > (slot0.startTime || ""))}
                       onChange={(value) => updateSlot(0, "endTime", value)}
                       splitDisplay
                       teal
@@ -206,7 +207,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
                               <DropdownField
                                 value={slot.endTime || ""}
                                 placeholder="When the activity ends"
-                                options={timeOptions}
+                                options={timeOptions.filter(({ value }) => value > (slot.startTime || ""))}
                                 onChange={(value) => {
                                   const next = [...daySlots];
                                   next[si] = { ...next[si], endTime: value };

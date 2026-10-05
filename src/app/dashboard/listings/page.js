@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchListings,
-  fetchDraft,
   deleteDraft,
   deleteListing,
   setListingStatus,
@@ -62,6 +61,7 @@ export default function ListingsPage() {
   const hostStats = useSelector(selectHostListingStats);
 
   const [listings, setListings] = useState([]);
+  const [filteredTabCounts, setFilteredTabCounts] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
@@ -123,38 +123,26 @@ export default function ListingsPage() {
   }, [editingListing, updateEditUrlParams]);
 
   const loadListings = useCallback(async () => {
-    const [listingsResult, draftResult] = await Promise.all([
-      dispatch(fetchListings({
+    const listingsResult = await dispatch(fetchListings({
         page, limit, category,
         search: debouncedSearch,
         city: filters.city || undefined,
         minPrice: filters.minPrice > 0 ? filters.minPrice : undefined,
         maxPrice: filters.maxPrice < 5000 ? filters.maxPrice : undefined,
         sort: filters.sort || undefined,
-        status: activeTab !== "all" && activeTab !== "draft" ? activeTab : undefined,
-      })),
-      dispatch(fetchDraft()),
-    ]);
+        status: activeTab,
+      }));
 
     let allRaw = [];
 
     if (fetchListings.fulfilled.match(listingsResult)) {
       const listData = listingsResult.payload?.data;
+      setFilteredTabCounts(listData?.tabs ?? null);
       const list = listData?.listings ?? listData ?? listingsResult.payload;
       if (listData?.pagination) {
         setTotalPages(listData.pagination.totalPages || 1);
       }
       if (Array.isArray(list)) allRaw = list.map(item => ({ ...item, _fromPublished: true }));
-    }
-
-    if (fetchDraft.fulfilled.match(draftResult) && draftResult.payload) {
-      const res = draftResult.payload;
-      const draft = res?.data?.draft || res?.draft || res;
-      if (draft && (draft.id || draft._id)) {
-        const draftId = draft.id ?? draft._id;
-        const exists = allRaw.some(item => (item.id ?? item._id) === draftId);
-        if (!exists) allRaw.push({ ...draft, status: "Draft", _currentStep: draft.currentStep ?? 1 });
-      }
     }
 
     const normalized = allRaw.map((item) => {
@@ -195,7 +183,7 @@ export default function ListingsPage() {
           : item.availability?.[0]
           ? `${item.availability[0].startTime} – ${item.availability[0].endTime}`
           : item.time ?? "—",
-        currentStep: item._currentStep ?? null,
+        currentStep: item.currentStep ?? item._currentStep ?? null,
       };
     });
 
@@ -212,7 +200,7 @@ export default function ListingsPage() {
       }
     }
 
-    if (!fetchListings.fulfilled.match(listingsResult) && !fetchDraft.fulfilled.match(draftResult)) {
+    if (!fetchListings.fulfilled.match(listingsResult)) {
       toast.error("Failed to load listings.");
     }
   }, [dispatch, page, limit, category, debouncedSearch, filters, activeTab, updateEditUrlParams]);
@@ -328,7 +316,7 @@ export default function ListingsPage() {
   };
 
   const countByStatus = (status) => listings.filter((item) => item.status?.toLowerCase() === status).length;
-  const tabCounts = hostStats?.tabs
+  const tabCounts = filteredTabCounts ?? (hostStats?.tabs
     ? {
         active: hostStats.tabs.active ?? 0,
         inactive: hostStats.tabs.inactive ?? 0,
@@ -338,7 +326,7 @@ export default function ListingsPage() {
         active: countByStatus("active"),
         inactive: countByStatus("inactive"),
         draft: countByStatus("draft"),
-      };
+      });
   const hasDraft = tabCounts.draft > 0;
 
   const filtered = listings.filter((item) =>

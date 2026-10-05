@@ -284,9 +284,9 @@ function ConfirmAndPayInner() {
         }, 0)
       : 1)
     : toNum(params.get("units") ?? params.get("hours") ?? storedBooking.totalHours, 1);
-  const serviceFee   = toNum(params.get("funsivalFee"), 8);
-  const subtotal     = pricePerUnit * unitsBooked;
-  const total        = subtotal + serviceFee;
+  const subtotal     = Number((pricePerUnit * unitsBooked).toFixed(2));
+  const serviceFee   = Number((subtotal * 0.1).toFixed(2));
+  const total        = Number((subtotal + serviceFee).toFixed(2));
   const currency     = storedBooking.currency || "USD";
 
   const formatTime = (timeStr) => {
@@ -614,8 +614,8 @@ function ConfirmAndPayInner() {
                   Taxes &amp; Fees
                 </p>
                 <div className="flex justify-between items-center text-sm">
-                  <span style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 300, fontSize: "16px", lineHeight: "160%", letterSpacing: "0%", verticalAlign: "middle", color: "#424242" }}>Funsival Fee</span>
-                  <span style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "16px", color: "#424242" }}>${serviceFee}.00</span>
+                  <span style={{ fontFamily: "var(--font-sofia-pro)", fontWeight: 300, fontSize: "16px", lineHeight: "160%", letterSpacing: "0%", verticalAlign: "middle", color: "#424242" }}>Funsival Fee (10%)</span>
+                  <span style={{ fontFamily: "var(--font-sofia-pro)", fontSize: "16px", color: "#424242" }}>{formatMoney(serviceFee, currency)}</span>
                 </div>
               </div>
               <div className="flex justify-between items-center pt-3 border-t border-gray-100">

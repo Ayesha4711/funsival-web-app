@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/icons';
+import { getDestinationImage } from '@/lib/destinationImages';
 import {
   fetchBrowseDestinations,
   selectBrowseDestinations,
@@ -20,7 +22,10 @@ export default function BrowseByDestination() {
   const destinations = useSelector(selectBrowseDestinations);
   const status = useSelector(selectBrowseDestinationsStatus);
   const landingSearch = useSelector(selectLandingSearch);
-  const scrollContainerRef = useRef(null);
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(destinations.length / 4));
+  const currentPage = Math.min(page, pageCount - 1);
+  const visibleDestinations = destinations.slice(currentPage * 4, currentPage * 4 + 4);
   const isSearchActive = Boolean(landingSearch.location || landingSearch.from || landingSearch.until);
 
   useEffect(() => {
@@ -33,17 +38,7 @@ export default function BrowseByDestination() {
   }, [dispatch, landingSearch.location, landingSearch.from, landingSearch.until]);
 
   const scroll = (direction) => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 350;
-      const newScrollPosition = direction === 'left'
-        ? scrollContainerRef.current.scrollLeft - scrollAmount
-        : scrollContainerRef.current.scrollLeft + scrollAmount;
-
-      scrollContainerRef.current.scrollTo({
-        left: newScrollPosition,
-        behavior: 'smooth'
-      });
-    }
+    setPage(Math.min(Math.max(currentPage + (direction === 'left' ? -1 : 1), 0), pageCount - 1));
   };
 
   if (status !== 'loading' && destinations.length === 0 && !isSearchActive) return null;
@@ -58,18 +53,20 @@ export default function BrowseByDestination() {
           </h2>
 
           {/* Navigation Arrows - Hidden on Mobile */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => scroll('left')}
+              disabled={currentPage === 0}
               className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 hover:border-[#4AA7A7] hover:text-[#4AA7A7] flex items-center justify-center transition-all duration-200"
-              aria-label="Scroll left"
+              aria-label="Previous destinations"
             >
               <ChevronLeftIcon size={20} />
             </button>
             <button
               onClick={() => scroll('right')}
+              disabled={currentPage === pageCount - 1}
               className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 hover:border-[#4AA7A7] hover:text-[#4AA7A7] flex items-center justify-center transition-all duration-200"
-              aria-label="Scroll right"
+              aria-label="Next destinations"
             >
               <ChevronRightIcon size={20} />
             </button>
@@ -89,11 +86,10 @@ export default function BrowseByDestination() {
             {/* Carousel */}
             <div className="relative">
               <div
-                ref={scrollContainerRef}
                 className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4 lg:grid lg:grid-cols-4 lg:overflow-visible"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
-                {destinations.map((destination) => {
+                {visibleDestinations.map((destination) => {
                   const label = [destination.city, destination.state].filter(Boolean).join(', ') || destination.city;
                   return (
                     <Link
@@ -102,16 +98,13 @@ export default function BrowseByDestination() {
                       className="relative flex-shrink-0 w-56 sm:w-72 md:w-80 lg:w-auto h-56 sm:h-80 lg:h-96 xl:h-[420px] 2xl:h-[480px] rounded-2xl overflow-hidden cursor-pointer group block bg-gray-100"
                     >
                       {/* Destination Image */}
-                      {destination.coverImage && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={destination.coverImage}
-                          alt={label}
-                          loading="lazy"
-                          decoding="async"
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                        />
-                      )}
+                      <Image
+                        src={getDestinationImage(destination)}
+                        alt=""
+                        fill
+                        sizes="(max-width: 639px) 224px, (max-width: 767px) 288px, (max-width: 1023px) 320px, 25vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-110"
+                      />
 
                       {/* Gradient Overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -134,14 +127,18 @@ export default function BrowseByDestination() {
             </div>
 
             {/* Pagination Dots */}
-            <div className="flex justify-center gap-2 mt-6">
-              {destinations.slice(0, 3).map((_, i) => (
-                <span
+            {pageCount > 1 && <div className="flex justify-center gap-2 mt-6">
+              {Array.from({ length: pageCount }).map((_, i) => (
+                <button
                   key={i}
-                  className={`h-1 rounded-full ${i === 0 ? 'w-8 bg-[#4AA7A7]' : 'w-2 bg-gray-300'}`}
+                  type="button"
+                  onClick={() => setPage(i)}
+                  aria-label={`Show destination page ${i + 1}`}
+                  aria-current={i === currentPage ? 'page' : undefined}
+                  className={`h-1 rounded-full ${i === currentPage ? 'w-8 bg-[#4AA7A7]' : 'w-2 bg-gray-300'}`}
                 />
               ))}
-            </div>
+            </div>}
           </>
         )}
       </div>

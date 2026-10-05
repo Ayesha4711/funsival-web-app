@@ -5,15 +5,16 @@ import { useDispatch, useSelector } from 'react-redux';
 import { PlusIcon, MinusIcon } from '@/icons';
 import { fetchFaqs, selectFaqs, selectFaqsStatus } from '@/store/slices/faqsSlice';
 
-export default function FAQSection() {
+export default function FAQSection({ items }) {
   const dispatch = useDispatch();
-  const faqs = useSelector(selectFaqs);
+  const storedFaqs = useSelector(selectFaqs);
+  const faqs = items ?? storedFaqs;
   const status = useSelector(selectFaqsStatus);
-  const [openId, setOpenId] = useState(null);
+  const [openId, setOpenId] = useState(items?.[0]?.id ?? null);
 
   useEffect(() => {
-    dispatch(fetchFaqs());
-  }, [dispatch]);
+    if (!items) dispatch(fetchFaqs());
+  }, [dispatch, items]);
 
   const toggleFAQ = (id) => {
     setOpenId(openId === id ? null : id);
@@ -22,10 +23,10 @@ export default function FAQSection() {
   if (status !== 'loading' && faqs.length === 0) return null;
 
   return (
-    <section className="py-12 md:py-16 lg:py-20 2xl:py-28 bg-white">
+    <section id="frequently-asked-questions" aria-labelledby="faq-heading" className="py-12 md:py-16 lg:py-20 2xl:py-28 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px]">
         {/* Header */}
-        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1C1F2E] text-center mb-8 md:mb-14 px-2">
+        <h2 id="faq-heading" className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1C1F2E] text-center mb-8 md:mb-14 px-2">
           Frequently Asked Questions
         </h2>
 
@@ -44,34 +45,27 @@ export default function FAQSection() {
               return (
                 <div
                   key={id}
-                  className={`rounded-2xl p-5 md:p-6 transition-all duration-200 cursor-pointer ${
-                    isOpen ? 'bg-[#FFF8E6]' : 'bg-white border border-gray-100'
+                  className={`rounded-2xl p-5 md:p-6 transition-colors duration-200 ${
+                    isOpen ? 'bg-[#FFF0D7]' : 'bg-white border border-gray-100 shadow-sm'
                   }`}
-                  onClick={() => toggleFAQ(id)}
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-base md:text-lg font-medium text-[#1C1F2E]">
-                      {faq.question}
-                    </h3>
-
+                  <h3>
                     <button
-                      className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                        isOpen
-                          ? 'bg-[#F5C842] text-white'
-                          : 'bg-transparent text-[#1C1F2E]'
-                      }`}
-                      aria-label={isOpen ? 'Collapse' : 'Expand'}
+                      type="button"
+                      onClick={() => toggleFAQ(id)}
+                      aria-expanded={isOpen}
+                      aria-controls={`faq-answer-${id}`}
+                      className="flex w-full items-center justify-between gap-4 text-left text-base md:text-lg font-medium text-[#1C1F2E] rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#228E8A]"
                     >
-                      {isOpen ? (
-                        <MinusIcon size={16} />
-                      ) : (
-                        <PlusIcon size={16} />
-                      )}
+                      <span>{faq.question}</span>
+                      <span aria-hidden="true" className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${isOpen ? 'bg-white text-[#FEB538]' : 'bg-gray-50 text-[#1C1F2E]'}`}>
+                        {isOpen ? <MinusIcon size={16} /> : <PlusIcon size={16} />}
+                      </span>
                     </button>
-                  </div>
+                  </h3>
 
                   {isOpen && (
-                    <p className="text-sm text-gray-600 leading-relaxed mt-3">
+                    <p id={`faq-answer-${id}`} className="text-sm text-gray-600 leading-relaxed mt-3">
                       {faq.answer}
                     </p>
                   )}
