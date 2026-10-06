@@ -57,7 +57,7 @@ export default function AdminLoginPage() {
     }
 
     toast.success("Signed in successfully", { description: "Welcome to the admin panel." });
-    router.push("/admin/refund-requests");
+    router.replace("/admin/refund-requests");
   };
 
   return (
