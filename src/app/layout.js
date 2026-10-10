@@ -2,6 +2,7 @@ import localFont from 'next/font/local';
 import { Inter, Geist_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 import StoreProvider from '@/store/StoreProvider';
+import AuthRouteGuard from '@/components/layout/AuthRouteGuard';
 import './globals.css';
 
 const inter = Inter({
@@ -59,7 +60,7 @@ export default function RootLayout({ children }) {
     >
       <body className="min-h-full flex flex-col">
         <StoreProvider>
-          {children}
+          <AuthRouteGuard>{children}</AuthRouteGuard>
           <Toaster
             position="top-right"
             closeButton

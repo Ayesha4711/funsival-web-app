@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
+import useBookingClock from '@/lib/useBookingClock';
 import { CalendarField, DropdownField } from "@/components/shared/FieldControls";
 import { TrashIcon } from "@/icons";
 
 /* ─── Availability slot ──────────────────────────────────────────────────────── */
 export default function AvailabilitySlot({ slot, index, onChange, onRemove, canRemove }) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = useBookingClock(Intl.DateTimeFormat().resolvedOptions().timeZone).date;
 
   const getOneHourLater = (timeStr) => {
     if (!timeStr) return "";

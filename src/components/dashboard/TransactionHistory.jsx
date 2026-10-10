@@ -223,10 +223,9 @@ const headingStyle = {
 };
 
 const VALID_TYPES = ["all", "earning", "withdrawal"];
-const CURRENCY_OPTIONS = ["USD", "PKR", "EUR", "GBP"];
 
 /* ─── Currency dropdown (custom — native <select> popups can't be themed) ──── */
-function CurrencyDropdown({ value, onChange }) {
+function CurrencyDropdown({ value, options, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -258,7 +257,7 @@ function CurrencyDropdown({ value, onChange }) {
           role="listbox"
           className="absolute right-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-2xl py-1.5 min-w-[120px] shadow-lg"
         >
-          {CURRENCY_OPTIONS.map((c) => (
+          {options.map((c) => (
             <button
               key={c}
               type="button"
@@ -304,6 +303,7 @@ function TransactionHistoryContent() {
   const [activeType, setActiveType] = useState(() => getInitialUrlState(searchParams).type);
   const [currency, setCurrency] = useState(() => getInitialUrlState(searchParams).currency);
   const [currentPage, setCurrentPage] = useState(() => getInitialUrlState(searchParams).page);
+  const previousPageRef = useRef(currentPage);
   const [limit] = useState(20);
   const [retryTick, setRetryTick] = useState(0);
   const [exporting, setExporting] = useState(false);
@@ -313,6 +313,7 @@ function TransactionHistoryContent() {
     error: "",
     forbidden: false,
     transactions: [],
+    availableCurrencies: [],
     pagination: { total: 0, page: 1, limit: 20, totalPages: 1, hasNextPage: false, hasPrevPage: false },
   });
 
@@ -351,16 +352,21 @@ function TransactionHistoryContent() {
           params: { page: currentPage, limit, type: activeType, currency },
           signal: controller.signal,
         });
+        if (controller.signal.aborted) return;
         const payload = data?.data ?? data ?? {};
         setState({
           loading: false,
           error: "",
           forbidden: false,
           transactions: Array.isArray(payload.transactions) ? payload.transactions.map(mapTransaction) : [],
+          availableCurrencies: Array.isArray(payload.availableCurrencies)
+            ? [...new Set(payload.availableCurrencies.map((code) => String(code).trim().toUpperCase()))]
+                .filter((code) => /^[A-Z]{3}$/.test(code))
+            : [currency],
           pagination: payload.pagination ?? { total: 0, page: 1, limit, totalPages: 1, hasNextPage: false, hasPrevPage: false },
         });
       } catch (error) {
-        if (error?.code === "ERR_CANCELED") return;
+        if (controller.signal.aborted || error?.code === "ERR_CANCELED") return;
         const status = error?.response?.status;
         if (status === 401) {
           if (typeof window !== "undefined") {
@@ -384,6 +390,8 @@ function TransactionHistoryContent() {
   }, [activeType, currency, currentPage, limit, retryTick]);
 
   useEffect(() => {
+    if (previousPageRef.current === currentPage) return;
+    previousPageRef.current = currentPage;
     if (tableAreaRef.current) tableAreaRef.current.scrollIntoView({ block: "start" });
   }, [currentPage]);
 
@@ -500,7 +508,11 @@ function TransactionHistoryContent() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <CurrencyDropdown value={currency} onChange={handleCurrencyChange} />
+          <CurrencyDropdown
+            value={currency}
+            options={state.availableCurrencies.length ? state.availableCurrencies : [currency]}
+            onChange={handleCurrencyChange}
+          />
         </div>
       </div>
 

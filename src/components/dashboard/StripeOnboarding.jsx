@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import {
-  fetchConnectStatus,
   startConnectOnboarding,
   fetchConnectLoginLink,
   selectConnectStatus,
@@ -84,10 +83,6 @@ export default function StripeOnboarding({ compact = false }) {
   const loginLinkLoading = useSelector(selectLoginLinkLoading);
 
   const [country, setCountry] = useState("US");
-
-  useEffect(() => {
-    dispatch(fetchConnectStatus());
-  }, [dispatch]);
 
   const isFullyOnboarded =
     status?.chargesEnabled && status?.payoutsEnabled && status?.detailsSubmitted;

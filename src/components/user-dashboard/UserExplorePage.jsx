@@ -8,6 +8,7 @@ import {
   selectActivities,
   selectActivitiesPagination,
   selectActivitiesStatus,
+  selectActivitiesError,
   setSelectedActivity,
 } from '@/store/slices/activitiesSlice';
 import {
@@ -17,6 +18,7 @@ import {
 } from '@/store/slices/wishlistSlice';
 import AppFooter from '@/components/shared/AppFooter';
 import MapView from '@/components/user-dashboard/MapView';
+import { getListingRate } from '@/lib/listingPricing';
 import Pagination from '@/components/shared/Pagination';
 import CustomCalendar from '@/components/shared/CustomCalendar';
 import EmptyState from '@/components/shared/EmptyState';
@@ -25,9 +27,9 @@ import { HeartFilledIcon, HeartIcon, LocationIcon, CloseIcon, ChevronDownIcon, S
 /* ─── Tab → API category mapping ────────────────────────────────────────────── */
 const TAB_TO_CATEGORY = {
   all: undefined,
-  places: 'places',
+  places: 'place',
   equipment: 'equipment',
-  activities: 'activities',
+  activities: 'activity',
 };
 
 /* ─── Tab Bar ────────────────────────────────────────────────────────────────── */
@@ -103,7 +105,7 @@ function StarRating({ rating }) {
 }
 
 /* ─── Listing Card — matches design: image, title+tag row, rating, price pills, location ── */
-export function ListingCard({ listing }) {
+export function ListingCard({ listing, pricingMode }) {
   const router = useRouter();
   const dispatch = useDispatch();
 
@@ -221,9 +223,9 @@ export function ListingCard({ listing }) {
 
         {/* Price pills — full width single, half-width each when two */}
         {(() => {
-          const hasHourly = hourlyPrice != null;
-          const hasDaily = dailyPrice != null;
-          const hasPerPerson = perPersonPrice != null;
+            const hasHourly = hourlyPrice != null && (!pricingMode || pricingMode === 'hourly');
+            const hasDaily = dailyPrice != null && (!pricingMode || pricingMode === 'daily');
+            const hasPerPerson = perPersonPrice != null && (!pricingMode || pricingMode === 'perPerson');
           const hasFallback = !hasHourly && !hasDaily && !hasPerPerson && fallbackPrice != null;
           const twoCol = hasHourly && hasDaily;
 
@@ -281,16 +283,16 @@ export function ListingCard({ listing }) {
 }
 
 /* ─── Filter Panel ───────────────────────────────────────────────────────────── */
-const PLACES_CATEGORIES = ['Pools','Jacuzzi','Basketball Courts','Arcade','Pickleball Courts','Golf Course','Bowling Alleys','Ice Skating Rink','Ski Resort','Rock Climbing Gym','Trampoline Parks','Mini-Golf Courses'];
-const EQUIPMENT_CATEGORIES = ['Bikes','Kayak','Camping Gear','Diving Gear','Surfboard','Skis','Telescope','Drone'];
-const ACTIVITIES_CATEGORIES = ['Skydiving','Horse Riding','Scuba Diving','Paragliding','Zipline','Jeep Rally','Hang Glider','Bungee','Bowling','Trampoline','Golf','Boating'];
+const PLACES_CATEGORIES = PLACES_FILTERS.map(({ label }) => label);
+const EQUIPMENT_CATEGORIES = EQUIPMENT_FILTERS.map(({ label }) => label);
+const ACTIVITIES_CATEGORIES = ACTIVITIES_FILTERS.map(({ label }) => label);
 
 const CITIES = ['Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'];
 
 function FilterPanel({ open, onClose, filters, onChange }) {
   const cityDropdownRef = useRef(null);
   const calendarRef = useRef(null);
-  const [priceTab, setPriceTab] = useState('hourly');
+  const [priceTab, setPriceTab] = useState(filters.priceTab || 'hourly');
   const [priceRange, setPriceRange] = useState(filters.priceRange || [0, 5000]);
   const [minInput, setMinInput] = useState(String(filters.priceRange?.[0] ?? 0));
   const [maxInput, setMaxInput] = useState(String(filters.priceRange?.[1] ?? 5000));
@@ -375,13 +377,13 @@ function FilterPanel({ open, onClose, filters, onChange }) {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/30 z-[1200]" onClick={onClose} />
       {/* Panel */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-white z-50 flex flex-col shadow-2xl overflow-hidden">
+      <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-white z-[1201] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 bg-[#FEB538] shrink-0">
           <span className="text-base font-bold text-gray-900">Filters</span>
-          <button onClick={onClose} className="text-gray-700 hover:text-gray-900">
+          <button aria-label="Close filters" onClick={onClose} className="text-gray-700 hover:text-gray-900">
             <CloseIcon size={20} />
           </button>
         </div>
@@ -643,6 +645,7 @@ export default function UserExplorePage() {
   const searchParams = useSearchParams();
   const apiListings = useSelector(selectActivities);
   const listingsStatus = useSelector(selectActivitiesStatus);
+  const listingsError = useSelector(selectActivitiesError);
   const pagination = useSelector(selectActivitiesPagination);
 
   // The landing page's Activity Type filter sends the backend's singular
@@ -666,19 +669,21 @@ export default function UserExplorePage() {
   const pillsScrollRef = useRef(null);
 
   const searchQuery = searchParams.get('search') || '';
+  const pricingMode = appliedFilters.priceTab === 'per person' ? 'perPerson' : appliedFilters.priceTab;
   const locationQuery = searchParams.get('location') || '';
   const fromQuery = searchParams.get('from') || '';
   const untilQuery = searchParams.get('until') || '';
+  const [previousSearchQuery, setPreviousSearchQuery] = useState(searchQuery);
+  if (previousSearchQuery !== searchQuery) {
+    setPreviousSearchQuery(searchQuery);
+    setCurrentPage(1);
+  }
 
   const scrollPills = (dir) => {
     if (pillsScrollRef.current) {
       pillsScrollRef.current.scrollBy({ left: dir * 240, behavior: 'smooth' });
     }
   };
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
 
   useEffect(() => {
     const category = TAB_TO_CATEGORY[activeTab];
@@ -697,6 +702,7 @@ export default function UserExplorePage() {
       location: !city ? locationQuery || undefined : undefined,
       minPrice,
       maxPrice,
+      pricingMode,
       sort: sort || undefined,
       from: fromQuery || undefined,
       until: untilQuery || undefined,
@@ -704,21 +710,29 @@ export default function UserExplorePage() {
 
     // Add additional filters if present
     if (date) filterParams.date = date;
-    if (categories && categories.length > 0) filterParams.type = categories.map(c => c.toLowerCase().replace(/\s+/g, '_')).join(',');
+    if (categories && categories.length > 0) {
+      filterParams.type = categories
+        .map(label => SUB_FILTERS.all.find(option => option.label.toLowerCase() === label.toLowerCase())?.id)
+        .filter(Boolean)
+        .join(',');
+    }
     if (rating != null) filterParams.rating = rating;
     if (instantBook && instantBook !== 'any') filterParams.instantBook = instantBook;
 
-    dispatch(fetchBrowseListings(filterParams));
-  }, [dispatch, currentPage, activeTab, activeSubFilter, appliedFilters, searchQuery, locationQuery, fromQuery, untilQuery]);
+    const request = dispatch(fetchBrowseListings(filterParams));
+    return () => request.abort();
+  }, [dispatch, currentPage, activeTab, activeSubFilter, appliedFilters, searchQuery, locationQuery, fromQuery, untilQuery, pricingMode]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     setActiveSubFilter('all');
+    setAppliedFilters(prev => ({ ...prev, categories: [] }));
     setCurrentPage(1);
   };
 
   const handleSubFilterChange = (filterId) => {
     setActiveSubFilter(filterId);
+    setAppliedFilters(prev => ({ ...prev, categories: [] }));
     setCurrentPage(1);
   };
 
@@ -729,11 +743,17 @@ export default function UserExplorePage() {
 
   const handleFiltersApply = (newFilters) => {
     setAppliedFilters(newFilters);
+    if (newFilters.categories?.length) {
+      setActiveTab('all');
+      setActiveSubFilter('all');
+    }
     setCurrentPage(1);
   };
 
   // API already filters by category and type server-side
-  const filteredListings = apiListings || [];
+  const filteredListings = pricingMode
+    ? (apiListings || []).filter(listing => getListingRate(listing, pricingMode) != null)
+    : apiListings || [];
 
   const totalPages = pagination.totalPages || 1;
   // Pagination is server-side — show whatever the API returned
@@ -779,7 +799,7 @@ export default function UserExplorePage() {
               </button>
 
               {/* Filter icon button — always visible */}
-              <button onClick={() => setFilterOpen(true)} className="flex items-center justify-center w-9 h-9 border border-[#4AA7A7] rounded-full text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white transition-colors">
+              <button aria-label="Open filters" onClick={() => setFilterOpen(true)} className="flex items-center justify-center w-9 h-9 border border-[#4AA7A7] rounded-full text-[#4AA7A7] hover:bg-[#4AA7A7] hover:text-white transition-colors">
                 <FilterIcon size={16} />
               </button>
             </div>
@@ -821,17 +841,21 @@ export default function UserExplorePage() {
 
           {/* ── Grid / Map / States ── */}
           <div className="flex-1 flex flex-col">
-          {viewMode === 'map' ? (
-            <MapView listings={filteredListings} />
-          ) : listingsStatus === 'loading' ? (
+          {listingsStatus === 'loading' || listingsStatus === 'idle' ? (
             <div className="flex-1 flex items-center justify-center py-24">
               <div className="w-8 h-8 border-4 border-[#4AA7A7] border-t-transparent rounded-full animate-spin" />
             </div>
+          ) : listingsStatus === 'failed' ? (
+            <div role="alert" className="flex-1 flex items-center justify-center py-24 text-sm text-red-500">
+              {listingsError || 'Unable to load listings. Please try again.'}
+            </div>
+          ) : filteredListings.length > 0 && viewMode === 'map' ? (
+            <MapView listings={filteredListings} pricingMode={pricingMode} />
           ) : paginatedListings.length > 0 ? (
             <div className="flex flex-col flex-1">
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
                 {paginatedListings.map((listing) => (
-                  <ListingCard key={listing._id || listing.id} listing={listing} />
+                  <ListingCard key={listing._id || listing.id} listing={listing} pricingMode={pricingMode} />
                 ))}
               </div>
 
@@ -862,12 +886,12 @@ export default function UserExplorePage() {
       </main>
 
 
-      <FilterPanel
+      {filterOpen && <FilterPanel
         open={filterOpen}
         onClose={() => setFilterOpen(false)}
         filters={appliedFilters}
         onChange={handleFiltersApply}
-      />
+      />}
 
       <AppFooter />
 

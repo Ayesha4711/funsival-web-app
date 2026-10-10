@@ -64,8 +64,8 @@ export default function TwoFAVerifyPage() {
     const data = result.payload?.data;
     toast.success("Signed in successfully", { description: data?.message ?? "Welcome back!" });
     const resolvedRole = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? role;
-    if (returnTo) router.push(returnTo);
-    else router.push(resolvedRole === "host" ? "/dashboard" : "/user-dashboard/explore");
+    if (returnTo) router.replace(returnTo);
+    else router.replace(resolvedRole === "host" ? "/dashboard" : "/user-dashboard/explore");
   };
 
   useEffect(() => {

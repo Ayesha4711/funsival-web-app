@@ -24,6 +24,7 @@ import PhotoUpload from "./StepDetailsPhotoUpload";
 import LocationDropdowns from "./StepDetailsLocationDropdowns";
 import StepDetailsAvailabilitySection from "./StepDetailsAvailabilitySection";
 import { geocodeSearch, reverseGeocodeToAddressFields } from "./locationGeocoding";
+import { bookingClock } from '@/lib/bookingClock';
 
 /* ─── Step ─────────────────────────────────────────────────────────────────── */
 export default function StepDetails({ category, details, onChange, onNext, onBack, fieldErrors = null }) {
@@ -797,7 +798,7 @@ export default function StepDetails({ category, details, onChange, onNext, onBac
               }
               return "";
             };
-            const todayIso = new Date().toISOString().split("T")[0];
+            const todayIso = bookingClock(Intl.DateTimeFormat().resolvedOptions().timeZone).date;
 
             if (!form.availabilityType) {
               errs.availability = "Please select an availability type and add at least one time slot.";

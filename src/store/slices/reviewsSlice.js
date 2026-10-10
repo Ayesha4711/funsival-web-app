@@ -39,7 +39,13 @@ export const submitReview = createAsyncThunk(
       });
       return data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message ?? err.message);
+      const response = err.response?.data;
+      const errors = response?.errors ?? {};
+      const details = Object.values(errors).filter((message) => typeof message === "string");
+      return rejectWithValue({
+        message: details.length ? details.join(" ") : response?.message ?? err.message ?? "Failed to submit review. Please try again.",
+        errors,
+      });
     }
   }
 );
@@ -106,7 +112,7 @@ const reviewsSlice = createSlice({
       })
       .addCase(submitReview.rejected, (state, action) => {
         state.submitLoading = false;
-        state.submitError = action.payload;
+        state.submitError = action.payload?.message ?? action.payload ?? action.error.message;
       })
 
       .addCase(deleteReview.pending, (state) => {

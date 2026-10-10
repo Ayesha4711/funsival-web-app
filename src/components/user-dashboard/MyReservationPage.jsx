@@ -31,7 +31,6 @@ import {
   selectReviewContext,
   selectReviewContextLoading,
   selectReviewSubmitLoading,
-  selectReviewSubmitError,
   selectReviewDeleteLoading,
 } from "@/store/slices/reviewsSlice";
 import { startOrGetConversation } from "@/store/slices/chatSlice";
@@ -156,6 +155,8 @@ function StarRatingInput({ value, onChange }) {
       {[1,2,3,4,5].map((s) => (
         <button key={s} type="button" onClick={() => onChange(s)}
           onMouseEnter={() => setHovered(s)} onMouseLeave={() => setHovered(0)}
+          aria-label={`${s} ${s === 1 ? "star" : "stars"}`}
+          aria-pressed={value === s}
           className="transition-transform hover:scale-110">
           <StarIcon filled={s <= (hovered || value)} />
         </button>
@@ -170,7 +171,6 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
   const context = useSelector(selectReviewContext);
   const contextLoading = useSelector(selectReviewContextLoading);
   const submitLoading = useSelector(selectReviewSubmitLoading);
-  const submitError = useSelector(selectReviewSubmitError);
   const deleteLoading = useSelector(selectReviewDeleteLoading);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -181,6 +181,8 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
     overall: 0, accuracy: 0, quality: 0, communication: 0, value: 0,
   });
   const [comment, setComment] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     dispatch(fetchBookingReviewContext(bookingId));
@@ -201,9 +203,29 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
     }
   }, [existingReview]);
 
+  const cats = [
+    { key: "overall",       label: "Overall Rating",   sub: "Your general experience" },
+    { key: "accuracy",      label: "Accuracy",         sub: "How well did it match the description?" },
+    { key: "quality",       label: "Quality",          sub: "The condition and standard of service" },
+    { key: "communication", label: "Communication",    sub: "Host responsiveness and clarity" },
+    { key: "value",         label: "Value",            sub: "Quality relative to price paid" },
+  ];
+
   const handleSubmit = async () => {
-    if (!ratings.overall) {
-      toast.error("Please select an overall rating.");
+    if (submitLoading) return;
+    const errors = {};
+    for (const { key, label } of cats) {
+      if (!Number.isInteger(ratings[key]) || ratings[key] < 1 || ratings[key] > 5) {
+        errors[key] = `Please select a rating from 1 to 5 stars for ${label.toLowerCase()}.`;
+      }
+    }
+    if (comment.trim().length > 2000) errors.comment = "Please keep your comments to 2,000 characters or fewer.";
+    setFieldErrors(errors);
+    setFormError("");
+    if (Object.keys(errors).length) {
+      const message = "Please complete the highlighted review fields before submitting.";
+      setFormError(message);
+      toast.error(message);
       return;
     }
     try {
@@ -220,7 +242,15 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
       onSubmitted?.();
       onClose();
     } catch (err) {
-      toast.error(typeof err === "string" ? err : "Failed to submit review.");
+      const errors = { ...(err?.errors ?? {}) };
+      if (errors.overallRating) {
+        errors.overall = errors.overallRating;
+        delete errors.overallRating;
+      }
+      const message = typeof err === "string" ? err : err?.message ?? "Failed to submit review. Please try again.";
+      setFieldErrors(errors);
+      setFormError(message);
+      toast.error(message);
     }
   };
 
@@ -246,13 +276,6 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
     ?? "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80";
   const confirmationNo = b?.confirmationNumber ?? b?.id?.slice(-8)?.toUpperCase();
 
-  const cats = [
-    { key: "overall",       label: "Overall Rating",   sub: "Your general experience" },
-    { key: "accuracy",      label: "Accuracy",         sub: "How well did it match the description?" },
-    { key: "quality",       label: "Quality",          sub: "The condition and standard of service" },
-    { key: "communication", label: "Communication",    sub: "Host responsiveness and clarity" },
-    { key: "value",         label: "Value",            sub: "Quality relative to price paid" },
-  ];
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
@@ -285,10 +308,15 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
             )}
 
             {cats.map(({ key, label, sub }) => (
-              <div key={key}>
-                <p className="text-sm font-bold text-gray-900">{label}</p>
+              <div key={key} role="group" aria-label={label} aria-describedby={fieldErrors[key] ? `review-${key}-error` : undefined}>
+                <p className="text-sm font-bold text-gray-900">{label} <span className="text-red-500">*</span></p>
                 <p className="text-xs text-gray-400 mb-2">{sub}</p>
-                <StarRatingInput value={ratings[key]} onChange={(v) => setRatings((r) => ({ ...r, [key]: v }))} />
+                <StarRatingInput value={ratings[key]} onChange={(v) => {
+                  setRatings((r) => ({ ...r, [key]: v }));
+                  setFieldErrors((errors) => ({ ...errors, [key]: undefined }));
+                  setFormError("");
+                }} />
+                {fieldErrors[key] && <p id={`review-${key}-error`} className="text-xs text-red-600 mt-2">{fieldErrors[key]}</p>}
               </div>
             ))}
 
@@ -296,20 +324,28 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
               <p className="text-sm font-bold text-gray-900 mb-2">Additional Comments (Optional)</p>
               <textarea
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={(e) => {
+                  setComment(e.target.value);
+                  setFieldErrors((errors) => ({ ...errors, comment: undefined }));
+                  setFormError("");
+                }}
+                aria-label="Additional comments"
+                aria-invalid={Boolean(fieldErrors.comment)}
+                aria-describedby={fieldErrors.comment ? "review-comment-error" : undefined}
                 placeholder="Tell us what stood out about your experience"
                 rows={4}
                 className="w-full px-4 py-3 text-sm text-gray-700 placeholder:text-gray-300 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4AA7A7] resize-none"
               />
             </div>
 
-            {submitError && (
-              <p className="text-xs text-red-500 font-medium">{submitError}</p>
+            {fieldErrors.comment && <p id="review-comment-error" className="text-xs text-red-600">{fieldErrors.comment}</p>}
+            {formError && (
+              <p role="alert" className="text-xs text-red-600 font-medium">{formError}</p>
             )}
 
             <button
               onClick={handleSubmit}
-              disabled={submitLoading || !ratings.overall}
+              disabled={submitLoading}
               className="w-full py-4 bg-[#F5C842] hover:bg-[#e0b430] text-gray-900 font-bold rounded-full text-sm transition-colors disabled:opacity-50"
             >
               {submitLoading ? "Submitting…" : isEdit ? "Update Review" : "Submit Review"}

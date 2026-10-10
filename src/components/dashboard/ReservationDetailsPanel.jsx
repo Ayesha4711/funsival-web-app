@@ -46,7 +46,7 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
     requires_payment: { label: "Payment required",             bg: "bg-gray-100",   text: "text-gray-600"   },
     processing:       { label: "Processing payment",            bg: "bg-blue-100",   text: "text-blue-700"   },
     authorized:       { label: "Waiting for host approval",     bg: "bg-amber-100",  text: "text-amber-700"  },
-    auth_released:    { label: "Authorization released",        bg: "bg-gray-100",   text: "text-gray-500"   },
+    auth_released:    { label: "Payment Hold Released",         bg: "bg-gray-100",   text: "text-gray-500"   },
     held:             { label: "Payment pending release",       bg: "bg-teal-100",   text: "text-teal-700"   },
     refunding:        { label: "Refund processing",             bg: "bg-orange-100", text: "text-orange-700" },
     releasing:        { label: "Moving to current balance",     bg: "bg-teal-100",   text: "text-teal-700"   },

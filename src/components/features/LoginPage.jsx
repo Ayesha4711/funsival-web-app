@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -28,21 +28,7 @@ function LoginForm() {
   const [form, setForm] = useState({ email: "", password: "", rememberMe: false });
   const [clientErrors, setClientErrors] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [navigatingBack, setNavigatingBack] = useState(false);
   const googleButtonRef = useRef(null);
-
-  useEffect(() => {
-    // Rewrite history so back always goes to / (landing page), never a protected route.
-    // replaceState rewrites the current entry to /, then pushState puts /login (with any
-    // returnTo query string preserved) on top.
-    const loginUrl = `/login${window.location.search}`;
-    window.history.replaceState(null, "", "/");
-    window.history.pushState(null, "", loginUrl);
-
-    const handlePopState = () => setNavigatingBack(true);
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
 
   const handleGoogleSuccess = async (credentialResponse) => {
     const result = await dispatch(loginWithGoogle({ idToken: credentialResponse.credential, mode: "login" }));
@@ -53,9 +39,9 @@ function LoginForm() {
     const data = result.payload?.data;
     toast.success("Signed in successfully", { description: "Welcome back!" });
     const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "user";
-    if (returnTo) router.push(returnTo);
-    else if (role === "admin") router.push("/admin/refund-requests");
-    else router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
+    if (returnTo) router.replace(returnTo);
+    else if (role === "admin") router.replace("/admin/refund-requests");
+    else router.replace(role === "host" ? "/dashboard" : "/user-dashboard/explore");
   };
 
   const handleChange = (e) => {
@@ -100,18 +86,10 @@ function LoginForm() {
 
     toast.success("Signed in successfully", { description: data?.message ?? "Welcome back! You're signed in." });
     const role = data?.role ?? data?.data?.role ?? data?.data?.user?.role ?? "user";
-    if (returnTo) router.push(returnTo);
-    else if (role === "admin") router.push("/admin/refund-requests");
-    else router.push(role === "host" ? "/dashboard" : "/user-dashboard/explore");
+    if (returnTo) router.replace(returnTo);
+    else if (role === "admin") router.replace("/admin/refund-requests");
+    else router.replace(role === "host" ? "/dashboard" : "/user-dashboard/explore");
   };
-
-  if (navigatingBack) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg">
-        <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <AuthLayout>

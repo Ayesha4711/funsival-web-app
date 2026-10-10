@@ -66,7 +66,7 @@ function InlineSelect({ value, options, onChange, width = 110 }) {
 
 export default function CustomCalendar({ value, onChange, onClose, availableDates, minDate }) {
   const today   = new Date();
-  const initial = value ? new Date(value) : today;
+  const initial = value ? new Date(`${value.split('T')[0]}T00:00:00`) : (minDate ? new Date(`${minDate}T00:00:00`) : today);
 
   const [viewYear,  setViewYear]  = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth());

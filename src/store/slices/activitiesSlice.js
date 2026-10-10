@@ -5,7 +5,7 @@ import axiosInstance from "../axiosInstance";
 
 export const fetchBrowseListings = createAsyncThunk(
   "activities/fetchBrowseListings",
-  async ({ page = 1, limit = 10, category, type, search, city, location, minPrice, maxPrice, sort, date, from, until, rating, instantBook } = {}, { rejectWithValue }) => {
+  async ({ page = 1, limit = 10, category, type, search, city, location, minPrice, maxPrice, pricingMode, sort, date, from, until, rating, instantBook } = {}, { rejectWithValue, signal }) => {
     try {
       const params = new URLSearchParams({ page: page ?? 1, limit: limit ?? 10 });
       if (category) params.set("category", category);
@@ -16,13 +16,14 @@ export const fetchBrowseListings = createAsyncThunk(
       if (minPrice != null && minPrice !== '' && minPrice > 0) params.set("minPrice", String(minPrice));
       if (maxPrice != null && maxPrice !== '' && maxPrice < 5000) params.set("maxPrice", String(maxPrice));
       if (sort) params.set("sort", sort);
+      if (pricingMode) params.set("pricingMode", pricingMode);
       if (date) params.set("date", date);
       if (from) params.set("from", from);
       if (until) params.set("until", until);
       if (rating != null) params.set("rating", String(rating));
       if (instantBook) params.set("instantBook", instantBook);
 
-      const { data } = await axiosInstance.get(`/listings/browse?${params}`);
+      const { data } = await axiosInstance.get(`/listings/browse?${params}`, { signal });
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message ?? err.message);
@@ -117,6 +118,7 @@ const activitiesSlice = createSlice({
     filters: {},
     pagination: { page: 1, limit: 10, total: 0 },
     status: "idle",   // "idle" | "loading" | "succeeded" | "failed"
+    browseRequestId: null,
     error: null,
     browseTypes: [],
     browseTypesStatus: "idle",
@@ -146,11 +148,14 @@ const activitiesSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // fetchBrowseListings
-      .addCase(fetchBrowseListings.pending, (state) => {
+      .addCase(fetchBrowseListings.pending, (state, action) => {
+        state.browseRequestId = action.meta.requestId;
         state.status = "loading";
         state.error = null;
       })
       .addCase(fetchBrowseListings.fulfilled, (state, action) => {
+        if (state.browseRequestId !== action.meta.requestId) return;
+        state.browseRequestId = null;
         state.status = "succeeded";
         const listings = action.payload?.data?.listings ?? [];
         state.items = listings;
@@ -161,6 +166,12 @@ const activitiesSlice = createSlice({
         });
       })
       .addCase(fetchBrowseListings.rejected, (state, action) => {
+        if (state.browseRequestId !== action.meta.requestId) return;
+        state.browseRequestId = null;
+        if (action.meta.aborted) {
+          state.status = 'idle';
+          return;
+        }
         state.status = "failed";
         state.error = action.payload;
       })
