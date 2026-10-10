@@ -86,7 +86,7 @@ function formatMoney(amount, currency = "USD", minimumFractionDigits = 2, maximu
   return `${symbol} ${value.toLocaleString("en-US", { minimumFractionDigits, maximumFractionDigits })}`;
 }
 
-/* ─── Build booking payload from URL params ──────────────────────────────────── */
+
 function buildBookingPayload(params) {
   const listingId    = params.get("listingId")    || "";
   const bookingType  = params.get("bookingType")  || "";
