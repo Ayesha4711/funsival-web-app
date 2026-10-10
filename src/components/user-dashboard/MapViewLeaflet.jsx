@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -50,41 +50,37 @@ function makePinIcon(price, isActive) {
   });
 }
 
-function FlyToCenter({ center }) {
+function MapViewport({ center, pins }) {
   const map = useMap();
   useEffect(() => {
-    map.flyTo(center, map.getZoom(), { duration: 0.8 });
-  }, [center, map]);
+    if (pins.length > 1) {
+      map.fitBounds(pins.map(pin => [pin.lat, pin.lon]), { padding: [40, 40], maxZoom: 10 });
+    } else {
+      map.setView(center, pins.length ? 10 : 2);
+    }
+  }, [center, pins, map]);
+  useEffect(() => {
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map]);
   return null;
 }
 
 function PinMarker({ pin, isActive, setActivePin, cardContent }) {
-  const markerRef = useRef(null);
-
-  useEffect(() => {
-    const marker = markerRef.current;
-    if (!marker) return;
-    if (isActive) {
-      marker.openPopup();
-    } else {
-      marker.closePopup();
-    }
-  }, [isActive]);
-
   return (
     <Marker
-      ref={markerRef}
       position={[pin.lat, pin.lon]}
       icon={makePinIcon(pin.price, isActive)}
       zIndexOffset={isActive ? 1000 : 0}
-      eventHandlers={{
-        click: () => setActivePin(isActive ? null : pin.id),
-      }}
     >
       <Popup
         closeButton={false}
         className="leaflet-price-popup"
-        eventHandlers={{ remove: () => setActivePin(null) }}
+        eventHandlers={{
+          add: () => setActivePin(pin.id),
+          remove: () => setActivePin(current => current === pin.id ? null : current),
+        }}
       >
         {cardContent}
       </Popup>
@@ -97,23 +93,29 @@ export default function MapViewLeaflet({
   pins,
   activePin,
   setActivePin,
-  cardContent,
+  renderCard,
 }) {
+  const [tileError, setTileError] = useState(false);
+  const [tileAttempt, setTileAttempt] = useState(0);
   return (
+    <>
     <MapContainer
       center={center}
-      zoom={10}
+      zoom={pins.length ? 10 : 2}
       style={{ width: "100%", height: "100%" }}
       zoomControl={true}
       scrollWheelZoom={true}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        subdomains="abcd"
+        key={tileAttempt}
+        attribution='Tiles &copy; <a href="https://www.arcgis.com/home/item.html?id=3b93337983e9436f8db950e38a8629af">Esri</a> &mdash; Sources: Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, Esri Japan, METI, Esri China (Hong Kong), Esri Korea, Esri (Thailand), NGCC, <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, and the GIS User Community'
+        // This basemap renders place labels in English, unlike OSM's local-language tiles.
+        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+        maxZoom={19}
+        eventHandlers={{ tileerror: () => setTileError(true) }}
       />
 
-      <FlyToCenter center={center} />
+      <MapViewport center={center} pins={pins} />
 
       {pins.map((pin) => (
         <PinMarker
@@ -121,9 +123,19 @@ export default function MapViewLeaflet({
           pin={pin}
           isActive={activePin === pin.id}
           setActivePin={setActivePin}
-          cardContent={cardContent}
+          cardContent={renderCard(pin.listing)}
         />
       ))}
     </MapContainer>
+    {tileError && (
+      <div role="alert" className="absolute top-3 left-16 right-3 z-[1000] flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm shadow">
+        <span>Map tiles could not load. Check your connection and retry.</span>
+        <button className="font-semibold text-[#228E8A]" onClick={() => {
+          setTileError(false);
+          setTileAttempt(attempt => attempt + 1);
+        }}>Retry</button>
+      </div>
+    )}
+    </>
   );
 }

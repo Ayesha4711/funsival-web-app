@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Image from "next/image";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -9,16 +9,20 @@ import {
 import {
   PieChart, Pie, Cell, Tooltip as PieTooltip,
 } from "recharts";
-import axiosInstance from "@/store/axiosInstance";
 
 const COLORS = {
   places:     "#FEB538",
   equipments: "#1d8c82",
-  services:   "#f97316",
-  other:      "#94a3b8",
+  activities: "#f97316",
   areaLine:   "#FF7B2E",
   areaFill:   "#FFDCC2",
 };
+
+const REVENUE_CATEGORIES = [
+  { key: "places", label: "Places", aliases: ["place", "places"] },
+  { key: "equipments", label: "Equipment", aliases: ["equipment", "equipments"] },
+  { key: "activities", label: "Activity", aliases: ["activity", "activities", "service", "services"] },
+];
 
 function formatMoney(value, currency = "USD") {
   const amount = Number(value ?? 0);
@@ -33,48 +37,6 @@ function formatMoney(value, currency = "USD") {
   }
 }
 
-/**
- * Shared fetch for GET /payments/connect/earnings/overview — calendar-year
- * Jan–Dec trend + category breakdown. Used by both charts below so they
- * always stay in sync on the same year/currency selection.
- */
-function useEarningsOverview(currency) {
-  const [state, setState] = useState({ loading: true, error: "", data: null });
-
-  useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
-
-    const run = async () => {
-      setState((prev) => ({ ...prev, loading: true, error: "" }));
-      try {
-        const params = {};
-        if (currency) params.currency = currency;
-        const { data } = await axiosInstance.get("/payments/connect/earnings/overview", {
-          params,
-          signal: controller.signal,
-        });
-        if (!active) return;
-        setState({ loading: false, error: "", data: data?.data ?? data ?? null });
-      } catch (error) {
-        if (!active || error?.code === "ERR_CANCELED") return;
-        setState({
-          loading: false,
-          error: error?.response?.data?.message || error?.message || "Unable to load earnings overview.",
-          data: null,
-        });
-      }
-    };
-
-    run();
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [currency]);
-
-  return state;
-}
 
 function pickSeries(seriesList, requestedCurrency) {
   if (!Array.isArray(seriesList) || seriesList.length === 0) return null;
@@ -103,8 +65,8 @@ function TrendTooltip({ active, payload, label, currency }) {
   );
 }
 
-export function EarningsTrend({ currency: initialCurrency }) {
-  const { loading, error, data } = useEarningsOverview(initialCurrency);
+export function EarningsTrend({ currency: initialCurrency, overview }) {
+  const { loading, error, data } = overview;
 
   const series = useMemo(
     () => pickSeries(data?.trend?.series, initialCurrency),
@@ -129,7 +91,7 @@ export function EarningsTrend({ currency: initialCurrency }) {
       >
         Earnings Trend
       </h2>
-      <div className="flex-1 min-h-[200px] sm:min-h-[260px] min-w-0">
+      <div className="h-[260px] sm:h-[300px] min-w-0">
         {loading ? (
           <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">Loading…</div>
         ) : error ? (
@@ -185,8 +147,8 @@ export function EarningsTrend({ currency: initialCurrency }) {
 }
 
 /* ─── Revenue by Category (Donut) ────────────────────────────────────────── */
-export function RevenueByCategory({ currency: initialCurrency }) {
-  const { loading, error, data } = useEarningsOverview(initialCurrency);
+export function RevenueByCategory({ currency: initialCurrency, overview }) {
+  const { loading, error, data } = overview;
 
   const series = useMemo(
     () => pickSeries(data?.revenueByCategory?.series, initialCurrency),
@@ -194,12 +156,20 @@ export function RevenueByCategory({ currency: initialCurrency }) {
   );
 
   const categoryData = useMemo(
-    () => (series?.categories ?? []).map((c) => ({
-      name: c.label,
-      value: Number(c.percentage ?? 0),
-      netEarnings: Number(c.netEarnings ?? 0),
-      color: COLORS[c.key] ?? COLORS.other,
-    })),
+    () => {
+      const categories = REVENUE_CATEGORIES.map(({ key, label, aliases }) => ({
+        name: label,
+        netEarnings: (series?.categories ?? [])
+          .filter((c) => aliases.includes(String(c.key ?? "").trim().toLowerCase()))
+          .reduce((sum, c) => sum + Number(c.netEarnings ?? 0), 0),
+        color: COLORS[key],
+      }));
+      const total = categories.reduce((sum, c) => sum + c.netEarnings, 0);
+      return categories.map((c) => ({
+        ...c,
+        value: total > 0 ? Math.round((c.netEarnings / total) * 10000) / 100 : 0,
+      }));
+    },
     [series]
   );
 
@@ -218,7 +188,7 @@ export function RevenueByCategory({ currency: initialCurrency }) {
           <div className="w-full h-full min-h-[260px] flex items-center justify-center text-sm text-gray-400">Loading…</div>
         ) : error ? (
           <div className="w-full h-full min-h-[260px] flex items-center justify-center text-sm text-red-500 text-center px-4">{error}</div>
-        ) : categoryData.length === 0 ? (
+        ) : !categoryData.some((c) => c.value > 0) ? (
           <div className="w-full h-full min-h-[260px] flex items-center justify-center text-sm text-gray-400">No revenue data available</div>
         ) : (
           <>

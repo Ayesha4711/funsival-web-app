@@ -4,6 +4,7 @@ import React from "react";
 import { CalendarField, DropdownField } from "@/components/shared/FieldControls";
 import { PlusIcon, TrashIcon } from "@/icons";
 import { SectionTitle } from "./StepDetailsFieldControls";
+import useBookingClock from '@/lib/useBookingClock';
 
 const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 // JS day index: 0=Sun,1=Mon,...,6=Sat
@@ -51,7 +52,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
   const timeOptions = buildHourlyOptions();
   const activeDays = getActiveDays(form.recurringStartDate, form.recurringEndDate);
   const hasRange = !!(form.recurringStartDate && form.recurringEndDate);
-  const today = new Date().toISOString().split("T")[0];
+  const today = useBookingClock(Intl.DateTimeFormat().resolvedOptions().timeZone).date;
   const slot0 = form.slots?.[0] || {};
 
   return (
@@ -156,7 +157,7 @@ export default function StepDetailsAvailabilitySection({ form, fe, set, updateSl
                 placeholder="September 30, 2025"
                 onChange={(value) => set("recurringEndDate", value)}
                 align="right"
-                minDate={form.recurringStartDate || today}
+                minDate={form.recurringStartDate && form.recurringStartDate > today ? form.recurringStartDate : today}
               />
             </div>
           </div>
