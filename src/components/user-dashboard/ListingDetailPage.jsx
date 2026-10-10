@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import axiosInstance from "@/store/axiosInstance";
+import { bookingClock, canStartBooking } from "@/lib/bookingClock";
+import useBookingClock from "@/lib/useBookingClock";
 import {
   fetchBrowseListing,
   selectSelectedActivity,
@@ -222,6 +224,7 @@ function adaptApiListing(api, urlType) {
     cancellationPolicy,
     description,
     availability: api.availability || [],
+    timeZone: api.timeZone || "UTC",
     mapLat: toNum(loc.latitude) ?? null,
     mapLng: toNum(loc.longitude) ?? null,
   };
@@ -464,6 +467,7 @@ function normalizeSlotsResponse(payload) {
     slotDurationMinutes: Number(data.slotDurationMinutes ?? data.slot_duration_minutes) || null,
     hourlyPrice: Number(data.hourlyPrice ?? data.hourly_price) || null,
     currency: data.currency || "USD",
+    date: data.date || "",
   };
 }
 
@@ -686,7 +690,7 @@ function ModePill({ active, label, icon, onClick }) {
 }
 
 /* ─── Booking Shell ──────────────────────────────────────────────────────────── */
-function BookingShell({ children, topSlot, reserveButton, title, price, priceUnit, rating, reviews }) {
+function BookingShell({ children, topSlot, reserveButton, title, price, priceUnit, rating, reviews, timeZone }) {
   const ratingNum = Number(rating);
   const ratingText = Number.isFinite(ratingNum) ? ratingNum.toFixed(1) : "0.0";
   return (
@@ -699,6 +703,7 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
       <div className="flex items-start justify-between gap-2 shrink-0 mb-5 min-w-0">
         <div className="min-w-0 flex-1">
           <h2 className="text-base sm:text-xl font-bold text-gray-900 leading-tight">{title}</h2>
+          {timeZone && <p className="mt-1 text-xs text-gray-500">Dates and times in {timeZone}</p>}
           <div className="mt-1.5 flex items-center flex-wrap gap-x-1 gap-y-0.5 text-sm text-gray-600">
             <StarRating rating={ratingNum} />
             <span className="font-semibold">{ratingText}</span>
@@ -741,19 +746,21 @@ function HourlySlotBookingCard({
     return safeParseJSON(sessionStorage.getItem(SKEY), {});
   }, [SKEY]);
 
+  const clock = useBookingClock(listing.timeZone);
   const listingDates = React.useMemo(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
     const dates = (listing.availability || [])
+      .filter(slot => slot.isAvailable !== false && canStartBooking(slot.date, slot.endTime, clock))
       .map((slot) => slot?.date?.split("T")[0] || slot?.day || "")
       .filter(Boolean)
-      .filter((d) => d >= todayStr);
+      .filter((d) => d >= clock.date);
     return [...new Set(dates)].sort();
-  }, [listing.availability]);
+  }, [listing.availability, clock]);
 
   const shouldMergeHourlySlots = listing.bookingType === "per_hour";
 
-  const initialDate = saved.selectedDate || saved.startDate || listingDates[0] || "";
-  const initialSlots = saved.selectionByDate?.[initialDate] || saved.slots || [];
+  const savedDate = saved.selectedDate || saved.startDate;
+  const initialDate = listingDates.includes(savedDate) ? savedDate : listingDates[0] || "";
+  const initialSlots = savedDate === initialDate ? saved.selectionByDate?.[initialDate] || saved.slots || [] : [];
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [selectedSlots, setSelectedSlots] = useState(initialSlots);
   // Tracks which date `selectedSlots` currently belongs to, so the "clear on date change"
@@ -765,35 +772,14 @@ function HourlySlotBookingCard({
   const [gridError, setGridError] = useState("");
   const [refreshTick, setRefreshTick] = useState(0);
 
-  // Fallback slots extracted directly from listing.availability if /slots API response is empty or fails
-  const fallbackSlots = React.useMemo(() => {
-    if (!selectedDate || !(listing.availability || []).length) return [];
-    const normalized = (listing.availability || [])
-      .filter((slot) => {
-        const slotDate = slot?.date?.split("T")[0] || slot?.day || "";
-        return !slotDate || slotDate === selectedDate;
-      })
-      .map((slot) => {
-        const startTime = slot.startTime ?? slot.start_time ?? "";
-        const endTime = slot.endTime ?? slot.end_time ?? "";
-        const calcDuration = calculateSlotMinutes(startTime, endTime);
-        const durationMinutes = Number(slot.durationMinutes ?? slot.duration_minutes) || calcDuration || null;
-        return {
-          startTime,
-          endTime,
-          durationMinutes,
-          price: Number(slot.price) || null,
-          available: slot.available ?? slot.isAvailable ?? slot.is_available ?? true,
-          date: slot.date ?? selectedDate,
-        };
-      });
-    return shouldMergeHourlySlots ? mergeHourlySlots(normalized, 60) : normalized;
-  }, [listing.availability, selectedDate, shouldMergeHourlySlots]);
-
-  const activeSlots = grid.slots.length > 0 ? grid.slots : fallbackSlots;
+  const activeSlots = (grid.date === selectedDate ? grid.slots : []).map(slot => ({
+    ...slot,
+    available: slot.available !== false && canStartBooking(selectedDate, slot.startTime, clock),
+  }));
   const effectiveSlotDurationMinutes = shouldMergeHourlySlots ? 60 : grid.slotDurationMinutes;
 
-  const currentSelection = selectedSlots;
+  const currentSelection = selectedSlots.filter(slot =>
+    activeSlots.some(active => active.available && slotKey(active) === slotKey(slot)));
   const hourlyPrice = Number(grid.hourlyPrice || listing.hourlyPrice || listing.price || 0);
   const currency = grid.currency || listing.currency || "USD";
   const selectedHours = React.useMemo(() => currentSelection.reduce((sum, slot) => {
@@ -811,7 +797,7 @@ function HourlySlotBookingCard({
   const availableCount = activeSlots.filter((slot) => slot.available !== false).length;
 
   useEffect(() => {
-    if (!selectedDate && listingDates[0]) {
+    if (!listingDates.includes(selectedDate) && listingDates[0]) {
       setSelectedDate(listingDates[0]);
     }
   }, [listingDates, selectedDate]);
@@ -893,7 +879,7 @@ function HourlySlotBookingCard({
       toast.error("Please pick a date first.");
       return;
     }
-    if (!currentSelection.length) {
+    if (!currentSelection.length || currentSelection.some(slot => !canStartBooking(selectedDate, slot.startTime, bookingClock(listing.timeZone)))) {
       toast.error("Please select at least one slot.");
       return;
     }
@@ -941,6 +927,7 @@ function HourlySlotBookingCard({
 
   return (
     <BookingShell
+      timeZone={listing.timeZone}
       title={bookingTitle}
       price={hourlyPrice || listing.price}
       priceUnit="/Hr"
@@ -1057,6 +1044,7 @@ function HourlySlotBookingCard({
             activeSlots.map((slot) => {
               const selected = currentSelection.some((item) => slotKey(item) === slotKey(slot));
               const disabled = slot.available === false;
+              const expired = !canStartBooking(selectedDate, slot.startTime, clock);
               const slotDuration = slot.durationMinutes || grid.slotDurationMinutes || calculateSlotMinutes(slot.startTime, slot.endTime) || 0;
               const slotPrice = slot.price ?? ((hourlyPrice * slotDuration) / 60);
               return (
@@ -1089,7 +1077,7 @@ function HourlySlotBookingCard({
                           ? "bg-[#228E8A] text-white"
                           : "bg-[#EBF6F6] text-[#228E8A]"
                     }`}>
-                      {disabled ? "Booked" : selected ? "Selected" : "Available"}
+                      {disabled ? expired ? "Past" : "Booked" : selected ? "Selected" : "Available"}
                     </div>
                   </div>
                   <p className={`mt-3 text-lg font-bold ${disabled ? "text-gray-300" : "text-[#228E8A]"}`}>
@@ -1126,6 +1114,10 @@ function HourlySlotBookingCard({
 function useNavigateToConfirm(listing, listingId) {
   const router = useRouter();
   return (fields, sessionKey) => {
+    if (!canStartBooking(fields.startDate, fields.startTime, bookingClock(listing.timeZone))) {
+      toast.error(`Choose an upcoming date and time (${listing.timeZone}).`);
+      return;
+    }
     const categoryMap = { activities: "activity", places: "place", equipment: "equipment" };
     const listingType = categoryMap[listing.type] ?? listing.type ?? "";
     const p = new URLSearchParams({
@@ -1165,18 +1157,21 @@ function ActivityBookingCard({ listing, listingId, slotRefresh = "" }) {
 function ActivityPerPersonBookingCard({ listing, listingId }) {
   const SKEY = `booking_activity_${listingId}`;
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
-  const [date, setDate] = useState(saved.date || "");
-  const [startTime, setStartTime] = useState(saved.startTime || "");
+  const [date, setDate] = useState(() => canStartBooking(saved.date, undefined, bookingClock(listing.timeZone)) ? saved.date : "");
+  const [startTime, setStartTime] = useState(() => canStartBooking(saved.date || saved.checkIn, saved.startTime, bookingClock(listing.timeZone)) ? saved.startTime || "" : "");
   const [endTime, setEndTime] = useState(saved.endTime || "");
   const [persons, setPersons] = useState(saved.persons || "");
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
-  const availability = listing.availability || [];
+  const clock = useBookingClock(listing.timeZone);
+  const availability = React.useMemo(() => listing.availability || [], [listing.availability]);
   const availableDates = React.useMemo(() => {
-    return [...new Set(availability.map(a => a.date.split("T")[0]))];
-  }, [availability]);
-  const today = React.useMemo(() => new Date().toISOString().split("T")[0], []);
+    return [...new Set(availability
+      .filter(a => a.isAvailable !== false && canStartBooking(a.date, a.endTime, clock))
+      .map(a => a.date.split("T")[0]))];
+  }, [availability, clock]);
+  const today = clock.date;
 
   const formatTime = (timeStr) => {
     if (!timeStr) return "";
@@ -1203,11 +1198,11 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
           const hh = String(Math.floor(minutes / 60)).padStart(2, "0");
           const mm = String(minutes % 60).padStart(2, "0");
           const value = `${hh}:${mm}`;
-          options.push({ label: formatTime(value), value });
+          if (canStartBooking(date, value, clock)) options.push({ label: formatTime(value), value });
         }
       });
     return options;
-  }, [date, availability]);
+  }, [date, availability, clock]);
 
   useEffect(() => {
     sessionStorage.setItem(SKEY, JSON.stringify({ date, startTime, endTime, persons }));
@@ -1237,6 +1232,7 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
 
   return (
     <BookingShell
+      timeZone={listing.timeZone}
       title="Book Your Activity" price={listing.price} priceUnit={priceUnit} rating={listing.rating} reviews={listing.reviews}
       topSlot={
         <div className="rounded-[18px] border border-[#4AA7A7] bg-[#D7ECEB] px-4 py-5 text-center relative">
@@ -1341,20 +1337,23 @@ function PlacesBookingCard({ listing, listingId, slotRefresh = "" }) {
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
   const hasDaily = !!(listing.dailyPrice);
   const [mode, setMode] = useState((saved.mode === "daily" && !hasDaily) ? "hourly" : (saved.mode || "hourly"));
-  const [date, setDate] = useState(saved.date || "");
-  const [checkIn, setCheckIn] = useState(saved.checkIn || "");
-  const [checkOut, setCheckOut] = useState(saved.checkOut || "");
-  const [startTime, setStartTime] = useState(saved.startTime || "");
+  const [date, setDate] = useState(() => canStartBooking(saved.date, undefined, bookingClock(listing.timeZone)) ? saved.date : "");
+  const [checkIn, setCheckIn] = useState(() => canStartBooking(saved.checkIn, undefined, bookingClock(listing.timeZone)) ? saved.checkIn : "");
+  const [checkOut, setCheckOut] = useState(() => canStartBooking(saved.checkOut, undefined, bookingClock(listing.timeZone)) ? saved.checkOut : "");
+  const [startTime, setStartTime] = useState(() => canStartBooking(saved.date || saved.checkIn, saved.startTime, bookingClock(listing.timeZone)) ? saved.startTime || "" : "");
   const [endTime, setEndTime] = useState(saved.endTime || "");
   const [guests, setGuests] = useState(saved.guests || "");
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
-  const availability = listing.availability || [];
+  const clock = useBookingClock(listing.timeZone);
+  const availability = React.useMemo(() => listing.availability || [], [listing.availability]);
   const availableDates = React.useMemo(() => {
-    return [...new Set(availability.map(a => a.date.split("T")[0]))];
-  }, [availability]);
-  const today = React.useMemo(() => new Date().toISOString().split("T")[0], []);
+    return [...new Set(availability
+      .filter(a => a.isAvailable !== false && canStartBooking(a.date, a.endTime, clock))
+      .map(a => a.date.split("T")[0]))];
+  }, [availability, clock]);
+  const today = clock.date;
 
   // For hourly mode, options for 'date'. For daily mode, options for 'checkIn'.
   const targetDate = mode === "hourly" ? date : checkIn;
@@ -1370,9 +1369,9 @@ function PlacesBookingCard({ listing, listingId, slotRefresh = "" }) {
   const startTimeOptions = React.useMemo(() => {
     if (!targetDate) return [];
     return availability
-      .filter(a => a.date.split("T")[0] === targetDate && a.isAvailable !== false)
+      .filter(a => a.date.split("T")[0] === targetDate && a.isAvailable !== false && canStartBooking(targetDate, a.startTime, clock))
       .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
-  }, [targetDate, availability]);
+  }, [targetDate, availability, clock]);
 
   const endTimeOptions = React.useMemo(() => {
     if (!targetDate || !startTime) return [];
@@ -1443,6 +1442,7 @@ function PlacesBookingCard({ listing, listingId, slotRefresh = "" }) {
 
   return (
     <BookingShell
+      timeZone={listing.timeZone}
       title="Book Your Place" price={modePrice} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
       topSlot={listing.hourlyPrice && listing.dailyPrice ? (
         <div className="grid grid-cols-2 gap-3">
@@ -1589,20 +1589,23 @@ function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
   const hasDaily = !!(listing.dailyPrice);
   const [mode, setMode] = useState((saved.mode === "daily" && !hasDaily) ? "hourly" : (saved.mode || "hourly"));
-  const [date, setDate] = useState(saved.date || "");
-  const [checkIn, setCheckIn] = useState(saved.checkIn || "");
-  const [checkOut, setCheckOut] = useState(saved.checkOut || "");
-  const [startTime, setStartTime] = useState(saved.startTime || "");
+  const [date, setDate] = useState(() => canStartBooking(saved.date, undefined, bookingClock(listing.timeZone)) ? saved.date : "");
+  const [checkIn, setCheckIn] = useState(() => canStartBooking(saved.checkIn, undefined, bookingClock(listing.timeZone)) ? saved.checkIn : "");
+  const [checkOut, setCheckOut] = useState(() => canStartBooking(saved.checkOut, undefined, bookingClock(listing.timeZone)) ? saved.checkOut : "");
+  const [startTime, setStartTime] = useState(() => canStartBooking(saved.date || saved.checkIn, saved.startTime, bookingClock(listing.timeZone)) ? saved.startTime || "" : "");
   const [endTime, setEndTime] = useState(saved.endTime || "");
   const [guests, setGuests] = useState(saved.guests || "");
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
 
-  const availability = listing.availability || [];
+  const clock = useBookingClock(listing.timeZone);
+  const availability = React.useMemo(() => listing.availability || [], [listing.availability]);
   const availableDates = React.useMemo(() => {
-    return [...new Set(availability.map(a => a.date.split("T")[0]))];
-  }, [availability]);
-  const today = React.useMemo(() => new Date().toISOString().split("T")[0], []);
+    return [...new Set(availability
+      .filter(a => a.isAvailable !== false && canStartBooking(a.date, a.endTime, clock))
+      .map(a => a.date.split("T")[0]))];
+  }, [availability, clock]);
+  const today = clock.date;
 
   // For hourly mode, options for 'date'. For daily mode, options for 'checkIn'.
   const targetDate = mode === "hourly" ? date : checkIn;
@@ -1618,9 +1621,9 @@ function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
   const startTimeOptions = React.useMemo(() => {
     if (!targetDate) return [];
     return availability
-      .filter(a => a.date.split("T")[0] === targetDate && a.isAvailable !== false)
+      .filter(a => a.date.split("T")[0] === targetDate && a.isAvailable !== false && canStartBooking(targetDate, a.startTime, clock))
       .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
-  }, [targetDate, availability]);
+  }, [targetDate, availability, clock]);
 
   const endTimeOptions = React.useMemo(() => {
     if (!targetDate || !startTime) return [];
@@ -1691,6 +1694,7 @@ function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
 
   return (
     <BookingShell
+      timeZone={listing.timeZone}
       title="Book Your Equipment" price={modePrice} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
       topSlot={listing.hourlyPrice && listing.dailyPrice ? (
         <div className="grid grid-cols-2 gap-3">

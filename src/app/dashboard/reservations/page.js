@@ -125,7 +125,7 @@ function mapPaymentStatus(paymentStatus) {
   if (raw === "failed") return "Failed";
   if (raw === "requires_payment") return "Payment Required";
   if (raw === "disputed") return "Disputed";
-  if (raw === "auth_released") return "Authorization Released";
+  if (raw === "auth_released") return "Payment Hold Released";
   return raw ? raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—";
 }
 
