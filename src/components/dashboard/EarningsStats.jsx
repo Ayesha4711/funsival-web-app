@@ -10,7 +10,6 @@ import {
   fetchConnectLoginLink,
   fetchConnectBalance,
   selectConnectStatus,
-  selectConnectStatusLoading,
   selectLoginLinkLoading,
   selectConnectBalances,
   selectConnectBalanceLoading,
@@ -31,15 +30,15 @@ function formatWalletMoney(value, currency) {
   }
 }
 
-export default function EarningsStats() {
+export default function EarningsStats({ overview }) {
   const router = useRouter();
   const dispatch = useDispatch();
   const connectStatus = useSelector(selectConnectStatus);
-  const connectLoading = useSelector(selectConnectStatusLoading);
   const loginLinkLoading = useSelector(selectLoginLinkLoading);
   const balances = useSelector(selectConnectBalances);
   const balanceLoading = useSelector(selectConnectBalanceLoading);
   const balanceError = useSelector(selectConnectBalanceError);
+  const { data: earnings, loading: feesLoading, error: feesError } = overview;
 
   useEffect(() => {
     dispatch(fetchConnectStatus());
@@ -75,13 +74,18 @@ export default function EarningsStats() {
   const currentBalance = primaryBalance?.current ?? 0;
   const pendingBalance = primaryBalance?.pending ?? 0;
   const currency = primaryBalance?.currency ?? "USD";
+  const currentMonth = earnings?.generatedAt ? new Date(earnings.generatedAt).getUTCMonth() + 1 : null;
+  const feeRows = (earnings?.trend?.series || []).map(series => ({
+    currency: series.currency,
+    amount: series.points?.find(point => point.month === currentMonth)?.platformFees ?? 0,
+  }));
 
   const canWithdraw = Number(currentBalance) > 0 && payoutsEnabled !== false;
 
   return (
     <div className="flex flex-col gap-3">
       {/* Stripe onboarding banner — only shown when not fully onboarded */}
-      {!connectLoading && !isOnboarded && (
+      {connectStatus && !isOnboarded && (
         <StripeOnboarding />
       )}
 
@@ -126,10 +130,16 @@ export default function EarningsStats() {
 
         <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 border border-[var(--color-border)] flex flex-col">
           <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] font-medium flex flex-wrap items-center gap-1 mb-1 leading-tight">
-            Platform Fees <span className="text-[var(--color-primary)] font-bold">(3%)</span>
+            Platform Fees
           </p>
-          <p className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-[var(--color-text)] mb-1 leading-tight">$1331</p>
-          <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] leading-tight">Current month period</p>
+          <div className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-[var(--color-text)] mb-1 leading-tight">
+            {feesLoading || feesError ? "—" : feeRows.length ? feeRows.map(row => (
+              <p key={row.currency}>{formatWalletMoney(row.amount, row.currency)}</p>
+            )) : formatWalletMoney(0, currency)}
+          </div>
+          <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] leading-tight">
+            {feesError ? "Unable to load platform fees" : "Current month (UTC) · paid bookings"}
+          </p>
         </div>
 
         <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 border border-[var(--color-border)] flex flex-col justify-between gap-2 sm:gap-3">
