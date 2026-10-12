@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import axiosInstance from "@/store/axiosInstance";
 import { bookingClock, canStartBooking } from "@/lib/bookingClock";
 import useBookingClock from "@/lib/useBookingClock";
+import useViewerTimeZone from "@/lib/useViewerTimeZone";
 import {
   fetchBrowseListing,
   selectSelectedActivity,
@@ -207,6 +208,7 @@ function adaptApiListing(api, urlType) {
     price,
     hourlyPrice,
     dailyPrice,
+    perPersonPrice: toNum(priceObj?.perPerson),
     images,
     host: { id: hostId, name: hostFullName, agency: hostAgency, avatar: hostAvatar, location: hostLocation, rating: hostRating, reviews: hostReviews },
     details: {
@@ -224,6 +226,10 @@ function adaptApiListing(api, urlType) {
     cancellationPolicy,
     description,
     availability: api.availability || [],
+    localAvailabilityDates: api.localAvailabilityDates || {},
+    dailyAvailability: api.dailyAvailability || { starts: [], ends: [] },
+    activityAvailability: api.activityAvailability || [],
+    viewerTimeZone: api.viewerTimeZone,
     timeZone: api.timeZone || "UTC",
     mapLat: toNum(loc.latitude) ?? null,
     mapLng: toNum(loc.longitude) ?? null,
@@ -355,77 +361,6 @@ function timeToMinutes(value) {
   return hours * 60 + minutes;
 }
 
-function compareSlotOrder(a, b) {
-  const dateA = String(a.date || "");
-  const dateB = String(b.date || "");
-  if (dateA !== dateB) return dateA.localeCompare(dateB);
-  return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
-}
-
-function mergeHourlySlots(slots, targetMinutes = 60) {
-  const sorted = (Array.isArray(slots) ? slots : [])
-    .filter((slot) => slot && slot.startTime && slot.endTime)
-    .slice()
-    .sort(compareSlotOrder);
-
-  const merged = [];
-  let group = [];
-  let groupMinutes = 0;
-
-  const flushGroup = () => {
-    if (group.length === 0) return;
-    if (groupMinutes >= targetMinutes) {
-      const first = group[0];
-      const last = group[group.length - 1];
-      merged.push({
-        ...first,
-        endTime: last.endTime,
-        durationMinutes: targetMinutes,
-        available: group.every((slot) => slot.available !== false),
-        price: null,
-      });
-    }
-    group = [];
-    groupMinutes = 0;
-  };
-
-  for (const slot of sorted) {
-    const slotMinutes = Number(slot.durationMinutes) || calculateSlotMinutes(slot.startTime, slot.endTime);
-    if (!Number.isFinite(slotMinutes) || slotMinutes <= 0) continue;
-
-    if (slotMinutes >= targetMinutes) {
-      flushGroup();
-      merged.push({
-        ...slot,
-        durationMinutes: slotMinutes,
-      });
-      continue;
-    }
-
-    const previous = group[group.length - 1];
-    const isContiguous =
-      previous &&
-      previous.available !== false &&
-      slot.available !== false &&
-      String(previous.date || "") === String(slot.date || "") &&
-      timeToMinutes(previous.endTime) === timeToMinutes(slot.startTime);
-
-    if (!isContiguous) {
-      flushGroup();
-    }
-
-    group.push(slot);
-    groupMinutes += slotMinutes;
-
-    if (groupMinutes >= targetMinutes) {
-      flushGroup();
-    }
-  }
-
-  flushGroup();
-  return merged;
-}
-
 function extractSlotsArray(payload) {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
@@ -441,7 +376,7 @@ function extractSlotsArray(payload) {
 }
 
 function slotKey(slot) {
-  return `${slot.startTime ?? ""}-${slot.endTime ?? ""}`;
+  return `${slot.sourceDate || ""}|${slot.startTime ?? ""}-${slot.endTime ?? ""}`;
 }
 
 function normalizeSlotsResponse(payload) {
@@ -458,6 +393,8 @@ function normalizeSlotsResponse(payload) {
       return {
         startTime,
         endTime,
+        sourceDate: slot.sourceDate,
+        localSchedule: slot.localSchedule,
         durationMinutes,
         price: Number(slot.price) || null,
         available: slot.available ?? slot.isAvailable ?? slot.is_available ?? true,
@@ -467,6 +404,7 @@ function normalizeSlotsResponse(payload) {
     slotDurationMinutes: Number(data.slotDurationMinutes ?? data.slot_duration_minutes) || null,
     hourlyPrice: Number(data.hourlyPrice ?? data.hourly_price) || null,
     currency: data.currency || "USD",
+    viewerTimeZone: data.viewerTimeZone,
     date: data.date || "",
   };
 }
@@ -729,7 +667,14 @@ function BookingShell({ children, topSlot, reserveButton, title, price, priceUni
   );
 }
 
-function HourlySlotBookingCard({
+function HourlySlotBookingCard(props) {
+  const viewerTimeZone = useViewerTimeZone();
+  if (!viewerTimeZone) return <div className="p-6 text-sm text-gray-500">Loading booking slots…</div>;
+  return <HourlySlotBookingCardContent {...props} viewerTimeZone={viewerTimeZone} key={viewerTimeZone} />;
+}
+
+function HourlySlotBookingCardContent({
+  viewerTimeZone,
   listing,
   listingId,
   bookingTitle,
@@ -747,20 +692,15 @@ function HourlySlotBookingCard({
   }, [SKEY]);
 
   const clock = useBookingClock(listing.timeZone);
-  const listingDates = React.useMemo(() => {
-    const dates = (listing.availability || [])
-      .filter(slot => slot.isAvailable !== false && canStartBooking(slot.date, slot.endTime, clock))
-      .map((slot) => slot?.date?.split("T")[0] || slot?.day || "")
-      .filter(Boolean)
-      .filter((d) => d >= clock.date);
-    return [...new Set(dates)].sort();
-  }, [listing.availability, clock]);
+  const viewerClock = useBookingClock(viewerTimeZone);
+  const listingDates = React.useMemo(() => listing.viewerTimeZone === viewerTimeZone
+    ? Object.keys(listing.localAvailabilityDates).filter(date => date >= viewerClock.date).sort() : [],
+  [listing.viewerTimeZone, listing.localAvailabilityDates, viewerTimeZone, viewerClock.date]);
 
-  const shouldMergeHourlySlots = listing.bookingType === "per_hour";
-
-  const savedDate = saved.selectedDate || saved.startDate;
+  const savedSourceDate = saved.startDate || saved.selectedDate;
+  const savedDate = saved.viewerTimeZone === viewerTimeZone ? saved.selectedDate : "";
   const initialDate = listingDates.includes(savedDate) ? savedDate : listingDates[0] || "";
-  const initialSlots = savedDate === initialDate ? saved.selectionByDate?.[initialDate] || saved.slots || [] : [];
+  const initialSlots = savedDate === initialDate ? (saved.selectionByDate?.[initialDate] || saved.slots || []).map(slot => ({ ...slot, sourceDate: slot.sourceDate || savedSourceDate })) : [];
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [selectedSlots, setSelectedSlots] = useState(initialSlots);
   // Tracks which date `selectedSlots` currently belongs to, so the "clear on date change"
@@ -772,11 +712,11 @@ function HourlySlotBookingCard({
   const [gridError, setGridError] = useState("");
   const [refreshTick, setRefreshTick] = useState(0);
 
-  const activeSlots = (grid.date === selectedDate ? grid.slots : []).map(slot => ({
+  const activeSlots = (grid.date === selectedDate && grid.viewerTimeZone === viewerTimeZone ? grid.slots : []).map(slot => ({
     ...slot,
-    available: slot.available !== false && canStartBooking(selectedDate, slot.startTime, clock),
+    available: slot.available !== false && canStartBooking(slot.sourceDate, slot.startTime, clock),
   }));
-  const effectiveSlotDurationMinutes = shouldMergeHourlySlots ? 60 : grid.slotDurationMinutes;
+  const effectiveSlotDurationMinutes = grid.slotDurationMinutes;
 
   const currentSelection = selectedSlots.filter(slot =>
     activeSlots.some(active => active.available && slotKey(active) === slotKey(slot)));
@@ -817,19 +757,10 @@ function HourlySlotBookingCard({
       setGridError("");
       try {
         const { data } = await axiosInstance.get(`/listings/browse/${listingId}/slots`, {
-          params: { date: selectedDate },
+          params: { date: selectedDate, dateZone: "viewer" },
         });
         if (cancelled) return;
-        const normalized = normalizeSlotsResponse(data);
-        setGrid(
-          shouldMergeHourlySlots
-            ? {
-                ...normalized,
-                slots: mergeHourlySlots(normalized.slots, 60),
-                slotDurationMinutes: 60,
-              }
-            : normalized
-        );
+        setGrid(normalizeSlotsResponse(data));
       } catch (error) {
         if (cancelled) return;
         setGrid({ slots: [], slotDurationMinutes: null, hourlyPrice: null, currency: "USD" });
@@ -841,7 +772,7 @@ function HourlySlotBookingCard({
 
     load();
     return () => { cancelled = true; };
-  }, [listingId, selectedDate, refreshTick, shouldMergeHourlySlots]);
+  }, [listingId, selectedDate, refreshTick, viewerTimeZone]);
 
   useEffect(() => {
     if (!slotRefresh) return;
@@ -862,10 +793,12 @@ function HourlySlotBookingCard({
   const toggleSlot = (slot) => {
     if (slot.available === false) return;
     const key = slotKey(slot);
-    setSelectedSlots((existing) => {
+    setSelectedSlots((previous) => {
+      const existing = previous.filter(item => activeSlots.some(active => active.available && slotKey(active) === slotKey(item)));
       return existing.some((item) => slotKey(item) === key)
         ? existing.filter((item) => slotKey(item) !== key)
         : [...existing, {
+          sourceDate: slot.sourceDate,
           startTime: slot.startTime,
           endTime: slot.endTime,
           durationMinutes: slot.durationMinutes || effectiveSlotDurationMinutes || calculateSlotMinutes(slot.startTime, slot.endTime) || null,
@@ -879,18 +812,26 @@ function HourlySlotBookingCard({
       toast.error("Please pick a date first.");
       return;
     }
-    if (!currentSelection.length || currentSelection.some(slot => !canStartBooking(selectedDate, slot.startTime, bookingClock(listing.timeZone)))) {
+    if (!currentSelection.length || currentSelection.some(slot => !canStartBooking(slot.sourceDate, slot.startTime, bookingClock(listing.timeZone)))) {
       toast.error("Please select at least one slot.");
       return;
     }
 
+    const sourceDates = currentSelection.map(slot => slot.sourceDate).sort();
+    const sourceDate = sourceDates[0];
+    const endDate = sourceDates.at(-1);
     const serializedSlots = currentSelection.map((slot) => ({
+      sourceDate: slot.sourceDate,
       startTime: slot.startTime,
       endTime: slot.endTime,
     }));
 
     const sessionState = {
       selectedDate,
+      startDate: sourceDate,
+      endDate,
+      timeZone: listing.timeZone,
+      viewerTimeZone,
       slots: serializedSlots,
       slotDurationMinutes: effectiveSlotDurationMinutes,
       hourlyPrice,
@@ -916,7 +857,9 @@ function HourlySlotBookingCard({
       bookingType: listing.bookingType || "hourly",
       listingType: listing.type,
       pricingMode: "hourly",
-      startDate: selectedDate,
+      startDate: sourceDate,
+      endDate,
+      timeZone: listing.timeZone,
       pricePerUnit: String(hourlyPrice),
       units: String(selectedHours),
       _skey: SKEY,
@@ -927,7 +870,7 @@ function HourlySlotBookingCard({
 
   return (
     <BookingShell
-      timeZone={listing.timeZone}
+      timeZone={viewerTimeZone}
       title={bookingTitle}
       price={hourlyPrice || listing.price}
       priceUnit="/Hr"
@@ -1044,7 +987,7 @@ function HourlySlotBookingCard({
             activeSlots.map((slot) => {
               const selected = currentSelection.some((item) => slotKey(item) === slotKey(slot));
               const disabled = slot.available === false;
-              const expired = !canStartBooking(selectedDate, slot.startTime, clock);
+              const expired = !canStartBooking(slot.sourceDate, slot.startTime, clock);
               const slotDuration = slot.durationMinutes || grid.slotDurationMinutes || calculateSlotMinutes(slot.startTime, slot.endTime) || 0;
               const slotPrice = slot.price ?? ((hourlyPrice * slotDuration) / 60);
               return (
@@ -1064,7 +1007,7 @@ function HourlySlotBookingCard({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-base font-bold text-gray-900">
-                        {formatTimeLabel(slot.startTime)} - {formatTimeLabel(slot.endTime)}
+                        {slot.localSchedule?.ranges[0]?.label}
                       </p>
                       <p className="mt-1 text-xs text-gray-500">
                         {slotDuration} minutes
@@ -1093,7 +1036,7 @@ function HourlySlotBookingCard({
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-bold text-gray-900">
-                {selectedRanges.length ? `${formatTimeLabel(selectedRanges[0].startTime)} - ${formatTimeLabel(selectedRanges[0].endTime)}` : "Select at least one slot"}
+                {selectedRanges.length ? activeSlots.find(slot => slotKey(slot) === slotKey(selectedRanges[0]))?.localSchedule?.ranges[0]?.label : "Select at least one slot"}
               </p>
               <p className="text-xs text-gray-500">
                 {selectedCount ? `${selectedCount} slot${selectedCount > 1 ? "s" : ""} selected` : "Pick one or more non-contiguous slots"}
@@ -1128,6 +1071,7 @@ function useNavigateToConfirm(listing, listingId) {
       bookingType: listing.bookingType,
       listingType,
       pricePerUnit: String(listing.price),
+      timeZone: listing.timeZone,
       ...(sessionKey ? { _skey: sessionKey } : {}),
       ...fields,
     });
@@ -1136,95 +1080,59 @@ function useNavigateToConfirm(listing, listingId) {
 }
 
 /* ─── Activity Booking Card ──────────────────────────────────────────────────── */
-function ActivityBookingCard({ listing, listingId, slotRefresh = "" }) {
-  if (listing.bookingType !== "per_person") {
-    return (
-      <HourlySlotBookingCard
-        listing={listing}
-        listingId={listingId}
-        bookingTitle="Book Your Activity"
-        bannerLabel={listing.title}
-        bannerIcon={<UserOutlineIcon size={18} />}
-        reserveLabel="Continue to Payment"
-        slotRefresh={slotRefresh}
-      />
-    );
-  }
-
-  return <ActivityPerPersonBookingCard listing={listing} listingId={listingId} />;
+function ActivityBookingCard(props) {
+  return <RentalBookingCard {...props} kind="activity" title="Book Your Activity" />;
 }
 
-function ActivityPerPersonBookingCard({ listing, listingId }) {
-  const SKEY = `booking_activity_${listingId}`;
-  const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
-  const [date, setDate] = useState(() => canStartBooking(saved.date, undefined, bookingClock(listing.timeZone)) ? saved.date : "");
-  const [startTime, setStartTime] = useState(() => canStartBooking(saved.date || saved.checkIn, saved.startTime, bookingClock(listing.timeZone)) ? saved.startTime || "" : "");
-  const [endTime, setEndTime] = useState(saved.endTime || "");
+function ActivityPerPersonBookingCard(props) {
+  const viewerTimeZone = useViewerTimeZone();
+  if (!viewerTimeZone) return <div className="p-6 text-sm text-gray-500">Loading activity times…</div>;
+  return <ActivityPerPersonBookingCardContent {...props} viewerTimeZone={viewerTimeZone} key={viewerTimeZone} />;
+}
+
+function ActivityPerPersonBookingCardContent({ listing, listingId, viewerTimeZone, title = "Book Your Activity", modeToggle = null, sessionKey }) {
+  const SKEY = sessionKey || `booking_activity_${listingId}`;
+  const saved = React.useMemo(() => safeParseJSON(sessionStorage.getItem(SKEY), {}), [SKEY]);
+  const restored = saved.viewerTimeZone === viewerTimeZone ? saved : {};
+  const [date, setDate] = useState(restored.date || "");
+  const [optionKey, setOptionKey] = useState(restored.optionKey || "");
   const [persons, setPersons] = useState(saved.persons || "");
   const [errors, setErrors] = useState({});
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
-
-  const clock = useBookingClock(listing.timeZone);
-  const availability = React.useMemo(() => listing.availability || [], [listing.availability]);
-  const availableDates = React.useMemo(() => {
-    return [...new Set(availability
-      .filter(a => a.isAvailable !== false && canStartBooking(a.date, a.endTime, clock))
-      .map(a => a.date.split("T")[0]))];
-  }, [availability, clock]);
+  const clock = useBookingClock(viewerTimeZone);
+  const options = listing.viewerTimeZone === viewerTimeZone
+    ? listing.activityAvailability.filter(option => Date.parse(option.startAt) > clock.now) : [];
+  const keyFor = option => `${option.sourceDate}|${option.startTime}|${option.endTime}`;
+  const selected = options.find(option => keyFor(option) === optionKey && option.localDate === date);
+  const availableDates = [...new Set(options.map(option => option.localDate))].sort();
+  const startTimeOptions = options.filter(option => option.localDate === date).map(option => ({ label: option.label, value: keyFor(option) }));
   const today = clock.date;
 
-  const formatTime = (timeStr) => {
-    if (!timeStr) return "";
-    const [h, m] = timeStr.split(":").map(Number);
-    const hour = h % 12 === 0 ? 12 : h % 12;
-    const ampm = h < 12 ? "AM" : "PM";
-    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
-  };
-
-  // Recurring activity slots can span several hours (e.g. 1:00 AM – 8:00 AM);
-  // offer one option per hour within the slot rather than a single option
-  // for the whole range, so the guest can pick which hour they want.
-  const startTimeOptions = React.useMemo(() => {
-    if (!date) return [];
-    const options = [];
-    availability
-      .filter(a => a.date.split("T")[0] === date && a.isAvailable !== false)
-      .forEach(a => {
-        const slotMinutes = calculateSlotMinutes(a.startTime, a.endTime);
-        const hourCount = Math.max(1, Math.floor(slotMinutes / 60));
-        const startMinutes = timeToMinutes(a.startTime);
-        for (let i = 0; i < hourCount; i += 1) {
-          const minutes = (startMinutes + i * 60) % (24 * 60);
-          const hh = String(Math.floor(minutes / 60)).padStart(2, "0");
-          const mm = String(minutes % 60).padStart(2, "0");
-          const value = `${hh}:${mm}`;
-          if (canStartBooking(date, value, clock)) options.push({ label: formatTime(value), value });
-        }
-      });
-    return options;
-  }, [date, availability, clock]);
-
   useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ date, startTime, endTime, persons }));
-  }, [date, startTime, endTime, persons, SKEY]);
+    sessionStorage.setItem(SKEY, JSON.stringify({ mode: "per_person", date, optionKey, persons, viewerTimeZone,
+      ...(selected ? { startDate: selected.sourceDate, startTime: selected.startTime, endTime: selected.endTime } : {}),
+    }));
+  }, [date, optionKey, persons, viewerTimeZone, selected, SKEY]);
 
   const units = Number(persons) || 1;
-  const subtotal = listing.price * units;
-  const fee = 10;
+  const personPrice = listing.perPersonPrice ?? listing.price;
+  const subtotal = personPrice * units;
+  const fee = Number((subtotal * 0.1).toFixed(2));
   const total = subtotal + fee;
 
   const pillLabel = "Per Person";
   const priceUnit = "/Person";
-  const summaryLabel = `$${listing.price}/person × ${units} person${units > 1 ? "s" : ""}`;
+  const summaryLabel = `$${personPrice}/person × ${units} person${units > 1 ? "s" : ""}`;
 
   const handleReserve = () => {
     const newErrors = {};
     if (!date) { toast.error("Date is required."); newErrors.date = true; }
-    if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
+    if (!selected) { toast.error("Start time is required."); newErrors.startTime = true; }
     if (!persons) { toast.error("Number of guests is required."); newErrors.persons = true; }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     const fields = {
-      startDate: date, endDate: date, startTime, endTime, dateFrom: date, dateTo: date,
+      startDate: selected.sourceDate, endDate: selected.sourceDate, startTime: selected.startTime, endTime: selected.endTime, dateFrom: selected.sourceDate, dateTo: selected.sourceDate,
+      pricingMode: "per_person", bookingType: "per_person", pricePerUnit: String(personPrice),
       numberOfGuests: Number(persons), units, guests: `${Number(persons)} guest${Number(persons) !== 1 ? "s" : ""}`,
     };
     navigateToConfirm(fields, SKEY);
@@ -1232,9 +1140,9 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
 
   return (
     <BookingShell
-      timeZone={listing.timeZone}
-      title="Book Your Activity" price={listing.price} priceUnit={priceUnit} rating={listing.rating} reviews={listing.reviews}
-      topSlot={
+      timeZone={viewerTimeZone}
+      title={title} price={personPrice} priceUnit={priceUnit} rating={listing.rating} reviews={listing.reviews}
+      topSlot={modeToggle || (
         <div className="rounded-[18px] border border-[#4AA7A7] bg-[#D7ECEB] px-4 py-5 text-center relative">
           <CheckBadge />
           <div className="flex flex-col items-center gap-2">
@@ -1242,7 +1150,7 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
             <p className="text-sm font-semibold text-gray-700">{pillLabel}</p>
           </div>
         </div>
-      }
+      )}
       reserveButton={
         <button
           onClick={handleReserve}
@@ -1256,21 +1164,7 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
       <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
         <CalendarDropdown
           value={date}
-          onChange={v => {
-            setDate(v);
-            setErrors(e => ({ ...e, date: false }));
-            const startMinutes = timeToMinutes(startTime);
-            const valid = availability.some(a => {
-              if (a.date.split("T")[0] !== v || a.isAvailable === false) return false;
-              const slotStart = timeToMinutes(a.startTime);
-              const slotDuration = calculateSlotMinutes(a.startTime, a.endTime);
-              return startMinutes >= slotStart && startMinutes < slotStart + slotDuration;
-            });
-            if (!valid) {
-              setStartTime("");
-              setEndTime("");
-            }
-          }}
+          onChange={value => { setDate(value); setOptionKey(""); setErrors(current => ({ ...current, date: false })); }}
           placeholder="mm/dd/yyyy"
           availableDates={availableDates}
           minDate={today}
@@ -1280,29 +1174,8 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
       {/* Start time only */}
       <BookingField icon={<ClockIcon />} error={errors.startTime} errorMessage="Start time is required">
         <TimeDropdown
-          value={startTime}
-          onChange={v => {
-            setStartTime(v);
-            setErrors(e => ({ ...e, startTime: false }));
-            // Find the parent slot this hourly option was generated from, then
-            // book a single hour starting at v (clamped to the slot's actual end).
-            const startMinutes = timeToMinutes(v);
-            const slot = availability.find(a => {
-              if (a.date.split("T")[0] !== date || a.isAvailable === false) return false;
-              const slotStart = timeToMinutes(a.startTime);
-              const slotDuration = calculateSlotMinutes(a.startTime, a.endTime);
-              return startMinutes >= slotStart && startMinutes < slotStart + slotDuration;
-            });
-            if (slot) {
-              const slotEndMinutes = timeToMinutes(slot.startTime) + calculateSlotMinutes(slot.startTime, slot.endTime);
-              const endMinutes = Math.min(startMinutes + 60, slotEndMinutes) % (24 * 60);
-              const hh = String(Math.floor(endMinutes / 60)).padStart(2, "0");
-              const mm = String(endMinutes % 60).padStart(2, "0");
-              setEndTime(`${hh}:${mm}`);
-            } else {
-              setEndTime("");
-            }
-          }}
+          value={selected ? optionKey : ""}
+          onChange={value => { setOptionKey(value); setErrors(current => ({ ...current, startTime: false })); }}
           placeholder="Start time"
           options={startTimeOptions}
         />
@@ -1331,512 +1204,135 @@ function ActivityPerPersonBookingCard({ listing, listingId }) {
   );
 }
 
-/* ─── Places Booking Card ────────────────────────────────────────────────────── */
-function PlacesBookingCard({ listing, listingId, slotRefresh = "" }) {
-  const SKEY = `booking_places_${listingId}`;
-  const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
-  const hasDaily = !!(listing.dailyPrice);
-  const [mode, setMode] = useState((saved.mode === "daily" && !hasDaily) ? "hourly" : (saved.mode || "hourly"));
-  const [date, setDate] = useState(() => canStartBooking(saved.date, undefined, bookingClock(listing.timeZone)) ? saved.date : "");
-  const [checkIn, setCheckIn] = useState(() => canStartBooking(saved.checkIn, undefined, bookingClock(listing.timeZone)) ? saved.checkIn : "");
-  const [checkOut, setCheckOut] = useState(() => canStartBooking(saved.checkOut, undefined, bookingClock(listing.timeZone)) ? saved.checkOut : "");
-  const [startTime, setStartTime] = useState(() => canStartBooking(saved.date || saved.checkIn, saved.startTime, bookingClock(listing.timeZone)) ? saved.startTime || "" : "");
-  const [endTime, setEndTime] = useState(saved.endTime || "");
+/* ─── Place/equipment booking modes ───────────────────────────────────────── */
+function PlacesBookingCard(props) {
+  return <RentalBookingCard {...props} kind="places" title="Book Your Place" />;
+}
+
+function EquipmentBookingCard(props) {
+  return <RentalBookingCard {...props} kind="equipment" title="Book Your Equipment" />;
+}
+
+function RentalBookingCard({ listing, listingId, slotRefresh = "", kind, title }) {
+  const sessionKey = `booking_${kind}_${listingId}`;
+  const configuredModes = [
+    { mode: "per_person", price: listing.perPersonPrice, label: "Per Person", icon: <UserOutlineIcon /> },
+    { mode: "hourly", price: listing.hourlyPrice, label: "Hourly", icon: <ClockIcon /> },
+    { mode: "daily", price: listing.dailyPrice, label: "Daily", icon: <CalendarIcon /> },
+  ].filter(option => option.price !== null && option.price !== undefined);
+  const [selectedMode, setMode] = useState(() => {
+    const saved = typeof window === "undefined" ? {} : safeParseJSON(sessionStorage.getItem(sessionKey), {});
+    return saved.mode || "";
+  });
+  const mode = configuredModes.some(option => option.mode === selectedMode) ? selectedMode : configuredModes[0]?.mode || "hourly";
+  useEffect(() => {
+    const previous = safeParseJSON(sessionStorage.getItem(sessionKey), {});
+    sessionStorage.setItem(sessionKey, JSON.stringify({ ...previous, mode }));
+  }, [sessionKey, mode]);
+  const modeToggle = configuredModes.length > 1 ? (
+    <div className={`grid gap-3 ${configuredModes.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+      {configuredModes.map(option => <ModePill key={option.mode} active={mode === option.mode} label={option.label} icon={option.icon} onClick={() => setMode(option.mode)} />)}
+    </div>
+  ) : null;
+  if (mode === "per_person") return <ActivityPerPersonBookingCard listing={listing} listingId={listingId} title={title} sessionKey={sessionKey} modeToggle={modeToggle} />;
+  if (mode === "hourly") return (
+    <HourlySlotBookingCard listing={listing} listingId={listingId} bookingTitle={title}
+      bannerLabel={listing.title} bannerIcon={kind === "places" ? <CalendarIcon size={18} /> : <ClockIcon size={18} />}
+      reserveLabel="Continue to Payment" slotRefresh={slotRefresh} modeToggle={modeToggle} />
+  );
+  return <DailyBookingCard listing={listing} listingId={listingId} title={title} sessionKey={sessionKey} modeToggle={modeToggle} />;
+}
+
+function DailyBookingCard(props) {
+  const viewerTimeZone = useViewerTimeZone();
+  if (!viewerTimeZone) return <div className="p-6 text-sm text-gray-500">Loading booking dates…</div>;
+  return <DailyBookingCardContent {...props} viewerTimeZone={viewerTimeZone} key={viewerTimeZone} />;
+}
+
+function DailyBookingCardContent({ listing, listingId, title, sessionKey, modeToggle, viewerTimeZone }) {
+  const saved = React.useMemo(() => safeParseJSON(sessionStorage.getItem(sessionKey), {}), [sessionKey]);
+  const restored = saved.viewerTimeZone === viewerTimeZone ? saved : {};
+  const [checkIn, setCheckIn] = useState(restored.checkIn || "");
+  const [checkOut, setCheckOut] = useState(restored.checkOut || "");
+  const [startKey, setStartKey] = useState(restored.startKey || "");
   const [guests, setGuests] = useState(saved.guests || "");
   const [errors, setErrors] = useState({});
+  const viewerClock = useBookingClock(viewerTimeZone);
   const navigateToConfirm = useNavigateToConfirm(listing, listingId);
-
-  const clock = useBookingClock(listing.timeZone);
-  const availability = React.useMemo(() => listing.availability || [], [listing.availability]);
-  const availableDates = React.useMemo(() => {
-    return [...new Set(availability
-      .filter(a => a.isAvailable !== false && canStartBooking(a.date, a.endTime, clock))
-      .map(a => a.date.split("T")[0]))];
-  }, [availability, clock]);
-  const today = clock.date;
-
-  // For hourly mode, options for 'date'. For daily mode, options for 'checkIn'.
-  const targetDate = mode === "hourly" ? date : checkIn;
-
-  const formatTime = (timeStr) => {
-    if (!timeStr) return "";
-    const [h, m] = timeStr.split(":").map(Number);
-    const hour = h % 12 === 0 ? 12 : h % 12;
-    const ampm = h < 12 ? "AM" : "PM";
-    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
-  };
-
-  const startTimeOptions = React.useMemo(() => {
-    if (!targetDate) return [];
-    return availability
-      .filter(a => a.date.split("T")[0] === targetDate && a.isAvailable !== false && canStartBooking(targetDate, a.startTime, clock))
-      .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
-  }, [targetDate, availability, clock]);
-
-  const endTimeOptions = React.useMemo(() => {
-    if (!targetDate || !startTime) return [];
-    return availability
-      .filter(a => a.date.split("T")[0] === targetDate && a.startTime === startTime && a.isAvailable !== false)
-      .map(a => ({ label: formatTime(a.endTime), value: a.endTime }));
-  }, [targetDate, startTime, availability]);
+  const options = listing.viewerTimeZone === viewerTimeZone ? listing.dailyAvailability : { starts: [], ends: [] };
+  const starts = options.starts.filter(option => Date.parse(option.startAt) > viewerClock.now);
+  const keyFor = option => `${option.sourceDate}|${option.startTime}`;
+  const start = starts.find(option => keyFor(option) === startKey && option.localDate === checkIn);
+  const endOptions = start ? options.ends.filter(option => option.startTime === start.startTime && option.sourceDate >= start.sourceDate) : [];
+  const end = endOptions.find(option => option.localDate === checkOut);
+  const startDates = [...new Set(starts.map(option => option.localDate))].sort();
+  const endDates = [...new Set((start ? endOptions : options.ends.filter(option => option.localDate >= (checkIn || viewerClock.date))).map(option => option.localDate))].sort();
+  const timeOptions = starts.filter(option => option.localDate === checkIn).map(option => ({ label: option.label, value: keyFor(option) }));
+  // Day rates follow the original listing calendar, including DST transitions.
+  const days = start && end ? Math.max(1, Math.round((Date.parse(end.sourceDate) - Date.parse(start.sourceDate)) / 86400000)) : 1;
+  const subtotal = Number((listing.dailyPrice * days).toFixed(2));
+  const fee = Number((subtotal * 0.1).toFixed(2));
 
   useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ mode, date, checkIn, checkOut, startTime, endTime, guests }));
-  }, [mode, date, checkIn, checkOut, startTime, endTime, guests, SKEY]);
-
-  const modePrice = mode === "daily" ? listing.dailyPrice : (listing.hourlyPrice ?? listing.price);
-  const hours = startTime && endTime
-    ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
-    : 3;
-  const days = checkIn && checkOut ? calculateDaysBetween(checkIn, checkOut) : 1;
-  const span = mode === "daily" ? days : hours;
-  const subtotal = modePrice * span;
-  const fee = 10;
-  const total = subtotal + fee;
-
-  if (mode === "hourly") {
-    return (
-      <HourlySlotBookingCard
-        listing={listing}
-        listingId={listingId}
-        bookingTitle="Book Your Place"
-        bannerLabel={listing.title}
-        bannerIcon={<CalendarIcon size={18} />}
-        reserveLabel="Continue to Payment"
-        slotRefresh={slotRefresh}
-        modeToggle={hasDaily ? (
-          <div className="grid grid-cols-2 gap-3">
-            <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
-            <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
-          </div>
-        ) : null}
-      />
-    );
-  }
+    sessionStorage.setItem(sessionKey, JSON.stringify({ mode: "daily", viewerTimeZone, checkIn, checkOut, startKey, guests }));
+  }, [sessionKey, viewerTimeZone, checkIn, checkOut, startKey, guests]);
 
   const handleReserve = () => {
-    const newErrors = {};
-    if (mode === "hourly") {
-      if (!date) { toast.error("Date is required."); newErrors.date = true; }
-      if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
-      if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
-    } else {
-      if (!checkIn) { toast.error("Start date is required."); newErrors.checkIn = true; }
-      if (!checkOut) { toast.error("End date is required."); newErrors.checkOut = true; }
-      if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
+    const nextErrors = { checkIn: !checkIn, startTime: !start, checkOut: !end };
+    if (Object.values(nextErrors).some(Boolean)) {
+      setErrors(nextErrors);
+      toast.error("Select an available start date, time and end date.");
+      return;
     }
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    const from = mode === "hourly" ? date : checkIn;
-    const to = mode === "hourly" ? date : checkOut;
-    // For daily mode end time = start time (billing is per-day, not per-hour)
-    const resolvedEndTime = mode === "daily" ? startTime : endTime;
     navigateToConfirm({
-      pricingMode: mode,
-      startDate: from, endDate: to, startTime,
-      endTime: resolvedEndTime,
-      units: span, dateFrom: from, dateTo: to,
+      pricingMode: "daily", startDate: start.sourceDate, endDate: end.sourceDate,
+      startTime: start.startTime, endTime: end.startTime,
+      dateFrom: start.sourceDate, dateTo: end.sourceDate, units: days,
+      pricePerUnit: String(listing.dailyPrice),
       ...(guests ? { numberOfGuests: Number(guests), guests: `${Number(guests)} guest${Number(guests) !== 1 ? "s" : ""}` } : {}),
-      pricePerUnit: String(modePrice),
-    }, SKEY);
+    }, sessionKey);
   };
 
   return (
-    <BookingShell
-      timeZone={listing.timeZone}
-      title="Book Your Place" price={modePrice} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
-      topSlot={listing.hourlyPrice && listing.dailyPrice ? (
-        <div className="grid grid-cols-2 gap-3">
-          <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
-          <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
-        </div>
-      ) : null}
-      reserveButton={
-        <button
-          onClick={handleReserve}
-          className="w-full py-4 rounded-full bg-[#FEB538] hover:bg-[#e0b430] text-sm font-bold text-gray-900 transition-colors"
-        >
-          Reserve
-        </button>
-      }
-    >
-      {mode === "hourly" ? (
-        /* Hourly: single date + start/end time */
-        <>
-          <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
-            <CalendarDropdown
-              value={date}
-              onChange={v => {
-                setDate(v);
-                setErrors(e => ({ ...e, date: false }));
-                const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
-                if (!valid) {
-                  setStartTime("");
-                  setEndTime("");
-                }
-              }}
-              placeholder="Select date"
-              availableDates={availableDates}
-              minDate={today}
-            />
-          </BookingField>
-          <TimeRangeField
-            startTime={startTime}
-            setStartTime={v => {
-              setStartTime(v);
-              setErrors(e => ({ ...e, startTime: false }));
-              const slot = availability.find(a => a.date.split("T")[0] === targetDate && a.startTime === v && a.isAvailable !== false);
-              if (slot) setEndTime(slot.endTime);
-              else setEndTime("");
-            }}
-            endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
-            startError={errors.startTime} endError={errors.endTime}
-            startOptions={startTimeOptions}
-            endOptions={endTimeOptions}
-          />
-        </>
-      ) : (
-        /* Daily: start date | end date + start time only */
-        <>
-          <div className="flex gap-3">
-            <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkIn ? "border-red-400" : "border-gray-200"}`}>
-              <span className="shrink-0"><CalendarIcon /></span>
-              <CalendarDropdown
-                value={checkIn}
-                onChange={v => {
-                  setCheckIn(v);
-                  setErrors(e => ({ ...e, checkIn: false }));
-                  const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
-                  if (!valid) {
-                    setStartTime("");
-                    setEndTime("");
-                  }
-                }}
-                placeholder="Start date"
-                availableDates={availableDates}
-                minDate={today}
-              />
-            </div>
-            <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkOut ? "border-red-400" : "border-gray-200"}`}>
-              <span className="shrink-0"><CalendarIcon /></span>
-              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" availableDates={availableDates} minDate={checkIn || today} />
-            </div>
-          </div>
-          {(errors.checkIn || errors.checkOut) && (
-            <div className="flex gap-3 -mt-3">
-              {errors.checkIn && <p className="flex-1 text-[10px] text-red-500 pl-3">Start date required</p>}
-              {errors.checkOut && <p className="flex-1 text-[10px] text-red-500 pl-3">End date required</p>}
-            </div>
-          )}
-          <BookingField icon={<ClockIcon />} error={errors.startTime} errorMessage="Start time is required">
-            <TimeDropdown
-              value={startTime}
-              onChange={v => {
-                setStartTime(v);
-                setEndTime(v); // daily = full day, end time = start time
-                setErrors(e => ({ ...e, startTime: false }));
-              }}
-              placeholder="Start time"
-              options={startTimeOptions}
-            />
-          </BookingField>
-
-          {(startTime || endTime) && (
-            <div className="rounded-2xl border border-[#CBE6E5] bg-[#EBF6F6] px-4 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-gray-900">
-                    {formatTime(startTime || endTime)}{endTime && endTime !== startTime ? ` - ${formatTime(endTime)}` : ""}
-                  </p>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Daily slot preview
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Price</p>
-                  <p className="text-base font-bold text-[#228E8A]">{formatMoney(subtotal, listing.currency || "USD")}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Guests */}
-      <BookingField icon={<UserOutlineIcon />} error={errors.guests} errorMessage="Number of guests is required">
-        <input
-          type="number"
-          min="1"
-          value={guests}
-          placeholder="Select guest number"
-          onChange={e => { setGuests(e.target.value); setErrors(err => ({ ...err, guests: false })); }}
-          className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400"
-        />
+    <BookingShell timeZone={viewerTimeZone} title={title} price={listing.dailyPrice} priceUnit="/Day"
+      rating={listing.rating} reviews={listing.reviews} topSlot={modeToggle}
+      reserveButton={<button onClick={handleReserve} className="w-full py-4 rounded-full bg-[#FEB538] hover:bg-[#e0b430] text-sm font-bold text-gray-900 transition-colors">Reserve</button>}>
+      <div className="grid grid-cols-2 gap-3">
+        <BookingField icon={<CalendarIcon />} error={errors.checkIn} errorMessage="Start date is required">
+          <CalendarDropdown value={checkIn} onChange={value => { setCheckIn(value); setStartKey(""); setCheckOut(""); setErrors({}); }}
+            placeholder="Start date" availableDates={startDates} minDate={viewerClock.date} />
+        </BookingField>
+        <BookingField icon={<CalendarIcon />} error={errors.checkOut} errorMessage="Select an end date after choosing a start time">
+          <CalendarDropdown value={checkOut} onChange={value => { setCheckOut(value); setErrors(current => ({ ...current, checkOut: false })); }}
+            placeholder="End date" availableDates={endDates} minDate={checkIn || viewerClock.date} align="right" />
+        </BookingField>
+      </div>
+      <BookingField icon={<ClockIcon />} error={errors.startTime} errorMessage="Start time is required">
+        <TimeDropdown value={start ? startKey : ""} onChange={value => {
+          setStartKey(value);
+          const selected = starts.find(option => keyFor(option) === value);
+          if (!options.ends.some(option => option.localDate === checkOut && option.startTime === selected?.startTime && option.sourceDate >= selected.sourceDate)) setCheckOut("");
+          setErrors(current => ({ ...current, startTime: false }));
+        }}
+          placeholder="Start time" options={timeOptions} />
       </BookingField>
-
-      {/* Summary */}
+      {start && <div className="rounded-2xl border border-[#CBE6E5] bg-[#EBF6F6] px-4 py-3 text-sm text-gray-900">
+        <p>{checkIn} · {start.label}{end ? ` – ${checkOut} · ${end.label}` : ""}</p>
+        <p className="mt-1 text-xs text-gray-500">Daily slot preview</p>
+      </div>}
+      <BookingField icon={<UserOutlineIcon />}>
+        <input type="number" min="1" value={guests} placeholder="Select guest number" onChange={event => setGuests(event.target.value)}
+          className="w-full bg-transparent text-xs sm:text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400 min-w-0" />
+      </BookingField>
       <div className="space-y-2 border-t border-gray-100 pt-4">
-        <SummaryLine label={`$${modePrice}/${mode === "daily" ? "day" : "hr"} × ${span} ${mode === "daily" ? "day" : "hour"}${span > 1 ? "s" : ""}`} value={`$${subtotal}`} />
-        <SummaryLine label="Service fee" value={`$${fee}`} />
-        <SummaryLine label="Total" value={`$${total}`} bold />
+        <SummaryLine label={`${formatMoney(listing.dailyPrice, listing.currency)}/day × ${days} day${days > 1 ? "s" : ""}`} value={formatMoney(subtotal, listing.currency)} />
+        <SummaryLine label="Service fee" value={formatMoney(fee, listing.currency)} />
+        <SummaryLine label="Total" value={formatMoney(subtotal + fee, listing.currency)} bold />
       </div>
     </BookingShell>
   );
 }
 
-/* ─── Equipment Booking Card ─────────────────────────────────────────────────── */
-function EquipmentBookingCard({ listing, listingId, slotRefresh = "" }) {
-  const SKEY = `booking_equipment_${listingId}`;
-  const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SKEY) || "{}"); } catch { return {}; } })();
-  const hasDaily = !!(listing.dailyPrice);
-  const [mode, setMode] = useState((saved.mode === "daily" && !hasDaily) ? "hourly" : (saved.mode || "hourly"));
-  const [date, setDate] = useState(() => canStartBooking(saved.date, undefined, bookingClock(listing.timeZone)) ? saved.date : "");
-  const [checkIn, setCheckIn] = useState(() => canStartBooking(saved.checkIn, undefined, bookingClock(listing.timeZone)) ? saved.checkIn : "");
-  const [checkOut, setCheckOut] = useState(() => canStartBooking(saved.checkOut, undefined, bookingClock(listing.timeZone)) ? saved.checkOut : "");
-  const [startTime, setStartTime] = useState(() => canStartBooking(saved.date || saved.checkIn, saved.startTime, bookingClock(listing.timeZone)) ? saved.startTime || "" : "");
-  const [endTime, setEndTime] = useState(saved.endTime || "");
-  const [guests, setGuests] = useState(saved.guests || "");
-  const [errors, setErrors] = useState({});
-  const navigateToConfirm = useNavigateToConfirm(listing, listingId);
-
-  const clock = useBookingClock(listing.timeZone);
-  const availability = React.useMemo(() => listing.availability || [], [listing.availability]);
-  const availableDates = React.useMemo(() => {
-    return [...new Set(availability
-      .filter(a => a.isAvailable !== false && canStartBooking(a.date, a.endTime, clock))
-      .map(a => a.date.split("T")[0]))];
-  }, [availability, clock]);
-  const today = clock.date;
-
-  // For hourly mode, options for 'date'. For daily mode, options for 'checkIn'.
-  const targetDate = mode === "hourly" ? date : checkIn;
-
-  const formatTime = (timeStr) => {
-    if (!timeStr) return "";
-    const [h, m] = timeStr.split(":").map(Number);
-    const hour = h % 12 === 0 ? 12 : h % 12;
-    const ampm = h < 12 ? "AM" : "PM";
-    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
-  };
-
-  const startTimeOptions = React.useMemo(() => {
-    if (!targetDate) return [];
-    return availability
-      .filter(a => a.date.split("T")[0] === targetDate && a.isAvailable !== false && canStartBooking(targetDate, a.startTime, clock))
-      .map(a => ({ label: formatTime(a.startTime), value: a.startTime }));
-  }, [targetDate, availability, clock]);
-
-  const endTimeOptions = React.useMemo(() => {
-    if (!targetDate || !startTime) return [];
-    return availability
-      .filter(a => a.date.split("T")[0] === targetDate && a.startTime === startTime && a.isAvailable !== false)
-      .map(a => ({ label: formatTime(a.endTime), value: a.endTime }));
-  }, [targetDate, startTime, availability]);
-
-  useEffect(() => {
-    sessionStorage.setItem(SKEY, JSON.stringify({ mode, date, checkIn, checkOut, startTime, endTime, guests }));
-  }, [mode, date, checkIn, checkOut, startTime, endTime, guests, SKEY]);
-
-  const modePrice = mode === "daily" ? listing.dailyPrice : (listing.hourlyPrice ?? listing.price);
-  const hours = startTime && endTime
-    ? Math.max(1, Math.round((new Date(`1970-01-01T${endTime}`) - new Date(`1970-01-01T${startTime}`)) / 3600000))
-    : 3;
-  const days = checkIn && checkOut ? calculateDaysBetween(checkIn, checkOut) : 1;
-  const span = mode === "daily" ? days : hours;
-  const subtotal = modePrice * span;
-  const fee = 10;
-  const total = subtotal + fee;
-
-  if (mode === "hourly") {
-    return (
-      <HourlySlotBookingCard
-        listing={listing}
-        listingId={listingId}
-        bookingTitle="Book Your Equipment"
-        bannerLabel={listing.title}
-        bannerIcon={<ClockIcon size={18} />}
-        reserveLabel="Continue to Payment"
-        slotRefresh={slotRefresh}
-        modeToggle={hasDaily ? (
-          <div className="grid grid-cols-2 gap-3">
-            <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
-            <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
-          </div>
-        ) : null}
-      />
-    );
-  }
-
-  const handleReserve = () => {
-    const newErrors = {};
-    if (mode === "hourly") {
-      if (!date) { toast.error("Date is required."); newErrors.date = true; }
-      if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
-      if (!endTime) { toast.error("End time is required."); newErrors.endTime = true; }
-    } else {
-      if (!checkIn) { toast.error("Start date is required."); newErrors.checkIn = true; }
-      if (!checkOut) { toast.error("End date is required."); newErrors.checkOut = true; }
-      if (!startTime) { toast.error("Start time is required."); newErrors.startTime = true; }
-    }
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    const from = mode === "hourly" ? date : checkIn;
-    const to = mode === "hourly" ? date : checkOut;
-    // For daily mode, end time equals start time (billing is per-day, not per-hour)
-    const resolvedEndTime = mode === "daily" ? startTime : endTime;
-    navigateToConfirm({
-      pricingMode: mode,
-      startDate: from, endDate: to, startTime,
-      endTime: resolvedEndTime,
-      units: span, dateFrom: from, dateTo: to,
-      ...(guests ? { numberOfGuests: Number(guests), guests: `${Number(guests)} guest${Number(guests) !== 1 ? "s" : ""}` } : {}),
-      pricePerUnit: String(modePrice),
-    }, SKEY);
-  };
-
-  return (
-    <BookingShell
-      timeZone={listing.timeZone}
-      title="Book Your Equipment" price={modePrice} priceUnit={mode === "daily" ? "/Day" : "/Hr"} rating={listing.rating} reviews={listing.reviews}
-      topSlot={listing.hourlyPrice && listing.dailyPrice ? (
-        <div className="grid grid-cols-2 gap-3">
-          <ModePill active={mode === "hourly"} label="Hourly" icon={<ClockIcon />} onClick={() => setMode("hourly")} />
-          <ModePill active={mode === "daily"} label="Daily" icon={<CalendarIcon />} onClick={() => setMode("daily")} />
-        </div>
-      ) : null}
-      reserveButton={
-        <button
-          onClick={handleReserve}
-          className="w-full py-4 rounded-full bg-[#FEB538] hover:bg-[#e0b430] text-sm font-bold text-gray-900 transition-colors"
-        >
-          Reserve
-        </button>
-      }
-    >
-      {mode === "hourly" ? (
-        /* Hourly: single date + start/end time */
-        <>
-          <BookingField icon={<CalendarIcon />} error={errors.date} errorMessage="Date is required">
-            <CalendarDropdown
-              value={date}
-              onChange={v => {
-                setDate(v);
-                setErrors(e => ({ ...e, date: false }));
-                const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
-                if (!valid) {
-                  setStartTime("");
-                  setEndTime("");
-                }
-              }}
-              placeholder="Select date"
-              availableDates={availableDates}
-              minDate={today}
-            />
-          </BookingField>
-          <TimeRangeField
-            startTime={startTime}
-            setStartTime={v => {
-              setStartTime(v);
-              setErrors(e => ({ ...e, startTime: false }));
-              const slot = availability.find(a => a.date.split("T")[0] === targetDate && a.startTime === v && a.isAvailable !== false);
-              if (slot) setEndTime(slot.endTime);
-              else setEndTime("");
-            }}
-            endTime={endTime} setEndTime={v => { setEndTime(v); setErrors(e => ({ ...e, endTime: false })); }}
-            startError={errors.startTime} endError={errors.endTime}
-            startOptions={startTimeOptions}
-            endOptions={endTimeOptions}
-          />
-        </>
-      ) : (
-        /* Daily: start date | end date + start time only */
-        <>
-          <div className="flex gap-3">
-            <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkIn ? "border-red-400" : "border-gray-200"}`}>
-              <span className="shrink-0"><CalendarIcon /></span>
-              <CalendarDropdown
-                value={checkIn}
-                onChange={v => {
-                  setCheckIn(v);
-                  setErrors(e => ({ ...e, checkIn: false }));
-                  const valid = availability.some(a => a.date.split("T")[0] === v && a.startTime === startTime && a.isAvailable !== false);
-                  if (!valid) {
-                    setStartTime("");
-                    setEndTime("");
-                  }
-                }}
-                placeholder="Start date"
-                availableDates={availableDates}
-                minDate={today}
-              />
-            </div>
-            <div className={`flex-1 flex items-center gap-2 rounded-full border bg-white px-3 py-3 ${errors.checkOut ? "border-red-400" : "border-gray-200"}`}>
-              <span className="shrink-0"><CalendarIcon /></span>
-              <CalendarDropdown value={checkOut} onChange={v => { setCheckOut(v); setErrors(e => ({ ...e, checkOut: false })); }} placeholder="End date" align="right" availableDates={availableDates} minDate={checkIn || today} />
-            </div>
-          </div>
-          {(errors.checkIn || errors.checkOut) && (
-            <div className="flex gap-3 -mt-3">
-              {errors.checkIn && <p className="flex-1 text-[10px] text-red-500 pl-3">Start date required</p>}
-              {errors.checkOut && <p className="flex-1 text-[10px] text-red-500 pl-3">End date required</p>}
-            </div>
-          )}
-          <BookingField icon={<ClockIcon />} error={errors.startTime} errorMessage="Start time is required">
-            <TimeDropdown
-              value={startTime}
-              onChange={v => {
-                setStartTime(v);
-                setErrors(e => ({ ...e, startTime: false }));
-                // Daily mode: end time = start time (same pickup time each day)
-                setEndTime(v);
-              }}
-              placeholder="Start time"
-              options={startTimeOptions}
-            />
-          </BookingField>
-
-          {(startTime || endTime) && (
-            <div className="rounded-2xl border border-[#CBE6E5] bg-[#EBF6F6] px-4 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-gray-900">
-                    {formatTime(startTime || endTime)}{endTime && endTime !== startTime ? ` - ${formatTime(endTime)}` : ""}
-                  </p>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Daily slot preview
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Price</p>
-                  <p className="text-base font-bold text-[#228E8A]">{formatMoney(subtotal, listing.currency || "USD")}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Guests */}
-      <BookingField icon={<UserOutlineIcon />} error={errors.guests} errorMessage="Number of guests is required">
-        <input
-          type="number"
-          min="1"
-          value={guests}
-          placeholder="Select guest number"
-          onChange={e => { setGuests(e.target.value); setErrors(err => ({ ...err, guests: false })); }}
-          className="w-full bg-transparent text-xs sm:text-sm font-medium text-gray-900 focus:outline-none placeholder:text-gray-400 min-w-0"
-        />
-      </BookingField>
-
-      {/* Summary */}
-      <div className="space-y-2 border-t border-gray-100 pt-4">
-        <SummaryLine label={`$${modePrice}/${mode === "daily" ? "day" : "hr"} × ${span} ${mode === "daily" ? "day" : "hour"}${span > 1 ? "s" : ""}`} value={`$${subtotal}`} />
-        <SummaryLine label="Service fee" value={`$${fee}`} />
-        <SummaryLine label="Total" value={`$${total}`} bold />
-      </div>
-    </BookingShell>
-  );
-}
-
-/* ─── Reviews Section ────────────────────────────────────────────────────────── */
 const REVIEWS_PER_PAGE_DESKTOP = 3;
 const REVIEWS_PER_PAGE_MOBILE = 1;
 
@@ -2223,6 +1719,7 @@ function DetailsSection({ listing }) {
 
 /* ─── Main Page ──────────────────────────────────────────────────────────────── */
 export default function ListingDetailPage({ params: paramsPromise }) {
+  const viewerTimeZone = useViewerTimeZone();
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
@@ -2259,8 +1756,8 @@ export default function ListingDetailPage({ params: paramsPromise }) {
   const [contactingHost, setContactingHost] = useState(false);
 
   useEffect(() => {
-    if (rawId) dispatch(fetchBrowseListing(rawId));
-  }, [dispatch, rawId]);
+    if (rawId && viewerTimeZone) dispatch(fetchBrowseListing(rawId));
+  }, [dispatch, rawId, viewerTimeZone]);
 
   if (selectedStatus === "loading") {
     return (

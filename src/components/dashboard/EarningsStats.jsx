@@ -30,7 +30,7 @@ function formatWalletMoney(value, currency) {
   }
 }
 
-export default function EarningsStats({ overview }) {
+export default function EarningsStats() {
   const router = useRouter();
   const dispatch = useDispatch();
   const connectStatus = useSelector(selectConnectStatus);
@@ -38,7 +38,6 @@ export default function EarningsStats({ overview }) {
   const balances = useSelector(selectConnectBalances);
   const balanceLoading = useSelector(selectConnectBalanceLoading);
   const balanceError = useSelector(selectConnectBalanceError);
-  const { data: earnings, loading: feesLoading, error: feesError } = overview;
 
   useEffect(() => {
     dispatch(fetchConnectStatus());
@@ -74,12 +73,6 @@ export default function EarningsStats({ overview }) {
   const currentBalance = primaryBalance?.current ?? 0;
   const pendingBalance = primaryBalance?.pending ?? 0;
   const currency = primaryBalance?.currency ?? "USD";
-  const currentMonth = earnings?.generatedAt ? new Date(earnings.generatedAt).getUTCMonth() + 1 : null;
-  const feeRows = (earnings?.trend?.series || []).map(series => ({
-    currency: series.currency,
-    amount: series.points?.find(point => point.month === currentMonth)?.platformFees ?? 0,
-  }));
-
   const canWithdraw = Number(currentBalance) > 0 && payoutsEnabled !== false;
 
   return (
@@ -102,7 +95,7 @@ export default function EarningsStats({ overview }) {
       )}
 
       {/* Overview cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
         <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 border border-[var(--color-border)] flex flex-col gap-2 sm:gap-3">
           <div>
             <p className="text-[10px] sm:text-xs lg:text-sm text-[var(--color-text-muted)] font-medium mb-1 leading-tight">Available Funds</p>
@@ -128,21 +121,7 @@ export default function EarningsStats({ overview }) {
           <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] leading-tight">Held for 7 days — cannot be withdrawn</p>
         </div>
 
-        <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 border border-[var(--color-border)] flex flex-col">
-          <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] font-medium flex flex-wrap items-center gap-1 mb-1 leading-tight">
-            Platform Fees
-          </p>
-          <div className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-[var(--color-text)] mb-1 leading-tight">
-            {feesLoading || feesError ? "—" : feeRows.length ? feeRows.map(row => (
-              <p key={row.currency}>{formatWalletMoney(row.amount, row.currency)}</p>
-            )) : formatWalletMoney(0, currency)}
-          </div>
-          <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] leading-tight">
-            {feesError ? "Unable to load platform fees" : "Current month (UTC) · paid bookings"}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 border border-[var(--color-border)] flex flex-col justify-between gap-2 sm:gap-3">
+        <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 border border-[var(--color-border)] col-span-2 lg:col-span-1 flex flex-col justify-between gap-2 sm:gap-3">
           <div>
             <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] font-medium mb-1 leading-tight">Stripe Account</p>
             <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] leading-tight">

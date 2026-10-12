@@ -1,5 +1,6 @@
 "use client";
 
+import BookingTimeDisplay from "@/components/shared/BookingTimeDisplay";
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
@@ -75,7 +76,7 @@ export default function ReservationCards({ data, onViewDetails, onCancel, onAcce
       case "Active": return "bg-teal-50 text-[#168F8D] border border-teal-100";
       case "Completed": return "bg-green-50 text-green-400 border border-green-100";
       case "Cancelled":
-      case "Declined":
+      case "Rejected":
       case "Listing Deleted": return "bg-red-50 text-red-500 border border-red-100";
       case "Action Needed": return "bg-amber-50 text-amber-700 border border-amber-100";
       default: return "bg-gray-100 text-gray-600";
@@ -134,6 +135,9 @@ export default function ReservationCards({ data, onViewDetails, onCancel, onAcce
               {getInvoiceIcon(item.invoice)}
               {item.invoice}
             </span>
+            {item.status === "Rejected" && item.paymentStatus === "auth_released" && (
+              <span className="text-[10px] text-gray-500">Card hold released</span>
+            )}
             {item.status === "Upcoming" && (
               <button
                 onClick={() => onCancel(item)}
@@ -156,6 +160,7 @@ export default function ReservationCards({ data, onViewDetails, onCancel, onAcce
             </div>
             <div className="col-span-2">
               <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase mb-1">Date & Time</p>
+              {item.booking ? <BookingTimeDisplay booking={item.booking} /> : (
               <p className="text-xs font-bold text-[var(--color-text)] whitespace-pre-line">
                 {item.date}
                 {"\n"}
@@ -163,6 +168,7 @@ export default function ReservationCards({ data, onViewDetails, onCancel, onAcce
                   ? item.timeRanges.join("\n")
                   : item.time}
               </p>
+              )}
             </div>
           </div>
         </div>

@@ -191,7 +191,7 @@ const bookingsSlice = createSlice({
     // user's own bookings
     items: [],
     pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
-    filters: { tab: "all", counts: { all: 0, in_progress: 0, completed: 0, cancelled: 0 } },
+    filters: { tab: "all", counts: { all: 0, upcoming: 0, in_progress: 0, completed: 0, cancelled: 0 } },
     status: "idle",
     // host's incoming bookings
     hostItems: [],
@@ -228,8 +228,8 @@ const bookingsSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // fetchBookings (user)
-      .addCase(fetchBookings.pending, (state) => {
-        state.status = "loading";
+      .addCase(fetchBookings.pending, (state, action) => {
+        if (!action.meta.arg?.background) state.status = "loading";
         state.error = null;
       })
       .addCase(fetchBookings.fulfilled, (state, action) => {
@@ -240,6 +240,7 @@ const bookingsSlice = createSlice({
       })
       .addCase(fetchBookings.rejected, (state, action) => {
         if (action.meta.aborted) return;
+        if (action.meta.arg?.background) return;
         state.status = "failed";
         state.error = action.payload;
       })

@@ -2,6 +2,11 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import axiosInstance from "@/store/axiosInstance";
+import { getBookingPhase, getBookingReviewLabel, canCancelBooking, canRequestBookingRefund as canRequestRefund, isBookingRequestExpired } from "@/lib/bookingClock";
+import BookingTimeDisplay from "@/components/shared/BookingTimeDisplay";
+import useViewerTimeZone from "@/lib/useViewerTimeZone";
+import useBookingClock from "@/lib/useBookingClock";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
@@ -49,71 +54,21 @@ function getLocation(b) {
   const loc = b.listing?.placeLocation ?? {};
   return [loc.city, loc.state, loc.country].filter(Boolean).join(", ") || b.listing?.basicInformation?.location || b.listingSnapshot?.location || "";
 }
-function formatDate(d) {
-  if (!d) return "";
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-function formatDateRange(s, e) {
-  const sd = formatDate(s);
-  const ed = formatDate(e);
-  return sd === ed ? sd : `${sd} – ${ed}`;
-}
-function fmt12(t) {
-  if (!t) return "";
-  if (t.includes("AM") || t.includes("PM")) return t;
-  const [h, m] = t.split(":").map(Number);
-  if (isNaN(h) || isNaN(m)) return t;
-  const hr = h % 12 === 0 ? 12 : h % 12;
-  return `${hr}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
-}
-function getBookingTime(b) {
-  const startTime = b.startTime;
-  const endTime   = b.endTime;
-  if (startTime) {
-    return endTime && endTime !== startTime
-      ? `${fmt12(startTime)} – ${fmt12(endTime)}`
-      : fmt12(startTime);
-  }
-  const dateStr = b.startDate ? b.startDate.split("T")[0] : null;
-  const slot = dateStr
-    ? (b.listing?.availability ?? []).find((a) => a.date && a.date.split("T")[0] === dateStr)
-    : null;
-  if (slot?.startTime) {
-    return slot.endTime && slot.endTime !== slot.startTime
-      ? `${fmt12(slot.startTime)} – ${fmt12(slot.endTime)}`
-      : fmt12(slot.startTime);
-  }
-  return null;
-}
-function hasBookingEnded(b) {
-  const date = new Date(b.endDate || b.startDate);
-  if (Number.isNaN(date.getTime())) return false;
-  const match = /^(\d{2}):(\d{2})$/.exec(String(b.endTime || "23:59"));
-  date.setUTCHours(match ? Number(match[1]) : 23, match ? Number(match[2]) : 59, 0, 0);
-  return date <= new Date();
-}
 function isAwaitingHost(b) {
   return b.status === "pending" || b.status === "awaiting_host_approval";
 }
-function getStatusKey(b, refundRequest = b.refundStatus) {
+function getStatusKey(b, refundRequest = b.refundStatus, clock) {
   if (b.paymentStatus === "refunded") return "refunded";
   if (b.paymentStatus === "refunding" || ["pending", "processing"].includes(refundRequest?.status)) return "refund-pending";
   if (refundRequest?.status === "approved") return "refund-approved";
   if (b.status === "listing_deleted") return "listing-deleted";
-  if (b.status === "cancelled" || b.status === "declined") return "cancelled";
-  if (b.status === "completed" || (b.status === "confirmed" && hasBookingEnded(b))) return "completed";
+  if (b.status === "declined") return "rejected";
+  if (b.status === "cancelled") return "cancelled";
+  if (b.status === "completed") return "completed";
+  if (isBookingRequestExpired(b, clock)) return "rejected";
   if (isAwaitingHost(b)) return "pending";
-  if (b.status === "confirmed") return "in-progress";
+  if (b.status === "confirmed") return getBookingPhase(b, clock);
   return b.status;
-}
-// Guests can cancel while awaiting host approval, or after the host has confirmed —
-// just not once the host has declined, it's already cancelled, or it's completed.
-function canCancel(b) { return !hasBookingEnded(b) && (isAwaitingHost(b) || b.status === "confirmed"); }
-function getReviewButtonLabel(b) {
-  if (b.status !== "completed") return null;
-  if (b.reviewStatus?.canEdit) return "Edit Review";
-  if (b.reviewStatus?.canSubmit) return "Leave a Review";
-  return null;
 }
 
 import { ArrowLeftIcon as BackIcon, HeartFilledIcon, HeartIcon as HeartIconBase, ShareIcon, MoreHorizIcon as DotsIcon, CloseIcon, StarIcon as StarIconBase, MapPinIcon as LocationPinIcon, ArrowRightIcon, CircleAlertIcon, UserIcon as UserIconBase, ReservationsIcon } from "@/icons";
@@ -133,7 +88,9 @@ const STATUS_CFG = {
   "refund-approved": { label: "Refund Approved", bg: "bg-green-100", text: "text-green-700" },
   completed:    { label: "Completed",   bg: "bg-[#29A329]",  text: "text-white" },
   "in-progress":{ label: "In-progress", bg: "bg-[#F9C234]",  text: "text-white" },
+  upcoming:     { label: "Upcoming",    bg: "bg-[#CFEDEC]",  text: "text-[#168F8D]" },
   cancelled:    { label: "Cancelled",   bg: "bg-red-500",    text: "text-white" },
+  rejected:     { label: "Rejected",    bg: "bg-red-500",    text: "text-white" },
   confirmed:    { label: "In-progress", bg: "bg-[#F9C234]",  text: "text-white" },
   pending:      { label: "Awaiting Host", bg: "bg-[#94A3B8]", text: "text-white" },
   "listing-deleted": { label: "Listing Removed", bg: "bg-red-600", text: "text-white" },
@@ -298,8 +255,8 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
                 <div>
                   <p className="text-sm font-bold text-gray-900">{title}</p>
                   <p className="text-xs text-gray-500 mt-0.5">Confirmation No: {confirmationNo}</p>
+                  <BookingTimeDisplay booking={b} />
                   <p className="text-xs text-gray-400">
-                    {formatDateRange(b.startDate, b.endDate)}
                     {b.numberOfGuests ? ` · ${b.numberOfGuests} guest(s)` : ""}
                     {b.totalAmount ? ` · $${b.totalAmount}` : ""}
                   </p>
@@ -517,13 +474,6 @@ function DotsMenu({ onReportListing, onContactHost }) {
 }
 
 /* ─── Refund helpers ─────────────────────────────────────────────────────────── */
-function canRequestRefund(booking) {
-  if (booking.reviewStatus?.hasSubmitted) return false;
-  if (booking.paymentStatus !== "held") return false;
-  if (!booking.payoutEligibleAt) return false;
-  if (booking.activeRefundRequest) return false;
-  return new Date() < new Date(booking.payoutEligibleAt);
-}
 
 function RefundStatusBadge({ request }) {
   if (!request) return null;
@@ -639,8 +589,9 @@ function WithdrawRefundModal({ booking, onClose, onWithdrawn }) {
 
 /* ─── Booking card row ───────────────────────────────────────────────────────── */
 function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportListing, onContactHost, onRequestRefund, onWithdrawRefund, wishlisted, onToggleWishlist, onShare, refundRequest }) {
+  const clock = useBookingClock(booking.listing?.timeZone || "UTC");
   const visibleRefundRequest = refundRequest || booking.refundStatus;
-  const statusKey = getStatusKey(booking, visibleRefundRequest);
+  const statusKey = getStatusKey(booking, visibleRefundRequest, clock);
   const hasActiveRefundRequest = ["pending", "processing"].includes(visibleRefundRequest?.status);
   const guests = booking.numberOfGuests ? `${booking.numberOfGuests} Adult${booking.numberOfGuests > 1 ? "s" : ""}` : null;
 
@@ -688,22 +639,15 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
 
         {/* Reservation details */}
         <div className="flex flex-col gap-1.5 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 w-36 text-xs shrink-0">Reservation Dates:</span>
-            <span className="font-bold text-gray-900">{formatDateRange(booking.startDate, booking.endDate)}</span>
-          </div>
+
+          <BookingTimeDisplay booking={booking} field="date" />
           {guests && (
             <div className="flex items-center gap-2">
               <span className="text-gray-500 w-36 text-xs shrink-0">Guests:</span>
               <span className="font-bold text-gray-900">{guests}</span>
             </div>
           )}
-          {getBookingTime(booking) && (
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500 w-36 text-xs shrink-0">Time:</span>
-              <span className="font-bold text-gray-900">{getBookingTime(booking)}</span>
-            </div>
-          )}
+          <BookingTimeDisplay booking={booking} field="time" />
           <div className="flex items-center gap-2">
             <span className="text-gray-500 w-36 text-xs shrink-0">Total Price:</span>
             <span className="font-bold text-gray-900">$ {booking.totalAmount?.toLocaleString()}</span>
@@ -722,17 +666,17 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
 
         {/* Action buttons — bottom right */}
         <div className="flex flex-wrap items-center justify-end gap-2 mt-auto" onClick={(e) => e.stopPropagation()}>
-          {getReviewButtonLabel(booking) && (
+          {getBookingReviewLabel(booking, clock) && (
             <button
               onClick={() => onLeaveReview(booking)}
               style={{ width: 216, height: 58 }}
               className="bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-bold rounded-full text-sm transition-colors whitespace-nowrap flex items-center justify-center"
             >
-              {getReviewButtonLabel(booking)}
+              {getBookingReviewLabel(booking, clock)}
             </button>
           )}
-          {/* Cancel + Refund only shown for in-progress, not completed */}
-          {booking.status !== "completed" && canCancel(booking) && (
+          {/* Refund actions remain available after completion during the payment hold. */}
+          {canCancelBooking(booking, clock) && (
             <button
               onClick={() => onCancel(booking)}
               style={{ width: 188 }}
@@ -741,7 +685,7 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
               Cancel Reservation
             </button>
           )}
-          {booking.status !== "completed" && canRequestRefund(booking) && !hasActiveRefundRequest && (
+          {canRequestRefund(booking) && !hasActiveRefundRequest && (
             <button
               onClick={() => onRequestRefund(booking)}
               style={{ width: 188 }}
@@ -750,7 +694,7 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
               Request Refund
             </button>
           )}
-          {booking.status !== "completed" && visibleRefundRequest?.status === "pending" && (
+          {visibleRefundRequest?.status === "pending" && (
             <button
               onClick={() => onWithdrawRefund(booking)}
               style={{ width: 188 }}
@@ -807,12 +751,13 @@ function LocationMap({ location, booking }) {
   );
 }
 
-function BookingDetailView({ booking, refundRequest, onLeaveReview, onCancel, onContactHost, wishlisted, onToggleWishlist, onShare }) {
+function BookingDetailView({ booking, refundRequest, onLeaveReview, onCancel, onRequestRefund, onWithdrawRefund, onContactHost, wishlisted, onToggleWishlist, onShare }) {
+  const clock = useBookingClock(booking.listing?.timeZone || "UTC");
   const listing = booking.listing ?? {};
   const info = listing.basicInformation ?? {};
   const service = listing.serviceDetails ?? {};
   const equipment = listing.equipmentDetails ?? {};
-  const statusKey = getStatusKey(booking, refundRequest || booking.refundStatus);
+  const statusKey = getStatusKey(booking, refundRequest || booking.refundStatus, clock);
   const guests = booking.numberOfGuests ? `${booking.numberOfGuests} Adult${booking.numberOfGuests > 1 ? "s" : ""}` : null;
 
   return (
@@ -852,22 +797,15 @@ function BookingDetailView({ booking, refundRequest, onLeaveReview, onCancel, on
             </div>
 
             <div className="flex flex-col gap-1.5 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-500 w-36 text-xs shrink-0">Reservation Dates:</span>
-                <span className="font-bold text-gray-900">{formatDateRange(booking.startDate, booking.endDate)}</span>
-              </div>
-              {guests && (
+
+              <BookingTimeDisplay booking={booking} field="date" />
+          {guests && (
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 w-36 text-xs shrink-0">Guests:</span>
                   <span className="font-bold text-gray-900">{guests}</span>
                 </div>
               )}
-              {getBookingTime(booking) && (
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-500 w-36 text-xs shrink-0">Time:</span>
-                  <span className="font-bold text-gray-900">{getBookingTime(booking)}</span>
-                </div>
-              )}
+              <BookingTimeDisplay booking={booking} field="time" />
               <div className="flex items-center gap-2">
                 <span className="text-gray-500 w-36 text-xs shrink-0">Total Price:</span>
                 <span className="font-bold text-gray-900">$ {booking.totalAmount?.toLocaleString()}</span>
@@ -875,17 +813,29 @@ function BookingDetailView({ booking, refundRequest, onLeaveReview, onCancel, on
             </div>
 
             <div className="flex justify-end mt-auto gap-2 flex-wrap">
-              {getReviewButtonLabel(booking) && (
+              {getBookingReviewLabel(booking, clock) && (
                 <button onClick={onLeaveReview}
                   style={{ width: 216, height: 58 }}
                   className="bg-[#FEB538] hover:bg-[#e09d2a] text-gray-900 font-bold rounded-full text-sm transition-colors whitespace-nowrap flex items-center justify-center">
-                  {getReviewButtonLabel(booking)}
+                  {getBookingReviewLabel(booking, clock)}
                 </button>
               )}
-              {booking.status !== "completed" && canCancel(booking) && (
+              {canCancelBooking(booking, clock) && (
                 <button onClick={onCancel}
                   className="px-6 py-2.5 border-2 border-[#FEB538] text-gray-800 font-semibold rounded-full text-sm hover:bg-[#FEB538]/10 transition-colors">
                   Cancel Reservation
+                </button>
+              )}
+              {canRequestRefund(booking) && !["pending", "processing"].includes((refundRequest || booking.refundStatus)?.status) && (
+                <button onClick={onRequestRefund}
+                  className="px-6 py-2.5 border-2 border-[#4AA7A7] text-[#4AA7A7] font-semibold rounded-full text-sm hover:bg-[#4AA7A7]/10 transition-colors">
+                  Request Refund
+                </button>
+              )}
+              {(refundRequest || booking.refundStatus)?.status === "pending" && (
+                <button onClick={onWithdrawRefund}
+                  className="px-6 py-2.5 border-2 border-gray-300 text-gray-500 font-semibold rounded-full text-sm hover:bg-gray-50 transition-colors">
+                  Withdraw Request
                 </button>
               )}
             </div>
@@ -1044,6 +994,7 @@ function EmptyState({ onStartBooking }) {
 /* ─── Tab filter ─────────────────────────────────────────────────────────────── */
 const TABS = [
   { key: "all",         label: "All",         apiTab: "all" },
+  { key: "upcoming",    label: "Upcoming",    apiTab: "upcoming" },
   { key: "in-progress", label: "In progress", apiTab: "in_progress" },
   { key: "completed",   label: "Completed",   apiTab: "completed" },
   { key: "cancelled",   label: "Cancelled",   apiTab: "cancelled" },
@@ -1052,6 +1003,7 @@ const TAB_TO_API = Object.fromEntries(TABS.map((t) => [t.key, t.apiTab]));
 
 /* ─── Main page ──────────────────────────────────────────────────────────────── */
 export default function MyReservationPage() {
+  const viewerTimeZone = useViewerTimeZone();
   const router = useRouter();
   const dispatch = useDispatch();
 
@@ -1074,7 +1026,39 @@ export default function MyReservationPage() {
   useEffect(() => {
     const request = dispatch(fetchBookings({ tab: TAB_TO_API[activeTab] ?? "all", page: currentPage, limit: 10 }));
     return () => request.abort?.();
-  }, [dispatch, activeTab, currentPage]);
+  }, [dispatch, activeTab, currentPage, viewerTimeZone]);
+
+  useEffect(() => {
+    let request;
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden") {
+        request?.abort?.();
+        request = dispatch(fetchBookings({
+          tab: TAB_TO_API[activeTab] ?? "all", page: currentPage, limit: 10, background: true,
+        }));
+      }
+    }, 60 * 1000);
+    return () => { clearInterval(timer); request?.abort?.(); };
+  }, [dispatch, activeTab, currentPage, viewerTimeZone]);
+
+  // Keep an open detail view current even after its booking leaves the active tab.
+  const openBookingId = detailView?.id;
+  useEffect(() => {
+    if (!openBookingId) return;
+    const controller = new AbortController();
+    const refreshDetail = async () => {
+      if (document.visibilityState === "hidden") return;
+      try {
+        const { data } = await axiosInstance.get(`/bookings/${openBookingId}`, { signal: controller.signal });
+        if (!controller.signal.aborted && data?.data?.booking) {
+          setDetailView((current) => current?.id === openBookingId ? data.data.booking : current);
+        }
+      } catch { /* Keep the last detail during transient network failures. */ }
+    };
+    refreshDetail();
+    const timer = setInterval(refreshDetail, 60 * 1000);
+    return () => { clearInterval(timer); controller.abort(); };
+  }, [openBookingId, viewerTimeZone]);
 
   // Fetch refund requests for bookings that have one pending
   useEffect(() => {
@@ -1207,9 +1191,11 @@ export default function MyReservationPage() {
           detailView ? (
             <BookingDetailView
               refundRequest={refundRequestMap[detailView.id]}
-              booking={detailView}
+              booking={bookings.find((booking) => booking.id === detailView.id) ?? detailView}
               onLeaveReview={() => openModal("review", detailView)}
               onCancel={() => openModal("cancel", detailView)}
+              onRequestRefund={() => openModal("refund-request", bookings.find((booking) => booking.id === detailView.id) ?? detailView)}
+              onWithdrawRefund={() => openModal("withdraw-refund", bookings.find((booking) => booking.id === detailView.id) ?? detailView)}
               onContactHost={() => handleContactHost(detailView)}
               wishlisted={wishlistListingIds.includes(getListingId(detailView))}
               onToggleWishlist={() => handleToggleWishlist(detailView)}
@@ -1231,6 +1217,8 @@ export default function MyReservationPage() {
                     ? "No Cancelled Reservations"
                     : activeTab === "completed"
                       ? "No Completed Reservations"
+                      : activeTab === "upcoming"
+                        ? "No Upcoming Reservations"
                       : "Nothing Here Yet"}
                 </p>
                 <p className="text-sm text-gray-400 max-w-xs">
@@ -1238,6 +1226,8 @@ export default function MyReservationPage() {
                     ? "You haven't cancelled any reservations. Your active bookings are doing great!"
                     : activeTab === "completed"
                       ? "You don't have any completed reservations yet."
+                      : activeTab === "upcoming"
+                        ? "Your future reservations will appear here."
                       : "No reservations match this filter."}
                 </p>
               </div>
