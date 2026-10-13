@@ -136,11 +136,12 @@ function TransactionCard({ tx }) {
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
       <div className="flex items-start justify-between gap-2 p-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold text-[#111827] truncate">{tx.description}</p>
+          {/* <p className="text-[13px] font-semibold text-[#111827] truncate">{tx.description}</p> */}
+          <p className="text-[13px] font-semibold text-[#111827] break-all">{tx.reference}</p>
           <p className="text-[10px] text-gray-400 mt-1">{formatDate(tx.date)}</p>
           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
             <StatusBadge type={tx.type} status={tx.status} />
-            <span className="text-[10px] font-semibold uppercase text-gray-400">{tx.type}</span>
+            {/* <span className="text-[10px] font-semibold uppercase text-gray-400">{tx.type}</span> */}
           </div>
         </div>
         <div className="text-right shrink-0 ml-2">
@@ -173,6 +174,7 @@ function TransactionCard({ tx }) {
                 <p className="text-[8px] font-extrabold text-gray-400 uppercase mb-0.5">Customer</p>
                 <p className="text-[10px] font-bold text-[#111827] truncate">{tx.customer}</p>
               </div>
+              {/* Temporarily hidden: Gross Amount and Platform Fee.
               <div>
                 <p className="text-[8px] font-extrabold text-gray-400 uppercase mb-0.5">Gross</p>
                 <p className="text-[10px] font-bold text-[#111827]">{tx.gross != null ? formatMoney(tx.gross, tx.currency) : "—"}</p>
@@ -181,6 +183,7 @@ function TransactionCard({ tx }) {
                 <p className="text-[8px] font-extrabold text-gray-400 uppercase mb-0.5">Platform Fee</p>
                 <p className="text-[10px] font-bold text-[#111827]">{tx.fee != null ? formatMoney(tx.fee, tx.currency) : "—"}</p>
               </div>
+              */}
             </>
           ) : (
             <>
@@ -564,12 +567,14 @@ function TransactionHistoryContent() {
             className="hidden md:block w-full overflow-x-auto"
             style={{ borderRadius: "12px", border: "0.88px solid #E5E7EB" }}
           >
-            <table className="w-full text-left border-collapse" style={{ minWidth: 900 }}>
+            <table className="w-full text-left border-collapse" style={{ minWidth: 600 }}>
               <thead className="sticky top-0 z-10">
                 <tr style={{ background: "#F9FAFB" }}>
                   {[
-                    "Transaction ID", "Type", "Description", "Status",
-                    ...(activeType !== "withdrawal" ? ["Gross Amount", "Platform Fee"] : []),
+                    "Transaction ID",
+                    // "Type", "Description", // Temporarily hidden.
+                    "Status",
+                    // ...(activeType !== "withdrawal" ? ["Gross Amount", "Platform Fee"] : []),
                     "Net Amount", "Date Received",
                   ].map((col, i, cols) => (
                     <th
@@ -594,6 +599,7 @@ function TransactionHistoryContent() {
                     style={{ borderBottom: idx < rows.length - 1 ? "0.88px solid #F3F4F6" : "none" }}
                   >
                     <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">{t.reference}</td>
+                    {/* Temporarily hidden: Type and Description.
                     <td className="px-5 py-3.5 text-[11px] font-bold uppercase text-gray-500 whitespace-nowrap">
                       {t.type === "withdrawal" ? "Withdrawal" : "Earning"}
                     </td>
@@ -606,9 +612,11 @@ function TransactionHistoryContent() {
                         <span className="block text-[10px] font-medium text-gray-400 mt-0.5">Arrives {formatDate(t.arrivalDate)}</span>
                       )}
                     </td>
+                    */}
                     <td className="px-5 py-3.5 whitespace-nowrap">
                       <StatusBadge type={t.type} status={t.status} />
                     </td>
+                    {/* Temporarily hidden: Gross Amount and Platform Fee.
                     {t.type !== "withdrawal" && (
                       <>
                         <td className="px-5 py-3.5 text-[11px] font-semibold text-[#111827] whitespace-nowrap">
@@ -622,6 +630,7 @@ function TransactionHistoryContent() {
                     {t.type === "withdrawal" && activeType !== "withdrawal" && (
                       <td className="px-5 py-3.5 whitespace-nowrap" colSpan={2} />
                     )}
+                    */}
                     <td className={`px-5 py-3.5 text-[11px] font-bold whitespace-nowrap ${t.isDebit ? "text-red-500" : "text-green-600"}`}>
                       {t.isDebit ? "-" : "+"}{formatMoney(Math.abs(Number(t.net || 0)), t.currency)}
                     </td>

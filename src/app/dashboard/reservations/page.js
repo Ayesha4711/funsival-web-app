@@ -1,5 +1,6 @@
 "use client";
 
+import useViewerTimeZone from "@/lib/useViewerTimeZone";
 import React, { Suspense, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -15,6 +16,8 @@ import {
   selectHostBookingsError,
 } from "@/store/slices/bookingsSlice";
 import axiosInstance from "@/store/axiosInstance";
+import { bookingClock, isBookingRequestExpired } from "@/lib/bookingClock";
+import useBookingClock from "@/lib/useBookingClock";
 import { toast } from "sonner";
 import Image from "next/image";
 import ReservationStats from "@/components/dashboard/ReservationStats";
@@ -104,10 +107,11 @@ function formatDateRange(startDate, endDate) {
   return fmt(start);
 }
 
-function mapReservationStatus(b) {
+function mapReservationStatus(b, now = new Date()) {
   const raw = String(b.status || b.bookingStatus || b.state || "").toLowerCase();
+  if (isBookingRequestExpired(b, bookingClock(b.listing?.timeZone || "UTC", now))) return "Rejected";
   if (raw === "completed") return "Completed";
-  if (raw === "declined") return "Declined";
+  if (raw === "declined" || raw === "rejected") return "Rejected";
   if (raw === "listing_deleted") return "Listing Deleted";
   if (raw === "cancelled" || raw === "canceled") return "Cancelled";
   if (raw === "pending" || raw === "awaiting_host_approval") return "Action Needed";
@@ -130,7 +134,7 @@ function mapPaymentStatus(paymentStatus) {
 }
 
 /* ─── Map API booking → row shape ─────────────────────────────────────────── */
-function mapBookingToRow(b) {
+function mapBookingToRow(b, now = new Date()) {
   const info = b.listing?.basicInformation ?? {};
   const loc = b.listing?.placeLocation ?? {};
   const snapshot = b.listingSnapshot ?? {};
@@ -141,8 +145,10 @@ function mapBookingToRow(b) {
     : snapshot.category
       ? snapshot.category.charAt(0).toUpperCase() + snapshot.category.slice(1)
       : "—";
-  const status = mapReservationStatus(b);
-  const invoice = mapPaymentStatus(b.paymentStatus);
+  const status = mapReservationStatus(b, now);
+  const invoice = status === "Rejected" && b.paymentStatus === "auth_released"
+    ? "Not accepted by provider"
+    : mapPaymentStatus(b.paymentStatus);
   const startDate = b.startDate ? new Date(b.startDate) : null;
   const endDate = b.endDate ? new Date(b.endDate) : null;
   const dateRange = formatDateRange(startDate, endDate);
@@ -180,6 +186,7 @@ function mapBookingToRow(b) {
     date: formatDateRange(startDate, startDate),
     dateRange,
     timeRanges,
+    booking: b,
     time: timeRanges.length === 1 ? timeRanges[0] : timeRanges.join("\n"),
     status,
     totalAmount: b.totalAmount,
@@ -230,6 +237,7 @@ function getInitialUrlState(searchParams) {
 }
 
 function ReservationsPageContent() {
+  const viewerTimeZone = useViewerTimeZone();
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
   const tableAreaRef = useRef(null);
@@ -308,10 +316,9 @@ function ReservationsPageContent() {
     }));
     requestRef.current = request;
     return () => request.abort?.();
-  }, [dispatch, activeTab, debouncedSearch, selectedDate, currentPage, limit, retryTick]);
+  }, [dispatch, activeTab, debouncedSearch, selectedDate, currentPage, limit, retryTick, viewerTimeZone]);
 
-  // Refresh while this page is open so a reservation moves into Completed as
-  // soon as its end time passes, without the provider needing to reload.
+  // Refresh automatic completion and rejection while this page is open.
   useEffect(() => {
     const timer = setInterval(() => {
       if (document.visibilityState !== "hidden") setRetryTick((tick) => tick + 1);
@@ -323,7 +330,11 @@ function ReservationsPageContent() {
     if (tableAreaRef.current) tableAreaRef.current.scrollIntoView({ block: "start" });
   }, [currentPage]);
 
-  const rows = useMemo(() => hostBookings.map(mapBookingToRow), [hostBookings]);
+  const clock = useBookingClock();
+  const rows = useMemo(
+    () => hostBookings.map((booking) => mapBookingToRow(booking, new Date(clock.now))),
+    [hostBookings, clock.now],
+  );
 
   /* Deep-link: auto-open the detail panel for ?bookingId= (e.g. from a notification) */
   useEffect(() => {
@@ -334,6 +345,23 @@ function ReservationsPageContent() {
       openedBookingIdRef.current = pendingBookingId;
     }
   }, [pendingBookingId, rows]);
+
+  // Keep an open detail view current even after its booking leaves the active tab.
+  const openBookingId = panelItem?.id;
+  useEffect(() => {
+    if (!openBookingId) return;
+    const controller = new AbortController();
+    const timer = setInterval(async () => {
+      if (document.visibilityState === "hidden") return;
+      try {
+        const { data } = await axiosInstance.get(`/bookings/${openBookingId}`, { signal: controller.signal });
+        if (!controller.signal.aborted && data?.data?.booking) {
+          setPanelItem((current) => current?.id === openBookingId ? mapBookingToRow(data.data.booking) : current);
+        }
+      } catch { /* Keep the last detail during transient network failures. */ }
+    }, 60 * 1000);
+    return () => { clearInterval(timer); controller.abort(); };
+  }, [openBookingId]);
 
   const counts = hostFilters?.counts ?? {};
   const hasActiveFilters = activeTab !== "all" || Boolean(debouncedSearch) || Boolean(selectedDate);
@@ -406,7 +434,7 @@ function ReservationsPageContent() {
         page: currentPage,
         limit,
       }));
-      setPanelItem((prev) => prev?.id === declineTarget.id ? { ...prev, status: "Declined", paymentStatus: "auth_released" } : prev);
+      setPanelItem((prev) => prev?.id === declineTarget.id ? { ...prev, status: "Rejected", paymentStatus: "auth_released" } : prev);
     } catch (err) {
       toast.error(typeof err === "string" ? err : "Could not decline booking. Please try again.");
     } finally {
@@ -557,7 +585,8 @@ function ReservationsPageContent() {
       {/* ── Right-side details panel ── */}
       {panelItem && (
         <ReservationDetailsPanel
-          reservation={panelItem}
+          reservation={rows.find((row) => row.id === panelItem.id)
+            ?? (panelItem._raw ? mapBookingToRow(panelItem._raw, new Date(clock.now)) : panelItem)}
           onClose={handleClosePanel}
           onCancel={handleRequestCancel}
           onAccept={handleRequestAccept}

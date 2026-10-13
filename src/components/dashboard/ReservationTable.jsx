@@ -1,5 +1,6 @@
 "use client";
 
+import BookingTimeDisplay from "@/components/shared/BookingTimeDisplay";
 import React, { useCallback } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -87,7 +88,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
       case "Upcoming":      return "bg-[#CFEDEC] text-[#168F8D]";
       case "Completed":     return "bg-[#DDFBE7] text-[#12A84A]";
       case "Cancelled":     return "bg-[#FFE0DE] text-[#FF1F1F]";
-      case "Declined":      return "bg-[#FFE0DE] text-[#FF1F1F]";
+      case "Rejected":      return "bg-[#FFE0DE] text-[#FF1F1F]";
       case "Listing Deleted": return "bg-[#FFE0DE] text-[#FF1F1F]";
       case "Action Needed": return "bg-amber-100 text-amber-700";
       case "Pending":       return "bg-[#FFF3CD] text-[#D97706]";
@@ -184,6 +185,9 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
                       {getInvoiceIcon(item.invoice)}
                       <span>{item.invoice}</span>
                     </div>
+                    {item.status === "Rejected" && item.paymentStatus === "auth_released" && (
+                      <span className="text-[10px] text-gray-500">Card hold released</span>
+                    )}
                     {item.refundStatus && (
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit ${
                         item.refundStatus.status === "approved"
@@ -207,10 +211,10 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
 
                 {/* Date & Time */}
                 <td className="px-5 py-3">
-                  <div className="text-[12px] text-[var(--color-text)] font-semibold whitespace-nowrap" style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}>
+                  {!item.booking && <div className="text-[12px] text-[var(--color-text)] font-semibold whitespace-nowrap" style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}>
                     {item.dateRange}
-                  </div>
-                  {Array.isArray(item.timeRanges) && item.timeRanges.length > 0 ? (
+                  </div>}
+                  {item.booking ? <BookingTimeDisplay booking={item.booking} layout="table" /> : Array.isArray(item.timeRanges) && item.timeRanges.length > 0 ? (
                     <div className="mt-0.5 flex flex-col gap-0.5 text-[11px] text-[var(--color-text-muted)] whitespace-nowrap" style={{ fontFamily: "var(--font-sofia-pro), Sofia Pro, sans-serif" }}>
                       {item.timeRanges.map((range, index) => (
                         <span key={`${range}-${index}`}>{range}</span>

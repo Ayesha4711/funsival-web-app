@@ -15,6 +15,9 @@ import {
   selectSavedCards,
   selectCardsLoading,
 } from "@/store/slices/paymentsSlice";
+import axiosInstance from "@/store/axiosInstance";
+import useViewerTimeZone from "@/lib/useViewerTimeZone";
+import BookingTimeDisplay from "@/components/shared/BookingTimeDisplay";
 import AppFooter from "@/components/shared/AppFooter";
 import AddPaymentModal from "@/components/shared/settings/AddPaymentModal";
 import {
@@ -113,18 +116,20 @@ function buildBookingPayload(params) {
     returnUrl: returnUrl,
   };
 
-  if (bookingType === "per_person") {
+  if (pricingMode === "per_person" || (!pricingMode && bookingType === "per_person")) {
     return {
       ...base,
+      pricingMode: "per_person",
       startDate,
+      ...(endDate ? { endDate } : {}),
       startTime,
       endTime,
       numberOfGuests: Number(numberOfGuests) || 1,
     };
   }
 
-  const mode = pricingMode || stored.pricingMode || (bookingType === "daily" ? "daily" : "hourly");
-  const payload = { ...base, pricingMode: mode, startDate: startDate || stored.selectedDate || stored.startDate || "" };
+  const mode = pricingMode || stored.pricingMode || (["daily", "per_day"].includes(bookingType) ? "daily" : "hourly");
+  const payload = { ...base, pricingMode: mode, startDate: startDate || stored.startDate || stored.selectedDate || "" };
 
   if (mode === "hourly") {
     const slots = storedSlots.length > 0 ? storedSlots : parseStoredSlots(params.get("slots"));
@@ -132,6 +137,7 @@ function buildBookingPayload(params) {
       payload.slots = slots
         .filter((slot) => slot?.startTime && slot?.endTime)
         .map((slot) => ({
+          ...(slot.sourceDate ? { sourceDate: slot.sourceDate } : {}),
           startTime: slot.startTime,
           endTime: slot.endTime,
         }));
@@ -264,15 +270,23 @@ function ConfirmAndPayInner() {
   const title       = params.get("title")       || "Listing";
   const description = params.get("description") || "";
   const image       = params.get("image")       || "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=200&q=80";
-  const dateFrom    = params.get("dateFrom")    || params.get("startDate") || "";
-  const dateTo      = params.get("dateTo")      || params.get("endDate")   || "";
-  const startTime   = params.get("startTime")   || "";
-  const endTime     = params.get("endTime")     || "";
   const bookingType  = params.get("bookingType")  || "";
   const pricingMode  = params.get("pricingMode")  || "";
   const sessionKey   = params.get("_skey") || "";
   const storedBooking = readStoredBooking(sessionKey);
   const storedSlots = parseStoredSlots(storedBooking.slots);
+  const viewerTimeZone = useViewerTimeZone();
+  const [localQuote, setLocalQuote] = useState(null);
+  const [scheduleError, setScheduleError] = useState("");
+  const bookingRequestKey = params.toString();
+  useEffect(() => {
+    if (!viewerTimeZone) return;
+    let cancelled = false;
+    axiosInstance.post("/bookings/quote", buildBookingPayload(new URLSearchParams(bookingRequestKey)))
+      .then(({ data }) => { if (!cancelled) { setLocalQuote({ ...data.data, requestKey: bookingRequestKey }); setScheduleError(""); } })
+      .catch(error => { if (!cancelled) setScheduleError(error.response?.data?.message || "Unable to load your local schedule."); });
+    return () => { cancelled = true; };
+  }, [bookingRequestKey, viewerTimeZone]);
 
   const toNum = (v, fb = 0) => { const n = Number(String(v ?? "").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : fb; };
   const pricePerUnit = toNum(params.get("pricePerUnit"), toNum(storedBooking.hourlyPrice, 0));
@@ -289,28 +303,10 @@ function ConfirmAndPayInner() {
   const total        = Number((subtotal + serviceFee).toFixed(2));
   const currency     = storedBooking.currency || "USD";
 
-  const formatTime = (timeStr) => {
-    if (!timeStr) return "";
-    if (timeStr.includes("AM") || timeStr.includes("PM")) return timeStr;
-    const [h, m] = timeStr.split(":").map(Number);
-    if (isNaN(h) || isNaN(m)) return timeStr;
-    const hour = h % 12 === 0 ? 12 : h % 12;
-    return `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
-  };
-
-  const serverEndDate = dateTo || dateFrom;
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    if (isNaN(d)) return dateStr;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  };
-
   const priceLabel = (() => {
-    if (bookingType === "per_person") return `$${pricePerUnit} × ${unitsBooked} person(s)`;
-    if (bookingType === "hourly" || bookingType === "per_hour") return `${formatMoney(pricePerUnit, currency)} × ${unitsBooked} hour(s)`;
-    if (bookingType === "daily") return `$${pricePerUnit} × ${unitsBooked} day(s)`;
+    if (pricingMode === "per_person" || (!pricingMode && bookingType === "per_person")) return `$${pricePerUnit} × ${unitsBooked} person(s)`;
+    if (pricingMode === "hourly" || (!pricingMode && ["hourly", "per_hour"].includes(bookingType))) return `${formatMoney(pricePerUnit, currency)} × ${unitsBooked} hour(s)`;
+    if (pricingMode === "daily" || (!pricingMode && ["daily", "per_day"].includes(bookingType))) return `$${pricePerUnit} × ${unitsBooked} day(s)`;
     return `$${pricePerUnit} × ${unitsBooked}`;
   })();
 
@@ -318,7 +314,7 @@ function ConfirmAndPayInner() {
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const canPay = agreed && !submitting && !!selectedPmId;
+  const canPay = agreed && !submitting && !!selectedPmId && localQuote?.requestKey === bookingRequestKey && localQuote?.localSchedule?.timeZone === viewerTimeZone && !scheduleError;
 
   const handleConfirmAndPay = async () => {
     if (!selectedPmId) {
@@ -393,7 +389,8 @@ function ConfirmAndPayInner() {
 
       if (err?.errors && typeof err.errors === "object") {
         Object.entries(err.errors).forEach(([key, val]) => {
-          if (key === "slots") return;
+          // The time zone is validation context, not a separate error message.
+          if (key === "slots" || key === "timeZone") return;
           if (typeof val === "string") {
             toast.error(val);
           } else if (Array.isArray(val)) {
@@ -449,86 +446,11 @@ function ConfirmAndPayInner() {
                 </button>
               </div>
               <div className="flex flex-col gap-3">
-                {(pricingMode === "daily" || bookingType === "daily") ? (
-                  /* Daily — dates row + optional time row */
-                  (dateFrom || serverEndDate) && (
-                    <>
-                      <div>
-                        <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Dates</p>
-                        <p style={FIELD_SUBTEXT_STYLE}>
-                          {dateFrom && serverEndDate && dateFrom !== serverEndDate
-                            ? `${formatDate(dateFrom)} – ${formatDate(serverEndDate)}`
-                            : formatDate(dateFrom || serverEndDate)}
-                        </p>
-                      </div>
-                      {(startTime || endTime) && (
-                        <div>
-                          <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Time</p>
-                          <p style={FIELD_SUBTEXT_STYLE}>
-                            {startTime && endTime && startTime !== endTime
-                              ? `${formatTime(startTime)} – ${formatTime(endTime)}`
-                              : formatTime(startTime || endTime)}
-                          </p>
-                        </div>
-                      )}
-                      {(startTime || endTime) && (
-                        <div className="rounded-2xl border border-[#E9EEF8] bg-[#F9FBFF] p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold text-gray-900">
-                                {startTime && endTime && startTime !== endTime
-                                  ? `${formatTime(startTime)} – ${formatTime(endTime)}`
-                                  : formatTime(startTime || endTime)}
-                              </p>
-                              <p className="mt-0.5 text-xs text-gray-500">Daily slot preview</p>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Price</p>
-                              <p className="text-base font-bold text-[#2f4d86]">{formatMoney(subtotal, currency)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )
-                ) : (
-                  /* Hourly / per-person — separate Dates + Time rows */
-                  <>
-                    {(dateFrom || serverEndDate) && (
-                      <div>
-                        <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Dates</p>
-                        <p style={FIELD_SUBTEXT_STYLE}>
-                          {dateFrom && serverEndDate && dateFrom !== serverEndDate
-                            ? `${formatDate(dateFrom)} – ${formatDate(serverEndDate)}`
-                            : formatDate(dateFrom || serverEndDate)}
-                        </p>
-                      </div>
-                    )}
-                    {storedSlots.length > 0 ? (
-                      <div>
-                        <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Selected Slots</p>
-                        <div className="space-y-1">
-                          {storedSlots.map((slot, index) => (
-                            <p key={`${slot.startTime}-${slot.endTime}-${index}`} style={FIELD_SUBTEXT_STYLE}>
-                              {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      (startTime || endTime) && (
-                        <div>
-                          <p className="text-gray-900 mb-0.5" style={FIELD_LABEL_STYLE}>Time</p>
-                          <p style={FIELD_SUBTEXT_STYLE}>
-                            {startTime && endTime && startTime !== endTime
-                              ? `${formatTime(startTime)} – ${formatTime(endTime)}`
-                              : formatTime(startTime || endTime)}
-                          </p>
-                        </div>
-                      )
-                    )}
-                  </>
-                )}
+                {scheduleError ? (
+                  <p className="text-sm text-red-600">{scheduleError}</p>
+                ) : localQuote?.requestKey === bookingRequestKey && localQuote?.localSchedule?.timeZone === viewerTimeZone ? (
+                  <BookingTimeDisplay booking={localQuote} />
+                ) : <p className="text-sm text-gray-500">Loading your local schedule…</p>}
                 {(() => {
                   const guestVal = params.get("numberOfGuests") || params.get("guests");
                   const displayGuests = guestVal

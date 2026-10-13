@@ -1,5 +1,6 @@
 "use client";
 
+import BookingTimeDisplay from "@/components/shared/BookingTimeDisplay";
 import React, { useEffect } from "react";
 import Image from "next/image";
 import heroImg from "@/assets/images/HeroImg.jpg";
@@ -39,7 +40,7 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
 
   if (!reservation) return null;
 
-  const isCancelled = ["Cancelled", "Declined", "Listing Deleted"].includes(reservation.status);
+  const isCancelled = ["Cancelled", "Rejected", "Listing Deleted"].includes(reservation.status);
   const isActionNeeded = reservation.status === "Action Needed";
 
   const PAYMENT_STATUS_CFG = {
@@ -111,6 +112,7 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
               value={reservation.totalAmount != null ? `$${reservation.totalAmount}` : "—"}
             />
             <DetailRow label="Reserved By" value={reservation.reservedBy} />
+            {reservation.booking ? <BookingTimeDisplay booking={reservation.booking} /> : (<>
             <DetailRow label="Date"        value={reservation.dateRange || reservation.date} />
             <DetailRow
               label="Time"
@@ -118,16 +120,22 @@ export default function ReservationDetailsPanel({ reservation, onClose, onCancel
                 ? reservation.timeRanges.join("\n")
                 : reservation.time || "—"}
             />
+            </>)}
             <DetailRow label="Location"    value={reservation.location} />
 
             {/* Payment status */}
+            {reservation.status === "Rejected" && (
+              <DetailRow label="Reservation outcome" value="Not accepted by provider" />
+            )}
             {psCfg && (
               <div className="flex items-center justify-between py-3.5 border-b border-gray-100">
                 <span style={{ fontFamily: FONT, fontWeight: 500, fontSize: 14, color: "#374151" }}>
                   Payment Status
                 </span>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${psCfg.bg} ${psCfg.text}`}>
-                  {psCfg.label}
+                  {reservation.status === "Rejected" && reservation.paymentStatus === "auth_released"
+                    ? "Card hold released"
+                    : psCfg.label}
                 </span>
               </div>
             )}
