@@ -236,6 +236,9 @@ const paymentsSlice = createSlice({
     // Merchant wallet
     balances: [],              // [{ currency, pending, current, breakdown }]
     balanceAccountId: null,
+    payoutDelayDays: null,
+    expectedBankDeposits: [],
+    depositDateUnavailable: false,
     balanceLoading: false,
     balanceError: null,
 
@@ -369,6 +372,9 @@ const paymentsSlice = createSlice({
         const d = action.payload?.data ?? action.payload ?? {};
         state.balances = Array.isArray(d.balances) ? d.balances : [];
         state.balanceAccountId = d.accountId ?? null;
+        state.payoutDelayDays = d.payoutDelayDays ?? null;
+        state.expectedBankDeposits = d.expectedBankDeposits ?? [];
+        state.depositDateUnavailable = Boolean(d.depositDateUnavailable);
       })
       .addCase(fetchConnectBalance.rejected, (state, action) => {
         state.balanceLoading = false;
@@ -528,3 +534,7 @@ export const selectPaymentsActionStatus = (state) => state.payments.actionStatus
 export const selectPaymentsActionError = (state) => state.payments.actionError;
 
 export default paymentsSlice.reducer;
+
+export const selectPayoutDelayDays = state => state.payments.payoutDelayDays;
+export const selectExpectedBankDeposits = state => state.payments.expectedBankDeposits;
+export const selectDepositDateUnavailable = state => state.payments.depositDateUnavailable;

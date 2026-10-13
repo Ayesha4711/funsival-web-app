@@ -14,6 +14,9 @@ import {
   selectConnectBalances,
   selectConnectBalanceLoading,
   selectConnectBalanceError,
+  selectPayoutDelayDays,
+  selectExpectedBankDeposits,
+  selectDepositDateUnavailable,
 } from "@/store/slices/paymentsSlice";
 import StripeOnboarding from "./StripeOnboarding";
 
@@ -38,13 +41,20 @@ export default function EarningsStats() {
   const balances = useSelector(selectConnectBalances);
   const balanceLoading = useSelector(selectConnectBalanceLoading);
   const balanceError = useSelector(selectConnectBalanceError);
+  const payoutDelayDays = useSelector(selectPayoutDelayDays);
+  const expectedBankDeposits = useSelector(selectExpectedBankDeposits);
+  const depositDateUnavailable = useSelector(selectDepositDateUnavailable);
 
   useEffect(() => {
     dispatch(fetchConnectStatus());
   }, [dispatch]);
 
   useEffect(() => {
-    dispatch(fetchConnectBalance());
+    const refresh = () => { if (document.visibilityState !== "hidden") dispatch(fetchConnectBalance()); };
+    refresh();
+    const timer = setInterval(refresh, 60 * 1000);
+    window.addEventListener("focus", refresh);
+    return () => { clearInterval(timer); window.removeEventListener("focus", refresh); };
   }, [dispatch]);
 
   const handleOpenStripeDashboard = async () => {
@@ -118,7 +128,7 @@ export default function EarningsStats() {
           <p className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-[#FF7201] mb-1 leading-tight">
             {balanceLoading && !primaryBalance ? "—" : formatWalletMoney(pendingBalance, currency)}
           </p>
-          <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] leading-tight">Held for 7 days — cannot be withdrawn</p>
+          <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] leading-tight">{payoutDelayDays === null ? "Awaiting payout information" : `Released ${payoutDelayDays * 24} hours after the reservation ends. Stripe processing may take longer.`}</p>
         </div>
 
         <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 border border-[var(--color-border)] col-span-2 lg:col-span-1 flex flex-col justify-between gap-2 sm:gap-3">
@@ -127,6 +137,16 @@ export default function EarningsStats() {
             <p className="text-[10px] sm:text-xs lg:text-sm text-[#666666] leading-tight">
               {isOnboarded ? "Manage your payouts and bank details" : "Connect Stripe to receive payouts"}
             </p>
+            <div className="mt-2 text-[10px] sm:text-xs lg:text-sm text-[#666666]">
+              <p className="font-medium">Expected bank deposit</p>
+              {depositDateUnavailable ? <p>Unable to retrieve the date from Stripe.</p> : expectedBankDeposits.length ? expectedBankDeposits.map(payout => (
+                <p key={payout.id}>
+                  {new Date(`${payout.expectedDate}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}
+                  {` · ${formatWalletMoney(payout.amount, payout.currency)}`}
+                  {payout.testMode ? " · Test mode (no bank transfer)" : " · Estimated by Stripe"}
+                </p>
+              )) : <p>{balanceLoading ? "Loading…" : "Not scheduled yet. Withdraw available funds to request a bank payout."}</p>}
+            </div>
           </div>
           <button
             onClick={handleOpenStripeDashboard}
