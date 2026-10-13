@@ -15,6 +15,7 @@ const axiosInstance = axios.create({
 // Attach auth token before every request
 axiosInstance.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
+    config.headers["X-Time-Zone"] = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     let token = localStorage.getItem("auth-token");
     if (!token) {
       const match = document.cookie.match(/(^|;)\s*auth-token\s*=\s*([^;]+)/);
