@@ -54,7 +54,7 @@ function csvCell(value) {
 function buildTransactionsCsv(rows) {
   const header = [
     "Transaction ID", "Type", "Description", "Status",
-    "Gross Amount", "Platform Fee", "Net Amount", "Currency", "Date Received",
+    "Gross Amount", "Platform Fee", "Net Amount", "Currency", "Booking Date",
   ];
   const lines = [header.map(csvCell).join(",")];
 
@@ -575,7 +575,7 @@ function TransactionHistoryContent() {
                     // "Type", "Description", // Temporarily hidden.
                     "Status",
                     // ...(activeType !== "withdrawal" ? ["Gross Amount", "Platform Fee"] : []),
-                    "Net Amount", "Date Received",
+                    "Net Amount", "Booking Date",
                   ].map((col, i, cols) => (
                     <th
                       key={col}
