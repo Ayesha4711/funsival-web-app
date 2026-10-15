@@ -1,5 +1,23 @@
 import { DateTime } from 'luxon';
 
+export function getReservationStatusLabel(reservation, now = new Date()) {
+  const raw = String(reservation?.status || reservation?.bookingStatus || reservation?.state || '').toLowerCase();
+  const booking = { ...reservation, status: raw };
+  const clock = bookingClock(reservation?.listing?.timeZone || reservation?.listingSnapshot?.timeZone || 'UTC', now);
+  if (raw === 'declined' || raw === 'rejected') return 'Rejected';
+  if (raw === 'cancelled' || raw === 'canceled') return 'Cancelled';
+  if (raw === 'listing_deleted' || raw === 'listing-deleted') return 'Listing Removed';
+  if (raw === 'completed') return 'Completed';
+  if (isBookingRequestExpired(booking, clock)) return 'Rejected';
+  if (raw === 'pending' || raw === 'awaiting_host_approval' || raw === 'awaitinghostapproval') return 'Awaiting Host';
+  if (raw === 'confirmed') {
+    return { upcoming: 'Upcoming', 'in-progress': 'In-progress', completed: 'Completed' }[getBookingPhase(booking, clock)];
+  }
+  if (raw === 'upcoming') return 'Upcoming';
+  if (raw === 'active' || raw === 'in-progress' || raw === 'in_progress') return 'In-progress';
+  return 'Awaiting Host';
+}
+
 // Availability dates are calendar labels; start times belong to the listing.
 export function bookingClock(timeZone = 'UTC', now = new Date()) {
   const values = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
