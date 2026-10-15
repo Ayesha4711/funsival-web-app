@@ -13,6 +13,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import EarningsGraph from "@/components/dashboard/EarningsGraph";
+import { getReservationStatusLabel } from "@/lib/bookingClock";
+import useBookingClock from "@/lib/useBookingClock";
 
 const USD = "USD";
 const PERIODS = [
@@ -55,25 +57,14 @@ const normalizeCurrencyEntry = (value, currency = USD) => {
   return {};
 };
 
-const mapReservationStatus = (reservation) => {
-  const raw = String(reservation?.status || reservation?.bookingStatus || reservation?.state || "").toLowerCase();
-  const startDate = reservation?.startDate || reservation?.start_date || reservation?.date || null;
-  const start = startDate ? new Date(startDate) : null;
-  const now = new Date();
-  if (raw === "completed") return "Completed";
-  if (raw === "cancelled" || raw === "canceled" || raw === "declined") return "Cancelled";
-  if (raw === "pending" || raw === "awaiting_host_approval") return "Pending";
-  if (raw === "confirmed") return start && !Number.isNaN(start.getTime()) && start.getTime() > now.getTime() ? "Upcoming" : "Active";
-  if (raw === "upcoming" || raw === "active") return raw.charAt(0).toUpperCase() + raw.slice(1);
-  return "Pending";
-};
-
 const mapStatusStyles = {
   Completed: "bg-[#29A329] text-white",
-  Pending: "bg-[#FEB538] text-white",
+  "Awaiting Host": "bg-[#94A3B8] text-white",
+  Rejected: "bg-[#E25C5C] text-white",
+  "Listing Removed": "bg-red-600 text-white",
   Cancelled: "bg-[#E25C5C] text-white",
   Upcoming: "bg-[#1d8c82] text-white",
-  Active: "bg-[#1d8c82] text-white",
+  "In-progress": "bg-[#F9C234] text-white",
 };
 
 function StatCard({ label, value, sub, subClassName = "text-green-500", valueClassName = "text-[#212121]" }) {
@@ -97,10 +88,11 @@ function StatusBadge({ status }) {
 }
 
 function ReservationRow({ r, className = "" }) {
+  const clock = useBookingClock();
   const name = r.listing?.title ?? r.title ?? "Reservation";
   const date = formatDate(r.startDate ?? r.start_date ?? r.createdAt ?? r.date);
   const type = r.listing?.category ?? r.category ?? "";
-  const status = mapReservationStatus(r);
+  const status = getReservationStatusLabel(r, new Date(clock.now));
   const img = r.listing?.image ?? r.listing?.photos?.[0] ?? r.listing?.images?.[0] ?? r.image ?? null;
 
   return (

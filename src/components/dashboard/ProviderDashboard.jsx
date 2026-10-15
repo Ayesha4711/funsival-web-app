@@ -23,6 +23,8 @@ import heroImg from "@/assets/images/HeroImg.jpg";
 import axiosInstance from "@/store/axiosInstance";
 import { selectUser } from "@/store/slices/profileSlice";
 import { resetStore } from "@/store/store";
+import { getReservationStatusLabel } from "@/lib/bookingClock";
+import useBookingClock from "@/lib/useBookingClock";
 import { ChevronRightIcon } from "@/icons";
 
 const USD_CURRENCY = "USD";
@@ -116,28 +118,6 @@ function pickCurrencyRecord(value, currency = USD_CURRENCY) {
     if ("amount" in value || "value" in value || "total" in value || "earnings" in value) return value;
   }
   return {};
-}
-
-function getReservationStatus(reservation) {
-  const raw = String(
-    reservation?.status ??
-    reservation?.bookingStatus ??
-    reservation?.state ??
-    ""
-  ).toLowerCase();
-  const startDateValue = reservation?.startDate ?? reservation?.start_date ?? reservation?.date ?? null;
-  const startDate = startDateValue ? new Date(startDateValue) : null;
-  const now = new Date();
-
-  if (raw === "completed") return "Completed";
-  if (raw === "cancelled" || raw === "canceled" || raw === "declined") return "Cancelled";
-  if (raw === "pending" || raw === "awaiting_host_approval" || raw === "awaitinghostapproval") return "Pending";
-  if (raw === "confirmed") {
-    if (startDate && !Number.isNaN(startDate.getTime()) && startDate.getTime() > now.getTime()) return "Upcoming";
-    return "Active";
-  }
-  if (raw === "upcoming" || raw === "active") return raw.charAt(0).toUpperCase() + raw.slice(1);
-  return "Pending";
 }
 
 function handleUnauthorized(dispatch) {
@@ -237,6 +217,7 @@ export function DashboardStatCard({ label, value, subtitle, tone = "neutral" }) 
 }
 
 export function RecentReservations({ reservations = [], loading = false, error = "", onRetry }) {
+  const clock = useBookingClock();
   if (loading) return <PanelSkeleton />;
   return (
     <section className="flex min-h-[260px] flex-col rounded-[28px] border border-gray-100 bg-white p-4 sm:p-5 shadow-sm">
@@ -264,7 +245,7 @@ export function RecentReservations({ reservations = [], loading = false, error =
             const listing = reservation?.listing ?? {};
             const title = listing?.title || reservation?.title || "Listing removed";
             const category = listing?.category || reservation?.category || "—";
-            const status = getReservationStatus(reservation);
+            const status = getReservationStatusLabel(reservation, new Date(clock.now));
             const image = listing?.image || listing?.photos?.[0] || listing?.images?.[0] || reservation?.image || null;
             const dateLabel = formatDateLabel(reservation?.startDate ?? reservation?.start_date ?? reservation?.date);
 
@@ -286,13 +267,13 @@ export function RecentReservations({ reservations = [], loading = false, error =
                     className={`rounded-full px-3 py-1 text-[10px] font-bold ${
                       status === "Completed"
                         ? "bg-[#E7F7F5] text-[#228E8A]"
-                        : status === "Pending"
-                          ? "bg-[#FFF4D6] text-[#C98A00]"
+                        : status === "Awaiting Host"
+                          ? "bg-[#94A3B8] text-white"
                           : status === "Upcoming"
                             ? "bg-[#EAF4FF] text-[#2563EB]"
-                            : status === "Active"
-                              ? "bg-[#DDF7EE] text-[#0F766E]"
-                              : "bg-[#FFE8DF] text-[#F97316]"
+                            : status === "In-progress"
+                              ? "bg-[#F9C234] text-white"
+                              : "bg-[#FFE0DE] text-[#FF1F1F]"
                     }`}
                   >
                     {status}
