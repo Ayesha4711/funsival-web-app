@@ -765,9 +765,9 @@ export default function ProviderDashboard() {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <DashboardStatCard label="Total Earnings" value={cards.totalEarnings.value} subtitle={cards.totalEarnings.subtitle} tone={cards.totalEarnings.tone} />
+          <DashboardStatCard label="Pending Payments" value={cards.pendingPayments.value} subtitle={cards.pendingPayments.subtitle} tone={cards.pendingPayments.tone} />
           <DashboardStatCard label="Active Listings" value={cards.activeListings.value} subtitle={cards.activeListings.subtitle} tone={cards.activeListings.tone} />
           <DashboardStatCard label="Reservations" value={cards.reservations.value} subtitle={cards.reservations.subtitle} tone={cards.reservations.tone} />
-          <DashboardStatCard label="Pending Payments" value={cards.pendingPayments.value} subtitle={cards.pendingPayments.subtitle} tone={cards.pendingPayments.tone} />
         </div>
       )}
 
