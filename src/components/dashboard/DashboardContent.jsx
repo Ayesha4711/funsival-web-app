@@ -444,9 +444,9 @@ export default function DashboardContent() {
     <div className="flex flex-col gap-4 sm:gap-5 p-3 xs:p-4 sm:p-6 flex-1">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <StatCard label="Total Earning" value={data?.stats.totalEarnings.value ?? "—"} sub={data?.stats.totalEarnings.sub} subClassName={data?.stats.totalEarnings.subClassName} />
+        <StatCard label="Pending Payments" value={data?.stats.pendingPayments.value ?? "—"} sub={data?.stats.pendingPayments.sub} subClassName={data?.stats.pendingPayments.subClassName} />
         <StatCard label="Active Listings" value={data?.stats.activeListings.value ?? "—"} sub={data?.stats.activeListings.sub} subClassName={data?.stats.activeListings.subClassName} />
         <StatCard label="Reservations" value={data?.stats.reservations.value ?? "—"} sub={data?.stats.reservations.sub} subClassName={data?.stats.reservations.subClassName} />
-        <StatCard label="Pending Payments" value={data?.stats.pendingPayments.value ?? "—"} sub={data?.stats.pendingPayments.sub} subClassName={data?.stats.pendingPayments.subClassName} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(0,0.72fr)] gap-3 sm:gap-4 items-stretch">
