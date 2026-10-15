@@ -231,7 +231,6 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
   const photo = b?.listing?.photos?.[0]
     ?? b?.listingSnapshot?.photo
     ?? "https://images.unsplash.com/photo-1572331165267-854da2b021cc?w=400&q=80";
-  const confirmationNo = b?.confirmationNumber ?? b?.id?.slice(-8)?.toUpperCase();
 
 
   return (
@@ -254,7 +253,7 @@ function LeaveReviewModal({ bookingId, onClose, onSubmitted }) {
                 <img src={photo} alt={title} className="w-16 h-12 rounded-lg object-cover shrink-0" />
                 <div>
                   <p className="text-sm font-bold text-gray-900">{title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Confirmation No: {confirmationNo}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 break-all">Booking ID: {b?.id || "—"}</p>
                   <BookingTimeDisplay booking={b} />
                   <p className="text-xs text-gray-400">
                     {b.numberOfGuests ? ` · ${b.numberOfGuests} guest(s)` : ""}
@@ -611,7 +610,7 @@ function BookingRow({ booking, onViewDetail, onCancel, onLeaveReview, onReportLi
         {/* Top row: confirmation + title + badge + icons */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-400 mb-0.5">Confirmation No. {booking.id?.slice(-8)?.toUpperCase()}</p>
+            <p className="text-xs text-gray-400 mb-0.5 break-all">Booking ID: {booking.id || "—"}</p>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-xl font-bold text-gray-900">{getTitle(booking)}</h3>
               <StatusBadge status={statusKey} />
@@ -771,7 +770,7 @@ function BookingDetailView({ booking, refundRequest, onLeaveReview, onCancel, on
           <div className="flex-1 p-5 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="text-xs text-gray-400 mb-1">Confirmation No: {booking.id?.slice(-8)?.toUpperCase()}</p>
+                <p className="text-xs text-gray-400 mb-1 break-all">Booking ID: {booking.id || "—"}</p>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-xl font-bold text-gray-900">{getTitle(booking)}</h2>
                   <StatusBadge status={statusKey} />

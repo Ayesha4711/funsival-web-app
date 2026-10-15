@@ -101,7 +101,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
       case "Paid":        return "text-[#27AE60]";
       case "Overdue":     return "text-[#F5A623]";
       case "Refunded":    return "text-[#E25C5C]";
-      case "Authorized":  return "text-[#6366F1]";
+      case "Awaiting Host": return "text-[#6366F1]";
       case "Processing":  return "text-[#6366F1]";
       case "Pending":     return "text-[#D97706]";
       default:            return "text-gray-500";
@@ -113,7 +113,7 @@ export default function ReservationTable({ data, onViewDetails, onCancel, onAcce
       case "Paid":        return <CheckCircleIcon size={13} />;
       case "Overdue":     return <ClockIcon size={13} />;
       case "Refunded":    return <RefundIcon size={13} />;
-      case "Authorized":  return <ClockIcon size={13} />;
+      case "Awaiting Host": return <ClockIcon size={13} />;
       case "Processing":  return <ClockIcon size={13} />;
       case "Pending":     return <ClockIcon size={13} />;
       default:            return null;
