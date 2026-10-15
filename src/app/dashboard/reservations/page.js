@@ -125,7 +125,7 @@ function mapPaymentStatus(paymentStatus) {
   if (raw === "refunded") return "Refunded";
   if (raw === "refunding") return "Refunding";
   if (raw === "processing") return "Processing";
-  if (raw === "authorized") return "Authorized";
+  if (raw === "authorized") return "Awaiting Host";
   if (raw === "failed") return "Failed";
   if (raw === "requires_payment") return "Payment Required";
   if (raw === "disputed") return "Disputed";

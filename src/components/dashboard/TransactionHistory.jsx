@@ -53,8 +53,8 @@ function csvCell(value) {
 /* ─── Client-side CSV export (no backend export endpoint yet) ───────────── */
 function buildTransactionsCsv(rows) {
   const header = [
-    "Transaction ID", "Type", "Description", "Status",
-    "Gross Amount", "Platform Fee", "Net Amount", "Currency", "Booking Date",
+    "Transaction ID", "Booking ID", "Type", "Description", "Status",
+    "Gross Amount", "Platform Fee", "Net Amount", "Currency", "Booking Date", "Paid Date",
   ];
   const lines = [header.map(csvCell).join(",")];
 
@@ -62,6 +62,7 @@ function buildTransactionsCsv(rows) {
     const isWithdrawal = t.type === "withdrawal";
     lines.push([
       t.reference,
+      t.bookingId,
       isWithdrawal ? "Withdrawal" : "Earning",
       t.description,
       t.status ?? "",
@@ -70,6 +71,7 @@ function buildTransactionsCsv(rows) {
       t.isDebit ? -Math.abs(Number(t.net || 0)) : Math.abs(Number(t.net || 0)),
       t.currency,
       formatDate(t.date),
+      isWithdrawal ? formatDate(t.paidAt) : "",
     ].map(csvCell).join(","));
   });
 
@@ -105,12 +107,13 @@ function mapTransaction(t) {
     currency: String(t.currency || USD).toUpperCase(),
     date: t.transactionDate,
     description: isWithdrawal ? "Bank withdrawal" : (t.description || booking?.listing?.title || "Earning"),
-    reference: isWithdrawal ? (withdrawal.id || "—") : (booking.id || "—"),
+    reference: t.transactionId || "—",
+    bookingId: isWithdrawal ? null : (booking.id || null),
     customer: isWithdrawal ? null : customer,
     gross: isWithdrawal ? null : booking.grossAmount,
     fee: isWithdrawal ? null : booking.platformFee,
     net: t.amount,
-    arrivalDate: withdrawal.arrivalDate || null,
+    paidAt: isWithdrawal && t.status === "paid" ? (withdrawal.paidAt || null) : null,
     failureReason: withdrawal.failureReason || null,
     isDebit: t.direction === "debit" || isWithdrawal,
   };
@@ -130,7 +133,7 @@ function TableSkeleton() {
 /* ─── Mobile card ─────────────────────────────────────────────────────────── */
 function TransactionCard({ tx }) {
   const [expanded, setExpanded] = useState(false);
-  const hasDetails = tx.type === "withdrawal" ? (tx.arrivalDate || tx.failureReason) : (tx.gross != null || tx.fee != null);
+  const hasDetails = tx.type === "withdrawal" ? (tx.paidAt || tx.failureReason) : (tx.gross != null || tx.fee != null);
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -138,7 +141,15 @@ function TransactionCard({ tx }) {
         <div className="min-w-0 flex-1">
           {/* <p className="text-[13px] font-semibold text-[#111827] truncate">{tx.description}</p> */}
           <p className="text-[13px] font-semibold text-[#111827] break-all">{tx.reference}</p>
+          {tx.type !== "withdrawal" && tx.bookingId && (
+            <p className="text-[10px] text-gray-400 mt-1 break-all">Booking ID: {tx.bookingId}</p>
+          )}
           <p className="text-[10px] text-gray-400 mt-1">{formatDate(tx.date)}</p>
+          {tx.type === "withdrawal" && (
+            <p className="text-[10px] text-gray-500 mt-1">
+              Paid date: {formatDate(tx.paidAt)}
+            </p>
+          )}
           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
             <StatusBadge type={tx.type} status={tx.status} />
             {/* <span className="text-[10px] font-semibold uppercase text-gray-400">{tx.type}</span> */}
@@ -156,9 +167,10 @@ function TransactionCard({ tx }) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
           className="w-full text-left px-3 py-1.5 text-[10px] font-bold text-[#228E8A] border-t border-gray-50"
         >
-          {expanded ? "Hide details" : "Show details"}
+          {expanded ? "Hide details" : "View details"}
         </button>
       )}
 
@@ -187,10 +199,10 @@ function TransactionCard({ tx }) {
             </>
           ) : (
             <>
-              {tx.arrivalDate && (
+              {tx.paidAt && (
                 <div className="min-w-0">
-                  <p className="text-[8px] font-extrabold text-gray-400 uppercase mb-0.5">Arrival Date</p>
-                  <p className="text-[10px] font-bold text-[#111827]">{formatDate(tx.arrivalDate)}</p>
+                  <p className="text-[8px] font-extrabold text-gray-400 uppercase mb-0.5">Paid Date</p>
+                  <p className="text-[10px] font-bold text-[#111827]">{formatDate(tx.paidAt)}</p>
                 </div>
               )}
               {tx.failureReason && (
@@ -572,10 +584,12 @@ function TransactionHistoryContent() {
                 <tr style={{ background: "#F9FAFB" }}>
                   {[
                     "Transaction ID",
+                    ...(activeType !== "withdrawal" ? ["Booking ID"] : []),
                     // "Type", "Description", // Temporarily hidden.
                     "Status",
                     // ...(activeType !== "withdrawal" ? ["Gross Amount", "Platform Fee"] : []),
                     "Net Amount", "Booking Date",
+                    ...(activeType !== "earning" ? ["Paid Date"] : []),
                   ].map((col, i, cols) => (
                     <th
                       key={col}
@@ -599,6 +613,9 @@ function TransactionHistoryContent() {
                     style={{ borderBottom: idx < rows.length - 1 ? "0.88px solid #F3F4F6" : "none" }}
                   >
                     <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">{t.reference}</td>
+                    {activeType !== "withdrawal" && (
+                      <td className="px-5 py-3.5 text-[11px] text-gray-400 break-words min-w-[180px] max-w-[360px] font-medium">{t.bookingId || "—"}</td>
+                    )}
                     {/* Temporarily hidden: Type and Description.
                     <td className="px-5 py-3.5 text-[11px] font-bold uppercase text-gray-500 whitespace-nowrap">
                       {t.type === "withdrawal" ? "Withdrawal" : "Earning"}
@@ -608,8 +625,8 @@ function TransactionHistoryContent() {
                       {t.type === "withdrawal" && t.failureReason && (
                         <span className="block text-[10px] font-semibold text-red-500 mt-0.5">{t.failureReason}</span>
                       )}
-                      {t.type === "withdrawal" && t.arrivalDate && (
-                        <span className="block text-[10px] font-medium text-gray-400 mt-0.5">Arrives {formatDate(t.arrivalDate)}</span>
+                      {t.type === "withdrawal" && t.paidAt && (
+                        <span className="block text-[10px] font-medium text-gray-400 mt-0.5">Paid {formatDate(t.paidAt)}</span>
                       )}
                     </td>
                     */}
@@ -635,6 +652,11 @@ function TransactionHistoryContent() {
                       {t.isDebit ? "-" : "+"}{formatMoney(Math.abs(Number(t.net || 0)), t.currency)}
                     </td>
                     <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">{formatDate(t.date)}</td>
+                    {activeType !== "earning" && (
+                      <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">
+                        {formatDate(t.paidAt)}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
