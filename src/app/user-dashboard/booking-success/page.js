@@ -104,7 +104,7 @@ export default function BookingSuccessPage() {
         ) : (
           <div className="mb-8">
             <Image
-              src="/congratulations.png"
+              src="/images/Congratulations.png"
               alt="Booking status"
               width={320}
               height={320}
