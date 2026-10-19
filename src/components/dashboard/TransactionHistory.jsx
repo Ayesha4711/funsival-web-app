@@ -589,7 +589,7 @@ function TransactionHistoryContent() {
                     "Status",
                     // ...(activeType !== "withdrawal" ? ["Gross Amount", "Platform Fee"] : []),
                     "Net Amount", "Booking Date",
-                    ...(activeType !== "earning" ? ["Paid Date"] : []),
+                    // ...(activeType !== "earning" ? ["Paid Date"] : []), // Temporarily hidden.
                   ].map((col, i, cols) => (
                     <th
                       key={col}
@@ -652,11 +652,13 @@ function TransactionHistoryContent() {
                       {t.isDebit ? "-" : "+"}{formatMoney(Math.abs(Number(t.net || 0)), t.currency)}
                     </td>
                     <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">{formatDate(t.date)}</td>
+                    {/* Temporarily hidden: Paid Date.
                     {activeType !== "earning" && (
                       <td className="px-5 py-3.5 text-[11px] text-gray-400 whitespace-nowrap font-medium">
                         {formatDate(t.paidAt)}
                       </td>
                     )}
+                    */}
                   </tr>
                 ))}
               </tbody>
