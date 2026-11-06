@@ -26,7 +26,7 @@ function getLogoHref() {
 const profileMenuItems = [
   { Icon: SettingsIcon,   label: "Log In",               href: "/login" },
   { Icon: SettingsIcon,   label: "Sign Up",               href: "/signup/role-selection" },
-  { Icon: StarIcon,       label: "Become a Host",         href: "/signup/host" },
+  { Icon: StarIcon,       label: "Become a Provider",     href: "/signup/role-selection" },
   null,
   { Icon: CreditCardIcon, label: "Ask Funsival",          href: "#" },
   { Icon: StarIcon,       label: "How Funsival Works",    href: "#" },
@@ -44,8 +44,16 @@ export default function LandingNavbar() {
   const [logoHref, setLogoHref] = useState("/");
   const profileRef = useRef(null);
 
+  const scrollToSection = (event, sectionId) => {
+    event.preventDefault();
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   useEffect(() => {
     setLogoHref(getLogoHref());
+    if (window.location.hash) {
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}`);
+    }
   }, []);
 
   useEffect(() => {
@@ -59,9 +67,9 @@ export default function LandingNavbar() {
   }, []);
 
   return (
-    <header className="absolute top-0 left-0 right-0 z-50 w-full">
+    <header className="landing-navbar absolute top-0 left-0 right-0 z-50 w-full">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px]">
-        <div className="flex items-center justify-between h-16 md:h-20 gap-2">
+        <div className="landing-navbar-inner flex items-center justify-between h-16 md:h-20 gap-2">
           {/* Logo */}
           <Link href={logoHref} className="flex items-center gap-1 sm:gap-2 shrink-0">
             <Image
@@ -73,13 +81,18 @@ export default function LandingNavbar() {
             />
           </Link>
 
+          <nav className="landing-nav-links" aria-label="Main navigation">
+            <a href="#browse-by-adventure" onClick={(event) => scrollToSection(event, "browse-by-adventure")}>Explore</a>
+            <a href="#how-it-works" onClick={(event) => scrollToSection(event, "how-it-works")}>How it works</a>
+            <Link href="/signup/role-selection">Become a provider</Link>
+          </nav>
+
           {/* Right side */}
           <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Book Now — desktop only */}
-            <Link href="/signup/role-selection" className="hidden md:block shrink-0">
-              <button className="px-5 py-2 bg-[#FEB538] hover:bg-[#e0b430] text-gray-900  rounded-full text-sm transition-colors duration-200 whitespace-nowrap">
-                Book Your Jump
-              </button>
+            {/* Login and sign-up actions */}
+            <Link href="/login" className="landing-login hidden md:block shrink-0">Login</Link>
+            <Link href="/signup/role-selection" className="landing-signup hidden md:block shrink-0 px-5 py-2 bg-[#FEB538] hover:bg-[#e0b430] text-gray-900 rounded-full text-sm transition-colors duration-200 whitespace-nowrap">
+              Sign Up
             </Link>
 
             {/* Hamburger — mobile only */}
@@ -109,7 +122,10 @@ export default function LandingNavbar() {
                         key={item.label}
                         href={item.href}
                         className={`flex items-center gap-3 px-5 py-3 text-sm transition-colors ${item.admin ? "text-[#228E8A] hover:bg-[#EBF6F6]" : "text-gray-800 hover:bg-gray-50"}`}
-                        onClick={() => setProfileOpen(false)}
+                        onClick={(event) => {
+                          if (item.href === "#") event.preventDefault();
+                          setProfileOpen(false);
+                        }}
                       >
                         <span className={`shrink-0 ${item.admin ? "text-[#228E8A]" : "text-gray-500"}`}><item.Icon size={18} /></span>
                         <span className="font-medium">{item.label}</span>
@@ -126,23 +142,21 @@ export default function LandingNavbar() {
       {/* Mobile menu dropdown — compact, anchored to right */}
       {menuOpen && (
         <>
-          <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMenuOpen(false)} />
-          <div className="absolute top-full right-4 w-52 max-h-[60vh] overflow-y-auto bg-white z-50 md:hidden rounded-2xl border border-gray-100 py-1">
-            {profileMenuItems.map((item, i) =>
-              item === null ? (
-                <div key={i} className="mx-3 my-1 border-t border-gray-100" />
-              ) : (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`flex items-center gap-2.5 px-3 py-2 text-xs transition-colors ${item.admin ? "text-[#228E8A] hover:bg-[#EBF6F6]" : "text-gray-800 hover:bg-gray-50"}`}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <span className={`shrink-0 ${item.admin ? "text-[#228E8A]" : "text-gray-400"}`}><item.Icon size={14} /></span>
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              )
-            )}
+          <div className="landing-mobile-menu-backdrop fixed inset-0 z-40 md:hidden" onClick={() => setMenuOpen(false)} />
+          <div className="landing-mobile-menu absolute left-4 right-4 top-full z-50 md:hidden">
+            <div className="landing-mobile-menu-brand">
+              <Image src={logo} alt="Funsival" width={120} height={36} />
+              <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close menu"><CloseIcon size={22} /></button>
+            </div>
+            <nav aria-label="Mobile navigation">
+              <a href="#browse-by-adventure" onClick={(event) => { scrollToSection(event, "browse-by-adventure"); setMenuOpen(false); }}>Explore</a>
+              <a href="#how-it-works" onClick={(event) => { scrollToSection(event, "how-it-works"); setMenuOpen(false); }}>How it works</a>
+              <Link href="/signup/role-selection" onClick={() => setMenuOpen(false)}>Become a provider</Link>
+            </nav>
+            <div className="landing-mobile-menu-actions">
+              <Link href="/login" onClick={() => setMenuOpen(false)}>Login</Link>
+              <Link href="/signup/role-selection" onClick={() => setMenuOpen(false)}>Sign Up</Link>
+            </div>
           </div>
         </>
       )}
