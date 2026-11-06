@@ -17,6 +17,26 @@ const regionImages = {
 
 export const DEFAULT_DESTINATION_IMAGE = '/images/optimized/newyork.webp';
 
+function imageUrl(value) {
+  if (typeof value === 'string') return value.trim();
+  if (!value || typeof value !== 'object') return '';
+  return imageUrl(value.url ?? value.src ?? value.path ?? value.secure_url ?? value.imageUrl);
+}
+
+// Browse endpoints have used both a plain image URL and populated media objects.
+export function getDestinationPhoto(destination = {}) {
+  const candidates = [
+    destination.image,
+    destination.coverImage,
+    destination.thumbnail,
+    destination.photo,
+    destination.images?.[0],
+    destination.photos?.[0],
+  ];
+  const fromApi = candidates.map(imageUrl).find((url) => /^(https?:\/\/|\/)/i.test(url));
+  return fromApi || getDestinationImage(destination);
+}
+
 function normalize(value) {
   return String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
