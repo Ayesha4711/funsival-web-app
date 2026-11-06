@@ -5,10 +5,7 @@ import Image from "next/image";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/icons";
 
 const SLIDES = [
-  { src: "/images/image.jpg", label: "Adventure outdoors" },
-  { src: "/images/img.png", label: "Featured adventure 1" },
-  { src: "/images/img4.png", label: "Featured adventure 2" },
-  { src: "/images/img5.png", label: "Featured adventure 3" },
+  { src: "/images/landing-hero-skydiving.jpg", label: "Skydiving adventure" },
 ];
 
 export default function HeroSlideshow({ children }) {
@@ -47,7 +44,7 @@ export default function HeroSlideshow({ children }) {
 
   return (
     <div
-      className="relative w-full md:h-[560px] lg:h-[620px]"
+      className="hero-slideshow relative w-full md:h-[560px] lg:h-[620px]"
       role="region"
       aria-roledescription="carousel"
       aria-label="Featured adventures"

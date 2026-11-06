@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/icons';
-import { getDestinationImage } from '@/lib/destinationImages';
+import { getDestinationPhoto } from '@/lib/destinationImages';
 import {
   fetchBrowseDestinations,
   selectBrowseDestinations,
@@ -44,7 +43,7 @@ export default function BrowseByDestination() {
   if (status !== 'loading' && destinations.length === 0 && !isSearchActive) return null;
 
   return (
-    <section id="browse-by-destination" className="py-12 md:py-16 lg:py-20 2xl:py-28 bg-white">
+    <section id="browse-by-destination" className="landing-destinations py-12 md:py-16 lg:py-20 2xl:py-28 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px]">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 md:mb-8">
@@ -98,12 +97,10 @@ export default function BrowseByDestination() {
                       className="relative flex-shrink-0 w-56 sm:w-72 md:w-80 lg:w-auto h-56 sm:h-80 lg:h-96 xl:h-[420px] 2xl:h-[480px] rounded-2xl overflow-hidden cursor-pointer group block bg-gray-100"
                     >
                       {/* Destination Image */}
-                      <Image
-                        src={getDestinationImage(destination)}
+                      <img
+                        src={getDestinationPhoto(destination)}
                         alt=""
-                        fill
-                        sizes="(max-width: 639px) 224px, (max-width: 767px) 288px, (max-width: 1023px) 320px, 25vw"
-                        className="object-cover transition-transform duration-300 group-hover:scale-110"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
 
                       {/* Gradient Overlay */}

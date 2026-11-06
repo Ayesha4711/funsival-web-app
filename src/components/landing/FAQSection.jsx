@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { PlusIcon, MinusIcon } from '@/icons';
+import { PlusIcon, MinusIcon, ArrowUpRightIcon } from '@/icons';
 import { fetchFaqs, selectFaqs, selectFaqsStatus } from '@/store/slices/faqsSlice';
 
 export default function FAQSection({ items }) {
@@ -23,22 +23,25 @@ export default function FAQSection({ items }) {
   if (status !== 'loading' && faqs.length === 0) return null;
 
   return (
-    <section id="frequently-asked-questions" aria-labelledby="faq-heading" className="py-12 md:py-16 lg:py-20 2xl:py-28 bg-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px]">
-        {/* Header */}
-        <h2 id="faq-heading" className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1C1F2E] text-center mb-8 md:mb-14 px-2">
-          Frequently Asked Questions
-        </h2>
+    <section id="frequently-asked-questions" aria-labelledby="faq-heading" className="landing-faq py-12 md:py-16 lg:py-20 2xl:py-28 bg-white">
+      <div className="landing-faq-layout container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 max-w-[1600px]">
+        <div className="landing-faq-intro">
+          <h2 id="faq-heading" className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1C1F2E]">
+            Frequently asked questions
+          </h2>
+          <p>Everything you need to know before your first booking.</p>
+          <a href="mailto:support@funsival.com" className="landing-faq-support"><span><b>Still have questions?</b><small>Our support team replies within a few hours.</small></span><ArrowUpRightIcon size={16} /></a>
+        </div>
 
         {status === 'loading' && faqs.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+          <div className="landing-faq-items grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="rounded-2xl p-5 md:p-6 bg-gray-50 animate-pulse h-16" />
             ))}
           </div>
         ) : (
           /* FAQ Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 items-start">
+          <div className="landing-faq-items grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 items-start">
             {faqs.map((faq) => {
               const id = faq.id ?? faq._id;
               const isOpen = openId === id;
@@ -74,6 +77,7 @@ export default function FAQSection({ items }) {
             })}
           </div>
         )}
+        <a href="mailto:support@funsival.com" className="landing-faq-support landing-faq-support-mobile"><span><b>Still have questions?</b><small>Our support team replies within a few hours.</small></span><ArrowUpRightIcon size={16} /></a>
       </div>
     </section>
   );
