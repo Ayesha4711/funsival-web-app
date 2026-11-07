@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/icons";
-import { fetchBrowseDestinations, selectBrowseDestinations, selectActivities } from "@/store/slices/activitiesSlice";
+import { fetchBrowseDestinations, selectBrowseDestinations } from "@/store/slices/activitiesSlice";
 import { getDestinationPhoto } from "@/lib/destinationImages";
 import axiosInstance from "@/store/axiosInstance";
 
@@ -90,33 +90,53 @@ export default function LandingStorySections() {
 }
 
 function LandingReviews() {
-  const listings = useSelector(selectActivities);
   const [reviews, setReviews] = useState([]);
-  const listingIds = listings.slice(0, 4).map((listing) => listing._id || listing.id).filter(Boolean);
-  const requestKey = listingIds.join(",");
 
   useEffect(() => {
-    const ids = requestKey.split(",").filter(Boolean);
-    if (!ids.length) {
-      setReviews([]);
-      return undefined;
-    }
     let cancelled = false;
-    Promise.all(ids.map(async (listingId) => {
+    const loadReviews = async () => {
       try {
-        const response = await axiosInstance.get(`/reviews/listings/${listingId}?page=1&limit=1`);
-        const payload = response.data?.data ?? response.data;
-        const items = payload?.reviews ?? payload?.items ?? payload?.listingReviews ?? [];
-        return (Array.isArray(items) ? items : []).map((review) => ({ ...review, listingId }));
+        // Load listings independently of the homepage's location/category filters.
+        const firstPageResponse = await axiosInstance.get("/listings/browse?page=1&limit=100");
+        const firstPage = firstPageResponse.data?.data ?? firstPageResponse.data;
+        const listings = firstPage?.listings ?? [];
+        const totalPages = Math.max(1, Number(firstPage?.pagination?.totalPages ?? 1));
+        const remainingPages = await Promise.all(Array.from({ length: totalPages - 1 }, (_, index) =>
+          axiosInstance.get(`/listings/browse?page=${index + 2}&limit=100`)
+            .then((response) => (response.data?.data ?? response.data)?.listings ?? [])
+            .catch(() => [])
+        ));
+        const allListings = [...listings, ...remainingPages.flat()];
+        const listingIds = [...new Set(allListings.map((listing) => listing._id || listing.id).filter(Boolean))];
+        const reviewGroups = [];
+        // Keep the public-page fan-out bounded when the catalog is large.
+        for (let offset = 0; offset < listingIds.length; offset += 10) {
+          const batch = listingIds.slice(offset, offset + 10);
+          const groups = await Promise.all(batch.map(async (listingId) => {
+            try {
+              const response = await axiosInstance.get(`/reviews/listings/${listingId}?page=1&limit=5`);
+              const payload = response.data?.data ?? response.data;
+              const items = payload?.reviews ?? payload?.items ?? payload?.listingReviews ?? [];
+              return (Array.isArray(items) ? items : []).map((review) => ({ ...review, listingId }));
+            } catch {
+              return [];
+            }
+          }));
+          reviewGroups.push(...groups);
+          if (cancelled) return;
+        }
+        const visibleReviews = reviewGroups.flat()
+          .filter((review) => review.comment || review.reviewText || review.message || review.overallRating || review.rating)
+          .sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0))
+          .slice(0, 4);
+        if (!cancelled) setReviews(visibleReviews);
       } catch {
-        return [];
+        if (!cancelled) setReviews([]);
       }
-    })).then((groups) => {
-      if (!cancelled) setReviews(groups.flat().filter((review) => review.comment || review.reviewText || review.message).slice(0, 4));
-    });
+    };
+    loadReviews();
     return () => { cancelled = true; };
-  // requestKey represents the listing ids and prevents fetching on unrelated listing object updates.
-  }, [requestKey]);
+  }, []);
 
   return <section className="landing-reviews-section">
         <div className="landing-reviews-heading"><h2>Adventures worth talking about.</h2><p>See why people use Funsival to discover their next experience.</p></div>
@@ -126,7 +146,7 @@ function LandingReviews() {
           const city = [user.city, user.state].filter(Boolean).join(", ");
           const rating = Number(review.overallRating ?? review.rating ?? 5);
           const comment = review.comment || review.reviewText || review.message;
-          return <article className="landing-review-card" key={review._id || review.id || `${review.listingId}-${index}`}><div className="review-stars" aria-label={`${rating} out of 5 stars`}>{"★".repeat(Math.max(0, Math.min(5, Math.round(rating))))}</div><p>“{comment}”</p><div className="review-author"><span>{name.slice(0, 1)}</span><div><b>{name}</b><small>{city || "Verified guest"}</small></div></div></article>;
+          return <article className="landing-review-card" key={review._id || review.id || `${review.listingId}-${index}`}><div className="review-stars" aria-label={`${rating} out of 5 stars`}>{"★".repeat(Math.max(0, Math.min(5, Math.round(rating))))}</div>{comment && <p>“{comment}”</p>}<div className="review-author"><span>{name.slice(0, 1)}</span><div><b>{name}</b><small>{city || "Verified guest"}</small></div></div></article>;
         })}</div> : <p className="landing-reviews-empty">Guest reviews will appear here after the first adventures are reviewed.</p>}
       </section>;
 }
